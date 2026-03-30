@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>힌지모멘트 계산기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #f5f5f7;
+    --surface:   #ffffff;
+    --surface2:  #f5f5f7;
+    --surface3:  #e8e8ed;
+    --border:    rgba(0,0,0,0.08);
+    --border2:   rgba(0,0,0,0.12);
+    --accent:    #0071e3;
+    --text:      #1d1d1f;
+    --text2:     #6e6e73;
+    --text3:     #aeaeb2;
+    --success:   #34c759;
+    --warn:      #ff9f0a;
+    --danger:    #ff3b30;
+    --radius:    10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 28px;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .header { margin-bottom: 24px; }
+  .header-eyebrow {
+    font-size: 11px; font-weight: 500; color: var(--accent);
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .header h1 {
+    font-size: 24px; font-weight: 500; color: var(--text);
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+  .header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  /* KPI */
+  .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi {
+    background: var(--surface); border-radius: var(--radius-lg);
+    padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .kpi-label { font-size: 11px; font-weight: 500; color: var(--text2); letter-spacing: .01em; margin-bottom: 8px; }
+  .kpi-val {
+    font-size: 28px; font-weight: 300; color: var(--text);
+    line-height: 1; letter-spacing: -0.03em; margin-bottom: 6px;
+  }
+  .kpi-val .unit { font-size: 13px; font-weight: 400; color: var(--text3); margin-left: 3px; }
+  .kpi-sub { font-size: 12px; color: var(--text2); }
+  .kpi-primary .kpi-val { color: var(--accent); }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+  .badge-low { background: rgba(52,199,89,0.12);  color: #1a7a33; }
+  .badge-mid { background: rgba(255,159,10,0.12); color: #9a5d00; }
+  .badge-hi  { background: rgba(255,59,48,0.12);  color: #c0150a; }
+
+  /* LAYOUT */
+  .main { display: grid; grid-template-columns: 300px 1fr; gap: 14px; align-items: start; }
+
+  .panel { background: var(--surface); border-radius: var(--radius-xl); padding: 20px; box-shadow: var(--shadow); }
+  .panel + .panel { margin-top: 12px; }
+  .panel-title {
+    font-size: 11px; font-weight: 600; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;
+  }
+
+  /* PARAM BLOCK: slider + number input */
+  .param-block { margin-bottom: 18px; }
+  .param-block:last-child { margin-bottom: 0; }
+  .param-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .param-name { font-size: 13px; color: var(--text); }
+  .param-input-wrap {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 3px 8px 3px 10px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .param-input-wrap:focus-within {
+    border-color: var(--accent); background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
+  }
+  .param-input-wrap input[type=number] {
+    width: 58px; border: none; outline: none; background: transparent;
+    font-size: 13px; font-weight: 500; color: var(--text); text-align: right;
+    font-family: inherit; -moz-appearance: textfield;
+  }
+  .param-input-wrap input[type=number]::-webkit-inner-spin-button,
+  .param-input-wrap input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .param-unit { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+  /* Range slider */
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+    border-radius: 2px; outline: none; border: none; cursor: pointer;
+    background: linear-gradient(to right, var(--accent) var(--pct, 26%), var(--surface3) var(--pct, 26%));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; border: none; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.1);
+    transition: transform .1s, box-shadow .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.22), 0 0 0 0.5px rgba(0,0,0,0.12);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%; background: #fff; border: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  }
+
+  /* COEF FIELDS */
+  .coef-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .coef-field label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 5px; }
+  .coef-field input,
+  .coef-field select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; color: var(--text); font-size: 13px; padding: 7px 10px;
+    outline: none; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s; -moz-appearance: textfield;
+  }
+  .coef-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .coef-field input:focus, .coef-field select:focus {
+    border-color: var(--accent); background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
+  }
+  .coef-field select { -webkit-appearance: none; cursor: pointer; }
+
+  /* DETAIL LIST */
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .detail-list { margin-top: 4px; }
+  .dl-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .dl-row:last-child { border-bottom: none; }
+  .dl-key { color: var(--text2); }
+  .dl-val { font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* RIGHT */
+  .right-col { display: flex; flex-direction: column; gap: 12px; }
+
+  /* TABS */
+  .tab-row {
+    display: flex; gap: 2px; margin-bottom: 16px;
+    background: var(--surface2); border-radius: 9px; padding: 2px;
+  }
+  .tab {
+    flex: 1; font-size: 12px; font-weight: 500; padding: 6px 10px;
+    border-radius: 7px; border: none; background: transparent;
+    color: var(--text2); cursor: pointer; transition: all .15s;
+    font-family: inherit; text-align: center;
+  }
+  .tab.on {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.06);
+  }
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* FORMULA */
+  .formula-bar {
+    background: var(--surface); border-radius: var(--radius-lg);
+    padding: 14px 20px; box-shadow: var(--shadow);
+    display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  }
+  .formula-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; }
+  .formula-eq { font-size: 12px; color: var(--text2); font-family: 'SF Mono', 'Fira Code', monospace; }
+  .formula-eq code { color: var(--accent); font-family: inherit; }
+  .fsep { color: var(--text3); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">Control Surface Aerodynamics</div>
+  <h1>힌지모멘트 계산기</h1>
+  <p>조종면 공력부하 및 힌지모멘트 실시간 산출</p>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi kpi-primary">
+    <div class="kpi-label">힌지모멘트 H</div>
+    <div class="kpi-val" id="k-hm">—<span class="unit">N·m</span></div>
+    <div class="kpi-sub" id="k-regime">—</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">동압 q</div>
+    <div class="kpi-val" id="k-q">—<span class="unit">Pa</span></div>
+    <div class="kpi-sub" id="k-mach">Mach —</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">C<sub>H</sub> 합산</div>
+    <div class="kpi-val" id="k-ch">—</div>
+    <div class="kpi-sub" id="k-load">공력부하 — N</div>
+  </div>
+</div>
+
+<div class="main">
+  <div>
+    <div class="panel">
+      <div class="panel-title">입력 파라미터</div>
+
+      <div class="param-block">
+        <div class="param-header">
+          <span class="param-name">조종면 면적 S<sub>f</sub></span>
+          <div class="param-input-wrap">
+            <input type="number" id="n-area" min="0.01" max="5" step="0.01" value="0.50">
+            <span class="param-unit">m²</span>
+          </div>
+        </div>
+        <input type="range" id="s-area" min="0.01" max="5" step="0.01" value="0.5">
+      </div>
+
+      <div class="param-block">
+        <div class="param-header">
+          <span class="param-name">에어스피드 V</span>
+          <div class="param-input-wrap">
+            <input type="number" id="n-spd" min="1" max="300" step="1" value="80">
+            <span class="param-unit">m/s</span>
+          </div>
+        </div>
+        <input type="range" id="s-spd" min="1" max="300" step="1" value="80">
+      </div>
+
+      <div class="param-block">
+        <div class="param-header">
+          <span class="param-name">편향각 δ</span>
+          <div class="param-input-wrap">
+            <input type="number" id="n-def" min="-30" max="30" step="0.5" value="10">
+            <span class="param-unit">°</span>
+          </div>
+        </div>
+        <input type="range" id="s-def" min="-30" max="30" step="0.5" value="10">
+      </div>
+
+      <div class="param-block">
+        <div class="param-header">
+          <span class="param-name">평균 공력 시위 c̄</span>
+          <div class="param-input-wrap">
+            <input type="number" id="n-mac" min="0.05" max="3" step="0.01" value="0.40">
+            <span class="param-unit">m</span>
+          </div>
+        </div>
+        <input type="range" id="s-mac" min="0.05" max="3" step="0.01" value="0.4">
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <div class="panel-title">C<sub>H</sub> 계수 · 비행 조건</div>
+      <div class="coef-grid">
+        <div class="coef-field">
+          <label>C<sub>H,δ</sub> (편향각)</label>
+          <input type="number" id="f-chd" value="-0.005" step="0.0001">
+        </div>
+        <div class="coef-field">
+          <label>C<sub>H,α</sub> (받음각)</label>
+          <input type="number" id="f-cha" value="-0.003" step="0.0001">
+        </div>
+        <div class="coef-field">
+          <label>받음각 α (°)</label>
+          <input type="number" id="f-alpha" value="5" step="0.5" min="-20" max="20">
+        </div>
+        <div class="coef-field">
+          <label>고도 프리셋</label>
+          <select id="f-alt">
+            <option value="1.225">해면고도</option>
+            <option value="1.007">1,000 m</option>
+            <option value="0.819" selected>3,000 m</option>
+            <option value="0.736">4,000 m</option>
+            <option value="0.601">6,000 m</option>
+            <option value="0.412">9,000 m</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="panel-title" style="margin-bottom:8px">중간 계산값</div>
+      <div class="detail-list">
+        <div class="dl-row"><span class="dl-key">밀도 ρ</span><span class="dl-val" id="d-rho">—</span></div>
+        <div class="dl-row"><span class="dl-key">q = ½ρV²</span><span class="dl-val" id="d-q">—</span></div>
+        <div class="dl-row"><span class="dl-key">C<sub>H,δ</sub> · δ</span><span class="dl-val" id="d-chd">—</span></div>
+        <div class="dl-row"><span class="dl-key">C<sub>H,α</sub> · α</span><span class="dl-val" id="d-cha">—</span></div>
+        <div class="dl-row"><span class="dl-key">C<sub>H</sub> 합산</span><span class="dl-val" id="d-ch">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-col">
+    <div class="panel">
+      <div class="tab-row">
+        <button class="tab on" id="tb-spd"  onclick="setTab('spd')">속도 vs H</button>
+        <button class="tab"    id="tb-def"  onclick="setTab('def')">편향각 vs H</button>
+        <button class="tab"    id="tb-area" onclick="setTab('area')">면적 vs H</button>
+      </div>
+      <div class="chart-wrap"><canvas id="hmChart"></canvas></div>
+    </div>
+
+    <div class="formula-bar">
+      <span class="formula-label">공식</span>
+      <span class="formula-eq"><code>H = C<sub>H</sub> × q × S<sub>f</sub> × c̄</code></span>
+      <span class="fsep">·</span>
+      <span class="formula-eq"><code>q = ½ρV²</code></span>
+      <span class="fsep">·</span>
+      <span class="formula-eq"><code>C<sub>H</sub> = C<sub>H,δ</sub>·δ + C<sub>H,α</sub>·α</code></span>
+    </div>
+  </div>
+</div>
+
+<script>
+let tab = 'spd', chart = null;
+
+const pairs = [
+  ['s-area', 'n-area'],
+  ['s-spd',  'n-spd' ],
+  ['s-def',  'n-def' ],
+  ['s-mac',  'n-mac' ],
+];
+
+function updatePct(el) {
+  const min = +el.min, max = +el.max, val = +el.value;
+  el.style.setProperty('--pct', ((val - min) / (max - min) * 100).toFixed(1) + '%');
+}
+
+pairs.forEach(([sid, nid]) => {
+  const sl = document.getElementById(sid);
+  const ni = document.getElementById(nid);
+  sl.addEventListener('input', () => { ni.value = sl.value; updatePct(sl); update(); });
+  ni.addEventListener('input', () => {
+    const v = Math.min(+ni.max, Math.max(+ni.min, +ni.value));
+    sl.value = v; updatePct(sl); update();
+  });
+  updatePct(sl);
+});
+
+function inp() {
+  return {
+    S:   +document.getElementById('s-area').value,
+    V:   +document.getElementById('s-spd').value,
+    d:   +document.getElementById('s-def').value,
+    mac: +document.getElementById('s-mac').value,
+    chd: +document.getElementById('f-chd').value,
+    cha: +document.getElementById('f-cha').value,
+    al:  +document.getElementById('f-alpha').value,
+    rho: +document.getElementById('f-alt').value,
+  };
+}
+
+function calc(S, V, d, mac, chd, cha, al, rho) {
+  const q  = 0.5 * rho * V * V;
+  const dr = d  * Math.PI / 180;
+  const ar = al * Math.PI / 180;
+  const CH = chd * dr + cha * ar;
+  return { q, CH, H: CH * q * S * mac, load: q * S, mach: V / 340.3, chd_t: chd * dr, cha_t: cha * ar };
+}
+
+function regime(m) {
+  if (m < 0.3) return ['저속 아음속', 'low'];
+  if (m < 0.8) return ['고속 아음속', 'mid'];
+  if (m < 1.2) return ['천음속',      'mid'];
+  return             ['초음속',        'hi'];
+}
+
+function update() {
+  const p = inp(), r = calc(p.S, p.V, p.d, p.mac, p.chd, p.cha, p.al, p.rho);
+  const [rt, rc] = regime(r.mach);
+
+  document.getElementById('k-hm').innerHTML     = r.H.toFixed(2) + '<span class="unit">N·m</span>';
+  document.getElementById('k-regime').innerHTML  = `<span class="badge badge-${rc}">${rt}</span>`;
+  document.getElementById('k-q').innerHTML       = r.q.toFixed(1) + '<span class="unit">Pa</span>';
+  document.getElementById('k-mach').textContent  = 'Mach ' + r.mach.toFixed(3);
+  document.getElementById('k-ch').textContent    = r.CH.toFixed(5);
+  document.getElementById('k-load').textContent  = '공력부하 ' + r.load.toFixed(1) + ' N';
+  document.getElementById('d-rho').textContent   = p.rho + ' kg/m³';
+  document.getElementById('d-q').textContent     = r.q.toFixed(2) + ' Pa';
+  document.getElementById('d-chd').textContent   = r.chd_t.toFixed(6);
+  document.getElementById('d-cha').textContent   = r.cha_t.toFixed(6);
+  document.getElementById('d-ch').textContent    = r.CH.toFixed(6);
+
+  drawChart();
+}
+
+function setTab(t) {
+  tab = t;
+  ['spd','def','area'].forEach(x => document.getElementById('tb-'+x).classList.toggle('on', x===t));
+  drawChart();
+}
+
+function drawChart() {
+  const p = inp();
+  let labels = [], data = [], xl = '';
+  if (tab === 'spd') {
+    for (let v = 0; v <= 300; v += 5) { labels.push(v); data.push(+calc(p.S,v,p.d,p.mac,p.chd,p.cha,p.al,p.rho).H.toFixed(3)); }
+    xl = '에어스피드 (m/s)';
+  } else if (tab === 'def') {
+    for (let d = -30; d <= 30; d += 1) { labels.push(d); data.push(+calc(p.S,p.V,d,p.mac,p.chd,p.cha,p.al,p.rho).H.toFixed(3)); }
+    xl = '편향각 δ (°)';
+  } else {
+    for (let a = 0.05; a <= 5; a += 0.1) { labels.push(a.toFixed(1)); data.push(+calc(a,p.V,p.d,p.mac,p.chd,p.cha,p.al,p.rho).H.toFixed(3)); }
+    xl = '면적 (m²)';
+  }
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('hmChart').getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets: [{ label:'H (N·m)', data, borderColor:'#0071e3', backgroundColor:'rgba(0,113,227,0.06)', borderWidth:1.5, pointRadius:0, tension:0.35, fill:true }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor:'#fff', borderColor:'rgba(0,0,0,0.1)', borderWidth:1,
+          titleColor:'#6e6e73', bodyColor:'#1d1d1f', padding:10, cornerRadius:8,
+          titleFont:{ family:'-apple-system,Helvetica Neue', size:11 },
+          bodyFont:{ family:'-apple-system,Helvetica Neue', size:12, weight:'500' },
+          callbacks:{ label: c => ' H = ' + (+c.raw).toFixed(3) + ' N·m' }
+        }
+      },
+      scales: {
+        x: { title:{ display:true, text:xl, font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, ticks:{ maxTicksLimit:8, font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, grid:{ color:'rgba(0,0,0,0.04)' }, border:{ color:'rgba(0,0,0,0.08)' } },
+        y: { title:{ display:true, text:'H (N·m)', font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, ticks:{ font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, grid:{ color:'rgba(0,0,0,0.04)' }, border:{ color:'rgba(0,0,0,0.08)' } }
+      }
+    }
+  });
+}
+
+['f-chd','f-cha','f-alpha','f-alt'].forEach(id => {
+  document.getElementById(id).addEventListener('input', update);
+  document.getElementById(id).addEventListener('change', update);
+});
+
+update();
+</script>
+</body>
+</html>

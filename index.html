@@ -3,1634 +3,451 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>항공기구 해석 도구</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<title>Engineering Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════
-   GLOBAL RESET & TOKENS
-═══════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:        #f5f5f7;
-  --surface:   #ffffff;
-  --surface2:  #f5f5f7;
-  --surface3:  #e8e8ed;
-  --border:    rgba(0,0,0,0.08);
-  --border2:   rgba(0,0,0,0.05);
-  --accent:    #0071e3;
-  --text:      #1d1d1f;
-  --text2:     #6e6e73;
-  --text3:     #aeaeb2;
-  --success:   #34c759;
-  --warn:      #ff9f0a;
-  --danger:    #ff3b30;
-  --radius:    10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-
-  /* 4-bar link colors */
-  --crank:    #0071e3;
-  --coupler:  #bf5af2;
-  --follower: #ff453a;
-  --ground:   #8e8e93;
-  --joint:    #32d74b;
+  --bg: #f5f5f7;
+  --surface: rgba(255,255,255,0.85);
+  --border: rgba(0,0,0,0.08);
+  --text: #1d1d1f;
+  --text2: #6e6e73;
+  --text3: #aeaeb2;
+  --blue: #0071e3;
+  --blue-hover: #0077ed;
+  --blue-light: rgba(0,113,227,0.08);
+  --purple: #bf5af2;
+  --green: #32d74b;
+  --orange: #ff9f0a;
+  --shadow-card: 0 2px 20px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 8px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06);
+  --radius: 20px;
+  --radius-sm: 12px;
 }
 
-html, body { height: 100%; }
+html { scroll-behavior: smooth; }
 
 body {
-  font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  font-size: 13px;
   -webkit-font-smoothing: antialiased;
-  display: flex;
-  flex-direction: column;
 }
 
-/* ═══════════════════════════════════════════
-   NAV BAR
-═══════════════════════════════════════════ */
-.app-nav {
-  height: 56px;
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 28px;
-  gap: 20px;
+/* ── Nav ── */
+nav {
   position: sticky;
   top: 0;
   z-index: 100;
-  flex-shrink: 0;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: rgba(245,245,247,0.85);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-right: 8px;
+  text-decoration: none;
 }
 
-.nav-icon {
-  width: 32px; height: 32px;
-  background: linear-gradient(145deg, #0071e3, #34aadc);
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,113,227,0.3);
-}
-
-.nav-icon svg { width: 17px; height: 17px; }
-
-.nav-title {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  color: var(--text);
-}
-
-.nav-sep {
-  width: 1px; height: 22px;
-  background: var(--border);
-}
-
-/* Tab switcher */
-.nav-tabs {
-  display: flex;
-  background: rgba(118,118,128,0.12);
-  border-radius: 10px;
-  padding: 2px;
-  gap: 1px;
-}
-
-.nav-tab {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 18px;
+.nav-brand .brand-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--blue);
   border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--text2);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.25,0.46,0.45,0.94);
-  letter-spacing: -0.1px;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.nav-tab.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.08);
-}
-
-.nav-tab-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* ═══════════════════════════════════════════
-   PAGE CONTAINER
-═══════════════════════════════════════════ */
-.page {
-  display: none;
-  flex: 1;
-}
-.page.active { display: flex; flex-direction: column; }
-
-/* ═══════════════════════════════════════════
-   ── PAGE 1: HINGE MOMENT ──
-═══════════════════════════════════════════ */
-#page-hm {
-  padding: 28px 28px 40px;
-  overflow-y: auto;
-}
-
-.hm-header { margin-bottom: 22px; }
-.header-eyebrow {
-  font-size: 11px; font-weight: 500; color: var(--accent);
-  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px;
-}
-.hm-header h2 {
-  font-size: 24px; font-weight: 500; color: var(--text);
-  letter-spacing: -0.02em; line-height: 1.2;
-}
-.hm-header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
-
-/* KPI */
-.kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-.kpi {
-  background: var(--surface); border-radius: var(--radius-lg);
-  padding: 18px 20px; box-shadow: var(--shadow);
-}
-.kpi-label { font-size: 11px; font-weight: 500; color: var(--text2); letter-spacing: .01em; margin-bottom: 8px; }
-.kpi-val {
-  font-size: 28px; font-weight: 300; color: var(--text);
-  line-height: 1; letter-spacing: -0.03em; margin-bottom: 6px;
-}
-.kpi-val .unit { font-size: 13px; font-weight: 400; color: var(--text3); margin-left: 3px; }
-.kpi-sub { font-size: 12px; color: var(--text2); }
-.kpi-primary .kpi-val { color: var(--accent); }
-
-.badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
-.badge-low { background: rgba(52,199,89,0.12);  color: #1a7a33; }
-.badge-mid { background: rgba(255,159,10,0.12); color: #9a5d00; }
-.badge-hi  { background: rgba(255,59,48,0.12);  color: #c0150a; }
-
-.hm-main { display: grid; grid-template-columns: 300px 1fr; gap: 14px; align-items: start; }
-.panel { background: var(--surface); border-radius: var(--radius-xl); padding: 20px; box-shadow: var(--shadow); }
-.panel + .panel { margin-top: 12px; }
-.panel-title {
-  font-size: 11px; font-weight: 600; color: var(--text2);
-  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;
-}
-
-.param-block { margin-bottom: 18px; }
-.param-block:last-child { margin-bottom: 0; }
-.param-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.param-name { font-size: 13px; color: var(--text); }
-.param-input-wrap {
-  display: flex; align-items: center; gap: 4px;
-  background: var(--surface2); border: 1px solid rgba(0,0,0,0.12);
-  border-radius: 8px; padding: 3px 8px 3px 10px;
-  transition: border-color .15s, box-shadow .15s;
-}
-.param-input-wrap:focus-within {
-  border-color: var(--accent); background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
-}
-.param-input-wrap input[type=number] {
-  width: 58px; border: none; outline: none; background: transparent;
-  font-size: 13px; font-weight: 500; color: var(--text); text-align: right;
-  font-family: inherit; -moz-appearance: textfield;
-}
-.param-input-wrap input[type=number]::-webkit-inner-spin-button,
-.param-input-wrap input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
-.param-unit { font-size: 11px; color: var(--text3); white-space: nowrap; }
-
-input[type=range] {
-  -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
-  border-radius: 2px; outline: none; border: none; cursor: pointer;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
-  background: #fff; border: none; cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.1);
-  transition: transform .1s, box-shadow .15s;
-}
-input[type=range]::-webkit-slider-thumb:hover {
-  transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.22);
-}
-input[type=range]::-moz-range-thumb {
-  width: 18px; height: 18px; border-radius: 50%; background: #fff; border: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-}
-
-.hm-range {
-  background: linear-gradient(to right, var(--accent) var(--pct, 26%), var(--surface3) var(--pct, 26%));
-}
-
-.coef-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.coef-field label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 5px; }
-.coef-field input, .coef-field select {
-  width: 100%; background: var(--surface2); border: 1px solid rgba(0,0,0,0.12);
-  border-radius: 8px; color: var(--text); font-size: 13px; padding: 7px 10px;
-  outline: none; font-family: inherit; transition: border-color .15s, box-shadow .15s;
-  -moz-appearance: textfield;
-}
-.coef-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
-.coef-field input:focus, .coef-field select:focus {
-  border-color: var(--accent); background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
-}
-.coef-field select { -webkit-appearance: none; cursor: pointer; }
-
-.divider { height: 1px; background: var(--border); margin: 16px 0; }
-.detail-list { margin-top: 4px; }
-.dl-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-.dl-row:last-child { border-bottom: none; }
-.dl-key { color: var(--text2); }
-.dl-val { font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
-
-.right-col { display: flex; flex-direction: column; gap: 12px; }
-
-.tab-row {
-  display: flex; gap: 2px; margin-bottom: 16px;
-  background: var(--surface2); border-radius: 9px; padding: 2px;
-}
-.tab {
-  flex: 1; font-size: 12px; font-weight: 500; padding: 6px 10px;
-  border-radius: 7px; border: none; background: transparent;
-  color: var(--text2); cursor: pointer; transition: all .15s;
-  font-family: inherit; text-align: center;
-}
-.tab.on {
-  background: var(--surface); color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-.chart-wrap { position: relative; height: 240px; }
-
-.formula-bar {
-  background: var(--surface); border-radius: var(--radius-lg);
-  padding: 14px 20px; box-shadow: var(--shadow);
-  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
-}
-.formula-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; }
-.formula-eq { font-size: 12px; color: var(--text2); font-family: 'SF Mono', 'Fira Code', monospace; }
-.formula-eq code { color: var(--accent); font-family: inherit; }
-.fsep { color: var(--text3); }
-
-/* ═══════════════════════════════════════════
-   ── PAGE 2: 4-BAR LINKAGE ──
-═══════════════════════════════════════════ */
-#page-4bl {
-  flex: 1;
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-#page-4bl.active { display: flex; }
-
-/* Sub-titlebar inside page */
-.sub-titlebar {
-  height: 48px;
-  background: rgba(255,255,255,0.8);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
-}
-
-.sub-titlebar-left { display: flex; align-items: center; gap: 8px; }
-.sub-app-name { font-size: 14px; font-weight: 500; color: var(--text2); }
-
-.seg-ctrl {
-  display: flex;
-  background: rgba(118,118,128,0.12);
-  border-radius: 9px;
-  padding: 2px;
-  gap: 1px;
-}
-.seg-btn {
-  padding: 5px 16px; border-radius: 7px; border: none;
-  background: transparent; color: var(--text2);
-  font-size: 12px; font-weight: 500; cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
-  letter-spacing: -0.1px; white-space: nowrap; font-family: inherit;
-}
-.seg-btn.active {
-  background: #fff; color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.08);
-}
-
-.g-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; transition: all 0.3s; }
-.g-badge.ok  { background: rgba(50,215,75,.12);  color: #1a8c2a; }
-.g-badge.no  { background: rgba(255,159,10,.12); color: #a05800; }
-
-.bl-workspace { display: flex; flex: 1; overflow: hidden; }
-
-/* Sidebar */
-.bl-sidebar {
-  width: 268px; min-width: 200px; max-width: 480px; flex-shrink: 0;
-  background: rgba(255,255,255,0.72);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  display: flex; flex-direction: column;
-  overflow-y: auto; overflow-x: hidden;
-}
-.bl-sidebar::-webkit-scrollbar { width: 0; }
-
-.bl-resizer {
-  width: 8px; flex-shrink: 0; background: transparent;
-  position: relative; cursor: col-resize;
-  display: flex; align-items: center; justify-content: center;
-  z-index: 5; transition: background 0.15s;
-}
-.bl-resizer:hover, .bl-resizer.dragging { background: rgba(0,113,227,0.04); }
-.bl-resizer-line {
-  position: absolute; left: 3px; top: 0; bottom: 0; width: 1px;
-  background: var(--border); transition: background 0.15s, width 0.15s, left 0.15s;
-}
-.bl-resizer:hover .bl-resizer-line, .bl-resizer.dragging .bl-resizer-line {
-  left: 2px; width: 3px; background: var(--accent); border-radius: 2px;
-}
-.bl-resizer-handle {
-  width: 20px; height: 32px; background: rgba(255,255,255,0.92);
-  border: 1px solid var(--border); border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text3); box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  opacity: 0; transition: opacity 0.15s, color 0.15s, box-shadow 0.15s;
-  pointer-events: none; position: relative; z-index: 1;
-}
-.bl-resizer:hover .bl-resizer-handle, .bl-resizer.dragging .bl-resizer-handle {
-  opacity: 1; color: var(--accent); box-shadow: 0 2px 8px rgba(0,113,227,0.15);
-}
-
-.s-sec { padding: 18px 16px 14px; border-bottom: 1px solid var(--border2); }
-.s-title {
-  font-size: 11px; font-weight: 600; color: var(--text2);
-  letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 12px;
-}
-
-.link-card {
-  display: flex; align-items: center; background: rgba(255,255,255,0.9);
-  border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; gap: 10px;
-  transition: box-shadow 0.15s; border: 1px solid var(--border2);
-}
-.link-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.link-pip { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.link-meta { flex: 1; min-width: 0; }
-.link-name { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 1px; }
-.link-sub { font-size: 10px; color: var(--text3); }
-.link-field {
-  display: flex; align-items: center;
-  background: rgba(118,118,128,0.08); border-radius: 7px;
-  overflow: hidden; border: 1px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
-}
-.link-field:focus-within { border-color: var(--accent); background: rgba(0,113,227,0.04); }
-.link-field input[type=number] {
-  width: 52px; background: transparent; border: none; outline: none;
-  padding: 5px 7px; font-size: 13px; font-weight: 500; color: var(--text);
-  text-align: right; font-variant-numeric: tabular-nums;
-}
-.link-field input::-webkit-inner-spin-button { opacity: 0; }
-.link-field .u { padding: 5px 7px 5px 2px; font-size: 11px; color: var(--text3); }
-
-.angle-card {
-  background: rgba(255,255,255,0.9); border-radius: 12px;
-  padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--border2);
-}
-.angle-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.angle-label { font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: -0.2px; }
-.angle-sym { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-right: 5px; }
-.angle-readout { font-size: 20px; font-weight: 300; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
-
-input[type=range].sl-t4 { background: linear-gradient(to right, var(--follower) 0%, var(--follower) var(--pct,17%), rgba(0,0,0,0.1) var(--pct,17%)); }
-input[type=range].sl-t2 { background: linear-gradient(to right, var(--crank) 0%, var(--crank) var(--pct,0%), rgba(0,0,0,0.1) var(--pct,0%)); }
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
-  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05);
-  cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
-}
-input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.08); }
-input[type=range]:active::-webkit-slider-thumb { transform: scale(0.95); }
-
-.angle-num-row { display: flex; align-items: center; gap: 6px; }
-.angle-num-field {
-  flex: 1; display: flex; align-items: center;
-  background: rgba(118,118,128,0.08); border-radius: 8px;
-  border: 1px solid transparent; overflow: hidden;
-  transition: border-color 0.15s, background 0.15s;
-}
-.angle-num-field:focus-within { border-color: var(--accent); background: rgba(0,113,227,0.04); }
-.angle-num-field input[type=number] {
-  flex: 1; background: transparent; border: none; outline: none;
-  padding: 7px 10px; font-size: 14px; font-weight: 400; color: var(--text);
-  font-variant-numeric: tabular-nums; min-width: 0;
-}
-.angle-num-field input::-webkit-inner-spin-button { opacity: 0; }
-.angle-num-field .deg-tag { padding: 7px 10px 7px 4px; font-size: 13px; color: var(--text3); }
-
-.result-card {
-  background: rgba(255,255,255,0.9); border-radius: 12px;
-  padding: 14px; border: 1px solid var(--border2); margin-bottom: 6px;
-}
-.result-label {
-  font-size: 11px; font-weight: 500; color: var(--text2);
-  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px;
-}
-.result-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-.result-key { font-size: 13px; color: var(--text2); }
-.result-val { font-size: 17px; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
-.result-divider { height: 1px; background: var(--border2); margin: 6px 0; }
-
-.no-sol-banner {
-  display: none; background: rgba(255,159,10,0.1);
-  border: 1px solid rgba(255,159,10,0.2); border-radius: 8px;
-  padding: 8px 12px; font-size: 12px; color: #a05800;
-  font-weight: 500; margin-top: 6px;
-}
-
-.help-list { padding: 16px; }
-.help-item { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border2); }
-.help-item:last-child { border-bottom: none; }
-.help-icon {
-  width: 28px; height: 28px; background: rgba(118,118,128,0.1);
-  border-radius: 7px; display: flex; align-items: center;
-  justify-content: center; font-size: 13px; flex-shrink: 0;
-}
-.help-text { font-size: 12px; color: var(--text2); line-height: 1.55; padding-top: 4px; }
-.help-text b { color: var(--text); font-weight: 500; }
-
-.bl-canvas-area { flex: 1; position: relative; overflow: hidden; background: #f5f5f7; }
-canvas#cv { display: block; width: 100%; height: 100%; cursor: crosshair; }
-canvas#cv.drag  { cursor: grabbing; }
-canvas#cv.hover { cursor: grab; }
-
-.bl-overlay {
-  position: absolute; bottom: 20px; right: 20px;
-  display: flex; flex-direction: column; align-items: flex-end;
-  gap: 6px; pointer-events: none;
-}
-.f-chip {
-  display: flex; align-items: center; gap: 8px; padding: 7px 14px;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(0,0,0,0.07); border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 12px;
-  font-weight: 500; color: var(--text); white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.f-dot { width: 7px; height: 7px; border-radius: 50%; }
-
-.drag-hint {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-  background: rgba(255,255,255,0.88); backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.07);
-  border-radius: 20px; padding: 7px 18px; font-size: 12px; font-weight: 400;
-  color: var(--text2); pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  white-space: nowrap; animation: fadeUpPulse 3s ease infinite; transition: opacity 0.5s;
-}
-@keyframes fadeUpPulse {
-  0%,100% { opacity: 0.6; transform: translateX(-50%) translateY(0); }
-  50%      { opacity: 1;   transform: translateX(-50%) translateY(-1px); }
-}
-
-/* ═══════════════════════════════════════════
-   HOME / LANDING PAGE
-═══════════════════════════════════════════ */
-#page-home {
-  flex: 1;
-  display: none;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 28px 64px;
-  background: var(--bg);
-  overflow-y: auto;
 }
-#page-home.active { display: flex; }
 
-.home-hero {
+.nav-brand .brand-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: white;
+}
+
+.nav-brand span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+.nav-count {
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* ── Hero ── */
+.hero {
   text-align: center;
-  margin-bottom: 52px;
-  animation: heroFadeIn 0.5s ease both;
-}
-@keyframes heroFadeIn {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+  padding: 72px 24px 56px;
 }
 
-.home-eyebrow {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 500; color: var(--accent);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  background: rgba(0,113,227,0.08); border-radius: 20px;
-  padding: 4px 14px; margin-bottom: 20px;
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue-light);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 100px;
+  margin-bottom: 20px;
 }
 
-.home-title {
-  font-size: 38px; font-weight: 300; color: var(--text);
-  letter-spacing: -0.04em; line-height: 1.15; margin-bottom: 14px;
-}
-.home-title strong { font-weight: 600; }
-
-.home-sub {
-  font-size: 15px; color: var(--text2); font-weight: 300;
-  line-height: 1.6; max-width: 420px; margin: 0 auto;
+.hero-eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  background: var(--blue);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
 }
 
-/* Tool cards grid */
-.home-cards {
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.hero h1 {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.hero h1 span {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--text2);
+  line-height: 1.6;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* ── Grid ── */
+.grid-section {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+.grid {
   display: grid;
-  grid-template-columns: repeat(2, 340px);
-  gap: 18px;
-  animation: cardsFadeIn 0.55s 0.1s ease both;
-}
-@keyframes cardsFadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 }
 
-.tool-card {
+/* ── Card ── */
+.card {
   background: var(--surface);
-  border-radius: 20px;
-  padding: 32px 28px 28px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.04);
-  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 28px;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
-              box-shadow 0.2s ease,
-              border-color 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
   position: relative;
   overflow: hidden;
-  text-align: left;
-  width: 100%;
 }
-.tool-card::before {
+
+.card::before {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: 0;
-  transition: opacity 0.2s;
-  border-radius: inherit;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, transparent 60%);
+  pointer-events: none;
 }
-.tool-card:hover {
+
+.card:hover {
   transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 20px 48px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-card-hover);
 }
-.tool-card:hover::before { opacity: 1; }
-.tool-card:active { transform: translateY(-1px) scale(0.99); }
 
-/* Card accent stripe */
-.tool-card-hm { border-top: 3px solid #0071e3; }
-.tool-card-4bl { border-top: 3px solid #bf5af2; }
-.tool-card-hm:hover { border-color: #0071e3; box-shadow: 0 8px 24px rgba(0,113,227,0.12), 0 20px 48px rgba(0,0,0,0.06); }
-.tool-card-4bl:hover { border-color: #bf5af2; box-shadow: 0 8px 24px rgba(191,90,242,0.12), 0 20px 48px rgba(0,0,0,0.06); }
+.card:active {
+  transform: translateY(-1px) scale(0.99);
+}
 
-.tc-icon-wrap {
-  width: 52px; height: 52px; border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
+.card-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.tc-icon-hm  { background: linear-gradient(145deg, #0071e3, #34aadc); }
-.tc-icon-4bl { background: linear-gradient(145deg, #bf5af2, #9b59f5); }
-.tc-icon-wrap svg { width: 26px; height: 26px; }
-
-.tc-label {
-  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; margin-bottom: 8px;
-}
-.tc-label-hm  { color: #0071e3; }
-.tc-label-4bl { color: #bf5af2; }
-
-.tc-title {
-  font-size: 20px; font-weight: 500; color: var(--text);
-  letter-spacing: -0.02em; margin-bottom: 10px; line-height: 1.2;
+  flex-shrink: 0;
 }
 
-.tc-desc {
-  font-size: 13px; color: var(--text2); line-height: 1.65;
-  margin-bottom: 24px;
+.card-icon-wrap svg {
+  width: 26px;
+  height: 26px;
 }
 
-.tc-tags {
-  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px;
-}
-.tc-tag {
-  font-size: 11px; font-weight: 500; padding: 3px 10px;
-  border-radius: 20px; background: var(--surface2);
-  color: var(--text2); border: 1px solid var(--border);
+.card-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 100px;
+  margin-bottom: 10px;
+  align-self: flex-start;
 }
 
-.tc-cta {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 500;
-  transition: gap 0.2s;
+.card h2 {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.3;
 }
-.tc-cta-hm  { color: #0071e3; }
-.tc-cta-4bl { color: #bf5af2; }
-.tool-card:hover .tc-cta { gap: 10px; }
-.tc-arrow { font-size: 16px; line-height: 1; }
+
+.card p {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text2);
+  line-height: 1.6;
+  flex: 1;
+  margin-bottom: 22px;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-cta {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: gap 0.2s ease;
+}
+
+.card:hover .card-cta { gap: 8px; }
+
+.card-cta svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.card:hover .card-cta svg { transform: translateX(2px); }
+
+.card-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  background: rgba(0,0,0,0.04);
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+/* ── Color Themes per card ── */
+.theme-blue  .card-icon-wrap { background: rgba(0,113,227,0.1); }
+.theme-blue  .card-icon-wrap svg { color: var(--blue); fill: var(--blue); }
+.theme-blue  .card-tag { background: rgba(0,113,227,0.08); color: var(--blue); }
+.theme-blue  .card-cta { color: var(--blue); }
+
+.theme-purple .card-icon-wrap { background: rgba(191,90,242,0.1); }
+.theme-purple .card-icon-wrap svg { color: var(--purple); fill: var(--purple); }
+.theme-purple .card-tag { background: rgba(191,90,242,0.08); color: var(--purple); }
+.theme-purple .card-cta { color: var(--purple); }
+
+.theme-orange .card-icon-wrap { background: rgba(255,159,10,0.1); }
+.theme-orange .card-icon-wrap svg { color: var(--orange); fill: var(--orange); }
+.theme-orange .card-tag { background: rgba(255,159,10,0.08); color: #c77a00; }
+.theme-orange .card-cta { color: var(--orange); }
+
+/* ── Divider ── */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 16px;
+}
+
+/* ── Footer ── */
+footer {
+  text-align: center;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text3);
+}
+
+/* ── Fade-in animation ── */
+.card {
+  opacity: 0;
+  animation: fadeUp 0.45s ease forwards;
+}
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.12s; }
+.card:nth-child(3) { animation-delay: 0.19s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .hero { padding: 52px 20px 40px; }
+  .hero h1 { font-size: 32px; }
+  .grid { grid-template-columns: 1fr; gap: 12px; }
+  .grid-section { padding: 0 16px 60px; }
+}
 </style>
-
 </head>
 <body>
 
-<!-- ═══════════════ NAV BAR ═══════════════ -->
-<nav class="app-nav">
-  <div class="nav-brand">
-    <div class="nav-icon">
-      <svg viewBox="0 0 17 17" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 14 L8 4 L14 10"/>
-        <circle cx="3" cy="14" r="1.5" fill="white" stroke="none"/>
-        <circle cx="8" cy="4"  r="1.5" fill="white" stroke="none"/>
-        <circle cx="14" cy="10" r="1.5" fill="white" stroke="none"/>
-      </svg>
+<!-- Nav -->
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="brand-icon">
+      <svg viewBox="0 0 16 16"><path d="M2 3h12v2H2zm0 4h8v2H2zm0 4h10v2H2z"/></svg>
     </div>
-    <span class="nav-title">항공기구 해석 도구</span>
-  </div>
-
-  <div class="nav-sep"></div>
-
-  <div class="nav-tabs">
-    <button class="nav-tab active" id="ntab-home" onclick="switchPage('home')">
-      ⌂ 홈
-    </button>
-    <button class="nav-tab" id="ntab-hm" onclick="switchPage('hm')">
-      <span class="nav-tab-dot" style="background:#0071e3"></span>
-      힌지모멘트
-    </button>
-    <button class="nav-tab" id="ntab-4bl" onclick="switchPage('4bl')">
-      <span class="nav-tab-dot" style="background:#bf5af2"></span>
-      4절링크
-    </button>
-  </div>
+    <span>Engineering Tools</span>
+  </a>
+  <span class="nav-count">3개의 도구</span>
 </nav>
 
-<!-- ═══════════════ PAGE 0: HOME ═══════════════ -->
-<div class="page active" id="page-home">
-  <div class="home-hero">
-    <div class="home-eyebrow">✦ Aerospace Engineering Tools</div>
-    <h1 class="home-title">항공기구 해석<br><strong>도구 모음</strong></h1>
-    <p class="home-sub">조종면 공력 해석과 기구학 시뮬레이션을 위한<br>엔지니어링 계산 도구입니다.</p>
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <span class="dot"></span>
+    Engineering Toolkit
   </div>
+  <h1>기계 설계를<br><span>더 스마트하게</span></h1>
+  <p>링크 해석, 힌지모멘트 계산, 회귀분석까지 — 필요한 도구를 바로 사용하세요.</p>
+</section>
 
-  <div class="home-cards">
-    <div class="tool-card tool-card-hm" onclick="switchPage('hm')">
-      <div class="tc-icon-wrap tc-icon-hm">
-        <svg viewBox="0 0 26 26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 20 Q13 6 22 14"/>
-          <line x1="13" y1="13" x2="13" y2="20"/>
-          <circle cx="13" cy="13" r="2" fill="white" stroke="none"/>
-          <path d="M9 20 L17 20" stroke-width="2.5"/>
+<!-- Cards -->
+<section class="grid-section">
+  <p class="section-label">도구 모음</p>
+  <div class="grid">
+
+    <!-- Card 1: 4-bar linkage -->
+    <a class="card theme-blue" href="4-bar-linkage-torque.html">
+      <div class="card-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
+          <circle cx="4" cy="4" r="2"/><circle cx="20" cy="10" r="2"/>
+          <line x1="4" y1="6" x2="4" y2="18"/>
+          <line x1="6" y1="4" x2="18" y2="10"/>
+          <line x1="6" y1="20" x2="18" y2="20"/>
+          <line x1="20" y1="12" x2="20" y2="18"/>
         </svg>
       </div>
-      <div class="tc-label tc-label-hm">Control Surface Aerodynamics</div>
-      <div class="tc-title">힌지모멘트<br>계산기</div>
-      <div class="tc-desc">조종면의 편향각, 비행 속도, 면적 등을 입력해 힌지모멘트 H와 공력계수 C<sub>H</sub>를 실시간으로 산출합니다.</div>
-      <div class="tc-tags">
-        <span class="tc-tag">H = C<sub>H</sub>·q·S·c̄</span>
-        <span class="tc-tag">동압 계산</span>
-        <span class="tc-tag">Mach 판별</span>
-        <span class="tc-tag">그래프</span>
+      <span class="card-tag">기구학</span>
+      <h2>4절 링크 해석기</h2>
+      <p>4절 링크 기구의 운동학적 해석 및 토크 분석. 크랭크·커플러·링크 치수를 입력하고 시뮬레이션을 실행하세요.</p>
+      <div class="card-footer">
+        <span class="card-cta">
+          열기
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 7h10M8 3l4 4-4 4"/>
+          </svg>
+        </span>
+        <span class="card-badge">Kinematics</span>
       </div>
-      <div class="tc-cta tc-cta-hm">계산기 열기 <span class="tc-arrow">→</span></div>
-    </div>
+    </a>
 
-    <div class="tool-card tool-card-4bl" onclick="switchPage('4bl')">
-      <div class="tc-icon-wrap tc-icon-4bl">
-        <svg viewBox="0 0 26 26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="4"  cy="13" r="2" fill="white" stroke="none"/>
-          <circle cx="22" cy="13" r="2" fill="white" stroke="none"/>
-          <circle cx="9"  cy="6"  r="2" fill="white" stroke="none"/>
-          <circle cx="17" cy="20" r="2" fill="white" stroke="none"/>
-          <line x1="6"  y1="13" x2="7"  y2="8"/>
-          <line x1="11" y1="6"  x2="15" y2="19"/>
-          <line x1="19" y1="19" x2="20" y2="14"/>
-          <line x1="4"  y1="13" x2="22" y2="13" stroke-dasharray="3,2" opacity="0.5"/>
+    <!-- Card 2: Hinge moment -->
+    <a class="card theme-purple" href="hinge_moment_calculator.html">
+      <div class="card-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M2 12h20"/>
+          <path d="M12 2C8 6 5 9 5 12s3 6 7 10"/>
+          <path d="M12 2c4 4 7 7 7 10s-3 6-7 10"/>
         </svg>
       </div>
-      <div class="tc-label tc-label-4bl">Mechanism Analysis</div>
-      <div class="tc-title">4절링크<br>해석기</div>
-      <div class="tc-desc">링크 길이와 입·출력 각도를 입력하거나 절점을 드래그해 기구의 운동을 시각적으로 분석합니다.</div>
-      <div class="tc-tags">
-        <span class="tc-tag">역기구학</span>
-        <span class="tc-tag">Grashof 조건</span>
-        <span class="tc-tag">개방/교차형</span>
-        <span class="tc-tag">드래그 조작</span>
+      <span class="card-tag">공기역학</span>
+      <h2>힌지모멘트 계산기</h2>
+      <p>조종면 힌지모멘트 계수 기반의 힌지모멘트 계산 도구. 동압·면적·코드를 입력하여 결과를 확인하세요.</p>
+      <div class="card-footer">
+        <span class="card-cta">
+          열기
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 7h10M8 3l4 4-4 4"/>
+          </svg>
+        </span>
+        <span class="card-badge">Aerodynamics</span>
       </div>
-      <div class="tc-cta tc-cta-4bl">해석기 열기 <span class="tc-arrow">→</span></div>
-    </div>
-  </div>
-</div>
+    </a>
 
-<!-- ═══════════════ PAGE 1: HINGE MOMENT ═══════════════ -->
-<div class="page" id="page-hm">
-
-  <div class="hm-header">
-    <div class="header-eyebrow">Control Surface Aerodynamics</div>
-    <h2>힌지모멘트 계산기</h2>
-    <p>조종면 공력부하 및 힌지모멘트 실시간 산출</p>
-  </div>
-
-  <div class="kpi-row">
-    <div class="kpi kpi-primary">
-      <div class="kpi-label">힌지모멘트 H</div>
-      <div class="kpi-val" id="k-hm">—<span class="unit">N·m</span></div>
-      <div class="kpi-sub" id="k-regime">—</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">동압 q</div>
-      <div class="kpi-val" id="k-q">—<span class="unit">Pa</span></div>
-      <div class="kpi-sub" id="k-mach">Mach —</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">C<sub>H</sub> 합산</div>
-      <div class="kpi-val" id="k-ch">—</div>
-      <div class="kpi-sub" id="k-load">공력부하 — N</div>
-    </div>
-  </div>
-
-  <div class="hm-main">
-    <div>
-      <div class="panel">
-        <div class="panel-title">입력 파라미터</div>
-
-        <div class="param-block">
-          <div class="param-header">
-            <span class="param-name">조종면 면적 S<sub>f</sub></span>
-            <div class="param-input-wrap">
-              <input type="number" id="n-area" min="0.01" max="5" step="0.01" value="0.50">
-              <span class="param-unit">m²</span>
-            </div>
-          </div>
-          <input type="range" class="hm-range" id="s-area" min="0.01" max="5" step="0.01" value="0.5">
-        </div>
-
-        <div class="param-block">
-          <div class="param-header">
-            <span class="param-name">에어스피드 V</span>
-            <div class="param-input-wrap">
-              <input type="number" id="n-spd" min="1" max="300" step="1" value="80">
-              <span class="param-unit">m/s</span>
-            </div>
-          </div>
-          <input type="range" class="hm-range" id="s-spd" min="1" max="300" step="1" value="80">
-        </div>
-
-        <div class="param-block">
-          <div class="param-header">
-            <span class="param-name">편향각 δ</span>
-            <div class="param-input-wrap">
-              <input type="number" id="n-def" min="-30" max="30" step="0.5" value="10">
-              <span class="param-unit">°</span>
-            </div>
-          </div>
-          <input type="range" class="hm-range" id="s-def" min="-30" max="30" step="0.5" value="10">
-        </div>
-
-        <div class="param-block">
-          <div class="param-header">
-            <span class="param-name">평균 공력 시위 c̄</span>
-            <div class="param-input-wrap">
-              <input type="number" id="n-mac" min="0.05" max="3" step="0.01" value="0.40">
-              <span class="param-unit">m</span>
-            </div>
-          </div>
-          <input type="range" class="hm-range" id="s-mac" min="0.05" max="3" step="0.01" value="0.4">
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-title">C<sub>H</sub> 계수 · 비행 조건</div>
-        <div class="coef-grid">
-          <div class="coef-field">
-            <label>C<sub>H,δ</sub> (편향각)</label>
-            <input type="number" id="f-chd" value="-0.005" step="0.0001">
-          </div>
-          <div class="coef-field">
-            <label>C<sub>H,α</sub> (받음각)</label>
-            <input type="number" id="f-cha" value="-0.003" step="0.0001">
-          </div>
-          <div class="coef-field">
-            <label>받음각 α (°)</label>
-            <input type="number" id="f-alpha" value="5" step="0.5" min="-20" max="20">
-          </div>
-          <div class="coef-field">
-            <label>고도 프리셋</label>
-            <select id="f-alt">
-              <option value="1.225">해면고도</option>
-              <option value="1.007">1,000 m</option>
-              <option value="0.819" selected>3,000 m</option>
-              <option value="0.736">4,000 m</option>
-              <option value="0.601">6,000 m</option>
-              <option value="0.412">9,000 m</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-        <div class="panel-title" style="margin-bottom:8px">중간 계산값</div>
-        <div class="detail-list">
-          <div class="dl-row"><span class="dl-key">밀도 ρ</span><span class="dl-val" id="d-rho">—</span></div>
-          <div class="dl-row"><span class="dl-key">q = ½ρV²</span><span class="dl-val" id="d-q">—</span></div>
-          <div class="dl-row"><span class="dl-key">C<sub>H,δ</sub> · δ</span><span class="dl-val" id="d-chd">—</span></div>
-          <div class="dl-row"><span class="dl-key">C<sub>H,α</sub> · α</span><span class="dl-val" id="d-cha">—</span></div>
-          <div class="dl-row"><span class="dl-key">C<sub>H</sub> 합산</span><span class="dl-val" id="d-ch">—</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="right-col">
-      <div class="panel">
-        <div class="tab-row">
-          <button class="tab on" id="tb-spd"  onclick="setHmTab('spd')">속도 vs H</button>
-          <button class="tab"    id="tb-def"  onclick="setHmTab('def')">편향각 vs H</button>
-          <button class="tab"    id="tb-area" onclick="setHmTab('area')">면적 vs H</button>
-        </div>
-        <div class="chart-wrap"><canvas id="hmChart"></canvas></div>
-      </div>
-
-      <div class="formula-bar">
-        <span class="formula-label">공식</span>
-        <span class="formula-eq"><code>H = C<sub>H</sub> × q × S<sub>f</sub> × c̄</code></span>
-        <span class="fsep">·</span>
-        <span class="formula-eq"><code>q = ½ρV²</code></span>
-        <span class="fsep">·</span>
-        <span class="formula-eq"><code>C<sub>H</sub> = C<sub>H,δ</sub>·δ + C<sub>H,α</sub>·α</code></span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════ PAGE 2: 4-BAR LINKAGE ═══════════════ -->
-<div class="page" id="page-4bl">
-
-  <!-- Sub titlebar -->
-  <div class="sub-titlebar">
-    <div class="sub-titlebar-left">
-      <span class="sub-app-name">4절 링크 해석기</span>
-    </div>
-    <div class="seg-ctrl">
-      <button class="seg-btn active" id="btnOpen" onclick="setSol('open')">개방형</button>
-      <button class="seg-btn" id="btnCross" onclick="setSol('cross')">교차형</button>
-    </div>
-    <div class="g-badge ok" id="gBadge">Grashof 조건 ✓</div>
-  </div>
-
-  <!-- Workspace -->
-  <div class="bl-workspace">
-
-    <!-- Sidebar -->
-    <div class="bl-sidebar">
-
-      <div class="s-sec">
-        <div class="s-title">링크 길이</div>
-        <div class="link-card">
-          <div class="link-pip" style="background:var(--ground)"></div>
-          <div class="link-meta">
-            <div class="link-name">고정링크 <span style="color:var(--text3);font-weight:400">d</span></div>
-            <div class="link-sub">Ground Frame</div>
-          </div>
-          <div class="link-field">
-            <input type="number" id="id" value="100" min="10" max="400" oninput="onLink()">
-            <span class="u">mm</span>
-          </div>
-        </div>
-        <div class="link-card">
-          <div class="link-pip" style="background:var(--crank)"></div>
-          <div class="link-meta">
-            <div class="link-name">입력링크 <span style="color:var(--text3);font-weight:400">a</span></div>
-            <div class="link-sub">Crank</div>
-          </div>
-          <div class="link-field">
-            <input type="number" id="ia" value="40" min="5" max="400" oninput="onLink()">
-            <span class="u">mm</span>
-          </div>
-        </div>
-        <div class="link-card">
-          <div class="link-pip" style="background:var(--coupler)"></div>
-          <div class="link-meta">
-            <div class="link-name">커플러 <span style="color:var(--text3);font-weight:400">b</span></div>
-            <div class="link-sub">Coupler</div>
-          </div>
-          <div class="link-field">
-            <input type="number" id="ib" value="120" min="5" max="400" oninput="onLink()">
-            <span class="u">mm</span>
-          </div>
-        </div>
-        <div class="link-card">
-          <div class="link-pip" style="background:var(--follower)"></div>
-          <div class="link-meta">
-            <div class="link-name">출력링크 <span style="color:var(--text3);font-weight:400">c</span></div>
-            <div class="link-sub">Follower</div>
-          </div>
-          <div class="link-field">
-            <input type="number" id="ic" value="80" min="5" max="400" oninput="onLink()">
-            <span class="u">mm</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="s-sec">
-        <div class="s-title">각도</div>
-        <div class="angle-card">
-          <div class="angle-top">
-            <div class="angle-label">
-              <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력링크 각도
-            </div>
-            <div class="angle-readout" style="color:var(--follower)" id="lT4">60.0°</div>
-          </div>
-          <input type="range" class="sl-t4" id="slT4" min="0" max="360" step="0.5" value="60" oninput="onT4(this.value)">
-          <div class="angle-num-row">
-            <div class="angle-num-field">
-              <input type="number" id="nT4" value="60" min="0" max="360" step="0.1" oninput="onT4num(this.value)">
-              <span class="deg-tag">°</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="angle-card">
-          <div class="angle-top">
-            <div class="angle-label">
-              <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">θ₂</span>입력링크 각도
-            </div>
-            <div class="angle-readout" style="color:var(--crank)" id="lT2">—</div>
-          </div>
-          <input type="range" class="sl-t2" id="slT2" min="0" max="360" step="0.5" value="0" oninput="onT2slider(this.value)">
-          <div class="angle-num-row">
-            <div class="angle-num-field">
-              <input type="number" id="nT2" placeholder="계산값" min="0" max="360" step="0.1" oninput="onT2num(this.value)">
-              <span class="deg-tag">°</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="s-sec">
-        <div class="s-title">계산 결과</div>
-        <div class="result-card" id="rContent">
-          <div class="result-row">
-            <span class="result-key">θ₄ 출력각</span>
-            <span class="result-val" style="color:var(--follower)" id="rT4">—</span>
-          </div>
-          <div class="result-divider"></div>
-          <div class="result-row">
-            <span class="result-key">θ₂ 입력각</span>
-            <span class="result-val" style="color:var(--crank)" id="rT2">—</span>
-          </div>
-          <div class="result-row">
-            <span class="result-key">θ₃ 커플러각</span>
-            <span class="result-val" style="color:var(--coupler);font-size:15px" id="rT3">—</span>
-          </div>
-        </div>
-        <div class="no-sol-banner" id="noSol">⚠︎ 해당 각도에서는 기구가 도달할 수 없습니다</div>
-      </div>
-
-      <div class="help-list">
-        <div class="s-title" style="margin-bottom:10px">사용 방법</div>
-        <div class="help-item">
-          <div class="help-icon">⬤</div>
-          <div class="help-text"><b>절점 A · B</b>를 드래그해 기구를 직접 조작</div>
-        </div>
-        <div class="help-item">
-          <div class="help-icon">↔</div>
-          <div class="help-text">링크 <b>중간점</b> 드래그로 링크 길이 조절</div>
-        </div>
-        <div class="help-item">
-          <div class="help-icon">✦</div>
-          <div class="help-text">상단 <b>개방형 / 교차형</b>으로 두 가지 해 확인</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resizer -->
-    <div class="bl-resizer" id="blResizer">
-      <div class="bl-resizer-line"></div>
-      <div class="bl-resizer-handle">
-        <svg width="4" height="20" viewBox="0 0 4 20" fill="none">
-          <circle cx="2" cy="4"  r="1.5" fill="currentColor"/>
-          <circle cx="2" cy="10" r="1.5" fill="currentColor"/>
-          <circle cx="2" cy="16" r="1.5" fill="currentColor"/>
+    <!-- Card 3: Regression -->
+    <a class="card theme-orange" href="regression_analysis.html">
+      <div class="card-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 20 4 4"/>
+          <polyline points="4 20 20 20"/>
+          <circle cx="7" cy="14" r="1.2" fill="currentColor"/>
+          <circle cx="10" cy="11" r="1.2" fill="currentColor"/>
+          <circle cx="13" cy="13" r="1.2" fill="currentColor"/>
+          <circle cx="17" cy="8" r="1.2" fill="currentColor"/>
+          <line x1="5" y1="16" x2="19" y2="7" stroke-dasharray="2 1"/>
         </svg>
       </div>
-    </div>
+      <span class="card-tag">통계 분석</span>
+      <h2>회귀분석 도구</h2>
+      <p>데이터를 입력하거나 불러와서 선형·다항 회귀분석을 수행하고 그래프와 통계 지표를 확인하세요.</p>
+      <div class="card-footer">
+        <span class="card-cta">
+          열기
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 7h10M8 3l4 4-4 4"/>
+          </svg>
+        </span>
+        <span class="card-badge">Statistics</span>
+      </div>
+    </a>
 
-    <!-- Canvas -->
-    <div class="bl-canvas-area">
-      <canvas id="cv"></canvas>
-      <div class="drag-hint" id="dHint">절점이나 링크를 드래그하여 기구를 조작하세요</div>
-      <div class="bl-overlay" id="overlay"></div>
-    </div>
   </div>
-</div>
+</section>
 
-<!-- ═══════════════ SCRIPTS ═══════════════ -->
-<script>
-/* ── PAGE SWITCHER ── */
-function switchPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  document.getElementById('ntab-' + id).classList.add('active');
+<footer>
+  Engineering Tools &nbsp;·&nbsp; Built with HTML &amp; CSS
+</footer>
 
-  // Resize canvas when switching to linkage page
-  if (id === '4bl') {
-    setTimeout(() => { if (typeof blResize === 'function') blResize(); }, 50);
-  }
-  // Redraw chart when switching to hinge moment page
-  if (id === 'hm') {
-    setTimeout(() => { if (typeof hmUpdate === 'function') hmUpdate(); }, 50);
-  }
-  // Scroll home to top
-  if (id === 'home') {
-    const hp = document.getElementById('page-home');
-    if (hp) hp.scrollTop = 0;
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   HINGE MOMENT CALCULATOR
-══════════════════════════════════════════════════════ */
-let hmTab = 'spd', hmChart = null;
-
-const hmPairs = [
-  ['s-area', 'n-area'],
-  ['s-spd',  'n-spd' ],
-  ['s-def',  'n-def' ],
-  ['s-mac',  'n-mac' ],
-];
-
-function hmUpdatePct(el) {
-  const min = +el.min, max = +el.max, val = +el.value;
-  el.style.setProperty('--pct', ((val - min) / (max - min) * 100).toFixed(1) + '%');
-}
-
-hmPairs.forEach(([sid, nid]) => {
-  const sl = document.getElementById(sid);
-  const ni = document.getElementById(nid);
-  sl.addEventListener('input', () => { ni.value = sl.value; hmUpdatePct(sl); hmUpdate(); });
-  ni.addEventListener('input', () => {
-    const v = Math.min(+ni.max, Math.max(+ni.min, +ni.value));
-    sl.value = v; hmUpdatePct(sl); hmUpdate();
-  });
-  hmUpdatePct(sl);
-});
-
-function hmInp() {
-  return {
-    S:   +document.getElementById('s-area').value,
-    V:   +document.getElementById('s-spd').value,
-    d:   +document.getElementById('s-def').value,
-    mac: +document.getElementById('s-mac').value,
-    chd: +document.getElementById('f-chd').value,
-    cha: +document.getElementById('f-cha').value,
-    al:  +document.getElementById('f-alpha').value,
-    rho: +document.getElementById('f-alt').value,
-  };
-}
-
-function hmCalc(S, V, d, mac, chd, cha, al, rho) {
-  const q  = 0.5 * rho * V * V;
-  const dr = d  * Math.PI / 180;
-  const ar = al * Math.PI / 180;
-  const CH = chd * dr + cha * ar;
-  return { q, CH, H: CH * q * S * mac, load: q * S, mach: V / 340.3, chd_t: chd * dr, cha_t: cha * ar };
-}
-
-function hmRegime(m) {
-  if (m < 0.3) return ['저속 아음속', 'low'];
-  if (m < 0.8) return ['고속 아음속', 'mid'];
-  if (m < 1.2) return ['천음속',      'mid'];
-  return             ['초음속',        'hi'];
-}
-
-function hmUpdate() {
-  const p = hmInp(), r = hmCalc(p.S, p.V, p.d, p.mac, p.chd, p.cha, p.al, p.rho);
-  const [rt, rc] = hmRegime(r.mach);
-
-  document.getElementById('k-hm').innerHTML    = r.H.toFixed(2) + '<span class="unit">N·m</span>';
-  document.getElementById('k-regime').innerHTML = `<span class="badge badge-${rc}">${rt}</span>`;
-  document.getElementById('k-q').innerHTML      = r.q.toFixed(1) + '<span class="unit">Pa</span>';
-  document.getElementById('k-mach').textContent = 'Mach ' + r.mach.toFixed(3);
-  document.getElementById('k-ch').textContent   = r.CH.toFixed(5);
-  document.getElementById('k-load').textContent = '공력부하 ' + r.load.toFixed(1) + ' N';
-  document.getElementById('d-rho').textContent  = p.rho + ' kg/m³';
-  document.getElementById('d-q').textContent    = r.q.toFixed(2) + ' Pa';
-  document.getElementById('d-chd').textContent  = r.chd_t.toFixed(6);
-  document.getElementById('d-cha').textContent  = r.cha_t.toFixed(6);
-  document.getElementById('d-ch').textContent   = r.CH.toFixed(6);
-
-  hmDrawChart();
-}
-
-function setHmTab(t) {
-  hmTab = t;
-  ['spd','def','area'].forEach(x => document.getElementById('tb-'+x).classList.toggle('on', x===t));
-  hmDrawChart();
-}
-
-function hmDrawChart() {
-  const p = hmInp();
-  let labels = [], data = [], xl = '';
-  if (hmTab === 'spd') {
-    for (let v = 0; v <= 300; v += 5) { labels.push(v); data.push(+hmCalc(p.S,v,p.d,p.mac,p.chd,p.cha,p.al,p.rho).H.toFixed(3)); }
-    xl = '에어스피드 (m/s)';
-  } else if (hmTab === 'def') {
-    for (let d = -30; d <= 30; d += 1) { labels.push(d); data.push(+hmCalc(p.S,p.V,d,p.mac,p.chd,p.cha,p.al,p.rho).H.toFixed(3)); }
-    xl = '편향각 δ (°)';
-  } else {
-    for (let a = 0.05; a <= 5; a += 0.1) { labels.push(a.toFixed(1)); data.push(+hmCalc(a,p.V,p.d,p.mac,p.chd,p.cha,p.al,p.rho).H.toFixed(3)); }
-    xl = '면적 (m²)';
-  }
-  if (hmChart) hmChart.destroy();
-  hmChart = new Chart(document.getElementById('hmChart').getContext('2d'), {
-    type: 'line',
-    data: { labels, datasets: [{ label:'H (N·m)', data, borderColor:'#0071e3', backgroundColor:'rgba(0,113,227,0.06)', borderWidth:1.5, pointRadius:0, tension:0.35, fill:true }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor:'#fff', borderColor:'rgba(0,0,0,0.1)', borderWidth:1,
-          titleColor:'#6e6e73', bodyColor:'#1d1d1f', padding:10, cornerRadius:8,
-          titleFont:{ family:'-apple-system,Helvetica Neue', size:11 },
-          bodyFont:{ family:'-apple-system,Helvetica Neue', size:12, weight:'500' },
-          callbacks:{ label: c => ' H = ' + (+c.raw).toFixed(3) + ' N·m' }
-        }
-      },
-      scales: {
-        x: { title:{ display:true, text:xl, font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, ticks:{ maxTicksLimit:8, font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, grid:{ color:'rgba(0,0,0,0.04)' }, border:{ color:'rgba(0,0,0,0.08)' } },
-        y: { title:{ display:true, text:'H (N·m)', font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, ticks:{ font:{family:'-apple-system,Helvetica Neue',size:11}, color:'#aeaeb2' }, grid:{ color:'rgba(0,0,0,0.04)' }, border:{ color:'rgba(0,0,0,0.08)' } }
-      }
-    }
-  });
-}
-
-['f-chd','f-cha','f-alpha','f-alt'].forEach(id => {
-  document.getElementById(id).addEventListener('input', hmUpdate);
-  document.getElementById(id).addEventListener('change', hmUpdate);
-});
-
-hmUpdate();
-
-
-/* ══════════════════════════════════════════════════════
-   4-BAR LINKAGE ANALYZER
-══════════════════════════════════════════════════════ */
-const BL = { a:40, b:120, c:80, d:100, t4:60, sol:'open', solutions:null };
-let cv, blCtx, blW, blH, blScale=1, blOx=0, blOy=0;
-let blDrag=null, blHov=null, blHintHidden=false;
-
-const BLC = { ground:'#8e8e93', crank:'#0071e3', coupler:'#bf5af2', follower:'#ff453a', joint:'#32d74b' };
-const RAD=Math.PI/180, DEG=180/Math.PI;
-const norm=d=>{d=d%360; return d<0?d+360:d};
-
-function blSolve(a,b,c,d,t4d){
-  const t4=t4d*RAD;
-  const K1=d/a,K2=d/c,K3=(a*a-b*b+c*c+d*d)/(2*a*c);
-  const A=-K2-Math.cos(t4),B=-Math.sin(t4),C2=K1*Math.cos(t4)+K3;
-  const aa=C2-A,bb=2*B,cc=A+C2;
-  const disc=bb*bb-4*aa*cc;
-  if(disc<-1e-8) return null;
-  const sq=Math.sqrt(Math.max(0,disc));
-  const us=Math.abs(aa)<1e-10?[-cc/(bb||1e-10)]:
-    [(-bb+sq)/(2*aa),(-bb-sq)/(2*aa)];
-  const res=[];
-  for(const[i,u] of us.entries()){
-    const t2=norm(2*Math.atan(u)*DEG);
-    const t2r=t2*RAD;
-    const Ax=a*Math.cos(t2r),Ay=a*Math.sin(t2r);
-    const Bx=d+c*Math.cos(t4),By=c*Math.sin(t4);
-    if(Math.abs(Math.hypot(Bx-Ax,By-Ay)-b)>1.5) continue;
-    const t3=norm(Math.atan2(By-Ay,Bx-Ax)*DEG);
-    res.push({type:i===0?'open':'cross',t2,t3,Ax,Ay,Bx,By});
-  }
-  return res.length?res:null;
-}
-
-function blFwdSolve(a,b,c,d,t2d){
-  const t2=t2d*RAD;
-  const K4=d/c,K5=d/a,K6=(d*d+c*c-a*a-b*b)/(2*a*c);
-  const A=Math.cos(t2)-K4,B=-Math.sin(t2),C2=K5*Math.cos(t2)-K6;
-  const aa=C2-A,bb=2*B,cc=A+C2;
-  const disc=bb*bb-4*aa*cc;
-  if(disc<0) return null;
-  const sq=Math.sqrt(disc);
-  const u=Math.abs(aa)<1e-10?-cc/(bb||1e-10):(-bb+sq)/(2*aa);
-  return norm(2*Math.atan(u)*DEG);
-}
-
-function blSetTransform(){
-  const{a,b,c,d}=BL;
-  const range=Math.max(a+b,c+d,d+a+c)*1.4;
-  blScale=Math.min((blW-60)/range,(blH-60)/range);
-  blOx=blW/2-(d/2)*blScale; blOy=blH*0.62;
-}
-const blWx=x=>blOx+x*blScale;
-const blWy=y=>blOy-y*blScale;
-const blSx=px=>(px-blOx)/blScale;
-const blSy=py=>-(py-blOy)/blScale;
-
-function blDraw(){
-  blCtx.clearRect(0,0,blW,blH);
-  blCtx.fillStyle='#f5f5f7'; blCtx.fillRect(0,0,blW,blH);
-  blDrawGrid();
-  const sols=blSolve(BL.a,BL.b,BL.c,BL.d,BL.t4);
-  BL.solutions=sols;
-  blUpdateUI(sols);
-  if(!sols){blDrawNoSol();return;}
-  const active=sols.find(s=>s.type===BL.sol)||sols[0];
-  const ghost=sols.find(s=>s.type!==BL.sol);
-  if(ghost){blCtx.globalAlpha=0.12;blDrawMech(ghost,false);blCtx.globalAlpha=1;}
-  blDrawMech(active,true);
-  blDrawArcs(active);
-  blUpdateOverlay(active);
-  blUpdateSliderTrack('slT4',BL.t4/360*100);
-  if(active) blUpdateSliderTrack('slT2',active.t2/360*100);
-}
-
-function blDrawGrid(){
-  const step=40*blScale;
-  blCtx.fillStyle='rgba(0,0,0,0.08)';
-  const ox2=blOx%step, oy2=blOy%step;
-  for(let x=ox2;x<blW;x+=step)
-    for(let y=oy2;y<blH;y+=step){
-      blCtx.beginPath(); blCtx.arc(x,y,1,0,Math.PI*2); blCtx.fill();
-    }
-  blCtx.strokeStyle='rgba(0,0,0,0.06)'; blCtx.lineWidth=1;
-  blCtx.beginPath(); blCtx.moveTo(blOx,0); blCtx.lineTo(blOx,blH); blCtx.stroke();
-  blCtx.beginPath(); blCtx.moveTo(0,blOy); blCtx.lineTo(blW,blOy); blCtx.stroke();
-}
-
-function blDrawMech(sol,main){
-  const{d}=BL;
-  const O2=[0,0],O4=[d,0],A=[sol.Ax,sol.Ay],B=[sol.Bx,sol.By];
-  if(main) blDrawGroundHatch(O2,O4);
-  if(main){
-    blCtx.save();
-    blCtx.shadowColor='rgba(0,0,0,0.10)';
-    blCtx.shadowBlur=12; blCtx.shadowOffsetY=3;
-    blDrawLinkShape(O2,A,BLC.crank,7);
-    blDrawLinkShape(A,B,BLC.coupler,7);
-    blDrawLinkShape(O4,B,BLC.follower,7);
-    blCtx.restore();
-  }
-  blDrawLink(O2,O4,BLC.ground,main?3:2,true);
-  blDrawLinkShape(O2,A,BLC.crank,main?7:3);
-  blDrawLinkShape(A,B,BLC.coupler,main?7:3);
-  blDrawLinkShape(O4,B,BLC.follower,main?7:3);
-  if(!main) return;
-  blDrawJoint(O2,BLC.ground,9,'O₂',false);
-  blDrawJoint(O4,BLC.ground,9,'O₄',false);
-  blDrawJoint(A,BLC.joint,8,'A',true);
-  blDrawJoint(B,BLC.joint,8,'B',true);
-  blMidLabel(O2,O4,`d = ${BL.d} mm`,BLC.ground);
-  blMidLabel(O2,A,`a = ${BL.a} mm`,BLC.crank);
-  blMidLabel(A,B,`b = ${BL.b} mm`,BLC.coupler);
-  blMidLabel(O4,B,`c = ${BL.c} mm`,BLC.follower);
-}
-
-function blDrawLinkShape(p1,p2,color,halfW){
-  const x1=blWx(p1[0]),y1=blWy(p1[1]),x2=blWx(p2[0]),y2=blWy(p2[1]);
-  const dx=x2-x1,dy=y2-y1;
-  const len=Math.hypot(dx,dy)||1;
-  const nx=-dy/len*halfW,ny=dx/len*halfW;
-  blCtx.save();
-  blCtx.beginPath();
-  blCtx.moveTo(x1+nx,y1+ny);
-  blCtx.lineTo(x2+nx,y2+ny);
-  blCtx.arc(x2,y2,halfW,Math.atan2(ny,nx),Math.atan2(-ny,-nx));
-  blCtx.lineTo(x1-nx,y1-ny);
-  blCtx.arc(x1,y1,halfW,Math.atan2(-ny,-nx),Math.atan2(ny,nx));
-  blCtx.closePath();
-  blCtx.fillStyle=blHexAlpha(color,0.18); blCtx.fill();
-  blCtx.strokeStyle=color; blCtx.lineWidth=1.5; blCtx.stroke();
-  blCtx.restore();
-}
-
-function blHexAlpha(hex,alpha){
-  const r=parseInt(hex.slice(1,3),16);
-  const g=parseInt(hex.slice(3,5),16);
-  const b=parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function blDrawLink(p1,p2,color,w,dashed=false){
-  blCtx.save();
-  blCtx.strokeStyle=color; blCtx.lineWidth=w; blCtx.lineCap='round';
-  if(dashed) blCtx.setLineDash([5,5]);
-  blCtx.beginPath(); blCtx.moveTo(blWx(p1[0]),blWy(p1[1])); blCtx.lineTo(blWx(p2[0]),blWy(p2[1])); blCtx.stroke();
-  blCtx.restore();
-}
-
-function blDrawGroundHatch(p1,p2){
-  const x1=blWx(p1[0]),y1=blWy(p1[1]),x2=blWx(p2[0]),y2=blWy(p2[1]);
-  blCtx.save();
-  blCtx.strokeStyle='rgba(142,142,147,0.35)'; blCtx.lineWidth=1;
-  blCtx.beginPath(); blCtx.moveTo(x1-8,y1+14); blCtx.lineTo(x2+8,y2+14); blCtx.stroke();
-  blCtx.strokeStyle='rgba(142,142,147,0.3)'; blCtx.lineWidth=1;
-  for(let i=0;i<=9;i++){
-    const t=i/9,px=x1+t*(x2-x1),py=y1+t*(y2-y1);
-    blCtx.beginPath(); blCtx.moveTo(px,py); blCtx.lineTo(px-8,py+12); blCtx.stroke();
-  }
-  blCtx.restore();
-}
-
-function blDrawJoint(p,color,r,label,movable){
-  const px=blWx(p[0]),py=blWy(p[1]);
-  const isH=blHov&&blHov.label===label;
-  blCtx.save();
-  if(isH){
-    blCtx.shadowColor=color; blCtx.shadowBlur=16;
-    blCtx.beginPath(); blCtx.arc(px,py,r+4,0,Math.PI*2);
-    blCtx.fillStyle=blHexAlpha(color,0.15); blCtx.fill();
-    blCtx.shadowBlur=0;
-  }
-  blCtx.shadowColor='rgba(0,0,0,0.12)'; blCtx.shadowBlur=6; blCtx.shadowOffsetY=2;
-  blCtx.beginPath(); blCtx.arc(px,py,r,0,Math.PI*2);
-  blCtx.fillStyle='#fff'; blCtx.fill();
-  blCtx.shadowBlur=0;
-  blCtx.strokeStyle=color; blCtx.lineWidth=2;
-  blCtx.beginPath(); blCtx.arc(px,py,r,0,Math.PI*2); blCtx.stroke();
-  if(movable){ blCtx.fillStyle=color; blCtx.beginPath(); blCtx.arc(px,py,3,0,Math.PI*2); blCtx.fill(); }
-  blCtx.fillStyle=color;
-  blCtx.font=`600 11px -apple-system,sans-serif`;
-  blCtx.fillText(label,px+r+5,py-r+2);
-  blCtx.restore();
-}
-
-function blMidLabel(p1,p2,text,color){
-  const mx=(blWx(p1[0])+blWx(p2[0]))/2,my=(blWy(p1[1])+blWy(p2[1]))/2;
-  const dx=blWx(p2[0])-blWx(p1[0]),dy=blWy(p2[1])-blWy(p1[1]);
-  const len=Math.hypot(dx,dy)||1;
-  const nx=-dy/len*16,ny=dx/len*16;
-  blCtx.save();
-  blCtx.font='500 10px -apple-system,sans-serif';
-  const tw=blCtx.measureText(text).width;
-  const bx=mx+nx-tw/2-5,by=my+ny-8,bw=tw+10,bh=14;
-  blCtx.fillStyle='rgba(255,255,255,0.75)';
-  blCtx.beginPath();
-  blRoundRect(blCtx,bx,by,bw,bh,7);
-  blCtx.fill();
-  blCtx.fillStyle=color;
-  blCtx.fillText(text,mx+nx-tw/2,my+ny+2);
-  blCtx.restore();
-}
-
-function blRoundRect(c,x,y,w,h,r){
-  c.moveTo(x+r,y); c.lineTo(x+w-r,y);
-  c.quadraticCurveTo(x+w,y,x+w,y+r);
-  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
-  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
-}
-
-function blDrawArcs(sol){
-  const t2r=sol.t2*RAD,t4r=BL.t4*RAD;
-  blArcAng(blWx(0),blWy(0),t2r,44,BLC.crank,`θ₂ = ${sol.t2.toFixed(1)}°`);
-  blArcAng(blWx(BL.d),blWy(0),t4r,44,BLC.follower,`θ₄ = ${BL.t4.toFixed(1)}°`);
-}
-
-function blArcAng(cx,cy,angle,r,color,label){
-  blCtx.save();
-  blCtx.beginPath(); blCtx.moveTo(cx,cy);
-  blCtx.arc(cx,cy,r,0,-angle,angle<0);
-  blCtx.closePath();
-  blCtx.fillStyle=blHexAlpha(color,0.08); blCtx.fill();
-  blCtx.strokeStyle=color; blCtx.lineWidth=1.5;
-  blCtx.setLineDash([4,3]);
-  blCtx.beginPath(); blCtx.arc(cx,cy,r,0,-angle,angle<0); blCtx.stroke();
-  blCtx.setLineDash([]);
-  blCtx.strokeStyle=blHexAlpha(color,0.4); blCtx.lineWidth=1;
-  blCtx.beginPath(); blCtx.moveTo(cx,cy);
-  blCtx.lineTo(cx+r*Math.cos(-angle),cy+r*Math.sin(-angle)); blCtx.stroke();
-  const mid=angle/2;
-  const lx=cx+(r+18)*Math.cos(-mid),ly=cy+(r+18)*Math.sin(-mid);
-  blCtx.font='500 10px -apple-system,sans-serif';
-  const tw=blCtx.measureText(label).width;
-  blCtx.fillStyle='rgba(255,255,255,0.85)';
-  blCtx.setLineDash([]);
-  blCtx.beginPath(); blRoundRect(blCtx,lx-tw/2-5,ly-8,tw+10,14,7); blCtx.fill();
-  blCtx.fillStyle=color;
-  blCtx.fillText(label,lx-tw/2,ly+2);
-  blCtx.restore();
-}
-
-function blDrawNoSol(){
-  const{d,t4,c}=BL,t4r=t4*RAD;
-  blCtx.globalAlpha=0.2;
-  blDrawLink([0,0],[d,0],BLC.ground,2.5,true);
-  blDrawLink([d,0],[d+c*Math.cos(t4r),c*Math.sin(t4r)],BLC.follower,3);
-  blCtx.globalAlpha=1;
-}
-
-function blUpdateSliderTrack(id,pct){
-  const el=document.getElementById(id);
-  if(el) el.style.setProperty('--pct',Math.max(0,Math.min(100,pct))+'%');
-}
-
-function blUpdateUI(sols){
-  const noSol=document.getElementById('noSol');
-  const rC=document.getElementById('rContent');
-  if(!sols){
-    noSol.style.display='block'; rC.style.opacity='.4';
-    document.getElementById('rT2').textContent='—';
-    document.getElementById('rT3').textContent='—';
-    return;
-  }
-  noSol.style.display='none'; rC.style.opacity='1';
-  const act=sols.find(s=>s.type===BL.sol)||sols[0];
-  document.getElementById('rT4').textContent=BL.t4.toFixed(1)+'°';
-  document.getElementById('rT2').textContent=act.t2.toFixed(2)+'°';
-  document.getElementById('rT3').textContent=act.t3.toFixed(2)+'°';
-  if(document.activeElement!==document.getElementById('nT2') &&
-     document.activeElement!==document.getElementById('slT2')){
-    document.getElementById('slT2').value=act.t2.toFixed(1);
-    document.getElementById('nT2').value=act.t2.toFixed(2);
-    document.getElementById('lT2').textContent=act.t2.toFixed(1)+'°';
-  }
-}
-
-function blUpdateOverlay(act){
-  document.getElementById('overlay').innerHTML=[
-    {c:BLC.crank,   t:`θ₂  ${act.t2.toFixed(2)}°`},
-    {c:BLC.follower,t:`θ₄  ${BL.t4.toFixed(2)}°`},
-    {c:BLC.coupler, t:`θ₃  ${act.t3.toFixed(2)}°`},
-  ].map(x=>`<div class="f-chip"><div class="f-dot" style="background:${x.c}"></div>${x.t}</div>`).join('');
-}
-
-function blUpdateGrashof(){
-  const l=[BL.a,BL.b,BL.c,BL.d].sort((a,b)=>a-b);
-  const ok=l[0]+l[3]<=l[1]+l[2];
-  const b=document.getElementById('gBadge');
-  b.textContent=ok?'Grashof 조건 ✓':'Non-Grashof';
-  b.className='g-badge '+(ok?'ok':'no');
-}
-
-function blTargets(){
-  if(!BL.solutions) return [];
-  const act=BL.solutions.find(s=>s.type===BL.sol)||BL.solutions[0];
-  if(!act) return [];
-  const{d}=BL;
-  const O2=[0,0],O4=[d,0],A=[act.Ax,act.Ay],B=[act.Bx,act.By];
-  return[
-    {label:'O2',type:'fixed',x:blWx(0),  y:blWy(0),  r:12},
-    {label:'O4',type:'fixed',x:blWx(d),  y:blWy(0),  r:12},
-    {label:'A', type:'jA',   x:blWx(A[0]),y:blWy(A[1]),r:12},
-    {label:'B', type:'jB',   x:blWx(B[0]),y:blWy(B[1]),r:12},
-    {label:'mid-a',type:'mid',x:(blWx(0)+blWx(A[0]))/2,   y:(blWy(0)+blWy(A[1]))/2,   r:11,link:'a'},
-    {label:'mid-b',type:'mid',x:(blWx(A[0])+blWx(B[0]))/2,y:(blWy(A[1])+blWy(B[1]))/2,r:11,link:'b'},
-    {label:'mid-c',type:'mid',x:(blWx(d)+blWx(B[0]))/2,   y:(blWy(0)+blWy(B[1]))/2,   r:11,link:'c'},
-    {label:'mid-d',type:'mid',x:(blWx(0)+blWx(d))/2,      y:blWy(0),                   r:11,link:'d'},
-  ];
-}
-
-function blHit(px,py){for(const t of blTargets()) if(Math.hypot(px-t.x,py-t.y)<=t.r) return t; return null;}
-
-function blGp(e){const r=cv.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return{x:p.clientX-r.left,y:p.clientY-r.top};}
-
-function blStartDrag(p){
-  const t=blHit(p.x,p.y); if(!t) return;
-  blDrag={t}; cv.classList.add('drag');
-  if(!blHintHidden){document.getElementById('dHint').style.opacity='0';blHintHidden=true;}
-}
-
-function blOnMove(p){
-  if(!blDrag){
-    const t=blHit(p.x,p.y);
-    if(t!==blHov){blHov=t;cv.classList.toggle('hover',!!t);blDraw();}
-    return;
-  }
-  const{t}=blDrag;
-  if(t.type==='jB') blSetT4(norm(Math.atan2(blSy(p.y),blSx(p.x)-BL.d)*DEG));
-  if(t.type==='jA'){
-    const newT4=blFwdSolve(BL.a,BL.b,BL.c,BL.d,norm(Math.atan2(blSy(p.y),blSx(p.x))*DEG));
-    if(newT4!==null) blSetT4(newT4);
-  }
-  if(t.type==='mid'){
-    const wx2=blSx(p.x),wy2=blSy(p.y); let nl;
-    const act=BL.solutions&&(BL.solutions.find(s=>s.type===BL.sol)||BL.solutions[0]);
-    if(t.link==='a') nl=Math.max(5,Math.round(Math.hypot(wx2,wy2)));
-    else if(t.link==='d') nl=Math.max(10,Math.round(Math.abs(wx2)*2));
-    else if(t.link==='c') nl=Math.max(5,Math.round(Math.hypot(wx2-BL.d,wy2)));
-    else if(t.link==='b'&&act) nl=Math.max(5,Math.round(Math.hypot(wx2-act.Ax,wy2-act.Ay)));
-    if(nl!==undefined){BL[t.link]=nl;document.getElementById('i'+t.link).value=nl;blSetTransform();blUpdateGrashof();}
-  }
-  blDraw();
-}
-
-function blEndDrag(){blDrag=null;cv.classList.remove('drag');}
-
-function onLink(){
-  BL.a=+document.getElementById('ia').value||BL.a;
-  BL.b=+document.getElementById('ib').value||BL.b;
-  BL.c=+document.getElementById('ic').value||BL.c;
-  BL.d=+document.getElementById('id').value||BL.d;
-  blSetTransform(); blUpdateGrashof(); blDraw();
-}
-
-function blSetT4(v){
-  BL.t4=norm(+v);
-  document.getElementById('slT4').value=BL.t4;
-  document.getElementById('nT4').value=BL.t4.toFixed(1);
-  document.getElementById('lT4').textContent=BL.t4.toFixed(1)+'°';
-  blUpdateSliderTrack('slT4',BL.t4/360*100);
-}
-function onT4(v){blSetT4(v);blDraw();}
-function onT4num(v){blSetT4(v);blDraw();}
-
-function blApplyT2(v){
-  const t2=norm(+v);
-  document.getElementById('slT2').value=t2;
-  document.getElementById('nT2').value=t2.toFixed(1);
-  document.getElementById('lT2').textContent=t2.toFixed(1)+'°';
-  const newT4=blFwdSolve(BL.a,BL.b,BL.c,BL.d,t2);
-  if(newT4!==null){blSetT4(newT4);blDraw();}
-}
-function onT2slider(v){blApplyT2(v);}
-function onT2num(v){if(+v>=0&&+v<=360) blApplyT2(v);}
-
-function setSol(type){
-  BL.sol=type;
-  document.getElementById('btnOpen').className='seg-btn'+(type==='open'?' active':'');
-  document.getElementById('btnCross').className='seg-btn'+(type==='cross'?' active':'');
-  blDraw();
-}
-
-function blResize(){
-  const a=cv.parentElement;
-  cv.width=blW=a.clientWidth;
-  cv.height=blH=a.clientHeight;
-  blSetTransform();blDraw();
-}
-window.addEventListener('resize', blResize);
-
-/* Sidebar resizer */
-function initBlResizer(){
-  const resizer=document.getElementById('blResizer');
-  const sidebar=document.querySelector('.bl-sidebar');
-  let isResizing=false, startX=0, startW=0;
-  resizer.addEventListener('mousedown',e=>{
-    isResizing=true; startX=e.clientX; startW=sidebar.offsetWidth;
-    resizer.classList.add('dragging');
-    document.body.style.cursor='col-resize';
-    document.body.style.userSelect='none';
-    e.preventDefault();
-  });
-  document.addEventListener('mousemove',e=>{
-    if(!isResizing) return;
-    const newW=Math.min(480,Math.max(200,startW+(e.clientX-startX)));
-    sidebar.style.width=newW+'px';
-    blResize();
-  });
-  document.addEventListener('mouseup',()=>{
-    if(!isResizing) return;
-    isResizing=false; resizer.classList.remove('dragging');
-    document.body.style.cursor=''; document.body.style.userSelect='';
-  });
-  resizer.addEventListener('touchstart',e=>{
-    isResizing=true; startX=e.touches[0].clientX; startW=sidebar.offsetWidth;
-    resizer.classList.add('dragging'); e.preventDefault();
-  },{passive:false});
-  document.addEventListener('touchmove',e=>{
-    if(!isResizing) return;
-    const newW=Math.min(480,Math.max(200,startW+(e.touches[0].clientX-startX)));
-    sidebar.style.width=newW+'px'; blResize();
-  },{passive:true});
-  document.addEventListener('touchend',()=>{isResizing=false;resizer.classList.remove('dragging');});
-}
-
-window.addEventListener('load',()=>{
-  cv=document.getElementById('cv'); blCtx=cv.getContext('2d');
-  cv.addEventListener('mousedown',e=>blStartDrag(blGp(e)));
-  cv.addEventListener('mousemove',e=>blOnMove(blGp(e)));
-  cv.addEventListener('mouseup',blEndDrag);
-  cv.addEventListener('mouseleave',()=>{blEndDrag();blHov=null;cv.classList.remove('hover');blDraw();});
-  cv.addEventListener('touchstart',e=>{e.preventDefault();blStartDrag(blGp(e));},{passive:false});
-  cv.addEventListener('touchmove', e=>{e.preventDefault();blOnMove(blGp(e));},{passive:false});
-  cv.addEventListener('touchend',blEndDrag);
-  initBlResizer();
-  blUpdateGrashof(); blResize(); blSetT4(60);
-});
-</script>
 </body>
 </html>

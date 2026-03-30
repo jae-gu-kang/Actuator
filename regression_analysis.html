@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회귀분석 도구</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background: #f2f2f7;
+    color: #1c1c1e;
+    min-height: 100vh;
+    padding: 24px 20px 60px;
+  }
+  .header { text-align: center; margin-bottom: 28px; }
+  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: #1c1c1e; margin-bottom: 5px; }
+  .header p { font-size: 15px; color: #8e8e93; }
+  .container { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04); }
+  .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #8e8e93; margin-bottom: 14px; }
+
+  .grid-wrap { border: 1px solid #e5e5ea; border-radius: 12px; overflow: hidden; }
+  .grid-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .grid-table colgroup col:nth-child(1) { width: 52px; }
+  .grid-table colgroup col:nth-child(2) { width: 50%; }
+  .grid-table colgroup col:nth-child(3) { width: 50%; }
+  .grid-table thead tr { background: #f2f2f7; border-bottom: 1px solid #e5e5ea; }
+  .grid-table thead th { padding: 9px 12px; font-size: 12px; font-weight: 600; color: #8e8e93; text-align: center; user-select: none; }
+  .grid-table thead th.col-num { color: #c7c7cc; font-weight: 500; font-size: 11px; }
+  .grid-table thead th.col-x { color: #007aff; }
+  .grid-table thead th.col-y { color: #ff3b30; }
+  .grid-table tbody tr { border-bottom: 0.5px solid #f2f2f7; }
+  .grid-table tbody tr:last-child { border-bottom: none; }
+  .grid-table tbody tr:hover { background: #fafafa; }
+  .grid-table tbody td { padding: 0; }
+  .row-num { display: flex; align-items: center; justify-content: center; height: 36px; font-size: 11px; color: #c7c7cc; font-family: 'SF Mono', 'Menlo', monospace; font-weight: 500; background: #fafafa; border-right: 0.5px solid #f2f2f7; user-select: none; }
+  .cell-input { width: 100%; height: 36px; border: none; outline: none; background: transparent; font-family: 'SF Mono', 'Menlo', monospace; font-size: 13px; color: #1c1c1e; padding: 0 12px; text-align: right; }
+  .cell-input.col-x:focus { background: #f0f6ff; box-shadow: inset 0 0 0 1.5px #007aff; }
+  .cell-input.col-y:focus { background: #fff5f4; box-shadow: inset 0 0 0 1.5px #ff3b30; }
+  .cell-x-td { border-right: 0.5px solid #f2f2f7; }
+  .grid-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid #f2f2f7; background: #fafafa; border-radius: 0 0 12px 12px; flex-wrap: wrap; gap: 8px; }
+  .grid-footer-left { font-size: 12px; color: #8e8e93; }
+  .grid-footer-left strong { color: #1c1c1e; font-weight: 600; }
+  .grid-footer-right { display: flex; gap: 8px; }
+
+  .apple-btn { border: none; border-radius: 9px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s, transform 0.1s; }
+  .apple-btn:active { opacity: 0.7; transform: scale(0.97); }
+  .btn-primary { background: #007aff; color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary { background: #f2f2f7; color: #007aff; }
+  .btn-secondary:hover { background: #e5e5ea; }
+  .btn-danger { background: #fff0f0; color: #ff3b30; }
+  .btn-danger:hover { background: #ffe0e0; }
+  .btn-sm { padding: 5px 11px; font-size: 12px; border-radius: 7px; }
+
+  .seg-control { display: flex; background: #f2f2f7; border-radius: 9px; padding: 2px; gap: 2px; flex-wrap: wrap; }
+  .seg-control button { border: none; background: transparent; font-size: 13px; font-weight: 500; color: #8e8e93; padding: 6px 13px; border-radius: 7px; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .seg-control button.active { background: #fff; color: #1c1c1e; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .controls-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-top: 16px; }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .metric-card { background: #f2f2f7; border-radius: 12px; padding: 14px 16px; text-align: center; }
+  .metric-label { font-size: 10px; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .metric-value { font-size: 22px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.5px; }
+  .metric-value.good { color: #30d158; }
+  .metric-value.medium { color: #ff9f0a; }
+  .metric-value.poor { color: #ff3b30; }
+  .metric-sub { font-size: 10px; color: #8e8e93; margin-top: 3px; }
+  .progress-bar-wrap { height: 5px; background: #e5e5ea; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+  .equation-box { background: #f2f2f7; border-radius: 12px; padding: 16px 20px; font-size: 18px; font-weight: 600; color: #1c1c1e; text-align: center; letter-spacing: -0.3px; font-family: 'SF Mono', monospace; word-break: break-all; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .tag { display: inline-block; font-size: 12px; background: #e8f0fe; color: #0071e3; padding: 2px 9px; border-radius: 6px; font-weight: 500; }
+  .chart-wrap { position: relative; width: 100%; height: 300px; }
+  .chart-wrap-sm { position: relative; width: 100%; height: 200px; }
+
+  .result-table-wrap { overflow-x: auto; }
+  .result-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .result-table th { text-align: center; font-size: 10px; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.4px; padding: 8px 10px; border-bottom: 1px solid #e5e5ea; white-space: nowrap; }
+  .result-table td { padding: 9px 10px; border-bottom: 0.5px solid #f2f2f7; font-family: 'SF Mono', monospace; font-size: 12px; text-align: right; white-space: nowrap; }
+  .result-table td:first-child { text-align: center; color: #c7c7cc; font-size: 11px; }
+  .result-table tr:last-child td { border-bottom: none; }
+  .result-table tr:hover td { background: #fafafa; }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; font-family: -apple-system, sans-serif; }
+  .badge.good { background: #d1f7de; color: #1a7a3c; }
+  .badge.medium { background: #fff0d4; color: #8a5a00; }
+  .badge.poor { background: #ffd6d6; color: #c0392b; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 15px; }
+  .empty-icon { font-size: 38px; margin-bottom: 12px; display: block; opacity: 0.35; }
+
+  .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1c1c1e; color: #fff; font-size: 13px; font-weight: 500; padding: 10px 20px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 600px) {
+    .controls-row { flex-direction: column; align-items: flex-start; }
+    .seg-control button { padding: 6px 9px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📈 회귀분석</h1>
+  <p>데이터를 입력하거나 엑셀 · 스프레드시트에서 바로 붙여넣기 하세요</p>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <div class="card-title">데이터 입력</div>
+
+    <div class="grid-wrap">
+      <table class="grid-table" id="gridTable">
+        <colgroup><col><col><col></colgroup>
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th class="col-x">X</th>
+            <th class="col-y">Y</th>
+          </tr>
+        </thead>
+        <tbody id="gridBody"></tbody>
+      </table>
+      <div class="grid-footer">
+        <div class="grid-footer-left">
+          데이터 <strong id="rowCountLabel">0</strong>개
+          &nbsp;·&nbsp;
+          엑셀/시트에서 복사 후 X 셀에 붙여넣기
+        </div>
+        <div class="grid-footer-right">
+          <button class="apple-btn btn-secondary btn-sm" onclick="addRows(10)">+ 10행</button>
+          <button class="apple-btn btn-danger btn-sm" onclick="clearGrid()">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <div>
+        <div class="card-title" style="margin-bottom:8px;">회귀 유형</div>
+        <div class="seg-control" id="regressionType">
+          <button class="active" data-type="linear">선형</button>
+          <button data-type="polynomial2">2차</button>
+          <button data-type="polynomial3">3차</button>
+          <button data-type="exponential">지수</button>
+          <button data-type="logarithmic">로그</button>
+          <button data-type="power">거듭제곱</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
+        <button class="apple-btn btn-secondary" onclick="loadSample()">샘플 데이터</button>
+        <button class="apple-btn btn-primary" onclick="runRegression()">분석 실행</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultsSection" style="display:none;flex-direction:column;gap:16px;">
+    <div class="card">
+      <div class="row-between" style="margin-bottom:12px;">
+        <div class="card-title" style="margin-bottom:0;">회귀 방정식</div>
+        <span class="tag" id="regressionTypeLabel"></span>
+      </div>
+      <div class="equation-box" id="equationBox"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">적합도 지표</div>
+      <div class="metrics-grid" id="metricsGrid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">데이터 &amp; 회귀 곡선</div>
+      <div class="chart-wrap"><canvas id="regressionChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">잔차 분포</div>
+      <div class="chart-wrap-sm"><canvas id="residualChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">예측값 &amp; 잔차 테이블</div>
+      <div class="result-table-wrap">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>#</th><th>X</th><th>Y 실제</th><th>Ŷ 예측</th>
+              <th>잔차</th><th>잔차²</th><th>오차율</th><th>평가</th>
+            </tr>
+          </thead>
+          <tbody id="dataTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="emptyState">
+    <div class="empty-state">
+      <span class="empty-icon">📊</span>
+      데이터를 입력하고 <strong>분석 실행</strong>을 눌러주세요
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const INIT_ROWS = 20;
+let chartInstance = null, residualChartInstance = null, currentType = 'linear';
+
+function buildGrid(n) {
+  document.getElementById('gridBody').innerHTML = '';
+  for (let i = 0; i < n; i++) appendRow(i + 1);
+}
+
+function appendRow(num) {
+  const tbody = document.getElementById('gridBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><div class="row-num">${num}</div></td>
+    <td class="cell-x-td"><input class="cell-input col-x" type="text" inputmode="decimal"></td>
+    <td><input class="cell-input col-y" type="text" inputmode="decimal"></td>`;
+  tbody.appendChild(tr);
+  const [xIn, yIn] = tr.querySelectorAll('.cell-input');
+  xIn.addEventListener('keydown', e => nav(e, xIn));
+  yIn.addEventListener('keydown', e => nav(e, yIn));
+  xIn.addEventListener('paste', e => handlePaste(e, xIn));
+  yIn.addEventListener('paste', e => handlePaste(e, yIn));
+  xIn.addEventListener('input', updateCount);
+  yIn.addEventListener('input', updateCount);
+}
+
+function addRows(n) {
+  const cur = document.getElementById('gridBody').rows.length;
+  for (let i = 0; i < n; i++) appendRow(cur + i + 1);
+}
+
+function clearGrid() {
+  buildGrid(INIT_ROWS);
+  updateCount();
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'block';
+}
+
+function updateCount() {
+  document.getElementById('rowCountLabel').textContent = getRows().length;
+}
+
+function getRows() {
+  const out = [];
+  document.querySelectorAll('#gridBody tr').forEach(tr => {
+    const [xIn, yIn] = tr.querySelectorAll('.cell-input');
+    const x = parseFloat(xIn.value.replace(/,/g, ''));
+    const y = parseFloat(yIn.value.replace(/,/g, ''));
+    if (!isNaN(x) && !isNaN(y) && xIn.value.trim() && yIn.value.trim()) out.push({x, y});
+  });
+  return out;
+}
+
+/* 키보드 내비게이션 */
+function nav(e, inp) {
+  const all = Array.from(document.querySelectorAll('.cell-input'));
+  const idx = all.indexOf(inp);
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const next = all[e.shiftKey ? idx - 1 : idx + 1];
+    if (next) next.focus();
+  }
+  if (e.key === 'Enter' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    const isX = inp.classList.contains('col-x');
+    const col = all.filter(i => i.classList.contains(isX ? 'col-x' : 'col-y'));
+    const ci = col.indexOf(inp);
+    if (ci + 1 < col.length) col[ci + 1].focus();
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const isX = inp.classList.contains('col-x');
+    const col = all.filter(i => i.classList.contains(isX ? 'col-x' : 'col-y'));
+    const ci = col.indexOf(inp);
+    if (ci > 0) col[ci - 1].focus();
+  }
+}
+
+/* 붙여넣기 처리 — 엑셀/스프레드시트 탭 구분 완벽 지원 */
+function handlePaste(e, inp) {
+  const raw = (e.clipboardData || window.clipboardData).getData('text');
+  const lines = raw.split(/\r?\n/).filter(l => l.trim() !== '');
+
+  /* 단일 숫자값이면 기본 동작 유지 */
+  if (lines.length === 1 && !lines[0].includes('\t') && !/[,;]/.test(lines[0])) return;
+
+  e.preventDefault();
+
+  /* 각 줄을 [x, y] 쌍으로 파싱 */
+  const pairs = [];
+  for (const line of lines) {
+    let parts;
+    if (line.includes('\t')) {
+      parts = line.split('\t');
+    } else if (line.includes(',')) {
+      parts = line.split(',');
+    } else if (line.includes(';')) {
+      parts = line.split(';');
+    } else {
+      parts = line.trim().split(/\s+/);
+    }
+    const a = parts[0] ? parts[0].trim().replace(/,/g, '') : '';
+    const b = parts[1] ? parts[1].trim().replace(/,/g, '') : '';
+    pairs.push([a, b]);
+  }
+
+  /* 현재 포커스 행 찾기 */
+  const xInputs = Array.from(document.querySelectorAll('.cell-input.col-x'));
+  const yInputs = Array.from(document.querySelectorAll('.cell-input.col-y'));
+  const isX = inp.classList.contains('col-x');
+  const startRow = isX ? xInputs.indexOf(inp) : yInputs.indexOf(inp);
+
+  /* 행이 부족하면 추가 */
+  const needed = startRow + pairs.length;
+  const cur = document.getElementById('gridBody').rows.length;
+  if (needed > cur) addRows(needed - cur);
+
+  /* 최신 입력 엘리먼트 재조회 후 값 입력 */
+  const freshX = Array.from(document.querySelectorAll('.cell-input.col-x'));
+  const freshY = Array.from(document.querySelectorAll('.cell-input.col-y'));
+
+  pairs.forEach(([a, b], i) => {
+    const ri = startRow + i;
+    if (isX) {
+      if (freshX[ri]) freshX[ri].value = a;
+      if (freshY[ri] && b !== '') freshY[ri].value = b;
+    } else {
+      /* Y 열에서 붙여넣기: 한 열만 있으면 Y에만 채움 */
+      if (freshY[ri]) freshY[ri].value = a;
+      if (b !== '' && freshX[ri] && !freshX[ri].value) freshX[ri].value = b;
+    }
+  });
+
+  updateCount();
+  showToast(`${pairs.length}개 행 붙여넣기 완료`);
+}
+
+/* 샘플 데이터 */
+function loadSample() {
+  const S = {
+    linear:      [[1,2.1],[2,3.9],[3,6.2],[4,7.8],[5,10.1],[6,12.3],[7,13.9],[8,16.2],[9,18.5],[10,20.0]],
+    polynomial2: [[1,1.2],[2,4.5],[3,9.1],[4,15.8],[5,24.9],[6,36.2],[7,49.1],[8,64.5],[9,81.2],[10,100.3]],
+    polynomial3: [[-4,-62],[-3,-25],[-2,-7],[-1,-1],[0,0],[1,1],[2,9],[3,28],[4,67],[5,130]],
+    exponential: [[1,2.7],[2,7.4],[3,20.1],[4,54.6],[5,148.4],[6,403.4],[7,1096.6],[8,2981.0]],
+    logarithmic: [[1,0.5],[2,1.4],[3,1.9],[4,2.4],[5,2.7],[10,3.7],[20,4.6],[50,5.7],[100,6.5],[200,7.1]],
+    power:       [[1,1.0],[2,1.4],[3,1.7],[4,2.0],[5,2.2],[6,2.4],[8,2.8],[10,3.2],[15,3.9],[20,4.5]]
+  };
+  const data = S[currentType] || S.linear;
+  buildGrid(Math.max(INIT_ROWS, data.length + 5));
+  const xI = document.querySelectorAll('.cell-input.col-x');
+  const yI = document.querySelectorAll('.cell-input.col-y');
+  data.forEach(([x,y],i) => { xI[i].value = x; yI[i].value = y; });
+  updateCount();
+  showToast('샘플 데이터 로드 완료');
+}
+
+/* 세그먼트 컨트롤 */
+document.getElementById('regressionType').addEventListener('click', e => {
+  if (!e.target.dataset.type) return;
+  document.querySelectorAll('#regressionType button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  currentType = e.target.dataset.type;
+});
+
+/* 분석 실행 */
+function runRegression() {
+  const data = getRows();
+  if (data.length < 3) { showToast('최소 3개 이상의 데이터가 필요합니다', true); return; }
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultsSection').style.display = 'flex';
+  const res = compute(data, currentType);
+  display(data, res);
+  setTimeout(() => document.getElementById('resultsSection').scrollIntoView({behavior:'smooth', block:'start'}), 80);
+}
+
+/* 회귀 계산 */
+function compute(data, type) {
+  const xs = data.map(d=>d.x), ys = data.map(d=>d.y), n = data.length;
+  let predict, equation, coeff;
+
+  if (type === 'linear') {
+    const [sx,sy,sxy,sxx] = [sum(xs),sum(ys),dot(xs,ys),dot(xs,xs)];
+    const D=n*sxx-sx*sx, a=(n*sxy-sx*sy)/D, b=(sy-a*sx)/n;
+    predict=x=>a*x+b; equation=`ŷ = ${f(a)}x ${b>=0?'+':'-'} ${f(Math.abs(b))}`;
+    coeff=[{name:'a',value:a},{name:'b',value:b}];
+  } else if (type==='polynomial2'||type==='polynomial3') {
+    const deg=type==='polynomial2'?2:3, c=polyFit(xs,ys,deg);
+    predict=x=>c.reduce((s,v,i)=>s+v*Math.pow(x,i),0);
+    let eq=`ŷ = ${f(c[deg])}x^${deg}`;
+    for(let i=deg-1;i>=0;i--){const s=c[i]>=0?'+':'-';eq+=` ${s} ${f(Math.abs(c[i]))}${i===0?'':i===1?'x':'x^'+i}`;}
+    equation=eq; coeff=c.map((v,i)=>({name:`x^${i}`,value:v}));
+  } else if (type==='exponential') {
+    const ly=ys.map(Math.log), sx=sum(xs), sly=sum(ly), sxly=dot(xs,ly), sxx=dot(xs,xs), D=n*sxx-sx*sx;
+    const B=(n*sxly-sx*sly)/D, A=Math.exp((sly-B*sx)/n);
+    predict=x=>A*Math.exp(B*x); equation=`ŷ = ${f(A)} · e^(${f(B)}x)`;
+    coeff=[{name:'A',value:A},{name:'B',value:B}];
+  } else if (type==='logarithmic') {
+    const lx=xs.map(Math.log), slx=sum(lx), sy=sum(ys), slxy=dot(lx,ys), slx2=dot(lx,lx), D=n*slx2-slx*slx;
+    const b=(n*slxy-slx*sy)/D, a=(sy-b*slx)/n;
+    predict=x=>a+b*Math.log(x); equation=`ŷ = ${f(b)} · ln(x) ${a>=0?'+':'-'} ${f(Math.abs(a))}`;
+    coeff=[{name:'b',value:b},{name:'a',value:a}];
+  } else {
+    const lx=xs.map(Math.log), ly=ys.map(Math.log), slx=sum(lx), sly=sum(ly);
+    const slxly=dot(lx,ly), slx2=dot(lx,lx), D=n*slx2-slx*slx;
+    const B=(n*slxly-slx*sly)/D, A=Math.exp((sly-B*slx)/n);
+    predict=x=>A*Math.pow(x,B); equation=`ŷ = ${f(A)} · x^${f(B)}`;
+    coeff=[{name:'A',value:A},{name:'B',value:B}];
+  }
+
+  const yp=xs.map(predict), res=ys.map((y,i)=>y-yp[i]), ym=sum(ys)/n;
+  const ssTot=ys.reduce((s,y)=>s+(y-ym)**2,0), ssRes=res.reduce((s,r)=>s+r*r,0);
+  const r2=1-ssRes/ssTot, mse=ssRes/n;
+  return {predict,equation,coeff,r2,adjR2:1-(1-r2)*(n-1)/(n-coeff.length-1),
+          rmse:Math.sqrt(mse),mae:res.reduce((s,r)=>s+Math.abs(r),0)/n,mse,residuals:res,yPred:yp};
+}
+
+const sum = a => a.reduce((s,v)=>s+v,0);
+const dot = (a,b) => a.reduce((s,v,i)=>s+v*b[i],0);
+
+function polyFit(xs,ys,deg){
+  const n=xs.length,m=deg+1,A=Array.from({length:m},()=>Array(m).fill(0)),B=Array(m).fill(0);
+  for(let i=0;i<m;i++){for(let j=0;j<m;j++)A[i][j]=xs.reduce((s,x)=>s+Math.pow(x,i+j),0);B[i]=xs.reduce((s,x,k)=>s+Math.pow(x,i)*ys[k],0);}
+  return gauss(A,B);
+}
+function gauss(A,b){
+  const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let mr=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[mr][c]))mr=r;[M[c],M[mr]]=[M[mr],M[c]];for(let r=c+1;r<n;r++){const fv=M[r][c]/M[c][c];for(let j=c;j<=n;j++)M[r][j]-=fv*M[c][j];}}
+  const x=Array(n).fill(0);for(let i=n-1;i>=0;i--){x[i]=M[i][n]/M[i][i];for(let j=i-1;j>=0;j--)M[j][n]-=M[j][i]*x[i];}return x;
+}
+function f(v,d=4){if(Math.abs(v)<0.001&&v!==0)return v.toExponential(2);return parseFloat(v.toFixed(d));}
+function cls(r2){return r2>=0.9?'good':r2>=0.7?'medium':'poor';}
+function barClr(c){return c==='good'?'#30d158':c==='medium'?'#ff9f0a':'#ff3b30';}
+
+/* 결과 표시 */
+function display(data, res) {
+  const names={linear:'선형 회귀',polynomial2:'2차 다항',polynomial3:'3차 다항',exponential:'지수 회귀',logarithmic:'로그 회귀',power:'거듭제곱 회귀'};
+  document.getElementById('regressionTypeLabel').textContent = names[currentType];
+  document.getElementById('equationBox').textContent = res.equation;
+
+  const c=cls(res.r2), r2p=(res.r2*100).toFixed(1), ar2p=(res.adjR2*100).toFixed(2);
+  document.getElementById('metricsGrid').innerHTML=`
+    <div class="metric-card">
+      <div class="metric-label">R² 결정계수</div>
+      <div class="metric-value ${c}">${r2p}%</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${r2p}%;background:${barClr(c)}"></div></div>
+      <div class="metric-sub">모델 설명력</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Adj. R²</div>
+      <div class="metric-value ${cls(res.adjR2)}">${ar2p}%</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${Math.max(0,ar2p)}%;background:#007aff"></div></div>
+      <div class="metric-sub">조정 결정계수</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">RMSE</div>
+      <div class="metric-value" style="font-size:18px">${f(res.rmse)}</div>
+      <div class="metric-sub">평균제곱근오차</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">MAE</div>
+      <div class="metric-value" style="font-size:18px">${f(res.mae)}</div>
+      <div class="metric-sub">평균절대오차</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">MSE</div>
+      <div class="metric-value" style="font-size:18px">${f(res.mse)}</div>
+      <div class="metric-sub">평균제곱오차</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">n</div>
+      <div class="metric-value" style="color:#007aff">${data.length}</div>
+      <div class="metric-sub">관측치</div>
+    </div>`;
+
+  drawMain(data, res);
+  drawResid(data, res);
+  drawTable(data, res);
+}
+
+function drawMain(data, res) {
+  if (chartInstance) chartInstance.destroy();
+  const xs=data.map(d=>d.x), mn=Math.min(...xs), mx=Math.max(...xs), st=(mx-mn)/120;
+  const line=[];
+  for(let x=mn;x<=mx+st/2;x+=st){try{const y=res.predict(x);if(isFinite(y))line.push({x:+x.toFixed(6),y:+y.toFixed(6)});}catch(e){}}
+  chartInstance=new Chart(document.getElementById('regressionChart'),{
+    type:'scatter',data:{datasets:[
+      {label:'실제 데이터',data:data.map(d=>({x:d.x,y:d.y})),backgroundColor:'rgba(0,122,255,0.85)',pointRadius:6,pointHoverRadius:8},
+      {label:'회귀 곡선',data:line,type:'line',borderColor:'#ff3b30',backgroundColor:'rgba(255,59,48,0.07)',borderWidth:2.5,pointRadius:0,tension:0.1,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:12,family:'-apple-system'},boxWidth:12,padding:16}},
+        tooltip:{callbacks:{label:ctx=>`(${f(ctx.parsed.x,3)}, ${f(ctx.parsed.y,3)})`}}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}}}}});
+}
+
+function drawResid(data, res) {
+  if (residualChartInstance) residualChartInstance.destroy();
+  const xs=data.map(d=>d.x);
+  residualChartInstance=new Chart(document.getElementById('residualChart'),{
+    type:'scatter',data:{datasets:[
+      {label:'잔차',data:data.map((d,i)=>({x:d.x,y:res.residuals[i]})),backgroundColor:'rgba(255,149,0,0.85)',pointRadius:5},
+      {label:'기준선',data:[{x:Math.min(...xs),y:0},{x:Math.max(...xs),y:0}],type:'line',borderColor:'rgba(142,142,147,0.5)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:11,family:'-apple-system'},boxWidth:10,padding:12}}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:11}},title:{display:true,text:'X',font:{size:11}}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:11}},title:{display:true,text:'잔차',font:{size:11}}}}}});
+}
+
+function drawTable(data, res) {
+  document.getElementById('dataTableBody').innerHTML = data.map((d,i)=>{
+    const r=res.residuals[i], r2=r*r, re=Math.abs(r/d.y)*100;
+    const q=re<5?'good':re<15?'medium':'poor', ql=re<5?'우수':re<15?'보통':'불량';
+    return `<tr>
+      <td>${i+1}</td><td>${f(d.x,4)}</td><td>${f(d.y,4)}</td>
+      <td>${f(res.yPred[i],4)}</td>
+      <td style="color:${r>=0?'#30d158':'#ff3b30'}">${f(r,4)}</td>
+      <td>${f(r2,4)}</td><td>${re.toFixed(1)}%</td>
+      <td><span class="badge ${q}">${ql}</span></td></tr>`;
+  }).join('');
+}
+
+let toastTimer;
+function showToast(msg, err=false) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=err?'#ff3b30':'#1c1c1e';
+  t.classList.add('show'); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+buildGrid(INIT_ROWS);
+</script>
+</body>
+</html>
