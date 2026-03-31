@@ -763,7 +763,18 @@ canvas.hover { cursor: grab; }
 
     <!-- Torque Plot -->
     <div class="s-sec">
-      <div class="s-title">출력토크 변화  θ₄: 50° ~ 130°</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div class="s-title" style="margin-bottom:0">출력토크 변화  θ₄: 50° ~ 130°</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:10px;color:var(--text2);font-weight:500;">모터 토크</div>
+          <div class="link-field" style="border-radius:7px;">
+            <input type="number" id="iMotorTorque" value="" placeholder="—" min="-9999" max="9999" step="0.1"
+              style="width:56px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);"
+              oninput="drawTorquePlot()">
+            <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">N·m</span>
+          </div>
+        </div>
+      </div>
       <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:10px 10px 6px;margin-bottom:6px;">
         <canvas id="torquePlot" height="300" style="width:100%;display:block;border-radius:6px;"></canvas>
 
@@ -776,6 +787,9 @@ canvas.hover { cursor: grab; }
           <div style="width:18px;height:1.5px;border-top:1.5px solid rgba(90,200,250,0.8);"></div> μ 전달각
         </div>
 
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
+          <div style="width:18px;height:1.5px;border-top:1.5px dashed rgba(191,90,242,0.8);"></div> 모터 토크
+        </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
           <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재
         </div>
@@ -1366,7 +1380,7 @@ function drawTorquePlot(){
   const{a,b,c,d,sol,solutions,t4:curT4deg}=S;
   const T2=parseFloat(document.getElementById("iTorque")?.value)||0;
   const PW=W2, PH=PH_CANVAS;
-  const PAD={t:22, b:34, l:52, r:14};
+  const PAD={t:22, b:62, l:68, r:14};
   const IW=PW-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
 
   // ── 정의역: θ₄ = 45° ~ 135° ──
@@ -1433,8 +1447,8 @@ function drawTorquePlot(){
     const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
     c2.fillText(deg+"°", x, PAD.t+IH+12);
   }
-  c2.fillStyle="rgba(200,60,50,0.5)";
-  c2.fillText("θ₄", PAD.l+IW/2, PAD.t+IH+26);
+  c2.fillStyle="rgba(200,60,50,0.6)"; c2.textAlign="right";
+  c2.fillText("θ₄ →", PAD.l+IW, PAD.t+IH+26); c2.textAlign="center";
 
   // ── 좌측 Y축 라벨 (T4) ──
   c2.textAlign="right";
@@ -1446,9 +1460,9 @@ function drawTorquePlot(){
     c2.fillText(label, PAD.l-5, y+3);
   });
   c2.save();
-  c2.translate(12, PAD.t+IH/2); c2.rotate(-Math.PI/2);
-  c2.fillStyle="rgba(255,69,58,0.5)"; c2.textAlign="center";
-  c2.fillText("T₄ (N·m)", 0, 0);
+  c2.fillStyle="rgba(255,69,58,0.6)"; c2.textAlign="left";
+  c2.font="500 9px -apple-system,sans-serif";
+  c2.fillText("↑ T₄ (N·m)", PAD.l, PAD.t-6);
   c2.restore();
 
 
@@ -1529,6 +1543,74 @@ function drawTorquePlot(){
     c2.beginPath(); c2.roundRect(lx-3,ly-10,lw+8,14,4); c2.fill();
     c2.fillStyle="#b06000"; c2.textAlign="left";
     c2.fillText(lbl, lx+1, ly);
+  }
+
+  // ── 모터 토크 수평선 + 교점 ──
+  const motorVal=parseFloat(document.getElementById("iMotorTorque")?.value);
+  if(!isNaN(motorVal) && document.getElementById("iMotorTorque").value.trim()!==""){
+    const my=yp(motorVal);
+    if(my>=PAD.t-1 && my<=PAD.t+IH+1){
+      // 수평선 (플롯 내부 라벨 없음)
+      c2.save();
+      c2.strokeStyle="rgba(191,90,242,0.85)"; c2.lineWidth=1.5; c2.setLineDash([6,3]);
+      c2.beginPath(); c2.moveTo(PAD.l,my); c2.lineTo(PAD.l+IW,my); c2.stroke();
+      c2.setLineDash([]);
+      c2.restore();
+
+      // 교점 찾기
+      const intersections=[];
+      for(let i=0;i<N;i++){
+        const v0=T4arr[i], v1=T4arr[i+1];
+        if(v0===null||v1===null) continue;
+        if((v0-motorVal)*(v1-motorVal)<=0){
+          const frac=(motorVal-v0)/(v1-v0);
+          const xi=xp(i+frac);
+          const t4cross=T4_MIN+(i+frac);
+          intersections.push({xi, t4cross});
+        }
+      }
+
+      // ── 교점 Y값: Y축 왼쪽 여백에 딱 한 번만 표시 (수평선 높이에) ──
+      if(intersections.length>0){
+        c2.save();
+        const ylbl=motorVal.toFixed(2);
+        c2.font="700 9px -apple-system,sans-serif";
+        const ylw=c2.measureText(ylbl).width;
+        c2.fillStyle="rgba(191,90,242,0.15)";
+        c2.beginPath(); c2.roundRect(2, my-10, ylw+8, 13, 4); c2.fill();
+        c2.fillStyle="rgba(130,30,200,0.95)"; c2.textAlign="left";
+        c2.fillText(ylbl, 4, my);
+        c2.restore();
+      }
+
+      // 교점 마커 + X값 라벨
+      intersections.forEach(({xi,t4cross},idx)=>{
+        c2.save();
+        // 교점 원
+        c2.beginPath(); c2.arc(xi,my,5,0,Math.PI*2);
+        c2.fillStyle="rgba(191,90,242,0.95)"; c2.fill();
+        c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
+
+        // 수직 점선
+        c2.strokeStyle="rgba(191,90,242,0.4)"; c2.lineWidth=1; c2.setLineDash([3,2]);
+        c2.beginPath(); c2.moveTo(xi,my); c2.lineTo(xi,PAD.t+IH); c2.stroke();
+        c2.setLineDash([]);
+
+        // X값: X축 눈금(+12)보다 아래(+32), 두 교점 가까우면 행 엇갈림
+        const lbl=t4cross.toFixed(1)+"°";
+        c2.font="700 9px -apple-system,sans-serif";
+        const lw=c2.measureText(lbl).width;
+        const PILL_W=lw+8, PILL_H=13;
+        const tooClose=intersections.length===2 && Math.abs(intersections[0].xi-intersections[1].xi)<PILL_W+12;
+        const row=tooClose?(idx===0?0:1):0;
+        const ly2=PAD.t+IH+32+row*14;
+        c2.fillStyle="rgba(191,90,242,0.15)";
+        c2.beginPath(); c2.roundRect(xi-PILL_W/2-2, ly2-10, PILL_W, PILL_H, 4); c2.fill();
+        c2.fillStyle="rgba(130,30,200,0.95)"; c2.textAlign="center";
+        c2.fillText(lbl, xi, ly2);
+        c2.restore();
+      });
+    }
   }
 
   // ── 테두리 ──
