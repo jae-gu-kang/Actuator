@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>회귀분석 도구</title>
+<title>회귀분석 도구 — Engineering Tools</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,7 +12,44 @@
     background: #f2f2f7;
     color: #1c1c1e;
     min-height: 100vh;
-    padding: 24px 20px 60px;
+    padding: 0 20px 60px;
+  }
+  /* ── Titlebar ── */
+  .titlebar {
+    position: sticky; top: 0; z-index: 100;
+    height: 52px;
+    background: rgba(242,242,247,0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: center;
+    padding: 0 20px;
+    margin: 0 -20px 24px;
+    gap: 10px;
+  }
+  .home-btn {
+    display: flex; align-items: center; gap: 5px;
+    text-decoration: none; color: #ff9f0a;
+    font-size: 13px; font-weight: 500;
+    padding: 5px 10px 5px 6px; border-radius: 8px;
+    background: transparent; border: none; cursor: pointer;
+    transition: background 0.15s;
+    margin-right: 2px;
+  }
+  .home-btn:hover { background: rgba(255,159,10,0.1); }
+  .home-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .titlebar-divider { width: 1px; height: 16px; background: rgba(0,0,0,0.08); margin-right: 2px; }
+  .app-icon-tb {
+    width: 28px; height: 28px;
+    background: linear-gradient(145deg, #ff9f0a, #e68000);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .app-icon-tb svg { width: 15px; height: 15px; }
+  .app-name-tb {
+    font-size: 15px; font-weight: 600;
+    letter-spacing: -0.3px; color: #1d1d1f;
   }
   .header { text-align: center; margin-bottom: 28px; }
   .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: #1c1c1e; margin-bottom: 5px; }
@@ -104,8 +141,30 @@
 </head>
 <body>
 
+<div class="titlebar">
+  <a class="home-btn" href="index.html">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"/>
+    </svg>
+    홈
+  </a>
+  <div class="titlebar-divider"></div>
+  <div class="app-icon-tb">
+    <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="2 13 2 3"/>
+      <polyline points="2 13 14 13"/>
+      <circle cx="4.5" cy="9" r="0.8" fill="white" stroke="none"/>
+      <circle cx="7" cy="7" r="0.8" fill="white" stroke="none"/>
+      <circle cx="9.5" cy="8.5" r="0.8" fill="white" stroke="none"/>
+      <circle cx="12" cy="5" r="0.8" fill="white" stroke="none"/>
+      <line x1="3" y1="10.5" x2="13" y2="4" stroke-dasharray="1.5 1"/>
+    </svg>
+  </div>
+  <span class="app-name-tb">회귀분석 도구</span>
+</div>
+
 <div class="header">
-  <h1>📈 회귀분석</h1>
+  <h1>회귀분석 도구</h1>
   <p>데이터를 입력하거나 엑셀 · 스프레드시트에서 바로 붙여넣기 하세요</p>
 </div>
 
