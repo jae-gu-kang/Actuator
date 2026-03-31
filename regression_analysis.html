@@ -212,7 +212,6 @@
       </div>
       <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="apple-btn btn-secondary" onclick="loadSample()">샘플 데이터</button>
-        <button class="apple-btn btn-primary" onclick="runRegression()">분석 실행</button>
       </div>
     </div>
   </div>
@@ -256,7 +255,7 @@
   <div class="card" id="emptyState">
     <div class="empty-state">
       <span class="empty-icon">📊</span>
-      데이터를 입력하고 <strong>분석 실행</strong>을 눌러주세요
+      데이터를 입력하면 자동으로 분석됩니다
     </div>
   </div>
 
@@ -265,7 +264,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const INIT_ROWS = 20;
+const INIT_ROWS = 10;
 let chartInstance = null, residualChartInstance = null, currentType = 'linear';
 
 function buildGrid(n) {
@@ -302,8 +301,15 @@ function clearGrid() {
   document.getElementById('emptyState').style.display = 'block';
 }
 
+let autoRunTimer;
+function scheduleRun() {
+  clearTimeout(autoRunTimer);
+  autoRunTimer = setTimeout(() => runRegression(), 600);
+}
+
 function updateCount() {
   document.getElementById('rowCountLabel').textContent = getRows().length;
+  scheduleRun();
 }
 
 function getRows() {
@@ -398,6 +404,7 @@ function handlePaste(e, inp) {
   });
 
   updateCount();
+  runRegression();
   showToast(`${pairs.length}개 행 붙여넣기 완료`);
 }
 
@@ -417,6 +424,7 @@ function loadSample() {
   const yI = document.querySelectorAll('.cell-input.col-y');
   data.forEach(([x,y],i) => { xI[i].value = x; yI[i].value = y; });
   updateCount();
+  runRegression();
   showToast('샘플 데이터 로드 완료');
 }
 
@@ -426,17 +434,23 @@ document.getElementById('regressionType').addEventListener('click', e => {
   document.querySelectorAll('#regressionType button').forEach(b => b.classList.remove('active'));
   e.target.classList.add('active');
   currentType = e.target.dataset.type;
+  runRegression();
 });
 
 /* 분석 실행 */
 function runRegression() {
   const data = getRows();
-  if (data.length < 3) { showToast('최소 3개 이상의 데이터가 필요합니다', true); return; }
+  if (data.length < 3) {
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    return;
+  }
+  const wasHidden = document.getElementById('resultsSection').style.display === 'none';
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('resultsSection').style.display = 'flex';
   const res = compute(data, currentType);
   display(data, res);
-  setTimeout(() => document.getElementById('resultsSection').scrollIntoView({behavior:'smooth', block:'start'}), 80);
+  if (wasHidden) setTimeout(() => document.getElementById('resultsSection').scrollIntoView({behavior:'smooth', block:'start'}), 80);
 }
 
 /* 회귀 계산 */
