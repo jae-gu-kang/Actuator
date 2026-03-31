@@ -136,9 +136,9 @@ body {
 
 /* ── SIDEBAR ── */
 .sidebar {
-  width: 268px;
-  min-width: 200px;
-  max-width: 480px;
+  width: 410px;
+  min-width: 280px;
+  max-width: 900px;
   flex-shrink: 0;
   background: var(--sidebar-bg);
   backdrop-filter: blur(40px) saturate(180%);
@@ -214,17 +214,17 @@ body {
 
 /* Section */
 .s-sec {
-  padding: 18px 16px 14px;
+  padding: 10px 14px 10px;
   border-bottom: 1px solid var(--border2);
 }
 
 .s-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text2);
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 /* Link card */
@@ -232,10 +232,10 @@ body {
   display: flex;
   align-items: center;
   background: var(--card);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  gap: 10px;
+  border-radius: 8px;
+  padding: 5px 10px;
+  margin-bottom: 4px;
+  gap: 8px;
   transition: box-shadow 0.15s;
   border: 1px solid var(--border2);
 }
@@ -251,15 +251,15 @@ body {
 .link-meta { flex: 1; min-width: 0; }
 
 .link-name {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--text);
-  margin-bottom: 1px;
+  margin-bottom: 0px;
   letter-spacing: -0.1px;
 }
 
 .link-sub {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text3);
   letter-spacing: 0;
 }
@@ -284,8 +284,8 @@ body {
   background: transparent;
   border: none;
   outline: none;
-  padding: 5px 7px;
-  font-size: 13px;
+  padding: 3px 6px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text);
   text-align: right;
@@ -295,8 +295,8 @@ body {
 .link-field input::-webkit-inner-spin-button { opacity: 0; }
 
 .link-field .u {
-  padding: 5px 7px 5px 2px;
-  font-size: 11px;
+  padding: 3px 6px 3px 2px;
+  font-size: 10px;
   color: var(--text3);
   font-weight: 400;
 }
@@ -304,9 +304,9 @@ body {
 /* Angle block */
 .angle-card {
   background: var(--card);
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
+  border-radius: 10px;
+  padding: 7px 12px;
+  margin-bottom: 6px;
   border: 1px solid var(--border2);
 }
 
@@ -314,7 +314,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .angle-label {
@@ -334,7 +334,7 @@ body {
 }
 
 .angle-readout {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 300;
   letter-spacing: -0.5px;
   font-variant-numeric: tabular-nums;
@@ -344,11 +344,11 @@ body {
 input[type=range] {
   -webkit-appearance: none;
   width: 100%;
-  height: 4px;
+  height: 3px;
   border-radius: 2px;
   outline: none;
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 input[type=range].sl-t4 { background: linear-gradient(to right, var(--follower) 0%, var(--follower) var(--pct,17%), rgba(0,0,0,0.1) var(--pct,17%)); }
@@ -356,7 +356,7 @@ input[type=range].sl-t2 { background: linear-gradient(to right, var(--crank) 0%,
 
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 20px; height: 20px;
+  width: 16px; height: 16px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05);
@@ -400,8 +400,8 @@ input[type=range]:active::-webkit-slider-thumb {
   background: transparent;
   border: none;
   outline: none;
-  padding: 7px 10px;
-  font-size: 14px;
+  padding: 4px 8px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -411,18 +411,18 @@ input[type=range]:active::-webkit-slider-thumb {
 .angle-num-field input::-webkit-inner-spin-button { opacity: 0; }
 
 .angle-num-field .deg-tag {
-  padding: 7px 10px 7px 4px;
-  font-size: 13px;
+  padding: 4px 8px 4px 2px;
+  font-size: 11px;
   color: var(--text3);
 }
 
 /* Result card */
 .result-card {
   background: var(--card);
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 10px;
+  padding: 8px 12px;
   border: 1px solid var(--border2);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .result-label {
@@ -438,7 +438,7 @@ input[type=range]:active::-webkit-slider-thumb {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .result-key {
@@ -448,7 +448,7 @@ input[type=range]:active::-webkit-slider-thumb {
 }
 
 .result-val {
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 300;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.3px;
@@ -601,65 +601,69 @@ canvas.hover { cursor: grab; }
     <!-- Link lengths -->
     <div class="s-sec">
       <div class="s-title">링크 길이</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
 
-      <div class="link-card">
-        <div class="link-pip" style="background:var(--ground)"></div>
-        <div class="link-meta">
-          <div class="link-name">고정링크 <span style="color:var(--text3);font-weight:400">d</span></div>
-          <div class="link-sub">Ground Frame</div>
+        <div class="link-card" style="margin-bottom:0">
+          <div class="link-pip" style="background:var(--ground)"></div>
+          <div class="link-meta">
+            <div class="link-name">고정 <span style="color:var(--text3);font-weight:400">d</span></div>
+            <div class="link-sub">Ground</div>
+          </div>
+          <div class="link-field">
+            <input type="number" id="id" value="100" min="10" max="400" oninput="onLink()">
+            <span class="u">mm</span>
+          </div>
         </div>
-        <div class="link-field">
-          <input type="number" id="id" value="100" min="10" max="400" oninput="onLink()">
-          <span class="u">mm</span>
-        </div>
-      </div>
 
-      <div class="link-card">
-        <div class="link-pip" style="background:var(--crank)"></div>
-        <div class="link-meta">
-          <div class="link-name">입력링크 <span style="color:var(--text3);font-weight:400">a</span></div>
-          <div class="link-sub">Crank</div>
+        <div class="link-card" style="margin-bottom:0">
+          <div class="link-pip" style="background:var(--crank)"></div>
+          <div class="link-meta">
+            <div class="link-name">입력 <span style="color:var(--text3);font-weight:400">a</span></div>
+            <div class="link-sub">Crank</div>
+          </div>
+          <div class="link-field">
+            <input type="number" id="ia" value="40" min="5" max="400" oninput="onLink()">
+            <span class="u">mm</span>
+          </div>
         </div>
-        <div class="link-field">
-          <input type="number" id="ia" value="40" min="5" max="400" oninput="onLink()">
-          <span class="u">mm</span>
-        </div>
-      </div>
 
-      <div class="link-card">
-        <div class="link-pip" style="background:var(--coupler)"></div>
-        <div class="link-meta">
-          <div class="link-name">커플러 <span style="color:var(--text3);font-weight:400">b</span></div>
-          <div class="link-sub">Coupler</div>
+        <div class="link-card" style="margin-bottom:0">
+          <div class="link-pip" style="background:var(--coupler)"></div>
+          <div class="link-meta">
+            <div class="link-name">커플러 <span style="color:var(--text3);font-weight:400">b</span></div>
+            <div class="link-sub">Coupler</div>
+          </div>
+          <div class="link-field">
+            <input type="number" id="ib" value="120" min="5" max="400" oninput="onLink()">
+            <span class="u">mm</span>
+          </div>
         </div>
-        <div class="link-field">
-          <input type="number" id="ib" value="120" min="5" max="400" oninput="onLink()">
-          <span class="u">mm</span>
-        </div>
-      </div>
 
-      <div class="link-card">
-        <div class="link-pip" style="background:var(--follower)"></div>
-        <div class="link-meta">
-          <div class="link-name">출력링크 <span style="color:var(--text3);font-weight:400">c</span></div>
-          <div class="link-sub">Follower</div>
+        <div class="link-card" style="margin-bottom:0">
+          <div class="link-pip" style="background:var(--follower)"></div>
+          <div class="link-meta">
+            <div class="link-name">출력 <span style="color:var(--text3);font-weight:400">c</span></div>
+            <div class="link-sub">Follower</div>
+          </div>
+          <div class="link-field">
+            <input type="number" id="ic" value="80" min="5" max="400" oninput="onLink()">
+            <span class="u">mm</span>
+          </div>
         </div>
-        <div class="link-field">
-          <input type="number" id="ic" value="80" min="5" max="400" oninput="onLink()">
-          <span class="u">mm</span>
-        </div>
+
       </div>
     </div>
 
     <!-- Angles -->
     <div class="s-sec">
       <div class="s-title">각도</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
 
       <!-- θ₄ -->
-      <div class="angle-card">
+      <div class="angle-card" style="margin-bottom:0">
         <div class="angle-top">
           <div class="angle-label">
-            <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력링크 각도
+            <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력각
           </div>
           <div class="angle-readout" style="color:var(--follower)" id="lT4">60.0°</div>
         </div>
@@ -673,10 +677,10 @@ canvas.hover { cursor: grab; }
       </div>
 
       <!-- θ₂ -->
-      <div class="angle-card">
+      <div class="angle-card" style="margin-bottom:0">
         <div class="angle-top">
           <div class="angle-label">
-            <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">θ₂</span>입력링크 각도
+            <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">θ₂</span>입력각
           </div>
           <div class="angle-readout" style="color:var(--crank)" id="lT2">—</div>
         </div>
@@ -688,93 +692,95 @@ canvas.hover { cursor: grab; }
           </div>
         </div>
       </div>
+
+      </div>
     </div>
 
-    <!-- Results -->
+    <!-- Results + Torque (2열) -->
     <div class="s-sec">
-      <div class="s-title">계산 결과</div>
-      <div class="result-card" id="rContent">
-        <div class="result-row">
-          <span class="result-key">θ₄ 출력각</span>
-          <span class="result-val" style="color:var(--follower)" id="rT4">—</span>
-        </div>
-        <div class="result-divider"></div>
-        <div class="result-row">
-          <span class="result-key">θ₂ 입력각</span>
-          <span class="result-val" style="color:var(--crank)" id="rT2">—</span>
-        </div>
-        <div class="result-row">
-          <span class="result-key">θ₃ 커플러각</span>
-          <span class="result-val" style="color:var(--coupler);font-size:15px" id="rT3">—</span>
-        </div>
-      </div>
-      <div class="no-sol-banner" id="noSol">⚠︎ 해당 각도에서는 기구가 도달할 수 없습니다</div>
-    </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">
 
-    <!-- Torque -->
-    <div class="s-sec">
-      <div class="s-title">토크 해석</div>
+        <!-- 계산 결과 -->
+        <div>
+          <div class="s-title" style="margin-bottom:6px">계산 결과</div>
+          <div class="result-card" id="rContent">
+            <div class="result-row">
+              <span class="result-key">θ₄ 출력각</span>
+              <span class="result-val" style="color:var(--follower)" id="rT4">—</span>
+            </div>
+            <div class="result-divider"></div>
+            <div class="result-row">
+              <span class="result-key">θ₂ 입력각</span>
+              <span class="result-val" style="color:var(--crank)" id="rT2">—</span>
+            </div>
+            <div class="result-row">
+              <span class="result-key">θ₃ 커플러</span>
+              <span class="result-val" style="color:var(--coupler)" id="rT3">—</span>
+            </div>
+          </div>
+          <div class="no-sol-banner" id="noSol">⚠︎ 해당 각도에서 도달 불가</div>
+        </div>
 
-      <!-- Input torque card -->
-      <div class="link-card" style="margin-bottom:10px">
-        <div class="link-pip" style="background:var(--crank)"></div>
-        <div class="link-meta">
-          <div class="link-name">입력 토크 <span style="color:var(--text3);font-weight:400">T₂</span></div>
-          <div class="link-sub">Crank Input</div>
+        <!-- 토크 해석 -->
+        <div>
+          <div class="s-title" style="margin-bottom:6px">토크 해석</div>
+          <div class="link-card" style="margin-bottom:4px">
+            <div class="link-pip" style="background:var(--crank)"></div>
+            <div class="link-meta">
+              <div class="link-name">입력 토크 <span style="color:var(--text3);font-weight:400">T₂</span></div>
+              <div class="link-sub">Crank Input</div>
+            </div>
+            <div class="link-field">
+              <input type="number" id="iTorque" value="10" min="-9999" max="9999" step="0.1" oninput="onTorque()">
+              <span class="u">N·m</span>
+            </div>
+          </div>
+          <div class="result-card" id="torqueCard">
+            <div class="result-row">
+              <span class="result-key">기계이득 MA</span>
+              <span class="result-val" style="color:var(--purple)" id="rMA">—</span>
+            </div>
+            <div class="result-divider"></div>
+            <div class="result-row">
+              <span class="result-key">T₂ 입력</span>
+              <span class="result-val" style="color:var(--crank)" id="rT2torque">—</span>
+            </div>
+            <div class="result-row">
+              <span class="result-key">T₄ 출력</span>
+              <span class="result-val" style="color:var(--follower)" id="rT4torque">—</span>
+            </div>
+            <div class="result-divider"></div>
+            <div class="result-row">
+              <span class="result-key" style="font-size:10px;color:var(--text3)">전달각 μ</span>
+              <span class="result-val" style="color:var(--orange);font-size:12px" id="rMu">—</span>
+            </div>
+            <div id="torqueNoSol" class="no-sol-banner" style="display:none">⚠︎ 계산 불가</div>
+          </div>
         </div>
-        <div class="link-field">
-          <input type="number" id="iTorque" value="10" min="-9999" max="9999" step="0.1" oninput="onTorque()">
-          <span class="u">N·m</span>
-        </div>
-      </div>
 
-      <!-- Torque result card -->
-      <div class="result-card" id="torqueCard">
-        <div class="result-label">토크 전달 결과</div>
-        <div class="result-row">
-          <span class="result-key">기계이득 (MA)</span>
-          <span class="result-val" style="color:var(--purple);font-size:15px" id="rMA">—</span>
-        </div>
-        <div class="result-divider"></div>
-        <div class="result-row">
-          <span class="result-key">입력 토크 T₂</span>
-          <span class="result-val" style="color:var(--crank);font-size:15px" id="rT2torque">—</span>
-        </div>
-        <div class="result-row">
-          <span class="result-key">출력 토크 T₄</span>
-          <span class="result-val" style="color:var(--follower)" id="rT4torque">—</span>
-        </div>
-        <div class="result-divider"></div>
-        <div class="result-row">
-          <span class="result-key" style="font-size:11px;color:var(--text3)">전달각 μ</span>
-          <span class="result-val" style="color:var(--orange);font-size:13px" id="rMu">—</span>
-        </div>
-        <div id="torqueNoSol" class="no-sol-banner" style="display:none">⚠︎ 현재 자세에서 계산 불가</div>
       </div>
     </div>
 
     <!-- Torque Plot -->
     <div class="s-sec">
-      <div class="s-title">출력토크 변화 (θ₄: 0° → 180°)</div>
+      <div class="s-title">출력토크 변화  θ₄: 50° ~ 130°</div>
       <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:10px 10px 6px;margin-bottom:6px;">
-        <canvas id="torquePlot" height="130" style="width:100%;display:block;border-radius:6px;"></canvas>
-        <div style="display:flex;justify-content:space-between;margin-top:4px;padding:0 2px;">
-          <span style="font-size:10px;color:var(--text3)">0°</span>
-          <span style="font-size:10px;color:var(--text3)">45°</span>
-          <span style="font-size:10px;color:var(--text3)">90°</span>
-          <span style="font-size:10px;color:var(--text3)">135°</span>
-          <span style="font-size:10px;color:var(--text3)">180°</span>
-        </div>
+        <canvas id="torquePlot" height="300" style="width:100%;display:block;border-radius:6px;"></canvas>
+
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 2px 4px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:2px 2px 4px;align-items:center;">
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:20px;height:2px;background:var(--follower);border-radius:1px"></div> T₄
+          <div style="width:18px;height:2px;background:#ff453a;border-radius:1px"></div> T₄ 출력토크
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:14px;height:2px;border-top:2px dashed var(--purple);"></div> MA
+          <div style="width:18px;height:1.5px;border-top:1.5px solid rgba(90,200,250,0.8);"></div> μ 전달각
         </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><div style="width:14px;height:2px;border-top:1.5px solid rgba(90,200,250,0.8);"></div> μ</div><div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재 위치
+
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
+          <div style="width:8px;height:8px;border-radius:50%;background:rgba(50,215,75,0.9)"></div> 최대
         </div>
       </div>
     </div>
@@ -1351,122 +1357,182 @@ function drawTorquePlot(){
   const pc=document.getElementById("torquePlot");
   if(!pc) return;
   const W2=pc.offsetWidth||220;
-  pc.width=W2*devicePixelRatio; pc.height=130*devicePixelRatio;
-  pc.style.width=W2+"px"; pc.style.height="130px";
+  const PH_CANVAS=300;
+  pc.width=W2*devicePixelRatio; pc.height=PH_CANVAS*devicePixelRatio;
+  pc.style.width=W2+"px"; pc.style.height=PH_CANVAS+"px";
   const c2=pc.getContext("2d");
   c2.scale(devicePixelRatio,devicePixelRatio);
+
   const{a,b,c,d,sol,solutions,t4:curT4deg}=S;
   const T2=parseFloat(document.getElementById("iTorque")?.value)||0;
-  const PW=W2,PH=130;
-  const PAD={t:14,b:8,l:42,r:10};
-  const IW=PW-PAD.l-PAD.r,IH=PH-PAD.t-PAD.b;
+  const PW=W2, PH=PH_CANVAS;
+  const PAD={t:22, b:34, l:52, r:14};
+  const IW=PW-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
 
-  // θ₄ 0~180° 구간 샘플 (solve()와 동일 경로)
-  const N=180;
-  const T4arr=[],MUarr=[];
-  for(let i=0;i<=N;i++){
-    const t4=i;  // 0~180°
-    const res=calcMAatT4(a,b,c,d,t4,sol);
+  // ── 정의역: θ₄ = 45° ~ 135° ──
+  const T4_MIN=50, T4_MAX=130, T4_RANGE=T4_MAX-T4_MIN;
+  const T4arr=[], MUarr=[];
+  for(let deg=T4_MIN; deg<=T4_MAX; deg++){
+    const res=calcMAatT4(a,b,c,d,deg,sol);
     if(res===null||!isFinite(res.ma)){T4arr.push(null);MUarr.push(null);}
-    else{T4arr.push(T2*res.ma);MUarr.push(res.mu);}
+    else{T4arr.push(T2*res.ma); MUarr.push(res.mu);}
   }
+  const N=T4arr.length-1; // 90
 
   const validT4=T4arr.filter(v=>v!==null);
   if(!validT4.length) return;
-  const t4min=Math.min(...validT4),t4max=Math.max(...validT4);
-  const t4span=Math.max(Math.abs(t4max-t4min),0.01);
-  const yLo=t4min-t4span*0.12,yHi=t4max+t4span*0.12;
 
-  const xp=i=>PAD.l+(i/N)*IW;           // i = θ₄ index (0~180)
-  const yp=v=>PAD.t+IH-(v-yLo)/(yHi-yLo)*IH;
-  const muLo=0,muHi=90;
-  const ymu=v=>PAD.t+IH-(v-muLo)/(muHi-muLo)*IH;
+  // ── 치역(T4) Y축: nice step ──
+  const t4min=Math.min(...validT4), t4max=Math.max(...validT4);
+  const rawSpan=Math.max(Math.abs(t4max-t4min),0.01);
+  const rawStep=rawSpan/6;
+  const mag=Math.pow(10,Math.floor(Math.log10(rawStep)));
+  const niceStep=[1,2,2.5,5,10].map(f=>f*mag).find(s=>rawSpan/s<=8)||mag;
+  const yLo=Math.floor((t4min-rawSpan*0.08)/niceStep)*niceStep;
+  const yHi=Math.ceil( (t4max+rawSpan*0.08)/niceStep)*niceStep;
+
+
+
+  // ── 좌표 변환 함수 ──
+  const xp =i => PAD.l+(i/N)*IW;               // i=0..N → θ₄=45..135
+  const yp =v => PAD.t+IH-(v-yLo)/(yHi-yLo)*IH;
+  const ymu=v => PAD.t+IH-(v/90)*IH;            // 0~90°
 
   c2.clearRect(0,0,PW,PH);
 
-  // 격자선 (0°, 45°, 90°, 135°, 180°)
-  c2.strokeStyle="rgba(0,0,0,0.05)";c2.lineWidth=1;
-  [0,45,90,135,180].forEach(deg=>{
-    const x=PAD.l+(deg/180)*IW;
-    c2.beginPath();c2.moveTo(x,PAD.t);c2.lineTo(x,PAD.t+IH);c2.stroke();
-  });
+  // ── 배경 ──
+  c2.fillStyle="rgba(245,245,247,0.55)";
+  c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,4); c2.fill();
 
-  // 제로선
-  if(yLo<0&&yHi>0){
-    c2.strokeStyle="rgba(0,0,0,0.1)";c2.setLineDash([4,3]);c2.lineWidth=1;
-    c2.beginPath();c2.moveTo(PAD.l,yp(0));c2.lineTo(PAD.l+IW,yp(0));c2.stroke();
-    c2.setLineDash([]);
+  // ── X 격자: 10° 단위 (정의역 45~135) ──
+  for(let deg=T4_MIN; deg<=T4_MAX; deg+=10){
+    const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
+    const major=(deg%30===0||deg===T4_MIN||deg===T4_MAX);
+    c2.strokeStyle=major?"rgba(0,0,0,0.10)":"rgba(0,0,0,0.04)";
+    c2.lineWidth=major?1:0.6;
+    c2.beginPath(); c2.moveTo(x,PAD.t); c2.lineTo(x,PAD.t+IH); c2.stroke();
   }
 
-  // Y 라벨 (T4)
-  c2.font="500 9px -apple-system,sans-serif";c2.fillStyle="rgba(255,69,58,0.75)";c2.textAlign="right";
-  [yLo+(yHi-yLo)*0.1,(yLo+yHi)/2,yHi-(yHi-yLo)*0.1].forEach(v=>{
+  // ── Y 격자 (T4) ──
+  const yTicks=[];
+  for(let v=yLo; v<=yHi+1e-9; v+=niceStep) yTicks.push(parseFloat(v.toFixed(10)));
+  yTicks.forEach(v=>{
     const y=yp(v);
-    if(y>PAD.t+4&&y<PAD.t+IH-4) c2.fillText(v.toFixed(1),PAD.l-3,y+3);
+    if(y<PAD.t-1||y>PAD.t+IH+1) return;
+    c2.strokeStyle=v===0?"rgba(0,0,0,0.18)":"rgba(255,69,58,0.07)";
+    c2.lineWidth=v===0?1:0.6;
+    c2.setLineDash(v===0?[4,3]:[]);
+    c2.beginPath(); c2.moveTo(PAD.l,y); c2.lineTo(PAD.l+IW,y); c2.stroke();
+    c2.setLineDash([]);
   });
-  c2.textAlign="left";
 
-  // μ 곡선 (하늘색)
-  c2.save();c2.strokeStyle="rgba(90,200,250,0.65)";c2.lineWidth=1.2;
-  let stm=false;c2.beginPath();
+  // ── X축 라벨: 10° 단위 ──
+  c2.font="500 9px -apple-system,sans-serif";
+  c2.fillStyle="rgba(200,60,50,0.7)"; c2.textAlign="center";
+  for(let deg=T4_MIN; deg<=T4_MAX; deg+=10){
+    const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
+    c2.fillText(deg+"°", x, PAD.t+IH+12);
+  }
+  c2.fillStyle="rgba(200,60,50,0.5)";
+  c2.fillText("θ₄", PAD.l+IW/2, PAD.t+IH+26);
+
+  // ── 좌측 Y축 라벨 (T4) ──
+  c2.textAlign="right";
+  c2.fillStyle="rgba(255,69,58,0.85)";
+  yTicks.forEach(v=>{
+    const y=yp(v);
+    if(y<PAD.t-2||y>PAD.t+IH+2) return;
+    const label=Math.abs(v)<0.001?"0":v.toFixed(Math.abs(v)<10?2:1);
+    c2.fillText(label, PAD.l-5, y+3);
+  });
+  c2.save();
+  c2.translate(12, PAD.t+IH/2); c2.rotate(-Math.PI/2);
+  c2.fillStyle="rgba(255,69,58,0.5)"; c2.textAlign="center";
+  c2.fillText("T₄ (N·m)", 0, 0);
+  c2.restore();
+
+
+
+  // ── μ 곡선 (하늘색 실선) + 우측 보조 tick ──
+  c2.save();
+  c2.strokeStyle="rgba(90,200,250,0.7)"; c2.lineWidth=1.5;
+  let stm=false; c2.beginPath();
   for(let i=0;i<=N;i++){
     if(MUarr[i]===null){stm=false;continue;}
-    const x=xp(i),y=ymu(MUarr[i]);
+    const x=xp(i), y=ymu(MUarr[i]);
     if(!stm){c2.moveTo(x,y);stm=true;}else c2.lineTo(x,y);
   }
-  c2.stroke();c2.restore();
+  c2.stroke();
+  c2.restore();
 
-  // T4 그라디언트 채우기
+
+
+  // ── T4 그라디언트 채우기 ──
   const grad=c2.createLinearGradient(0,PAD.t,0,PAD.t+IH);
-  grad.addColorStop(0,"rgba(255,69,58,0.15)");grad.addColorStop(1,"rgba(255,69,58,0.0)");
-  c2.beginPath();let st=false,lastIdx=-1;
+  grad.addColorStop(0,"rgba(255,69,58,0.18)"); grad.addColorStop(1,"rgba(255,69,58,0.0)");
+  c2.beginPath(); let st=false, lastIdx=-1;
   for(let i=0;i<=N;i++){
-    if(T4arr[i]===null){if(st){c2.lineTo(xp(lastIdx),yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();c2.beginPath();st=false;}continue;}
+    if(T4arr[i]===null){
+      if(st){c2.lineTo(xp(lastIdx),yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();c2.beginPath();st=false;}
+      continue;
+    }
     const x=xp(i),y=yp(T4arr[i]);
     if(!st){c2.moveTo(x,yp(0));c2.lineTo(x,y);st=true;}else c2.lineTo(x,y);
     lastIdx=i;
   }
   if(st){c2.lineTo(xp(lastIdx),yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();}
 
-  // T4 곡선
-  c2.beginPath();st=false;
+  // ── T4 곡선 (빨간 실선) ──
+  c2.beginPath(); st=false;
   for(let i=0;i<=N;i++){
     if(T4arr[i]===null){st=false;continue;}
     const x=xp(i),y=yp(T4arr[i]);
     if(!st){c2.moveTo(x,y);st=true;}else c2.lineTo(x,y);
   }
-  c2.strokeStyle="#ff453a";c2.lineWidth=2;c2.lineJoin="round";c2.stroke();
+  c2.strokeStyle="#ff453a"; c2.lineWidth=2; c2.lineJoin="round"; c2.stroke();
 
-  // 최대값 마커 (초록)
+  // ── 최대값 마커 (초록) ──
   const maxT4=Math.max(...validT4);
   const maxIdx=T4arr.indexOf(maxT4);
   if(maxIdx>=0){
-    c2.beginPath();c2.arc(xp(maxIdx),yp(maxT4),4,0,Math.PI*2);
-    c2.fillStyle="rgba(50,215,75,0.9)";c2.fill();
-    c2.strokeStyle="#fff";c2.lineWidth=1.5;c2.stroke();
+    const mx=xp(maxIdx), my=yp(maxT4);
+    c2.beginPath(); c2.arc(mx,my,4.5,0,Math.PI*2);
+    c2.fillStyle="rgba(50,215,75,0.95)"; c2.fill();
+    c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
+    const mlabel="max "+maxT4.toFixed(2);
+    c2.font="600 8px -apple-system,sans-serif";
+    const mw=c2.measureText(mlabel).width;
+    const mlx=maxIdx>N*0.7 ? mx-mw-8 : mx+7;
+    c2.fillStyle="rgba(255,255,255,0.93)";
+    c2.beginPath(); c2.roundRect(mlx-2,my-13,mw+6,13,3); c2.fill();
+    c2.fillStyle="rgba(25,150,45,0.9)"; c2.textAlign="left";
+    c2.fillText(mlabel, mlx+1, my-3);
   }
 
-  // 현재 위치 마커 (θ₄ 기준)
-  const t4idx=Math.round(Math.max(0,Math.min(180,curT4deg)));
+  // ── 현재 위치 마커 (주황) ──
+  const clampedT4=Math.max(T4_MIN,Math.min(T4_MAX,curT4deg));
+  const t4idx=Math.round(clampedT4-T4_MIN);
   if(T4arr[t4idx]!==null){
-    const cx=xp(t4idx),cy=yp(T4arr[t4idx]);
-    c2.strokeStyle="rgba(255,159,10,0.5)";c2.lineWidth=1;c2.setLineDash([3,2]);
-    c2.beginPath();c2.moveTo(cx,PAD.t);c2.lineTo(cx,PAD.t+IH);c2.stroke();
+    const cx=xp(t4idx), cy=yp(T4arr[t4idx]);
+    c2.strokeStyle="rgba(255,159,10,0.45)"; c2.lineWidth=1; c2.setLineDash([3,2]);
+    c2.beginPath(); c2.moveTo(cx,PAD.t); c2.lineTo(cx,PAD.t+IH); c2.stroke();
     c2.setLineDash([]);
-    c2.beginPath();c2.arc(cx,cy,4.5,0,Math.PI*2);
-    c2.fillStyle="#ff9f0a";c2.fill();c2.strokeStyle="#fff";c2.lineWidth=1.5;c2.stroke();
-    // 값 라벨
-    const label=T4arr[t4idx].toFixed(1)+" N·m";
+    c2.beginPath(); c2.arc(cx,cy,5,0,Math.PI*2);
+    c2.fillStyle="#ff9f0a"; c2.fill();
+    c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
+    const lbl=T4arr[t4idx].toFixed(2)+" N·m";
     c2.font="600 9px -apple-system,sans-serif";
-    const tw=c2.measureText(label).width;
-    const lx=Math.min(cx+7,PW-PAD.r-tw-4);
-    const ly=Math.max(cy-7,PAD.t+11);
-    c2.fillStyle="rgba(255,255,255,0.92)";
-    c2.beginPath();c2.roundRect(lx-3,ly-9,tw+6,13,3);c2.fill();
-    c2.fillStyle="#e07000";c2.fillText(label,lx,ly);
+    const lw=c2.measureText(lbl).width;
+    const lx=t4idx>N*0.7 ? cx-lw-10 : cx+8;
+    const ly=Math.max(cy-8,PAD.t+13);
+    c2.fillStyle="rgba(255,255,255,0.95)";
+    c2.beginPath(); c2.roundRect(lx-3,ly-10,lw+8,14,4); c2.fill();
+    c2.fillStyle="#b06000"; c2.textAlign="left";
+    c2.fillText(lbl, lx+1, ly);
   }
 
-  c2.strokeStyle="rgba(0,0,0,0.06)";c2.lineWidth=1;
+  // ── 테두리 ──
+  c2.strokeStyle="rgba(0,0,0,0.08)"; c2.lineWidth=1;
   c2.strokeRect(PAD.l,PAD.t,IW,IH);
 }
 
@@ -1490,9 +1556,10 @@ function initResizer(){
 
   document.addEventListener('mousemove',e=>{
     if(!isResizing) return;
-    const newW=Math.min(480,Math.max(200,startW+(e.clientX-startX)));
+    const newW=Math.min(900,Math.max(280,startW+(e.clientX-startX)));
     sidebar.style.width=newW+'px';
     resize();
+    drawTorquePlot();
   });
 
   document.addEventListener('mouseup',()=>{
@@ -1512,9 +1579,10 @@ function initResizer(){
 
   document.addEventListener('touchmove',e=>{
     if(!isResizing) return;
-    const newW=Math.min(480,Math.max(200,startW+(e.touches[0].clientX-startX)));
+    const newW=Math.min(900,Math.max(280,startW+(e.touches[0].clientX-startX)));
     sidebar.style.width=newW+'px';
     resize();
+    drawTorquePlot();
   },{passive:true});
 
   document.addEventListener('touchend',()=>{
