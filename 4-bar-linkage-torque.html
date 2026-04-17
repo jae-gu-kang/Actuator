@@ -622,7 +622,7 @@ canvas.hover { cursor: grab; }
             <div class="link-sub">Crank</div>
           </div>
           <div class="link-field">
-            <input type="number" id="ia" value="40" min="5" max="400" oninput="onLink()">
+            <input type="number" id="ia" value="30" min="5" max="400" oninput="onLink()">
             <span class="u">mm</span>
           </div>
         </div>
@@ -646,7 +646,7 @@ canvas.hover { cursor: grab; }
             <div class="link-sub">Follower</div>
           </div>
           <div class="link-field">
-            <input type="number" id="ic" value="80" min="5" max="400" oninput="onLink()">
+            <input type="number" id="ic" value="40" min="5" max="400" oninput="onLink()">
             <span class="u">mm</span>
           </div>
         </div>
@@ -766,9 +766,9 @@ canvas.hover { cursor: grab; }
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <div class="s-title" data-plot style="margin-bottom:0">출력토크 변화</div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <div style="font-size:10px;color:var(--text2);font-weight:500;">모터 토크</div>
+          <div style="font-size:10px;color:var(--text2);font-weight:500;">토크 요구도</div>
           <div class="link-field" style="border-radius:7px;">
-            <input type="number" id="iMotorTorque" value="" placeholder="—" min="-9999" max="9999" step="0.1"
+            <input type="number" id="iMotorTorque" value="8.5" placeholder="—" min="-9999" max="9999" step="0.1"
               style="width:56px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);"
               oninput="drawTorquePlot()">
             <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">N·m</span>
@@ -779,6 +779,10 @@ canvas.hover { cursor: grab; }
         <canvas id="torquePlot" height="300" style="width:100%;display:block;border-radius:6px;"></canvas>
 
       </div>
+      <div id="usableRangeBox" style="display:none;background:rgba(191,90,242,0.07);border:1px solid rgba(191,90,242,0.2);border-radius:8px;padding:6px 12px;margin-bottom:6px;font-size:11px;color:var(--text2);">
+        <span style="font-weight:600;color:rgba(130,30,200,0.9)">가용 각도</span>
+        <span id="usableRangeText" style="margin-left:6px;font-variant-numeric:tabular-nums;"></span>
+      </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;padding:2px 2px 4px;align-items:center;">
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
           <div style="width:18px;height:2px;background:#ff453a;border-radius:1px"></div> T₄ 출력토크
@@ -786,7 +790,7 @@ canvas.hover { cursor: grab; }
 
 
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:1.5px;border-top:1.5px dashed rgba(191,90,242,0.8);"></div> 모터 토크
+          <div style="width:18px;height:1.5px;border-top:1.5px dashed rgba(191,90,242,0.8);"></div> 토크 요구도
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
           <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재
@@ -837,7 +841,7 @@ canvas.hover { cursor: grab; }
 
 <script>
 // ── STATE ──
-const S = { a:40, b:120, c:80, d:100, t4:60, sol:'open', solutions:null };
+const S = { a:30, b:120, c:40, d:100, t4:60, sol:'open', solutions:null };
 let cv, ctx, W, H, scale=1, ox=0, oy=0;
 let drag=null, hov=null, hintHidden=false;
 
@@ -1412,7 +1416,7 @@ function drawTorquePlot(){
 
   // ── 섹션 제목 동적 업데이트 ──
   const titleEl=document.querySelector('.s-title[data-plot]');
-  if(titleEl) titleEl.textContent='출력토크 변화  θ₄: '+T4_MIN+'° ~ '+T4_MAX+'°';
+  if(titleEl) titleEl.textContent='출력토크 변화';
 
   // ── 치역(T4) Y축: nice step ──
   const t4min=Math.min(...validT4), t4max=Math.max(...validT4);
@@ -1555,46 +1559,70 @@ function drawTorquePlot(){
     c2.fillText(lbl, lx+1, ly);
   }
 
-  // ── 모터 토크 수평선 + 교점 ──
+  // ── 토크 요구도 수평선 + 교점 ──
   const motorVal=parseFloat(document.getElementById("iMotorTorque")?.value);
-  if(!isNaN(motorVal) && document.getElementById("iMotorTorque").value.trim()!==""){
+  // 가용 각도 박스는 항상 업데이트
+  const _rb=document.getElementById('usableRangeBox');
+  const _rt=document.getElementById('usableRangeText');
+  const _hasMotor=!isNaN(motorVal)&&document.getElementById("iMotorTorque").value.trim()!=="";
+
+  if(!_hasMotor){
+    if(_rb){_rb.style.display='none';}
+  } else {
+    // 입력값 있으면 항상 박스 표시
+    if(_rb) _rb.style.display='block';
+
+    // 교점 계산 (플롯 범위와 무관하게 데이터 기반으로)
+    const intersections=[];
+    for(let i=0;i<N;i++){
+      const v0=T4arr[i], v1=T4arr[i+1];
+      if(v0===null||v1===null) continue;
+      if((v0-motorVal)*(v1-motorVal)<=0){
+        const frac=(motorVal-v0)/(v1-v0);
+        const xi=xp(i+frac);
+        const t4cross=T4_MIN+(i+frac);
+        intersections.push({xi, t4cross});
+      }
+    }
+
+    // 가용 각도 텍스트 업데이트
+    if(_rt){
+      if(intersections.length>=2){
+        const t4A=intersections[0].t4cross, t4B=intersections[intersections.length-1].t4cross;
+        const span=Math.abs(t4B-t4A);
+        _rt.textContent=t4A.toFixed(1)+'° ~ '+t4B.toFixed(1)+'°  (범위 '+span.toFixed(1)+'°)';
+      } else {
+        _rt.textContent='가용 각도 없음  (0°)';
+      }
+    }
+
     const my=yp(motorVal);
     if(my>=PAD.t-1 && my<=PAD.t+IH+1){
-      // 수평선 (플롯 내부 라벨 없음)
+      // 수평선
       c2.save();
       c2.strokeStyle="rgba(191,90,242,0.85)"; c2.lineWidth=1.5; c2.setLineDash([6,3]);
       c2.beginPath(); c2.moveTo(PAD.l,my); c2.lineTo(PAD.l+IW,my); c2.stroke();
       c2.setLineDash([]);
       c2.restore();
 
-      // 교점 찾기
-      const intersections=[];
-      for(let i=0;i<N;i++){
-        const v0=T4arr[i], v1=T4arr[i+1];
-        if(v0===null||v1===null) continue;
-        if((v0-motorVal)*(v1-motorVal)<=0){
-          const frac=(motorVal-v0)/(v1-v0);
-          const xi=xp(i+frac);
-          const t4cross=T4_MIN+(i+frac);
-          intersections.push({xi, t4cross});
-        }
-      }
+    }  // end if(my in range)
 
-      // ── 교점 Y값: Y축 왼쪽 여백에 딱 한 번만 표시 (수평선 높이에) ──
-      if(intersections.length>0){
-        c2.save();
-        const ylbl=motorVal.toFixed(2);
-        c2.font="700 9px -apple-system,sans-serif";
-        const ylw=c2.measureText(ylbl).width;
-        c2.fillStyle="rgba(191,90,242,0.15)";
-        c2.beginPath(); c2.roundRect(2, my-10, ylw+8, 13, 4); c2.fill();
-        c2.fillStyle="rgba(130,30,200,0.95)"; c2.textAlign="left";
-        c2.fillText(ylbl, 4, my);
-        c2.restore();
-      }
+    // ── 교점 Y값 + 마커: 플롯 범위와 무관하게 교점 있을 때 표시 ──
+    if(intersections.length>0){
+      const my2=yp(motorVal);
+      c2.save();
+      const ylbl=motorVal.toFixed(2);
+      c2.font="700 9px -apple-system,sans-serif";
+      const ylw=c2.measureText(ylbl).width;
+      c2.fillStyle="rgba(191,90,242,0.15)";
+      c2.beginPath(); c2.roundRect(2, my2-10, ylw+8, 13, 4); c2.fill();
+      c2.fillStyle="rgba(130,30,200,0.95)"; c2.textAlign="left";
+      c2.fillText(ylbl, 4, my2);
+      c2.restore();
+    }
 
-      // 교점 마커 + X값 라벨
-      intersections.forEach(({xi,t4cross},idx)=>{
+    // 교점 마커 + X값 라벨
+    intersections.forEach(({xi,t4cross},idx)=>{
         c2.save();
         // 교점 원
         c2.beginPath(); c2.arc(xi,my,5,0,Math.PI*2);
@@ -1619,9 +1647,8 @@ function drawTorquePlot(){
         c2.fillStyle="rgba(130,30,200,0.95)"; c2.textAlign="center";
         c2.fillText(lbl, xi, ly2);
         c2.restore();
-      });
-    }
-  }
+    });
+  }  // end _hasMotor
 
   // ── 테두리 ──
   c2.strokeStyle="rgba(0,0,0,0.08)"; c2.lineWidth=1;
