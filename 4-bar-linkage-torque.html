@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4절 링크 해석기 — Engineering Tools</title>
+<title>링크 해석기</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -64,30 +64,6 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.home-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  text-decoration: none;
-  color: var(--blue);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 5px 10px 5px 6px;
-  border-radius: 8px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
-  margin-right: 2px;
-}
-.home-btn:hover { background: var(--blue-light); }
-.home-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.titlebar-divider {
-  width: 1px; height: 16px;
-  background: var(--border);
-  margin-right: 2px;
 }
 
 .app-icon {
@@ -589,13 +565,6 @@ canvas.hover { cursor: grab; }
 <!-- TITLEBAR -->
 <div class="titlebar">
   <div class="titlebar-left">
-    <a class="home-btn" href="index.html">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"/>
-      </svg>
-      홈
-    </a>
-    <div class="titlebar-divider"></div>
     <div class="app-icon">
       <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round">
         <circle cx="2.5" cy="8" r="1.5" fill="white" stroke="none"/>
@@ -608,7 +577,7 @@ canvas.hover { cursor: grab; }
         <line x1="2.5" y1="8" x2="13.5" y2="8" stroke-dasharray="2,2" opacity="0.4"/>
       </svg>
     </div>
-    <span class="app-name">4절 링크 해석기</span>
+    <span class="app-name">링크 해석기</span>
   </div>
 
   <div class="titlebar-center">
@@ -748,6 +717,11 @@ canvas.hover { cursor: grab; }
               <span class="result-key">θ₃ 커플러</span>
               <span class="result-val" style="color:var(--coupler)" id="rT3">—</span>
             </div>
+            <div class="result-divider"></div>
+            <div class="result-row">
+              <span class="result-key">전달각 μ</span>
+              <span class="result-val" style="color:var(--orange)" id="rMu">—</span>
+            </div>
           </div>
           <div class="no-sol-banner" id="noSol">⚠︎ 해당 각도에서 도달 불가</div>
         </div>
@@ -780,11 +754,6 @@ canvas.hover { cursor: grab; }
               <span class="result-key">T₄ 출력</span>
               <span class="result-val" style="color:var(--follower)" id="rT4torque">—</span>
             </div>
-            <div class="result-divider"></div>
-            <div class="result-row">
-              <span class="result-key" style="font-size:10px;color:var(--text3)">전달각 μ</span>
-              <span class="result-val" style="color:var(--orange);font-size:12px" id="rMu">—</span>
-            </div>
             <div id="torqueNoSol" class="no-sol-banner" style="display:none">⚠︎ 계산 불가</div>
           </div>
         </div>
@@ -795,7 +764,7 @@ canvas.hover { cursor: grab; }
     <!-- Torque Plot -->
     <div class="s-sec">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div class="s-title" style="margin-bottom:0">출력토크 변화  θ₄: 50° ~ 130°</div>
+        <div class="s-title" data-plot style="margin-bottom:0">출력토크 변화</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <div style="font-size:10px;color:var(--text2);font-weight:500;">모터 토크</div>
           <div class="link-field" style="border-radius:7px;">
@@ -814,9 +783,7 @@ canvas.hover { cursor: grab; }
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
           <div style="width:18px;height:2px;background:#ff453a;border-radius:1px"></div> T₄ 출력토크
         </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:1.5px;border-top:1.5px solid rgba(90,200,250,0.8);"></div> μ 전달각
-        </div>
+
 
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
           <div style="width:18px;height:1.5px;border-top:1.5px dashed rgba(191,90,242,0.8);"></div> 모터 토크
@@ -1202,7 +1169,7 @@ function updateUI(sols){
 
 function updateOverlay(act){
   const T2=parseFloat(document.getElementById('iTorque')?.value)||0;
-  const tr=calcTorque();
+  let tr=null; try{tr=calcTorque();}catch(e){}
   const T4chip=tr&&isFinite(tr.ma)?`<div class="f-chip"><div class="f-dot" style="background:${C.follower}"></div>T₄  ${(T2*tr.ma).toFixed(2)} N·m</div>`:'';
   document.getElementById('overlay').innerHTML=[
     {c:C.crank,   t:`θ₂  ${act.t2.toFixed(2)}°`},
@@ -1399,6 +1366,7 @@ function calcMAatT4(a,b,c,d,t4d,solType){
 }
 
 function drawTorquePlot(){
+  try{
   const pc=document.getElementById("torquePlot");
   if(!pc) return;
   const W2=pc.offsetWidth||220;
@@ -1414,34 +1382,53 @@ function drawTorquePlot(){
   const PAD={t:22, b:62, l:68, r:14};
   const IW=PW-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
 
-  // ── 정의역: θ₄ = 45° ~ 135° ──
-  const T4_MIN=50, T4_MAX=130, T4_RANGE=T4_MAX-T4_MIN;
-  const T4arr=[], MUarr=[];
+  // ── 정의역 자동 탐색: 유효 해가 존재하는 θ₄ 범위를 0~180° 전체에서 찾음 ──
+  const SCAN_MIN=0, SCAN_MAX=180;
+  let autoMin=null, autoMax=null;
+  for(let deg=SCAN_MIN; deg<=SCAN_MAX; deg++){
+    const res=calcMAatT4(a,b,c,d,deg,sol);
+    if(res!==null&&isFinite(res.ma)){
+      if(autoMin===null) autoMin=deg;
+      autoMax=deg;
+    }
+  }
+  if(autoMin===null) return;
+  // 여백 5° 추가 후 10° 단위로 정렬
+  const T4_MIN=Math.max(0,  Math.floor((autoMin-5)/10)*10);
+  const T4_MAX=Math.min(180, Math.ceil( (autoMax+5)/10)*10);
+  const T4_RANGE=Math.max(T4_MAX-T4_MIN,1);
+  const xStep=T4_RANGE>100?20:10;
+
+  const T4arr=[];
   for(let deg=T4_MIN; deg<=T4_MAX; deg++){
     const res=calcMAatT4(a,b,c,d,deg,sol);
-    if(res===null||!isFinite(res.ma)){T4arr.push(null);MUarr.push(null);}
-    else{T4arr.push(T2*res.ma); MUarr.push(res.mu);}
+    if(res===null||!isFinite(res.ma)){T4arr.push(null);}
+    else{T4arr.push(T2*res.ma);}
   }
-  const N=T4arr.length-1; // 90
+  const N=Math.max(T4arr.length-1,1);
 
   const validT4=T4arr.filter(v=>v!==null);
   if(!validT4.length) return;
+
+  // ── 섹션 제목 동적 업데이트 ──
+  const titleEl=document.querySelector('.s-title[data-plot]');
+  if(titleEl) titleEl.textContent='출력토크 변화  θ₄: '+T4_MIN+'° ~ '+T4_MAX+'°';
 
   // ── 치역(T4) Y축: nice step ──
   const t4min=Math.min(...validT4), t4max=Math.max(...validT4);
   const rawSpan=Math.max(Math.abs(t4max-t4min),0.01);
   const rawStep=rawSpan/6;
   const mag=Math.pow(10,Math.floor(Math.log10(rawStep)));
-  const niceStep=[1,2,2.5,5,10].map(f=>f*mag).find(s=>rawSpan/s<=8)||mag;
-  const yLo=Math.floor((t4min-rawSpan*0.08)/niceStep)*niceStep;
-  const yHi=Math.ceil( (t4max+rawSpan*0.08)/niceStep)*niceStep;
+  const niceStep=[1,2,2.5,5,10].map(f=>f*mag).find(s=>s>0&&rawSpan/s<=8)||(mag||1);
+  let yLo=Math.floor((t4min-rawSpan*0.08)/(niceStep||1))*(niceStep||1);
+  let yHi=Math.ceil( (t4max+rawSpan*0.08)/(niceStep||1))*(niceStep||1);
+  if(yLo===yHi){yLo-=1;yHi+=1;}
 
 
 
   // ── 좌표 변환 함수 ──
   const xp =i => PAD.l+(i/N)*IW;               // i=0..N → θ₄=45..135
   const yp =v => PAD.t+IH-(v-yLo)/(yHi-yLo)*IH;
-  const ymu=v => PAD.t+IH-(v/90)*IH;            // 0~90°
 
   c2.clearRect(0,0,PW,PH);
 
@@ -1449,8 +1436,8 @@ function drawTorquePlot(){
   c2.fillStyle="rgba(245,245,247,0.55)";
   c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,4); c2.fill();
 
-  // ── X 격자: 10° 단위 (정의역 45~135) ──
-  for(let deg=T4_MIN; deg<=T4_MAX; deg+=10){
+  // ── X 격자: 범위에 따라 자동 간격 ──
+  for(let deg=T4_MIN; deg<=T4_MAX; deg+=xStep){
     const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
     const major=(deg%30===0||deg===T4_MIN||deg===T4_MAX);
     c2.strokeStyle=major?"rgba(0,0,0,0.10)":"rgba(0,0,0,0.04)";
@@ -1471,10 +1458,12 @@ function drawTorquePlot(){
     c2.setLineDash([]);
   });
 
-  // ── X축 라벨: 10° 단위 ──
+  // ── X축 라벨: 범위에 따라 자동 간격 (10° or 20°) ──
   c2.font="500 9px -apple-system,sans-serif";
   c2.fillStyle="rgba(200,60,50,0.7)"; c2.textAlign="center";
-  for(let deg=T4_MIN; deg<=T4_MAX; deg+=10){
+  // T4_MIN부터 xStep 배수 정렬로 시작
+  const xLabelStart=Math.ceil(T4_MIN/xStep)*xStep;
+  for(let deg=xLabelStart; deg<=T4_MAX; deg+=xStep){
     const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
     c2.fillText(deg+"°", x, PAD.t+IH+12);
   }
@@ -1498,17 +1487,7 @@ function drawTorquePlot(){
 
 
 
-  // ── μ 곡선 (하늘색 실선) + 우측 보조 tick ──
-  c2.save();
-  c2.strokeStyle="rgba(90,200,250,0.7)"; c2.lineWidth=1.5;
-  let stm=false; c2.beginPath();
-  for(let i=0;i<=N;i++){
-    if(MUarr[i]===null){stm=false;continue;}
-    const x=xp(i), y=ymu(MUarr[i]);
-    if(!stm){c2.moveTo(x,y);stm=true;}else c2.lineTo(x,y);
-  }
-  c2.stroke();
-  c2.restore();
+
 
 
 
@@ -1647,6 +1626,7 @@ function drawTorquePlot(){
   // ── 테두리 ──
   c2.strokeStyle="rgba(0,0,0,0.08)"; c2.lineWidth=1;
   c2.strokeRect(PAD.l,PAD.t,IW,IH);
+  }catch(e){console.warn("drawTorquePlot:",e);}
 }
 
 // ── INIT ──
