@@ -1610,9 +1610,10 @@ function drawTorquePlot(){
       if(intersections.length>=2){
         const t4A=intersections[0].t4cross, t4B=intersections[intersections.length-1].t4cross;
         const span=Math.abs(t4B-t4A);
-        _rt.textContent=t4A.toFixed(1)+'° ~ '+t4B.toFixed(1)+'°  (범위 '+span.toFixed(1)+'°)';
+        const mid=((t4A+t4B)/2).toFixed(1);
+        _rt.textContent='범위 '+span.toFixed(1)+'° ('+t4A.toFixed(1)+'° ~ '+t4B.toFixed(1)+'°), 중간 값 '+mid+'°';
       } else {
-        _rt.textContent='가용 각도 없음  (0°)';
+        _rt.textContent='범위 0°  (교점 없음)';
       }
     }
 
