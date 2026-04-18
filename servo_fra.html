@@ -7,223 +7,226 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
   --bg:        #f5f5f7;
-  --surface:   #ffffff;
-  --surface2:  #f5f5f7;
-  --surface3:  #e8e8ed;
+  --card:      rgba(255,255,255,0.9);
   --border:    rgba(0,0,0,0.08);
-  --border2:   rgba(0,0,0,0.12);
-  --accent:    #30b0c7;
-  --accent-dark: #1a7a8a;
-  --accent-bg: rgba(48,176,199,0.08);
+  --border2:   rgba(0,0,0,0.05);
   --text:      #1d1d1f;
   --text2:     #6e6e73;
   --text3:     #aeaeb2;
   --blue:      #0071e3;
+  --red:       #ff453a;
+  --orange:    #ff9f0a;
   --purple:    #bf5af2;
-  --red:       #ff3b30;
-  --radius:    10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  --green:     #32d74b;
+  --teal:      #30b0c7;
+  --teal-dark: #1a7a8a;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
-  font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   background: var(--bg);
   color: var(--text);
+  font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   min-height: 100vh;
-  padding: 0 28px 40px;
-  font-size: 13px;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Titlebar ── */
 .titlebar {
-  position: sticky; top: 0; z-index: 100;
   height: 52px;
-  background: rgba(245,245,247,0.85);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center;
   padding: 0 20px;
-  margin: 0 -28px 28px;
+  position: sticky; top: 0; z-index: 100;
 }
 .titlebar-left { display: flex; align-items: center; gap: 10px; }
 .home-btn {
   display: flex; align-items: center; gap: 5px;
-  text-decoration: none; color: var(--accent);
+  text-decoration: none; color: var(--teal);
   font-size: 13px; font-weight: 500;
   padding: 5px 10px 5px 6px; border-radius: 8px;
   background: transparent; border: none; cursor: pointer;
-  transition: background 0.15s; font-family: inherit;
-  margin-right: 2px;
+  transition: background 0.15s; font-family: inherit; margin-right: 2px;
 }
-.home-btn:hover { background: var(--accent-bg); }
+.home-btn:hover { background: rgba(48,176,199,0.08); }
 .home-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.titlebar-divider { width: 1px; height: 16px; background: var(--border); }
-.app-icon-tb {
-  width: 28px; height: 28px;
+.titlebar-divider { width: 1px; height: 16px; background: var(--border); margin-right: 2px; }
+.app-icon {
+  width: 30px; height: 30px;
   background: linear-gradient(145deg, #30b0c7, #1a8fa8);
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-  flex-shrink: 0;
 }
-.app-icon-tb svg { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.app-name-tb { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
+.app-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.app-name { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
 
-/* ── Header ── */
-.header { margin-bottom: 20px; }
-.header-eyebrow { font-size: 11px; font-weight: 500; color: var(--accent-dark); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
-.header h1 { font-size: 24px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; line-height: 1.2; }
-.header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.wrap { max-width: 1060px; margin: 0 auto; padding: 28px 24px 56px; }
 
-/* ── Drop zone ── */
+.page-hdr { margin-bottom: 22px; }
+.page-eyebrow { font-size: 11px; font-weight: 500; color: var(--teal-dark); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+.page-hdr h1 { font-size: 24px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
+.page-hdr p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+.s-title { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 8px; }
+
+/* Drop zone */
 .drop-zone {
-  border: 1.5px dashed var(--border2);
-  border-radius: var(--radius-xl);
-  padding: 40px 24px;
-  text-align: center;
-  cursor: pointer;
+  background: var(--card); border: 1.5px dashed rgba(0,0,0,0.14);
+  border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer;
   transition: border-color .2s, background .2s;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  margin-bottom: 20px;
 }
-.drop-zone.over { border-color: var(--accent); background: rgba(48,176,199,0.04); }
+.drop-zone.over { border-color: var(--teal); background: rgba(48,176,199,0.04); }
 .drop-icon {
-  width: 48px; height: 48px; margin: 0 auto 12px;
+  width: 44px; height: 44px; margin: 0 auto 10px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--surface2); border-radius: 13px; border: 1px solid var(--border2);
+  background: rgba(48,176,199,0.1); border-radius: 11px;
 }
-.drop-icon svg { width: 22px; height: 22px; stroke: var(--text2); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.drop-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.drop-icon svg { width: 20px; height: 20px; stroke: var(--teal); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.drop-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
 .drop-sub { font-size: 12px; color: var(--text2); }
-.file-btn {
-  display: inline-block; margin-top: 14px; padding: 8px 18px;
-  border: 1px solid var(--border2); border-radius: 8px; font-size: 13px;
-  color: var(--text); cursor: pointer; background: var(--surface2);
-  transition: background .15s; font-family: inherit;
+.drop-btns { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.drop-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid; transition: background .15s; font-family: inherit;
 }
-.file-btn:hover { background: var(--surface3); }
+.drop-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.drop-btn-default { background: rgba(118,118,128,0.1); border-color: rgba(0,0,0,0.12); color: var(--text); }
+.drop-btn-default:hover { background: rgba(118,118,128,0.18); }
+.drop-btn-sample { background: rgba(48,176,199,0.1); border-color: rgba(48,176,199,0.3); color: var(--teal-dark); }
+.drop-btn-sample:hover { background: rgba(48,176,199,0.18); }
 
-/* ── Config panel ── */
-.panel { background: var(--surface); border-radius: var(--radius-xl); padding: 20px; box-shadow: var(--shadow); }
-.panel + .panel { margin-top: 12px; }
-.panel-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
-.cfg-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-.field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
-.field label { font-size: 12px; color: var(--text2); }
-.field select, .field input[type=number] {
-  height: 36px; border: 1px solid var(--border2); border-radius: 8px;
-  padding: 0 10px; font-size: 13px; background: var(--surface2);
-  color: var(--text); outline: none; transition: border-color .15s, box-shadow .15s;
+/* File badge */
+.file-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 4px 10px; font-size: 12px; color: var(--text2); margin-bottom: 10px;
+}
+.fbdot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+/* Settings card */
+.settings-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border2); padding: 14px 16px; margin-bottom: 14px; }
+.settings-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.s-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+.s-field label { font-size: 11px; font-weight: 500; color: var(--text2); }
+.s-field select, .s-field input[type=number] {
+  height: 34px; background: rgba(118,118,128,0.08); border: 1px solid transparent;
+  border-radius: 8px; padding: 0 10px; font-size: 13px; color: var(--text);
+  outline: none; transition: border-color .15s, background .15s;
   font-family: inherit; -webkit-appearance: none; appearance: none;
 }
-.field select:focus, .field input[type=number]:focus {
-  border-color: var(--accent); background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(48,176,199,0.12);
+.s-field select:focus, .s-field input[type=number]:focus {
+  border-color: var(--teal); background: rgba(48,176,199,0.04);
 }
 .run-btn {
-  height: 36px; padding: 0 22px;
-  background: var(--accent); color: #fff;
+  height: 34px; padding: 0 20px; background: var(--teal); color: #fff;
   border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
-  cursor: pointer; white-space: nowrap; transition: background .15s; font-family: inherit;
+  cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap;
 }
-.run-btn:hover { background: #28a0b5; }
+.run-btn:hover { background: var(--teal-dark); }
 
-/* ── KPI / Result banner ── */
-.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.kpi { background: var(--surface); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow); }
-.kpi-label { font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
-.kpi-val { font-size: 26px; font-weight: 300; color: var(--text); line-height: 1; letter-spacing: -0.03em; margin-bottom: 4px; }
-.kpi-val .unit { font-size: 12px; font-weight: 400; color: var(--text3); margin-left: 3px; }
-.kpi-sub { font-size: 11px; color: var(--text2); }
-.kpi-primary .kpi-val { color: var(--accent-dark); font-weight: 400; }
-.kpi-green .kpi-val { color: #1a7a33; font-weight: 400; }
+/* KPI row */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.kpi-card { border-radius: 12px; border: 1px solid; padding: 14px 16px; }
+.kpi-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 8px; }
+.kpi-val { font-size: 24px; font-weight: 300; line-height: 1; letter-spacing: -0.04em; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+.kpi-unit { font-size: 12px; font-weight: 400; margin-left: 2px; }
+.kpi-sub { font-size: 11px; }
 
-/* ── Stats row ── */
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
-.stat { background: var(--surface); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); }
-.stat-lbl { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
-.stat-val { font-size: 18px; font-weight: 400; color: var(--text); letter-spacing: -0.02em; }
-.stat-unit { font-size: 11px; color: var(--text3); margin-left: 2px; }
+.kpi-red { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.05); }
+.kpi-red .kpi-lbl { color: var(--text2); }
+.kpi-red .kpi-val { color: #d4190a; font-weight: 600; }
+.kpi-red .kpi-unit { color: #d4190a; }
+.kpi-red .kpi-sub { color: var(--text3); }
 
-/* ── Tabs ── */
-.tabs { display: flex; gap: 2px; background: var(--surface3); border-radius: 11px; padding: 3px; width: fit-content; flex-wrap: wrap; margin-bottom: 14px; }
-.tab {
-  padding: 6px 15px; border-radius: 9px; font-size: 13px;
-  cursor: pointer; color: var(--text2); border: none; background: none;
-  transition: all .15s; font-family: inherit;
+.kpi-blue { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.05); }
+.kpi-blue .kpi-lbl { color: var(--text2); }
+.kpi-blue .kpi-val { color: #0051a2; font-weight: 600; }
+.kpi-blue .kpi-unit { color: #0051a2; }
+.kpi-blue .kpi-sub { color: var(--text3); }
+
+/* Stats chips */
+.stats-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.stat-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--text2);
 }
-.tab.on { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.stat-chip b { font-weight: 500; color: var(--text); margin-left: 2px; font-variant-numeric: tabular-nums; }
 
-.top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-
-/* ── Chart cards ── */
-.chart-card { background: var(--surface); border-radius: var(--radius-xl); padding: 20px; box-shadow: var(--shadow); margin-bottom: 12px; }
-.chart-hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
-.chart-title { font-size: 14px; font-weight: 500; color: var(--text); }
-.chart-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text2); align-items: center; }
-.ldot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
-
-.dl-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 11px; border: 1px solid var(--border2);
-  border-radius: 7px; font-size: 12px; color: var(--text2);
-  cursor: pointer; background: var(--surface2); transition: background .15s;
-  text-decoration: none; font-family: inherit;
+/* Segmented tabs */
+.seg-ctrl {
+  display: flex; background: rgba(118,118,128,0.12);
+  border-radius: 9px; padding: 2px; gap: 1px; width: fit-content; flex-wrap: wrap;
 }
-.dl-btn:hover { background: var(--surface3); color: var(--text); }
-.dl-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.seg-btn {
+  padding: 5px 16px; border-radius: 7px; border: none;
+  background: transparent; color: var(--text2);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+  letter-spacing: -0.1px; white-space: nowrap; font-family: inherit;
+}
+.seg-btn.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.08); }
+.top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 
-/* ── Section visibility ── */
-.sec { display: none; }
-.sec.on { display: block; }
+/* Chart card */
+.chart-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border2); padding: 16px 18px; margin-bottom: 10px; }
+.chart-hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.chart-title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+.chart-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text2); align-items: center; }
+.lpip { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
 
-/* ── Bode sub labels ── */
-.bode-sub-lbl { font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
-.bode-divider { height: 1px; background: var(--surface2); margin: 16px 0; }
+/* Icon button */
+.icon-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 7px;
+  background: rgba(118,118,128,0.08); border: 1px solid var(--border2);
+  font-size: 11px; font-weight: 500; color: var(--text2);
+  cursor: pointer; text-decoration: none; font-family: inherit; transition: background .15s;
+}
+.icon-btn:hover { background: rgba(118,118,128,0.14); color: var(--text); }
+.icon-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ── TF params ── */
-.tf-params { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
-.tf-param { background: var(--surface2); border-radius: var(--radius); padding: 12px 14px; }
-.tf-param-lbl { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
-.tf-param-val { font-size: 17px; font-weight: 400; color: var(--text); letter-spacing: -0.02em; }
+/* Bode */
+.bode-lbl { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 6px; }
+.bode-sep { height: 1px; background: var(--border2); margin: 14px 0; }
+
+/* TF */
+.tf-params { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.tf-param { background: rgba(118,118,128,0.07); border-radius: 10px; border: 1px solid var(--border2); padding: 10px 12px; }
+.tf-param-lbl { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 5px; }
+.tf-param-val { font-size: 18px; font-weight: 300; color: var(--text); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .tf-param-unit { font-size: 11px; color: var(--text3); margin-left: 2px; }
 .tf-eq {
   font-size: 12px; color: var(--text2);
-  background: var(--surface2); border-radius: 8px;
-  padding: 10px 14px; margin-bottom: 14px;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  background: rgba(118,118,128,0.07); border-radius: 8px; border: 1px solid var(--border2);
+  padding: 9px 12px; margin-bottom: 12px;
+  font-family: 'SF Mono','Cascadia Code','Consolas',monospace;
 }
 
-/* ── Table ── */
-.tbl-wrap { overflow-x: auto; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px; }
+/* Table */
+.tbl-wrap { overflow-x: auto; margin-top: 12px; border-top: 1px solid var(--border2); padding-top: 12px; }
 table.dtbl { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
-table.dtbl th { font-size: 11px; font-weight: 600; color: var(--text2); text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+table.dtbl th { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; text-transform: uppercase; text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--border); }
 table.dtbl th:first-child { text-align: left; }
-table.dtbl td { text-align: right; padding: 5px 10px; color: var(--text); border-bottom: 1px solid rgba(0,0,0,0.04); }
-table.dtbl td:first-child { text-align: left; color: var(--text2); }
+table.dtbl td { text-align: right; padding: 5px 10px; color: var(--text); border-bottom: 1px solid var(--border2); font-weight: 300; }
+table.dtbl td:first-child { text-align: left; color: var(--text2); font-weight: 400; }
 table.dtbl tr:last-child td { border-bottom: none; }
-table.dtbl tr:hover td { background: var(--surface2); }
-table.dtbl tr.bw-row td { background: rgba(48,176,199,0.06); color: var(--accent-dark); font-weight: 500; }
-table.dtbl tr.bw-row td:first-child { color: var(--accent-dark); }
+table.dtbl tr:hover td { background: rgba(118,118,128,0.04); }
+table.dtbl tr.bw-row td { background: rgba(255,69,58,0.04); }
+table.dtbl tr.bw-row td:first-child { color: #c01008; font-weight: 500; }
 
-/* ── File badge ── */
-.badge { display: inline-flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 4px 10px; font-size: 12px; color: var(--text2); margin-bottom: 12px; }
-.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #34c759; flex-shrink: 0; }
+.sec { display: none; } .sec.on { display: block; }
 </style>
 </head>
 <body>
 
-<!-- Titlebar -->
 <div class="titlebar">
   <div class="titlebar-left">
     <a class="home-btn" href="index.html">
@@ -233,187 +236,161 @@ table.dtbl tr.bw-row td:first-child { color: var(--accent-dark); }
       홈
     </a>
     <div class="titlebar-divider"></div>
-    <div class="app-icon-tb">
-      <svg viewBox="0 0 24 24">
-        <polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/>
-      </svg>
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24"><polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/></svg>
     </div>
-    <span class="app-name-tb">주파수 응답 분석기</span>
+    <span class="app-name">주파수 응답 분석기</span>
   </div>
 </div>
 
-<!-- Header -->
-<div class="header">
-  <div class="header-eyebrow">제어공학 · FRA</div>
-  <h1>주파수 응답 분석기</h1>
-  <p>서보 사인 스윕 CSV → Bode Plot · 대역폭 · 고유진동수 · 감쇠비 자동 계산</p>
-</div>
+<div class="wrap">
 
-<!-- Drop zone -->
-<div class="drop-zone" id="dz">
-  <div class="drop-icon">
-    <svg viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v12"/></svg>
+  <div class="page-hdr">
+    <div class="page-eyebrow">제어공학 · FRA</div>
+    <h1>주파수 응답 분석기</h1>
+    <p>서보 사인 스윕 CSV → Bode Plot · 대역폭 · 고유진동수 · 감쇠비 자동 계산</p>
   </div>
-  <div class="drop-title">CSV 파일을 여기에 드롭하세요</div>
-  <div class="drop-sub">컬럼: t (시간, 초) · u (명령 각도, deg) · y (실제 각도, deg)</div>
-  <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
-    <label class="file-btn" for="fi">파일 선택</label>
-    <button class="file-btn sample-btn" onclick="loadSampleData()" style="background:var(--accent-bg);border-color:var(--accent);color:var(--accent-dark);font-weight:500">샘플 데이터</button>
-  </div>
-  <input type="file" id="fi" accept=".csv" style="display:none">
-</div>
 
-<!-- Config -->
-<div id="cfgSec" style="display:none;margin-bottom:20px">
-  <div class="badge"><span class="badge-dot"></span><span id="fname">data.csv</span></div>
-  <div class="panel">
-    <div class="panel-title">분석 설정</div>
-    <div class="cfg-row">
-      <div class="field"><label>샘플링 주파수 Fs (Hz)</label><input type="number" id="fsIn" placeholder="자동 감지" min="0.001" step="any"></div>
-      <div class="field"><label>주파수 스케일</label>
-        <select id="fscale"><option value="log">Log</option><option value="linear">Linear</option></select>
+  <div class="drop-zone" id="dz">
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v12"/></svg>
+    </div>
+    <div class="drop-title">CSV 파일을 여기에 드롭하세요</div>
+    <div class="drop-sub">컬럼: t (시간, 초) · u (명령 각도, deg) · y (실제 각도, deg)</div>
+    <div class="drop-btns">
+      <label class="drop-btn drop-btn-default" for="fi">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        파일 선택
+      </label>
+      <button class="drop-btn drop-btn-sample" onclick="loadSampleData()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="10 8 16 12 10 16 10 8"/></svg>
+        샘플 데이터
+      </button>
+    </div>
+    <input type="file" id="fi" accept=".csv" style="display:none">
+  </div>
+
+  <div id="cfgSec" style="display:none;margin-top:12px">
+    <div class="file-badge"><span class="fbdot"></span><span id="fname">data.csv</span></div>
+    <div class="settings-card">
+      <div class="s-title">분석 설정</div>
+      <div class="settings-row">
+        <div class="s-field"><label>샘플링 주파수 Fs (Hz)</label><input type="number" id="fsIn" placeholder="자동 감지" min="0.001" step="any"></div>
+        <div class="s-field"><label>주파수 스케일</label><select id="fscale"><option value="log">Log</option><option value="linear">Linear</option></select></div>
+        <div class="s-field"><label>테이블 행 수</label><select id="tblRows"><option value="20">20행</option><option value="50">50행</option><option value="100">100행</option><option value="0">전체</option></select></div>
+        <button class="run-btn" onclick="runAnalysis()">분석 실행</button>
       </div>
-      <div class="field"><label>테이블 행 수</label>
-        <select id="tblRows"><option value="20">20행</option><option value="50">50행</option><option value="100">100행</option><option value="0">전체</option></select>
+    </div>
+  </div>
+
+  <div id="resSec" style="display:none">
+    <div class="kpi-row" id="kpiRow"></div>
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="top-row">
+      <div class="seg-ctrl">
+        <button class="seg-btn on" onclick="sw('time',this)">시간 파형</button>
+        <button class="seg-btn" onclick="sw('bode',this)">Bode Plot</button>
+        <button class="seg-btn" onclick="sw('coh',this)">Coherence</button>
+        <button class="seg-btn" onclick="sw('tf',this)">Transfer Function</button>
       </div>
-      <button class="run-btn" onclick="runAnalysis()">분석 실행</button>
+      <a class="icon-btn" href="#" onclick="dlAll(event)">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        전체 결과 CSV
+      </a>
     </div>
-  </div>
-</div>
 
-<!-- Results -->
-<div id="resSec" style="display:none">
-
-  <!-- KPI -->
-  <div class="kpi-row" id="kpiRow"></div>
-
-  <!-- Stats -->
-  <div class="stats-row" id="statsRow"></div>
-
-  <!-- Tab bar + download -->
-  <div class="top-row">
-    <div class="tabs">
-      <button class="tab on" onclick="sw('time',this)">시간 파형</button>
-      <button class="tab" onclick="sw('bode',this)">Bode Plot</button>
-      <button class="tab" onclick="sw('coh',this)">Coherence</button>
-      <button class="tab" onclick="sw('tf',this)">Transfer Function</button>
-    </div>
-    <a class="dl-btn" href="#" onclick="dlAll(event)">
-      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      전체 결과 CSV
-    </a>
-  </div>
-
-  <!-- 시간 파형 -->
-  <div id="time" class="sec on">
-    <div class="chart-card">
-      <div class="chart-hdr">
-        <div><div class="chart-title">시간 도메인 파형</div><div class="chart-sub">사인 스윕 전체 구간 · 점선 = 대역폭 도달 시점</div></div>
-        <div class="legend">
-          <span><span class="ldot" style="background:#378ADD"></span>명령 u</span>
-          <span><span class="ldot" style="background:#1D9E75"></span>응답 y</span>
-        </div>
-      </div>
-      <div style="position:relative;height:300px"><canvas id="cTime" role="img" aria-label="시간 파형">시간 파형</canvas></div>
-      <div id="timeNote" style="margin-top:8px;font-size:11px;color:var(--text3);text-align:center"></div>
-    </div>
-  </div>
-
-  <!-- Bode Plot -->
-  <div id="bode" class="sec">
-    <div class="chart-card">
-      <div class="chart-hdr">
-        <div><div class="chart-title">Bode Plot</div><div id="bodeSubLbl" class="chart-sub">저주파 기준 정규화 · 크기 및 위상 공유 주파수 축</div></div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div id="time" class="sec on">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title">시간 도메인 파형</div><div class="chart-sub">사인 스윕 전체 구간 · 점선 = 대역폭 도달 시점</div></div>
           <div class="legend">
-            <span><span class="ldot" style="background:#534AB7"></span>크기 (dB)</span>
-            <span><span class="ldot" style="background:#D85A30"></span>위상 (°)</span>
+            <span><span class="lpip" style="background:#0071e3"></span>명령 u</span>
+            <span><span class="lpip" style="background:#32d74b"></span>응답 y</span>
+            <span style="color:#ff453a">│ 진폭 BW</span>
+            <span style="color:#ff9f0a">│ 위상 BW</span>
           </div>
-          <a class="dl-btn" href="#" onclick="dlSec('bode',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
         </div>
+        <div style="position:relative;height:280px"><canvas id="cTime" role="img" aria-label="시간 파형">시간 파형</canvas></div>
+        <div id="timeNote" style="margin-top:6px;font-size:11px;color:var(--text3);text-align:center"></div>
       </div>
-      <div class="bode-sub-lbl">크기 (dB)</div>
-      <div style="position:relative;height:220px"><canvas id="cBmag" role="img" aria-label="Bode 크기">Bode Magnitude</canvas></div>
-      <div class="bode-divider"></div>
-      <div class="bode-sub-lbl">위상 (°)</div>
-      <div style="position:relative;height:220px"><canvas id="cBph" role="img" aria-label="Bode 위상">Bode Phase</canvas></div>
-      <div class="tbl-wrap"><div id="tBode"></div></div>
+    </div>
+
+    <div id="bode" class="sec">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title">Bode Plot</div><div id="bodeSubLbl" class="chart-sub">저주파 기준 정규화 · 공유 주파수 축</div></div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <div class="legend">
+              <span><span class="lpip" style="background:#bf5af2"></span>크기 (dB)</span>
+              <span><span class="lpip" style="background:#ff9f0a"></span>위상 (°)</span>
+            </div>
+            <a class="icon-btn" href="#" onclick="dlSec('bode',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
+          </div>
+        </div>
+        <div class="bode-lbl">크기 (dB)</div>
+        <div style="position:relative;height:200px"><canvas id="cBmag" role="img" aria-label="Bode 크기">Bode Magnitude</canvas></div>
+        <div class="bode-sep"></div>
+        <div class="bode-lbl">위상 (°)</div>
+        <div style="position:relative;height:200px"><canvas id="cBph" role="img" aria-label="Bode 위상">Bode Phase</canvas></div>
+        <div class="tbl-wrap"><div id="tBode"></div></div>
+      </div>
+    </div>
+
+    <div id="coh" class="sec">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title">Coherence γ²(f)</div><div class="chart-sub">1에 가까울수록 신호 품질이 좋고 결과를 신뢰할 수 있음</div></div>
+          <a class="icon-btn" href="#" onclick="dlSec('coh',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="cCoh" role="img" aria-label="코히런스">Coherence</canvas></div>
+        <div class="tbl-wrap"><div id="tCoh"></div></div>
+      </div>
+    </div>
+
+    <div id="tf" class="sec">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title">Transfer Function 추정</div><div class="chart-sub">H(s) = ωn² / (s² + 2ζωn·s + ωn²) 피팅 결과</div></div>
+          <a class="icon-btn" href="#" onclick="dlSec('tf',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
+        </div>
+        <div class="tf-params" id="tfParams"></div>
+        <div class="tf-eq" id="tfEq"></div>
+        <div class="legend" style="margin-bottom:10px">
+          <span><span class="lpip" style="background:#ff9f0a"></span>측정 |H(f)|</span>
+          <span><span class="lpip" style="background:#0071e3"></span>피팅 모델</span>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="cTf" role="img" aria-label="전달함수">Transfer Function</canvas></div>
+        <div class="tbl-wrap"><div id="tTf"></div></div>
+      </div>
     </div>
   </div>
-
-  <!-- Coherence -->
-  <div id="coh" class="sec">
-    <div class="chart-card">
-      <div class="chart-hdr">
-        <div><div class="chart-title">Coherence γ²(f)</div><div class="chart-sub">1에 가까울수록 신호 품질이 좋고 결과를 신뢰할 수 있음</div></div>
-        <a class="dl-btn" href="#" onclick="dlSec('coh',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
-      </div>
-      <div style="position:relative;height:260px"><canvas id="cCoh" role="img" aria-label="코히런스">Coherence</canvas></div>
-      <div class="tbl-wrap"><div id="tCoh"></div></div>
-    </div>
-  </div>
-
-  <!-- Transfer Function -->
-  <div id="tf" class="sec">
-    <div class="chart-card">
-      <div class="chart-hdr">
-        <div><div class="chart-title">Transfer Function 추정</div><div class="chart-sub">2차 시스템 H(s) = ωn² / (s² + 2ζωn·s + ωn²) 피팅 결과</div></div>
-        <a class="dl-btn" href="#" onclick="dlSec('tf',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
-      </div>
-      <div class="tf-params" id="tfParams"></div>
-      <div class="tf-eq" id="tfEq"></div>
-      <div class="legend" style="margin-bottom:12px">
-        <span><span class="ldot" style="background:#BA7517"></span>측정 |H(f)|</span>
-        <span><span class="ldot" style="background:#0071e3"></span>피팅 모델</span>
-      </div>
-      <div style="position:relative;height:260px"><canvas id="cTf" role="img" aria-label="전달함수">Transfer Function</canvas></div>
-      <div class="tbl-wrap"><div id="tTf"></div></div>
-    </div>
-  </div>
-
 </div>
 
 <script>
-let raw=null, fs=1, R={};
-const CH={};
-const NFFT=2048, MAX_PTS=4000;
+let raw=null,fs=1,R={};
+const CH={},NFFT=2048,MAX_PTS=4000;
 
-// 샘플 데이터 생성 (JS로 서보 스윕 시뮬레이션)
 function loadSampleData(){
-  const FS=1000, T=30, N=FS*T;
-  const f0=1, f1=10, wn=2*Math.PI*5, zeta=0.6, delay=10;
-  const k=Math.pow(f1/f0,1/T);
-  const t=[], u=[], y=[];
-  let y1=0,y2=0,yd1=0,yd2=0;
-  const dt=1/FS;
-  const ubuf=new Array(delay+2).fill(0);
+  const FS=1000,T=30,N=FS*T,f0=1,f1=10,wn=2*Math.PI*5,zeta=0.6,delay=10;
+  const k=Math.pow(f1/f0,1/T),dt=1/FS,t=[],u=[],y=[];
+  let y2=0,yd2=0;const ubuf=new Array(delay+2).fill(0);
   for(let i=0;i<N;i++){
-    const ti=i*dt;
-    const ph=2*Math.PI*f0*(Math.pow(k,ti)-1)/Math.log(k);
-    const un=2*Math.sin(ph);
-    ubuf.push(un);
-    const ud=ubuf[ubuf.length-(delay+1)];
-    // RK4
-    const f=(yv,ydv,uv)=>[ydv, wn*wn*uv-2*zeta*wn*ydv-wn*wn*yv];
-    const [k1y,k1d]=f(y2,yd2,ud);
-    const [k2y,k2d]=f(y2+dt/2*k1y,yd2+dt/2*k1d,ud);
-    const [k3y,k3d]=f(y2+dt/2*k2y,yd2+dt/2*k2d,ud);
-    const [k4y,k4d]=f(y2+dt*k3y,yd2+dt*k3d,ud);
-    y1=y2+dt/6*(k1y+2*k2y+2*k3y+k4y);
-    yd1=yd2+dt/6*(k1d+2*k2d+2*k3d+k4d);
+    const ti=i*dt,ph=2*Math.PI*f0*(Math.pow(k,ti)-1)/Math.log(k),un=2*Math.sin(ph);
+    ubuf.push(un);const ud=ubuf[ubuf.length-(delay+1)];
+    const f=(yv,ydv,uv)=>[ydv,wn*wn*uv-2*zeta*wn*ydv-wn*wn*yv];
+    const[k1y,k1d]=f(y2,yd2,ud),[k2y,k2d]=f(y2+dt/2*k1y,yd2+dt/2*k1d,ud);
+    const[k3y,k3d]=f(y2+dt/2*k2y,yd2+dt/2*k2d,ud),[k4y,k4d]=f(y2+dt*k3y,yd2+dt*k3d,ud);
+    const y1=y2+dt/6*(k1y+2*k2y+2*k3y+k4y),yd1=yd2+dt/6*(k1d+2*k2d+2*k3d+k4d);
     const noise=0.004*Math.sin(2*Math.PI*173*ti+1.1)+0.002*Math.sin(2*Math.PI*317*ti);
-    t.push(parseFloat(ti.toFixed(4)));
-    u.push(parseFloat(un.toFixed(6)));
-    y.push(parseFloat((y1+noise).toFixed(6)));
-    y2=y1; yd2=yd1;
+    t.push(parseFloat(ti.toFixed(4)));u.push(parseFloat(un.toFixed(6)));y.push(parseFloat((y1+noise).toFixed(6)));
+    y2=y1;yd2=yd1;
   }
-  raw={t,u,y};
-  fs=FS;
+  raw={t,u,y};fs=FS;
   document.getElementById('fname').textContent='sample_servo_sweep.csv';
   document.getElementById('fsIn').placeholder=FS+' Hz (샘플 데이터)';
   document.getElementById('cfgSec').style.display='block';
   document.getElementById('dz').style.display='none';
-  // 자동 분석 실행
   runAnalysis();
 }
 
@@ -438,11 +415,8 @@ function parseCSV(txt){
   if(ui<0||yi<0){alert('u(명령)와 y(응답) 컬럼이 필요합니다.');return}
   const t=[],u=[],y=[];
   for(let i=1;i<lines.length;i++){
-    const c=lines[i].replace(/\r/,'').split(',');
-    if(c.length<2)continue;
-    t.push(ti>=0?parseFloat(c[ti]):i-1);
-    u.push(parseFloat(c[ui]));
-    y.push(parseFloat(c[yi]));
+    const c=lines[i].replace(/\r/,'').split(',');if(c.length<2)continue;
+    t.push(ti>=0?parseFloat(c[ti]):i-1);u.push(parseFloat(c[ui]));y.push(parseFloat(c[yi]));
   }
   raw={t,u,y};
   if(t.length>1){const dt=t[1]-t[0];if(dt>0){fs=1/dt;document.getElementById('fsIn').placeholder=fs.toFixed(1)+' Hz (자동 감지)';}}
@@ -456,8 +430,7 @@ function fft(re,im){
   for(let i=0;i<N/2;i++){ree[i]=re[2*i];ime[i]=im[2*i];reo[i]=re[2*i+1];imo[i]=im[2*i+1]}
   fft(ree,ime);fft(reo,imo);
   for(let k=0;k<N/2;k++){
-    const a=-2*Math.PI*k/N,wr=Math.cos(a),wi=Math.sin(a);
-    const tr=wr*reo[k]-wi*imo[k],ti=wr*imo[k]+wi*reo[k];
+    const a=-2*Math.PI*k/N,wr=Math.cos(a),wi=Math.sin(a),tr=wr*reo[k]-wi*imo[k],ti=wr*imo[k]+wi*reo[k];
     re[k]=ree[k]+tr;im[k]=ime[k]+ti;re[k+N/2]=ree[k]-tr;im[k+N/2]=ime[k]-ti;
   }
 }
@@ -473,10 +446,8 @@ function welch(x,y,N,wArr){
     for(let i=0;i<N;i++){xs[i]=x[st+i]*wArr[i];ys[i]=y[st+i]*wArr[i]}
     const X=doFFT(xs,N),Y=doFFT(ys,N);
     for(let k=0;k<=N/2;k++){
-      Pxx[k]+=(X.re[k]*X.re[k]+X.im[k]*X.im[k])/wN;
-      Pyy[k]+=(Y.re[k]*Y.re[k]+Y.im[k]*Y.im[k])/wN;
-      PxyR[k]+=(X.re[k]*Y.re[k]+X.im[k]*Y.im[k])/wN;
-      PxyI[k]+=(X.re[k]*Y.im[k]-X.im[k]*Y.re[k])/wN;
+      Pxx[k]+=(X.re[k]*X.re[k]+X.im[k]*X.im[k])/wN;Pyy[k]+=(Y.re[k]*Y.re[k]+Y.im[k]*Y.im[k])/wN;
+      PxyR[k]+=(X.re[k]*Y.re[k]+X.im[k]*Y.im[k])/wN;PxyI[k]+=(X.re[k]*Y.im[k]-X.im[k]*Y.re[k])/wN;
     }
   }
   const freqs=[];for(let k=0;k<=N/2;k++)freqs.push(k*fs/N);
@@ -484,24 +455,18 @@ function welch(x,y,N,wArr){
 }
 
 function detectSweepMax(u){
-  const N=NFFT,wArr=mkWin(N),hop=Math.floor(N/2);
-  const nSeg=Math.floor((u.length-N)/hop)+1;
+  const N=NFFT,wArr=mkWin(N),hop=Math.floor(N/2),nSeg=Math.floor((u.length-N)/hop)+1;
   const Pxx=new Float64Array(N/2+1),wN=wArr.reduce((s,v)=>s+v*v,0);
   for(let s=0;s<nSeg;s++){
-    const st=s*hop,xs=new Float64Array(N);
-    for(let i=0;i<N;i++)xs[i]=u[st+i]*wArr[i];
-    const X=doFFT(xs,N);
-    for(let k=0;k<=N/2;k++)Pxx[k]+=(X.re[k]*X.re[k]+X.im[k]*X.im[k])/wN;
+    const st=s*hop,xs=new Float64Array(N);for(let i=0;i<N;i++)xs[i]=u[st+i]*wArr[i];
+    const X=doFFT(xs,N);for(let k=0;k<=N/2;k++)Pxx[k]+=(X.re[k]*X.re[k]+X.im[k]*X.im[k])/wN;
   }
   let total=0;for(let k=1;k<=N/2;k++)total+=Pxx[k];
   let cum=0;for(let k=1;k<=N/2;k++){cum+=Pxx[k];if(cum/total>=0.99)return k*fs/N;}
   return N/2*fs/N;
 }
 
-function h2mag(w,wn,zeta){
-  const wn2=wn*wn,w2=w*w,re=wn2-w2,im=2*zeta*wn*w;
-  return wn2*wn2/(re*re+im*im);
-}
+function h2mag(w,wn,z){const wn2=wn*wn,w2=w*w,re=wn2-w2,im=2*z*wn*w;return wn2*wn2/(re*re+im*im)}
 
 function fit2ndOrder(freqs,HMagNorm){
   const ws=freqs.map(f=>2*Math.PI*f),HM2=HMagNorm.map(v=>v*v);
@@ -510,14 +475,11 @@ function fit2ndOrder(freqs,HMagNorm){
   for(let it=0;it<400;it++){
     let gWn=0,gZ=0;
     for(let i=0;i<ws.length;i++){
-      const w=ws[i],wn2=wn*wn,w2=w*w;
-      const D=(wn2-w2)**2+(2*zeta*wn*w)**2,pred=wn2*wn2/D,err=pred-HM2[i];
-      const dPdwn=(4*wn*wn2*D-wn2*wn2*(4*wn*(wn2-w2)+8*zeta*zeta*wn*w2))/(D*D);
-      const dPdz=-wn2*wn2*8*zeta*wn2*w2/(D*D);
-      gWn+=2*err*dPdwn;gZ+=2*err*dPdz;
+      const w=ws[i],wn2=wn*wn,w2=w*w,D=(wn2-w2)**2+(2*zeta*wn*w)**2,pred=wn2*wn2/D,err=pred-HM2[i];
+      gWn+=2*err*(4*wn*wn2*D-wn2*wn2*(4*wn*(wn2-w2)+8*zeta*zeta*wn*w2))/(D*D);
+      gZ+=2*err*(-wn2*wn2*8*zeta*wn2*w2/(D*D));
     }
-    wn=Math.max(wn-0.001*gWn,0.1);
-    zeta=Math.max(Math.min(zeta-0.001*gZ,2.0),0.01);
+    wn=Math.max(wn-0.001*gWn,0.1);zeta=Math.max(Math.min(zeta-0.001*gZ,2.0),0.01);
   }
   return{wn,zeta,fitted:freqs.map(f=>Math.sqrt(h2mag(2*Math.PI*f,wn,zeta)))};
 }
@@ -525,16 +487,13 @@ function fit2ndOrder(freqs,HMagNorm){
 function calcBW(freqs,vals,threshold){
   for(let i=1;i<vals.length;i++){
     if(vals[i]<=threshold&&vals[i-1]>threshold){
-      const t=(threshold-vals[i-1])/(vals[i]-vals[i-1]);
-      return freqs[i-1]+t*(freqs[i]-freqs[i-1]);
+      const t=(threshold-vals[i-1])/(vals[i]-vals[i-1]);return freqs[i-1]+t*(freqs[i]-freqs[i-1]);
     }
-  }
-  return null;
+  }return null;
 }
 
 function freqToTime(f,t0,t1,f0,f1){
-  if(f<=f0)return t0;if(f>=f1)return t1;
-  return t0+Math.log(f/f0)/Math.log(f1/f0)*(t1-t0);
+  if(f<=f0)return t0;if(f>=f1)return t1;return t0+Math.log(f/f0)/Math.log(f1/f0)*(t1-t0);
 }
 
 function downsample(t,u,y,maxPts){
@@ -548,19 +507,12 @@ function runAnalysis(){
   if(!raw){alert('먼저 CSV를 업로드하세요');return}
   const fv=parseFloat(document.getElementById('fsIn').value);
   if(!isNaN(fv)&&fv>0)fs=fv;
-  const logX=document.getElementById('fscale').value==='log';
-  const maxRows=parseInt(document.getElementById('tblRows').value);
-  const {u,y,t}=raw;
-  const wArr=mkWin(NFFT);
-  const sweepFmax=detectSweepMax(u);
-  const res=welch(u,y,NFFT,wArr);
-  if(!res){alert('데이터가 너무 짧습니다.');return}
-  const {freqs,Pxx,Pyy,PxyR,PxyI}=res;
-  const fRes=fs/NFFT;
-  const allFreqs=freqs.slice(1),allHR=[],allHI=[];
+  const logX=document.getElementById('fscale').value==='log',maxRows=parseInt(document.getElementById('tblRows').value);
+  const{u,y,t}=raw,wArr=mkWin(NFFT),sweepFmax=detectSweepMax(u);
+  const res=welch(u,y,NFFT,wArr);if(!res){alert('데이터가 너무 짧습니다.');return}
+  const{freqs,Pxx,Pyy,PxyR,PxyI}=res,fRes=fs/NFFT,allFreqs=freqs.slice(1),allHR=[],allHI=[];
   for(let k=1;k<freqs.length;k++){allHR.push(PxyR[k]/(Pxx[k]+1e-300));allHI.push(PxyI[k]/(Pxx[k]+1e-300))}
-  const refFmax=sweepFmax*0.08;
-  const refIdxs=allFreqs.map((f,i)=>i).filter(i=>allFreqs[i]>0&&allFreqs[i]<=refFmax);
+  const refFmax=sweepFmax*0.08,refIdxs=allFreqs.map((f,i)=>i).filter(i=>allFreqs[i]>0&&allFreqs[i]<=refFmax);
   let refMag=1,refPhase=0;
   if(refIdxs.length>0){
     const mags=refIdxs.map(i=>Math.sqrt(allHR[i]**2+allHI[i]**2));
@@ -568,114 +520,87 @@ function runAnalysis(){
     refPhase=refIdxs.map(i=>Math.atan2(allHI[i],allHR[i])).reduce((a,b)=>a+b,0)/refIdxs.length;
   }
   const validIdxs=allFreqs.map((f,i)=>i).filter(i=>allFreqs[i]<=sweepFmax*1.05&&allFreqs[i]>=fRes);
-  const fSlice=validIdxs.map(i=>allFreqs[i]);
-  const HdB=[],HPh=[],HMagNorm=[],Coh=[];
+  const fSlice=validIdxs.map(i=>allFreqs[i]),HdB=[],HPh=[],HMagNorm=[],Coh=[];
   for(const i of validIdxs){
     const hr=allHR[i],hi=allHI[i],mag=Math.sqrt(hr*hr+hi*hi)/refMag;
     let ph=(Math.atan2(hi,hr)-refPhase)*180/Math.PI;
     while(ph>10)ph-=360;while(ph<-360)ph+=360;
     HMagNorm.push(mag);HdB.push(20*Math.log10(mag+1e-300));HPh.push(ph);
-    const k=i+1;
-    Coh.push(Math.min(1,(PxyR[k]**2+PxyI[k]**2)/((Pxx[k]*Pyy[k])+1e-300)));
+    const k=i+1;Coh.push(Math.min(1,(PxyR[k]**2+PxyI[k]**2)/((Pxx[k]*Pyy[k])+1e-300)));
   }
-  const {wn,zeta,fitted}=fit2ndOrder(fSlice,HMagNorm);
-  const fn=wn/(2*Math.PI);
-  const bwAmpF=calcBW(fSlice,HdB,-3);
-  const bwPhF=calcBW(fSlice,HPh,-45);
+  const{wn,zeta,fitted}=fit2ndOrder(fSlice,HMagNorm),fn=wn/(2*Math.PI);
+  const bwAmpF=calcBW(fSlice,HdB,-3),bwPhF=calcBW(fSlice,HPh,-45);
   const tMin=t[0],tMax=t[t.length-1],uMax=Math.max(...u.map(Math.abs));
   const bwAmpT=bwAmpF!==null?freqToTime(bwAmpF,tMin,tMax,fSlice[0],sweepFmax):null;
   const bwPhT=bwPhF!==null?freqToTime(bwPhF,tMin,tMax,fSlice[0],sweepFmax):null;
   const dsTime=downsample(t,u,y,MAX_PTS);
-  const bodeXmin=logX?Math.max(fSlice[0],0.1):0;
-  const bodeXmax=sweepFmax*1.05;
+  const bodeXmin=logX?Math.max(fSlice[0],0.1):0,bodeXmax=sweepFmax*1.05;
+  R={fSlice,HdB,HPh,HMagNorm,Coh,fitted,fn,wn,zeta,logX,maxRows,bwAmpF,bwPhF,
+    dsTime,totalPts:t.length,bwAmpT,bwPhT,uMax,bodeXmin,bodeXmax,sweepFmax};
 
-  R={fSlice,HdB,HPh,HMagNorm,Coh,fitted,fn,wn,zeta,logX,maxRows,
-    bwAmpF,bwPhF,dsTime,totalPts:t.length,bwAmpT,bwPhT,uMax,bodeXmin,bodeXmax,sweepFmax};
-
-  // KPI
   document.getElementById('kpiRow').innerHTML=`
-    <div class="kpi kpi-primary">
-      <div class="kpi-label">진폭 대역폭 (−3 dB)</div>
-      <div class="kpi-val">${bwAmpF!==null?bwAmpF.toFixed(3):'—'}<span class="unit">${bwAmpF!==null?'Hz':''}</span></div>
-      <div class="kpi-sub">0 dB → −3 dB 하강 주파수</div>
-    </div>
-    <div class="kpi kpi-primary">
-      <div class="kpi-label">위상 대역폭 (−45°)</div>
-      <div class="kpi-val">${bwPhF!==null?bwPhF.toFixed(3):'—'}<span class="unit">${bwPhF!==null?'Hz':''}</span></div>
-      <div class="kpi-sub">0° → −45° 위상 지연 주파수</div>
-    </div>
-    <div class="kpi kpi-green">
-      <div class="kpi-label">고유 진동수 fn</div>
-      <div class="kpi-val">${fn.toFixed(3)}<span class="unit">Hz</span></div>
-      <div class="kpi-sub">2차 시스템 피팅 추정값</div>
-    </div>
-    <div class="kpi kpi-green">
-      <div class="kpi-label">감쇠비 ζ</div>
+    <div class="kpi-card kpi-red"><div class="kpi-lbl">진폭 대역폭</div>
+      <div class="kpi-val">${bwAmpF!==null?bwAmpF.toFixed(3):'—'}<span class="kpi-unit">${bwAmpF!==null?'Hz':''}</span></div>
+      <div class="kpi-sub">−3 dB 하강 주파수</div></div>
+    <div class="kpi-card kpi-red"><div class="kpi-lbl">위상 대역폭</div>
+      <div class="kpi-val">${bwPhF!==null?bwPhF.toFixed(3):'—'}<span class="kpi-unit">${bwPhF!==null?'Hz':''}</span></div>
+      <div class="kpi-sub">−45° 위상 지연 주파수</div></div>
+    <div class="kpi-card kpi-blue"><div class="kpi-lbl">고유 진동수 fn</div>
+      <div class="kpi-val">${fn.toFixed(3)}<span class="kpi-unit">Hz</span></div>
+      <div class="kpi-sub">2차 시스템 피팅 추정</div></div>
+    <div class="kpi-card kpi-blue"><div class="kpi-lbl">감쇠비 ζ</div>
       <div class="kpi-val">${zeta.toFixed(4)}</div>
-      <div class="kpi-sub">${zeta<0.5?'부족 감쇠 (underdamped)':zeta<0.707?'적정 감쇠':zeta<1?'과감쇠 근접':'과감쇠 (overdamped)'}</div>
-    </div>`;
+      <div class="kpi-sub">${zeta<0.5?'부족 감쇠':zeta<0.707?'적정 감쇠':zeta<1?'과감쇠 근접':'과감쇠'}</div></div>`;
 
   document.getElementById('statsRow').innerHTML=`
-    <div class="stat"><div class="stat-lbl">샘플 수</div><div class="stat-val">${u.length.toLocaleString()}</div></div>
-    <div class="stat"><div class="stat-lbl">샘플링 주파수</div><div class="stat-val">${fs.toFixed(0)}<span class="stat-unit">Hz</span></div></div>
-    <div class="stat"><div class="stat-lbl">스윕 상한</div><div class="stat-val">${sweepFmax.toFixed(1)}<span class="stat-unit">Hz</span></div></div>`;
+    <div class="stat-chip">샘플 <b>${u.length.toLocaleString()}</b></div>
+    <div class="stat-chip">Fs <b>${fs.toFixed(0)} Hz</b></div>
+    <div class="stat-chip">스윕 상한 <b>${sweepFmax.toFixed(1)} Hz</b></div>`;
 
-  document.getElementById('bodeSubLbl').textContent=
-    `저주파 기준 정규화 · 표시 범위: ${fSlice[0].toFixed(2)} – ${sweepFmax.toFixed(1)} Hz`;
+  document.getElementById('bodeSubLbl').textContent=`저주파 기준 정규화 · ${fSlice[0].toFixed(2)} – ${sweepFmax.toFixed(1)} Hz`;
   document.getElementById('resSec').style.display='block';
   drawCharts();
 }
 
-/* ── 절점 X값 표시용 plugin ── */
 function bwAnnotPlugin(bwAmpF,bwPhF,type){
   return{id:'bwAnnot',afterDraw(chart){
     const ctx=chart.ctx,xAxis=chart.scales.x,yAxis=chart.scales.y;
     const lines=[];
-    if(type==='mag'&&bwAmpF!==null)lines.push({f:bwAmpF,color:'#0071e3',label:bwAmpF.toFixed(2)+' Hz'});
+    if(type==='mag'&&bwAmpF!==null)lines.push({f:bwAmpF,color:'#ff453a',label:bwAmpF.toFixed(3)+' Hz'});
     if(type==='ph'){
-      if(bwPhF!==null)lines.push({f:bwPhF,color:'#D85A30',label:bwPhF.toFixed(2)+' Hz'});
-      if(bwAmpF!==null)lines.push({f:bwAmpF,color:'#0071e3',label:bwAmpF.toFixed(2)+' Hz'});
+      if(bwPhF!==null)lines.push({f:bwPhF,color:'#ff9f0a',label:bwPhF.toFixed(3)+' Hz'});
+      if(bwAmpF!==null)lines.push({f:bwAmpF,color:'#ff453a',label:bwAmpF.toFixed(3)+' Hz'});
     }
     lines.forEach(({f,color,label})=>{
-      const x=xAxis.getPixelForValue(f);
-      if(x<xAxis.left||x>xAxis.right)return;
-      ctx.save();
-      ctx.setLineDash([5,3]);ctx.strokeStyle=color;ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(x,yAxis.top);ctx.lineTo(x,yAxis.bottom);ctx.stroke();
-      ctx.setLineDash([]);
-      // X값 레이블: 하단에 표시
-      ctx.fillStyle=color;ctx.font='500 11px -apple-system, sans-serif';
-      ctx.textAlign='center';ctx.textBaseline='top';
-      const labelY=yAxis.bottom+4;
-      // 배경
-      const tw=ctx.measureText(label).width+8;
-      ctx.fillStyle='rgba(255,255,255,0.9)';
-      ctx.fillRect(x-tw/2,labelY-1,tw,14);
-      ctx.fillStyle=color;
-      ctx.fillText(label,x,labelY);
+      const x=xAxis.getPixelForValue(f);if(x<xAxis.left||x>xAxis.right)return;
+      ctx.save();ctx.setLineDash([4,3]);ctx.strokeStyle=color;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(x,yAxis.top);ctx.lineTo(x,yAxis.bottom);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='600 10px -apple-system,sans-serif';
+      const tw=ctx.measureText(label).width,ly=yAxis.bottom+5;
+      ctx.fillStyle='rgba(255,255,255,0.92)';
+      if(ctx.roundRect)ctx.roundRect(x-tw/2-4,ly-1,tw+8,13,3);else ctx.rect(x-tw/2-4,ly-1,tw+8,13);
+      ctx.fill();ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(label,x,ly);
       ctx.restore();
     });
   }};
 }
 
-function vertLineDs(x,ymin,ymax,color){return{label:'',data:[{x,y:ymin},{x,y:ymax}],borderColor:color,borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false,tension:0,parsing:false}}
-function horzLineDs(x0,x1,y,color,dash){return{label:'',data:[{x:x0,y},{x:x1,y}],borderColor:color,borderWidth:1,borderDash:dash||[3,3],pointRadius:0,fill:false,tension:0,parsing:false}}
+function vLine(x,ymin,ymax,color){return{label:'',data:[{x,y:ymin},{x,y:ymax}],borderColor:color,borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:0,parsing:false}}
+function hLine(x0,x1,y,color,dash){return{label:'',data:[{x:x0,y},{x:x1,y}],borderColor:color,borderWidth:1,borderDash:dash||[3,3],pointRadius:0,fill:false,tension:0,parsing:false}}
 function mkDs(lbl,data,freqs,color,w=2){return{label:lbl,data:freqs.map((f,i)=>({x:f,y:data[i]})),borderColor:color,borderWidth:w,pointRadius:0,fill:false,tension:0,parsing:false}}
 
-function bodeOpts(yl,logX,xmin,xmax,yextra){
-  const o={responsive:true,maintainAspectRatio:false,animation:{duration:280},
+function bOpts(yl,logX,xmin,xmax,yex){
+  const gc='rgba(0,0,0,0.05)',tc='rgba(0,0,0,0.35)';
+  const o={responsive:true,maintainAspectRatio:false,animation:{duration:250},
     plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,filter:i=>i.datasetIndex===0,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(3)}`}}},
     scales:{
       x:{type:logX?'logarithmic':'linear',min:xmin,max:xmax,
-        title:{display:true,text:'주파수 (Hz)',font:{size:11},color:'#6e6e73'},
-        ticks:{font:{size:10},color:'#6e6e73',maxTicksLimit:8},
-        grid:{color:'rgba(0,0,0,0.05)'}},
-      y:{title:{display:true,text:yl,font:{size:11},color:'#6e6e73'},
-        ticks:{font:{size:10},color:'#6e6e73',maxTicksLimit:5},
-        grid:{color:'rgba(0,0,0,0.05)'}}
+        title:{display:true,text:'주파수 (Hz)',font:{size:10,weight:'600'},color:tc},
+        ticks:{font:{size:10},color:tc,maxTicksLimit:8},grid:{color:gc}},
+      y:{title:{display:true,text:yl,font:{size:10,weight:'600'},color:tc},
+        ticks:{font:{size:10},color:tc,maxTicksLimit:5},grid:{color:gc}}
     }};
-  if(yextra)Object.assign(o.scales.y,yextra);
-  return o;
+  if(yex)Object.assign(o.scales.y,yex);return o;
 }
 
 function mk(id,ds,opts,plugins){
@@ -684,51 +609,58 @@ function mk(id,ds,opts,plugins){
 }
 
 function drawCharts(){
-  const {fSlice,HdB,HPh,HMagNorm,Coh,fitted,fn,wn,zeta,logX,
-    bwAmpF,bwPhF,dsTime,totalPts,bwAmpT,bwPhT,uMax,bodeXmin,bodeXmax}=R;
+  const{fSlice,HdB,HPh,HMagNorm,Coh,fitted,wn,zeta,fn,logX,
+    bwAmpF,bwPhF,dsTime,totalPts,bwAmpT,bwPhT,uMax,bodeXmin,bodeXmax,sweepFmax}=R;
 
-  // 시간 파형
+  // 시간 X축: 스윕 끝 시간까지만 (sweepFmax에 해당하는 t)
+  const sweepEndT=freqToTime(sweepFmax,dsTime.t[0],dsTime.t[dsTime.t.length-1],fSlice[0],sweepFmax);
+  // Y축: 데이터 범위 동적 계산 (u, y 모두 포함, 여백 10%)
+  const allVals=[...dsTime.u,...dsTime.y];
+  const yMin=Math.min(...allVals),yMax=Math.max(...allVals);
+  const yPad=(yMax-yMin)*0.1||0.5;
+  const yLo=yMin-yPad,yHi=yMax+yPad;
+
   const timeDs=[
-    {label:'명령 u',data:dsTime.t.map((t,i)=>({x:t,y:dsTime.u[i]})),borderColor:'#378ADD',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
-    {label:'응답 y',data:dsTime.t.map((t,i)=>({x:t,y:dsTime.y[i]})),borderColor:'#1D9E75',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
+    {label:'명령 u',data:dsTime.t.map((t,i)=>({x:t,y:dsTime.u[i]})),borderColor:'#0071e3',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
+    {label:'응답 y',data:dsTime.t.map((t,i)=>({x:t,y:dsTime.y[i]})),borderColor:'#32d74b',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
   ];
-  if(bwAmpT!==null)timeDs.push(vertLineDs(bwAmpT,-uMax*1.3,uMax*1.3,'#0071e3'));
-  if(bwPhT!==null)timeDs.push(vertLineDs(bwPhT,-uMax*1.3,uMax*1.3,'#D85A30'));
-  mk('cTime',timeDs,{responsive:true,maintainAspectRatio:false,animation:{duration:280},
+  if(bwAmpT!==null)timeDs.push(vLine(bwAmpT,yLo,yHi,'#ff453a'));
+  if(bwPhT!==null)timeDs.push(vLine(bwPhT,yLo,yHi,'#ff9f0a'));
+  const tc='rgba(0,0,0,0.35)',gc='rgba(0,0,0,0.05)';
+  mk('cTime',timeDs,{responsive:true,maintainAspectRatio:false,animation:{duration:250},
     plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,filter:i=>i.datasetIndex<2,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(3)} deg`}}},
     scales:{
-      x:{type:'linear',title:{display:true,text:'시간 (s)',font:{size:11},color:'#6e6e73'},ticks:{font:{size:10},color:'#6e6e73',maxTicksLimit:10},grid:{color:'rgba(0,0,0,0.05)'}},
-      y:{title:{display:true,text:'각도 (deg)',font:{size:11},color:'#6e6e73'},ticks:{font:{size:10},color:'#6e6e73',maxTicksLimit:6},grid:{color:'rgba(0,0,0,0.05)'}}
+      x:{type:'linear',min:dsTime.t[0],max:sweepEndT,
+        title:{display:true,text:'시간 (s)',font:{size:10,weight:'600'},color:tc},ticks:{font:{size:10},color:tc,maxTicksLimit:10},grid:{color:gc}},
+      y:{min:yLo,max:yHi,
+        title:{display:true,text:'각도 (deg)',font:{size:10,weight:'600'},color:tc},ticks:{font:{size:10},color:tc,maxTicksLimit:6},grid:{color:gc}}
     }});
   document.getElementById('timeNote').textContent=totalPts>MAX_PTS?`전체 ${totalPts.toLocaleString()}개 중 ${MAX_PTS.toLocaleString()}개로 다운샘플하여 표시`:'';
 
-  // Bode 크기 — 절점 X값 plugin 적용
   const magYmin=Math.min(...HdB)-2,magYmax=Math.max(...HdB)+2;
-  const bmagDs=[mkDs('크기 (dB)',HdB,fSlice,'#534AB7')];
-  bmagDs.push(horzLineDs(bodeXmin,bodeXmax,0,'rgba(0,0,0,0.18)',[2,2]));
-  bmagDs.push(horzLineDs(bodeXmin,bodeXmax,-3,'#0071e3'));
-  mk('cBmag',bmagDs,bodeOpts('크기 (dB)',logX,bodeXmin,bodeXmax),[bwAnnotPlugin(bwAmpF,bwPhF,'mag')]);
+  const bmagDs=[mkDs('크기 (dB)',HdB,fSlice,'#bf5af2')];
+  bmagDs.push(hLine(bodeXmin,bodeXmax,0,'rgba(0,0,0,0.15)',[2,2]));
+  bmagDs.push(hLine(bodeXmin,bodeXmax,-3,'rgba(255,69,58,0.45)'));
+  if(bwAmpF!==null)bmagDs.push(vLine(bwAmpF,magYmin,magYmax,'#ff453a'));
+  mk('cBmag',bmagDs,bOpts('크기 (dB)',logX,bodeXmin,bodeXmax),[bwAnnotPlugin(bwAmpF,bwPhF,'mag')]);
 
-  // Bode 위상 — 절점 X값 plugin 적용
   const phYmin=Math.min(Math.min(...HPh)-5,-50),phYmax=Math.max(Math.max(...HPh)+5,5);
-  const bphDs=[mkDs('위상 (°)',HPh,fSlice,'#D85A30')];
-  bphDs.push(horzLineDs(bodeXmin,bodeXmax,0,'rgba(0,0,0,0.18)',[2,2]));
-  bphDs.push(horzLineDs(bodeXmin,bodeXmax,-45,'#D85A30'));
-  mk('cBph',bphDs,bodeOpts('위상 (°)',logX,bodeXmin,bodeXmax),[bwAnnotPlugin(bwAmpF,bwPhF,'ph')]);
+  const bphDs=[mkDs('위상 (°)',HPh,fSlice,'#ff9f0a')];
+  bphDs.push(hLine(bodeXmin,bodeXmax,0,'rgba(0,0,0,0.15)',[2,2]));
+  bphDs.push(hLine(bodeXmin,bodeXmax,-45,'rgba(255,159,10,0.45)'));
+  if(bwPhF!==null)bphDs.push(vLine(bwPhF,phYmin,phYmax,'#ff9f0a'));
+  if(bwAmpF!==null)bphDs.push(vLine(bwAmpF,phYmin,phYmax,'#ff453a'));
+  mk('cBph',bphDs,bOpts('위상 (°)',logX,bodeXmin,bodeXmax),[bwAnnotPlugin(bwAmpF,bwPhF,'ph')]);
 
-  // Coherence
-  mk('cCoh',[mkDs('γ²',Coh,fSlice,'#1D9E75')],bodeOpts('γ²',logX,bodeXmin,bodeXmax,{min:0,max:1}));
+  mk('cCoh',[mkDs('γ²',Coh,fSlice,'#32d74b')],bOpts('γ²',logX,bodeXmin,bodeXmax,{min:0,max:1}));
 
-  // Transfer Function
   document.getElementById('tfParams').innerHTML=`
-    <div class="tf-param"><div class="tf-param-lbl">고유 진동수 fn</div><div class="tf-param-val">${(wn/(2*Math.PI)).toFixed(3)}<span class="tf-param-unit">Hz</span></div></div>
+    <div class="tf-param"><div class="tf-param-lbl">고유 진동수 fn</div><div class="tf-param-val">${fn.toFixed(3)}<span class="tf-param-unit">Hz</span></div></div>
     <div class="tf-param"><div class="tf-param-lbl">각 고유 진동수 ωn</div><div class="tf-param-val">${wn.toFixed(3)}<span class="tf-param-unit">rad/s</span></div></div>
     <div class="tf-param"><div class="tf-param-lbl">감쇠비 ζ</div><div class="tf-param-val">${zeta.toFixed(4)}</div></div>
     <div class="tf-param"><div class="tf-param-lbl">감쇠 유형</div><div class="tf-param-val" style="font-size:13px">${zeta<1?'부족 감쇠':'과감쇠'}</div></div>`;
-  document.getElementById('tfEq').textContent=
-    `H(s) = ${(wn*wn).toFixed(2)} / (s² + ${(2*zeta*wn).toFixed(2)}s + ${(wn*wn).toFixed(2)})`;
-  mk('cTf',[mkDs('측정 |H(f)|',HMagNorm,fSlice,'#BA7517',2),mkDs('피팅 모델',fitted,fSlice,'#0071e3',1.5)],
-    bodeOpts('|H(f)|',logX,bodeXmin,bodeXmax));
+  document.getElementById('tfEq').textContent=`H(s) = ${(wn*wn).toFixed(2)} / (s² + ${(2*zeta*wn).toFixed(2)}s + ${(wn*wn).toFixed(2)})`;
+  mk('cTf',[mkDs('측정 |H(f)|',HMagNorm,fSlice,'#ff9f0a',2),mkDs('피팅 모델',fitted,fSlice,'#0071e3',1.5)],bOpts('|H(f)|',logX,bodeXmin,bodeXmax));
 
   buildTables(R.maxRows);
 }
@@ -740,13 +672,12 @@ function buildTable(cid,headers,rows,hlFn){
   h+='</tbody></table>';document.getElementById(cid).innerHTML=h;
 }
 function buildTables(maxRows){
-  const {fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted}=R;
-  const s=a=>sArr(a,maxRows);
+  const{fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted}=R;const s=a=>sArr(a,maxRows);
   buildTable('tBode',['주파수 (Hz)','게인 (dB)','게인 (선형)','위상 (°)','Coherence γ²','비고'],
     s(fSlice).map((f,i)=>{
       let note='';
-      if(bwAmpF!==null&&i>0&&fSlice[i-1]<bwAmpF&&f>=bwAmpF)note='▶ 진폭 BW (−3 dB)';
-      if(bwPhF!==null&&i>0&&fSlice[i-1]<bwPhF&&f>=bwPhF)note+=(note?' / ':'')+'▶ 위상 BW (−45°)';
+      if(bwAmpF!==null&&i>0&&fSlice[i-1]<bwAmpF&&f>=bwAmpF)note='▶ 진폭 BW';
+      if(bwPhF!==null&&i>0&&fSlice[i-1]<bwPhF&&f>=bwPhF)note+=(note?' / ':'')+'▶ 위상 BW';
       return[f.toFixed(4),HdB[i].toFixed(3),HMagNorm[i].toFixed(4),HPh[i].toFixed(3),Coh[i].toFixed(4),note];
     }),r=>r[5]&&r[5].includes('BW'));
   buildTable('tCoh',['주파수 (Hz)','Coherence γ²'],s(fSlice).map((f,i)=>[f.toFixed(4),Coh[i].toFixed(4)]));
@@ -758,43 +689,30 @@ function toCSV(hdr,rows){return[hdr.join(','),...rows.map(r=>r.join(','))].join(
 function dlCSV(name,csv){const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=name;a.click()}
 
 function dlSec(id,e){
-  e.preventDefault();
-  const {fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted,fn,wn,zeta}=R;
+  e.preventDefault();const{fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted,fn,wn,zeta}=R;
   if(id==='bode'){
-    let csv=`# 진폭 대역폭 (-3 dB): ${bwAmpF!==null?bwAmpF.toFixed(6)+' Hz':'검출불가'}\n`;
-    csv+=`# 위상 대역폭 (-45 deg): ${bwPhF!==null?bwPhF.toFixed(6)+' Hz':'검출불가'}\n`;
-    csv+=toCSV(['freq_hz','gain_db','gain_linear','phase_deg','coherence'],
-      fSlice.map((f,i)=>[f.toFixed(6),HdB[i].toFixed(6),HMagNorm[i].toFixed(6),HPh[i].toFixed(6),Coh[i].toFixed(6)]));
+    let csv=`# 진폭 대역폭 (-3 dB): ${bwAmpF!==null?bwAmpF.toFixed(6)+' Hz':'검출불가'}\n# 위상 대역폭 (-45 deg): ${bwPhF!==null?bwPhF.toFixed(6)+' Hz':'검출불가'}\n`;
+    csv+=toCSV(['freq_hz','gain_db','gain_linear','phase_deg','coherence'],fSlice.map((f,i)=>[f.toFixed(6),HdB[i].toFixed(6),HMagNorm[i].toFixed(6),HPh[i].toFixed(6),Coh[i].toFixed(6)]));
     dlCSV('bode_plot.csv',csv);
-  } else if(id==='coh'){
-    dlCSV('coherence.csv',toCSV(['freq_hz','coherence'],fSlice.map((f,i)=>[f.toFixed(6),Coh[i].toFixed(6)])));
-  } else if(id==='tf'){
-    let csv=`# 고유 진동수 fn: ${fn.toFixed(6)} Hz\n# wn: ${wn.toFixed(6)} rad/s\n# zeta: ${zeta.toFixed(6)}\n`;
-    csv+=`# H(s) = ${(wn*wn).toFixed(4)} / (s^2 + ${(2*zeta*wn).toFixed(4)}s + ${(wn*wn).toFixed(4)})\n`;
-    csv+=toCSV(['freq_hz','H_mag_measured','H_mag_fitted','gain_db'],
-      fSlice.map((f,i)=>[f.toFixed(6),HMagNorm[i].toFixed(7),fitted[i].toFixed(7),HdB[i].toFixed(6)]));
+  }else if(id==='coh'){dlCSV('coherence.csv',toCSV(['freq_hz','coherence'],fSlice.map((f,i)=>[f.toFixed(6),Coh[i].toFixed(6)])));
+  }else if(id==='tf'){
+    let csv=`# fn: ${fn.toFixed(6)} Hz\n# wn: ${wn.toFixed(6)} rad/s\n# zeta: ${zeta.toFixed(6)}\n# H(s) = ${(wn*wn).toFixed(4)} / (s^2 + ${(2*zeta*wn).toFixed(4)}s + ${(wn*wn).toFixed(4)})\n`;
+    csv+=toCSV(['freq_hz','H_mag_measured','H_mag_fitted','gain_db'],fSlice.map((f,i)=>[f.toFixed(6),HMagNorm[i].toFixed(7),fitted[i].toFixed(7),HdB[i].toFixed(6)]));
     dlCSV('transfer_function.csv',csv);
   }
 }
-
 function dlAll(e){
-  e.preventDefault();
-  const {fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted,fn,wn,zeta,sweepFmax}=R;
+  e.preventDefault();const{fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted,fn,wn,zeta,sweepFmax}=R;
   let csv='=== 주파수 응답 시험 결과 요약 ===\n';
-  csv+=`진폭 대역폭 (-3 dB),${bwAmpF!==null?bwAmpF.toFixed(6)+' Hz':'검출불가'}\n`;
-  csv+=`위상 대역폭 (-45 deg),${bwPhF!==null?bwPhF.toFixed(6)+' Hz':'검출불가'}\n`;
-  csv+=`고유 진동수 fn,${fn.toFixed(6)} Hz\nwn,${wn.toFixed(6)} rad/s\nzeta,${zeta.toFixed(6)}\n`;
-  csv+=`H(s),${(wn*wn).toFixed(4)} / (s^2 + ${(2*zeta*wn).toFixed(4)}s + ${(wn*wn).toFixed(4)})\n`;
+  csv+=`진폭 대역폭 (-3 dB),${bwAmpF!==null?bwAmpF.toFixed(6)+' Hz':'검출불가'}\n위상 대역폭 (-45 deg),${bwPhF!==null?bwPhF.toFixed(6)+' Hz':'검출불가'}\n`;
+  csv+=`fn,${fn.toFixed(6)} Hz\nwn,${wn.toFixed(6)} rad/s\nzeta,${zeta.toFixed(6)}\nH(s),${(wn*wn).toFixed(4)} / (s^2 + ${(2*zeta*wn).toFixed(4)}s + ${(wn*wn).toFixed(4)})\n`;
   csv+=`스윕 상한,${sweepFmax.toFixed(3)} Hz\nFs,${fs.toFixed(1)} Hz\n\n`;
-  csv+='=== BODE + COHERENCE ===\n'+toCSV(['freq_hz','gain_db','gain_linear','phase_deg','coherence'],
-    fSlice.map((f,i)=>[f.toFixed(6),HdB[i].toFixed(6),HMagNorm[i].toFixed(6),HPh[i].toFixed(6),Coh[i].toFixed(6)]));
-  csv+='\n\n=== TRANSFER FUNCTION ===\n'+toCSV(['freq_hz','H_mag_measured','H_mag_fitted','gain_db'],
-    fSlice.map((f,i)=>[f.toFixed(6),HMagNorm[i].toFixed(7),fitted[i].toFixed(7),HdB[i].toFixed(6)]));
+  csv+='=== BODE + COHERENCE ===\n'+toCSV(['freq_hz','gain_db','gain_linear','phase_deg','coherence'],fSlice.map((f,i)=>[f.toFixed(6),HdB[i].toFixed(6),HMagNorm[i].toFixed(6),HPh[i].toFixed(6),Coh[i].toFixed(6)]));
+  csv+='\n\n=== TRANSFER FUNCTION ===\n'+toCSV(['freq_hz','H_mag_measured','H_mag_fitted','gain_db'],fSlice.map((f,i)=>[f.toFixed(6),HMagNorm[i].toFixed(7),fitted[i].toFixed(7),HdB[i].toFixed(6)]));
   dlCSV('servo_fra_results.csv',csv);
 }
-
 function sw(id,el){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
   el.classList.add('on');document.getElementById(id).classList.add('on');
   setTimeout(()=>Object.values(CH).forEach(c=>{try{c.resize()}catch(e){}}),40);
