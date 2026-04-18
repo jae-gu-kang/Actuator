@@ -289,7 +289,7 @@ table.dtbl tr.bw-row td:first-child { color: #c01008; font-weight: 500; }
 
     <div class="top-row">
       <div class="seg-ctrl">
-        <button class="seg-btn on" onclick="sw('time',this)">시간 파형</button>
+        <button class="seg-btn on" onclick="sw('time',this)">스윕 파형</button>
         <button class="seg-btn" onclick="sw('bode',this)">Bode Plot</button>
         <button class="seg-btn" onclick="sw('coh',this)">Coherence</button>
         <button class="seg-btn" onclick="sw('tf',this)">Transfer Function</button>
@@ -303,16 +303,13 @@ table.dtbl tr.bw-row td:first-child { color: #c01008; font-weight: 500; }
     <div id="time" class="sec on">
       <div class="chart-card">
         <div class="chart-hdr">
-          <div><div class="chart-title">시간 도메인 파형</div><div class="chart-sub">사인 스윕 전체 구간 · 점선 = 대역폭 도달 시점</div></div>
+          <div><div class="chart-title">스윕 파형</div><div class="chart-sub">X축: 순시 주파수(Hz) · 명령과 응답 비교</div></div>
           <div class="legend">
-            <span><span class="lpip" style="background:#0071e3"></span>명령 u</span>
-            <span><span class="lpip" style="background:#32d74b"></span>응답 y</span>
-            <span style="color:#ff453a">│ 진폭 BW</span>
-            <span style="color:#ff9f0a">│ 위상 BW</span>
+            <span><span class="lpip" style="background:rgba(0,113,227,0.7)"></span>명령 u</span>
+            <span><span class="lpip" style="background:rgba(50,215,75,0.7)"></span>응답 y</span>
           </div>
         </div>
-        <div style="position:relative;height:280px"><canvas id="cTime" role="img" aria-label="시간 파형">시간 파형</canvas></div>
-        <div id="timeNote" style="margin-top:6px;font-size:11px;color:var(--text3);text-align:center"></div>
+        <div style="position:relative;height:280px"><canvas id="cTime" role="img" aria-label="진폭 스펙트럼">진폭 스펙트럼</canvas></div>
       </div>
     </div>
 
@@ -530,13 +527,18 @@ function runAnalysis(){
   }
   const{wn,zeta,fitted}=fit2ndOrder(fSlice,HMagNorm),fn=wn/(2*Math.PI);
   const bwAmpF=calcBW(fSlice,HdB,-3),bwPhF=calcBW(fSlice,HPh,-45);
+
+  // 스윕 파형을 주파수 축으로 변환: t → f(t) = f0 * k^t (로그 스윕)
+  // f0 = 스윕 시작 주파수(=fSlice[0]), sweepFmax = 스윕 끝 주파수, T = 총 시간
   const tMin=t[0],tMax=t[t.length-1],uMax=Math.max(...u.map(Math.abs));
-  const bwAmpT=bwAmpF!==null?freqToTime(bwAmpF,tMin,tMax,fSlice[0],sweepFmax):null;
-  const bwPhT=bwPhF!==null?freqToTime(bwPhF,tMin,tMax,fSlice[0],sweepFmax):null;
+  const sweepF0=fSlice[0],sweepT=tMax-tMin;
+  const logK=Math.log(sweepFmax/sweepF0)/sweepT;
   const dsTime=downsample(t,u,y,MAX_PTS);
+  // 각 샘플의 시간 → 순시 주파수 변환
+  const swpF=dsTime.t.map(ti=>sweepF0*Math.exp(logK*(ti-tMin)));
   const bodeXmin=logX?Math.max(fSlice[0],0.1):0,bodeXmax=sweepFmax*1.05;
   R={fSlice,HdB,HPh,HMagNorm,Coh,fitted,fn,wn,zeta,logX,maxRows,bwAmpF,bwPhF,
-    dsTime,totalPts:t.length,bwAmpT,bwPhT,uMax,bodeXmin,bodeXmax,sweepFmax};
+    dsTime,swpF,totalPts:t.length,uMax,bodeXmin,bodeXmax,sweepFmax};
 
   document.getElementById('kpiRow').innerHTML=`
     <div class="kpi-card kpi-red"><div class="kpi-lbl">진폭 대역폭</div>
@@ -610,32 +612,30 @@ function mk(id,ds,opts,plugins){
 
 function drawCharts(){
   const{fSlice,HdB,HPh,HMagNorm,Coh,fitted,wn,zeta,fn,logX,
-    bwAmpF,bwPhF,dsTime,totalPts,bwAmpT,bwPhT,uMax,bodeXmin,bodeXmax,sweepFmax}=R;
+    bwAmpF,bwPhF,dsTime,swpF,uMax,bodeXmin,bodeXmax,sweepFmax}=R;
 
-  // 시간 X축: 스윕 끝 시간까지만 (sweepFmax에 해당하는 t)
-  const sweepEndT=freqToTime(sweepFmax,dsTime.t[0],dsTime.t[dsTime.t.length-1],fSlice[0],sweepFmax);
-  // Y축: 데이터 범위 동적 계산 (u, y 모두 포함, 여백 10%)
-  const allVals=[...dsTime.u,...dsTime.y];
-  const yMin=Math.min(...allVals),yMax=Math.max(...allVals);
-  const yPad=(yMax-yMin)*0.1||0.5;
+  // ── 스윕 파형 ──
+  const tc='rgba(0,0,0,0.35)',gc='rgba(0,0,0,0.05)';
+
+  const uEnvMax=Math.max(...dsTime.u.map(Math.abs));
+  const threshold=uEnvMax*0.707;
+
+  const allY=[...dsTime.u,...dsTime.y];
+  const yMin=Math.min(...allY),yMax=Math.max(...allY);
+  const yPad=(yMax-yMin)*0.08||0.5;
   const yLo=yMin-yPad,yHi=yMax+yPad;
 
-  const timeDs=[
-    {label:'명령 u',data:dsTime.t.map((t,i)=>({x:t,y:dsTime.u[i]})),borderColor:'#0071e3',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
-    {label:'응답 y',data:dsTime.t.map((t,i)=>({x:t,y:dsTime.y[i]})),borderColor:'#32d74b',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
+  const swpDs=[
+    {label:'명령 u',data:swpF.map((f,i)=>({x:f,y:dsTime.u[i]})),borderColor:'rgba(0,113,227,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
+    {label:'응답 y',data:swpF.map((f,i)=>({x:f,y:dsTime.y[i]})),borderColor:'rgba(50,215,75,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
   ];
-  if(bwAmpT!==null)timeDs.push(vLine(bwAmpT,yLo,yHi,'#ff453a'));
-  if(bwPhT!==null)timeDs.push(vLine(bwPhT,yLo,yHi,'#ff9f0a'));
-  const tc='rgba(0,0,0,0.35)',gc='rgba(0,0,0,0.05)';
-  mk('cTime',timeDs,{responsive:true,maintainAspectRatio:false,animation:{duration:250},
-    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,filter:i=>i.datasetIndex<2,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(3)} deg`}}},
-    scales:{
-      x:{type:'linear',min:dsTime.t[0],max:sweepEndT,
-        title:{display:true,text:'시간 (s)',font:{size:10,weight:'600'},color:tc},ticks:{font:{size:10},color:tc,maxTicksLimit:10},grid:{color:gc}},
-      y:{min:yLo,max:yHi,
-        title:{display:true,text:'각도 (deg)',font:{size:10,weight:'600'},color:tc},ticks:{font:{size:10},color:tc,maxTicksLimit:6},grid:{color:gc}}
-    }});
-  document.getElementById('timeNote').textContent=totalPts>MAX_PTS?`전체 ${totalPts.toLocaleString()}개 중 ${MAX_PTS.toLocaleString()}개로 다운샘플하여 표시`:'';
+  mk('cTime',swpDs,{...bOpts('각도 (deg)',logX,bodeXmin,bodeXmax,{min:yLo,max:yHi}),
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,
+      filter:i=>i.datasetIndex<2,
+      callbacks:{
+        title:items=>`${items[0].parsed.x.toFixed(3)} Hz`,
+        label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(3)} deg`
+      }}}});
 
   const magYmin=Math.min(...HdB)-2,magYmax=Math.max(...HdB)+2;
   const bmagDs=[mkDs('크기 (dB)',HdB,fSlice,'#bf5af2')];
