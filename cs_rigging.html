@@ -993,10 +993,16 @@ let originalJSON   = null;
 
 // 조종면별 명령 각도 (기본값 복사, 독립 편집 가능)
 const surfCommands = {};
-SURFACES.forEach(s => { surfCommands[s] = [...DEFAULT_COMMANDS]; });
+SURFACES.forEach(s => {
+  surfCommands[s] = SFP_SET.has(s) ? [0, 90] : [...DEFAULT_COMMANDS];
+});
+
+const SFP_DEFAULT_COMMANDS = [0, 90];
 
 const measureData = {};
-SURFACES.forEach(s => { measureData[s] = DEFAULT_COMMANDS.map(() => ({ actual:null, fb:null })); });
+SURFACES.forEach(s => {
+  measureData[s] = surfCommands[s].map(() => ({ actual:null, fb:null }));
+});
 
 const regressionData = {};
 
@@ -1102,7 +1108,8 @@ function buildTable() {
   cmds.forEach((cmd, i) => {
     const av = data[i] ? (data[i].actual !== null ? data[i].actual : '') : '';
     const fv = data[i] ? (data[i].fb     !== null ? data[i].fb     : '') : '';
-    const isDefault = (cmd === DEFAULT_COMMANDS[i]);
+    const defCmdArr = SFP_SET.has(currentSurface) ? [0, 90] : DEFAULT_COMMANDS;
+    const isDefault = (cmd === defCmdArr[i]);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
@@ -1134,7 +1141,8 @@ function saveCmd(idx, input) {
   const v = input.value.trim();
   if (v === '') {
     // 빈칸이면 기본값 복원
-    const def = DEFAULT_COMMANDS[idx];
+    const defArr = SFP_SET.has(currentSurface) ? [0, 90] : DEFAULT_COMMANDS;
+    const def = defArr[idx];
     if (def !== undefined) {
       surfCommands[currentSurface][idx] = def;
       input.value = def;
@@ -1236,8 +1244,9 @@ function saveVal(idx, field, input) {
 function clearCurrentSurface() {
   if (!currentSurface) return;
   // 명령 각도를 기본값으로 리셋
-  surfCommands[currentSurface] = [...DEFAULT_COMMANDS];
-  measureData[currentSurface]  = DEFAULT_COMMANDS.map(() => ({ actual:null, fb:null }));
+  const defCmds = SFP_SET.has(currentSurface) ? [0, 90] : [...DEFAULT_COMMANDS];
+  surfCommands[currentSurface] = defCmds;
+  measureData[currentSurface]  = defCmds.map(() => ({ actual:null, fb:null }));
   delete regressionData[currentSurface];
   buildTable();
   document.getElementById('regression-result').style.display = 'none';
@@ -1377,35 +1386,35 @@ function showRegressionForCurrent() {
   const color    = SURF_COLOR[currentSurface];
   const isLinear = rd.order===1;
 
-  const fv = v => `<span class="cv">${v.toExponential(8)}</span>`;
+  const fv = v => '<span class="cv">' + v.toExponential(8) + '</span>';
   const sg = v => v>=0 ? '+' : '';
-
   const eqStr = c => isLinear
-    ? `y = ${fv(c[0])}\n    ${sg(c[1])}${fv(c[1])}·x`
-    : `y = ${fv(c[0])}\n    ${sg(c[1])}${fv(c[1])}·x\n    ${sg(c[2])}${fv(c[2])}·x²\n    ${sg(c[3])}${fv(c[3])}·x³`;
+    ? 'y = ' + fv(c[0]) + '\n    ' + sg(c[1]) + fv(c[1]) + '\xb7x'
+    : 'y = ' + fv(c[0]) + '\n    ' + sg(c[1]) + fv(c[1]) + '\xb7x\n    ' + sg(c[2]) + fv(c[2]) + '\xb7x\xb2\n    ' + sg(c[3]) + fv(c[3]) + '\xb7x\xb3';
+  const lb = isLinear ? '<span class="linear-badge">1\ucc28\uc2dd</span>' : '';
 
-  const lb = isLinear ? '<span class="linear-badge">1차식</span>' : '';
+  const makeCard = (label, coeffs, r2, hasData) => {
+    if (!hasData) {
+      return '<div class="coeff-card" style="border-left-color:' + color + ';opacity:0.4;">'
+        + '<div class="coeff-name" style="color:' + color + ';">'
+        + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block;margin-right:4px;"></span>'
+        + label + ' ' + lb + '</div>'
+        + '<div class="coeff-eq" style="color:var(--text-tertiary);font-size:12px;">'
+        + '\ub370\uc774\ud130 \uc5c6\uc74c \u2014 \uce21\uc815\uac12\uc744 \uc785\ub825\ud558\uc138\uc694</div></div>';
+    }
+    return '<div class="coeff-card" style="border-left-color:' + color + ';">'
+      + '<div class="coeff-name" style="color:' + color + ';">'
+      + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block;margin-right:4px;"></span>'
+      + label + ' ' + lb + '</div>'
+      + '<div class="coeff-eq">' + eqStr(coeffs) + '</div>'
+      + '<div class="r2-badge">R\xb2 = ' + (r2 !== null ? r2.toFixed(6) : '\u2014') + '</div></div>';
+  };
 
-  grid.innerHTML = `
-    <div class="coeff-card" style="border-left-color:${color}">
-      <div class="coeff-name" style="color:${color}">
-        <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>
-        FCA_RIG (실제 출력각도) ${lb}
-      </div>
-      <div class="coeff-eq">${eqStr(rd.fwd)}</div>
-      <div class="r2-badge">R² = ${rd.r2fwd.toFixed(6)}</div>
-    </div>
-    <div class="coeff-card" style="border-left-color:${color}">
-      <div class="coeff-name" style="color:${color}">
-        <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>
-        FCA_RIG_REVERS (피드백) ${lb}
-      </div>
-      <div class="coeff-eq">${eqStr(rd.rev)}</div>
-      <div class="r2-badge">R² = ${rd.r2rev.toFixed(6)}</div>
-    </div>`;
+  grid.innerHTML =
+    makeCard('FCA_RIG (\uc2e4\uc81c \ucd9c\ub825\uac01\ub3c4)', rd.fwd, rd.r2fwd, rd.hasFwd !== false) +
+    makeCard('FCA_RIG_REVERS (\ud53c\ub4dc\ubc31)', rd.rev, rd.r2rev, rd.hasRev !== false);
 }
 
-// ─── Rigging Export ─────────────────────────────────
 function buildOutput() {
   // Compute any surface with enough data (if not already done)
   SURFACES.forEach(s => {
