@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Rigging</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --card2: #fafafa;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.13);
+    --text-primary: #1c1c1e;
+    --text-secondary: #636366;
+    --text-tertiary: #aeaeb2;
+    --accent: #0071e3;
+    --accent-light: #e3f0fd;
+    --accent-hover: #0077ed;
+    --success: #34c759;
+    --warning: #ff9f0a;
+    --danger: #ff3b30;
+    --c-elv-li: #5e5ce6;
+    --c-elv-lo: #0a84ff;
+    --c-elv-ri: #ff375f;
+    --c-elv-ro: #ff9f0a;
+    --c-rud-l:  #30d158;
+    --c-rud-r:  #40c8e0;
+    --c-sfp-l:  #bf5af2;
+    --c-sfp-r:  #ff6961;
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.07);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    --radius: 18px;
+    --radius-sm: 12px;
+    --radius-xs: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Header (legacy - unused) ── */
+
+  /* ── SID row in header ── */
+  .header-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1.5px solid var(--border2);
+    border-radius: 980px;
+    padding: 6px 16px 6px 12px;
+    margin-top: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .header-meta label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+  }
+  .sid-input {
+    width: 60px;
+    padding: 4px 8px;
+    border: 1.5px solid var(--border2);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font);
+    text-align: center;
+    color: var(--accent);
+    background: var(--accent-light);
+    -moz-appearance: textfield;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .sid-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .sid-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,113,227,0.15); }
+  .sid-sep { width: 1px; height: 16px; background: var(--border2); }
+
+  /* Rev row */
+  .rev-input {
+    width: 52px;
+    padding: 4px 8px;
+    border: 1.5px solid var(--border2);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    text-align: center;
+    color: var(--success);
+    background: #edfaf1;
+    -moz-appearance: textfield;
+    transition: border-color 0.15s;
+  }
+  .rev-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .rev-input:focus { outline: none; border-color: var(--success); box-shadow: 0 0 0 3px rgba(52,199,89,0.15); }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .card-header {
+    padding: 15px 22px 13px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .card-title    { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+  .card-subtitle { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .card-body     { padding: 12px 16px; }
+
+  /* ── Aircraft ── */
+  .aircraft-wrap {
+    background: #0a0a0f;
+    padding: 20px 16px 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .aircraft-wrap::before {
+    content:'';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 40%, #0e1a2e 0%, #0a0a0f 100%);
+  }
+  .aircraft-wrap::after {
+    content:'';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  #aircraft-svg { position: relative; z-index: 1; }
+
+  /* ── Surface tabs ── */
+  .surface-tabs {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 8px 14px;
+    background: var(--card2);
+    border-bottom: 1px solid var(--border);
+  }
+  .surface-tab {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border2);
+    background: white;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font);
+    color: var(--text-secondary);
+  }
+  .surface-tab:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .surface-tab.active { color: white; border-color: transparent; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .badge-1 {
+    font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+    background: rgba(255,255,255,0.22);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 12.5px;
+  }
+  thead th {
+    background: #f2f2f7;
+    padding: 5px 8px;
+    font-weight: 600; color: var(--text-secondary);
+    font-size: 10px; letter-spacing: 0.3px;
+    text-transform: uppercase; text-align: center;
+    border-bottom: 1px solid var(--border2); white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; padding-left: 10px; }
+  tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  tbody tr:hover td { background: #f7f7f9; }
+  tbody td {
+    padding: 2px 4px; text-align: center;
+    vertical-align: middle; transition: background 0.1s;
+  }
+  tbody td:first-child {
+    text-align: left; padding-left: 10px;
+    font-weight: 700; font-size: 11px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="number"].cell-input {
+    width: 68px; padding: 3px 4px;
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius-xs);
+    font-size: 11.5px; font-family: var(--font);
+    text-align: center; color: var(--text-primary);
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="number"].cell-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="number"].cell-input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.13);
+  }
+  input[type="number"].cell-input.filled { background: #f0f6ff; border-color: rgba(0,113,227,0.28); }
+  input[type="number"].cell-input.filled-sfp { background: #fdf5ff; border-color: rgba(191,90,242,0.28); }
+
+  /* 명령 각도 입력칸 */
+  input[type="number"].cmd-input {
+    width: 58px;
+    background: #f2f2f7;
+    color: var(--text-secondary);
+    border-color: transparent;
+    font-weight: 700;
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  input[type="number"].cmd-input:hover {
+    background: #e8e8f0;
+    border-color: var(--border2);
+  }
+  input[type="number"].cmd-input:focus {
+    background: white;
+    border-color: var(--warning);
+    box-shadow: 0 0 0 3px rgba(255,159,10,0.15);
+    color: var(--text-primary);
+  }
+  /* 기본값에서 수정된 명령 각도 */
+  input[type="number"].cmd-input.cmd-modified {
+    background: #fff8e6;
+    border-color: rgba(255,159,10,0.45);
+    color: #92510e;
+  }
+
+  /* ── Coeff cards ── */
+  .coeff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+    gap: 12px; margin-top: 14px;
+  }
+  .coeff-card {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 15px;
+    border-left-width: 3px;
+  }
+  .coeff-name {
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .coeff-eq {
+    font-size: 12px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-primary); line-height: 1.65;
+    word-break: break-all;
+  }
+  .coeff-eq .cv { color: var(--accent); font-weight: 600; }
+  .r2-badge {
+    display: inline-block; margin-top: 7px;
+    font-size: 10px; font-weight: 600;
+    background: var(--accent-light); color: var(--accent);
+    padding: 2px 8px; border-radius: 10px;
+  }
+  .linear-badge {
+    font-size: 9px; font-weight: 700;
+    background: #f5e6ff; color: #8a3abf;
+    padding: 1px 6px; border-radius: 8px;
+    margin-left: 4px; letter-spacing: 0.3px;
+  }
+
+  /* ── JSON ── */
+  .json-output {
+    background: #0a0a0f;
+    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 11.5px; line-height: 1.75;
+    color: #e5e5ea; overflow-x: auto; white-space: pre;
+    border: 1px solid #2c2c2e;
+  }
+  .json-key     { color: #ff9f0a; }
+  .json-val     { color: #30d158; }
+  .json-str     { color: #64d2ff; }
+  .json-bracket { color: #636366; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px;
+    border-radius: 980px;
+    font-size: 13.5px; font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer; border: none;
+    transition: all 0.15s ease;
+    letter-spacing: -0.1px;
+  }
+  .btn-primary  { background: var(--accent); color: white; box-shadow: 0 1px 4px rgba(0,113,227,0.28); }
+  .btn-primary:hover  { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,113,227,0.32); }
+  .btn-secondary{ background: white; color: var(--text-primary); border: 1.5px solid var(--border2); }
+  .btn-secondary:hover{ border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+  .btn-success  { background: var(--success); color: white; box-shadow: 0 1px 4px rgba(52,199,89,0.3); }
+  .btn-success:hover  { background: #2eb350; transform: translateY(-1px); }
+  .btn-sm { padding: 6px 13px; font-size: 12px; }
+
+  /* ── File label ── */
+  .file-label {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; background: white;
+    border: 1.5px solid var(--border2);
+    border-radius: 980px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+    color: var(--text-primary); font-family: var(--font);
+  }
+  .file-label:hover { border-color: var(--accent); color: var(--accent); }
+  #file-input { display: none; }
+
+  /* ── Status ── */
+  .status-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px; border-radius: var(--radius-xs);
+    font-size: 12.5px; font-weight: 500; margin-top: 12px;
+  }
+  .status-ok   { background: #e5f9eb; color: #1a7f3c; }
+  .status-warn { background: #fff5e0; color: #92510e; }
+  .status-err  { background: #ffeaea; color: #c0392b; }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-tertiary); margin-bottom: 12px;
+  }
+
+
+
+  /* ── Home button ── */
+  .home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 13px 6px 10px;
+    background: white;
+    border: 1.5px solid var(--border2);
+    border-radius: 980px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .home-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .home-btn svg { flex-shrink: 0; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .fade-in { animation: fadeUp 0.28s ease forwards; }
+
+  /* ── 3-Column Desktop Layout ── */
+  .page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  .page-header {
+    padding: 20px 24px 16px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  }
+  .page-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+  .page-header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; white-space: nowrap; }
+  .page-header p  { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+
+  .three-col {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1.4fr;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    align-items: start;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: visible;
+    height: auto;
+    padding: 16px 12px 32px;
+  }
+  .col:not(:last-child) {
+    border-right: 1px solid var(--border);
+  }
+  .col-left  { background: var(--bg); }
+  .col-mid   { background: #f8f8fc; }
+  .col-right { background: var(--bg); }
+
+  .col .card { margin-bottom: 14px; }
+  .col .card:last-child { margin-bottom: 0; }
+
+  /* col label */
+  .col-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    padding: 0 4px 8px;
+  }
+
+  /* Aircraft SVG — smaller in left column */
+  .col-left .aircraft-wrap svg { max-width: 100%; }
+
+  /* JSON output scrolls within right col */
+  .col-right .json-output {
+    max-height: 380px;
+    overflow-y: auto;
+  }
+
+  /* coeff grid — single col in right panel */
+  .col-right .coeff-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Mobile: single column ── */
+  @media (max-width: 900px) {
+    .page-header { position: relative; }
+    .three-col {
+      display: block;
+      max-width: 100%;
+    }
+    .col {
+      height: auto;
+      overflow-y: visible;
+      padding: 14px 14px 4px;
+      border-right: none !important;
+      border-bottom: 1px solid var(--border);
+    }
+    .col:last-child { border-bottom: none; padding-bottom: 40px; }
+    .page-header-inner { flex-wrap: wrap; gap: 8px; }
+    .page-header h1 { font-size: 16px; }
+  }
+  @media (max-width: 600px) {
+    .page-header { padding: 14px 16px 12px; }
+    .col { padding: 12px 10px 4px; }
+    input[type="number"].cell-input { width: 60px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+<!-- ══════ TOP HEADER BAR ══════ -->
+<header class="page-header">
+  <div class="page-header-inner">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a class="home-btn" href="index.html" title="홈으로">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        홈
+      </a>
+      <div>
+        <h1>CS Rigging</h1>
+        <p>비행체 조종면 3차(SFP: 1차) 회귀 리깅 시스템</p>
+      </div>
+    </div>
+    <div class="header-meta">
+      <label for="sid-input-field">호기 번호 (SID)</label>
+      <div class="sid-sep"></div>
+      <input type="number" id="sid-input-field" class="sid-input"
+             min="1" max="999" value="1"
+             oninput="onSIDChange(this)" onchange="onSIDChange(this)">
+      <div class="sid-sep"></div>
+      <label for="rev-input-field" style="font-size:12px;font-weight:600;color:var(--text-secondary);">리비전</label>
+      <span style="font-size:13px;font-weight:700;color:var(--text-secondary);font-family:'SF Mono','Menlo',monospace;">R</span>
+      <input type="number" id="rev-input-field" class="rev-input"
+             min="0" max="99" value="0">
+    </div>
+  </div>
+</header>
+
+<!-- ══════ 3-COLUMN LAYOUT ══════ -->
+<div class="three-col">
+
+<!-- ════ LEFT COL: 설정 파일 + 항공기 도면 ════ -->
+<div class="col col-left">
+  <div class="col-label">① 설정 파일 &amp; 배치도</div>
+
+<!-- ══════ LOAD JSON ══════ -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">설정 파일 불러오기</div>
+      <div class="card-subtitle">기존 JSON 파일을 불러오거나, 새 리깅을 시작합니다</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label class="file-label" for="file-input">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        JSON 불러오기
+      </label>
+      <input type="file" id="file-input" accept=".json">
+      <span id="file-name-label" style="font-size:12px;color:var(--text-secondary);">파일을 선택하거나 새 리깅을 시작하세요</span>
+    </div>
+    <div id="load-status"></div>
+  </div>
+</div>
+
+<!-- ══════ AIRCRAFT SVG ══════ -->
+<div class="card" style="border-color:#1c1c1e;">
+  <div class="card-header" style="background:#111116;border-color:#2c2c2e;">
+    <div>
+      <div class="card-title" style="color:#f5f5f7;">조종면 배치도</div>
+      <div class="card-subtitle" style="color:#636366;">Shahed형 비행체 — 클릭하여 조종면 선택</div>
+    </div>
+    <div id="svg-sid-label" style="font-size:11px;font-weight:700;color:#636366;font-family:'SF Mono','Menlo',monospace;">SID: 1</div>
+  </div>
+  <div class="aircraft-wrap">
+    <!--
+      Shahed-136 top-down plan view (accurate proportions)
+      Real dimensions: length 3.5m, wingspan 2.5m → span/length ≈ 0.71
+      Cropped delta: high sweep (~65°), near-straight trailing edge,
+      wingtip vertical stabilisers (up+down), long fuselage blending into wing,
+      pusher propeller at tail, warhead in nose.
+      Canvas 760×520. Fuselage runs Y=40..470 (430px ≈ length).
+      Half-span each side ≈ 430×0.36 ≈ 155px → total span 310px (tip-to-tip).
+      Wing root at fuselage sides ≈ ±18px from CL.
+    -->
+    <svg id="aircraft-svg" viewBox="0 0 760 520" width="100%" style="max-width:760px;" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#42424e"/>
+          <stop offset="100%" stop-color="#1c1c26"/>
+        </linearGradient>
+        <linearGradient id="wingGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#2e2e3a"/>
+          <stop offset="100%" stop-color="#1a1a24"/>
+        </linearGradient>
+        <linearGradient id="wingGradR" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0%" stop-color="#2e2e3a"/>
+          <stop offset="100%" stop-color="#1a1a24"/>
+        </linearGradient>
+        <linearGradient id="noseGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#5a5a6a"/>
+          <stop offset="100%" stop-color="#2a2a38"/>
+        </linearGradient>
+        <filter id="surf-glow">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="fuse-shadow">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+        </filter>
+      </defs>
+
+      <!-- ════════════════════════════════════
+           SHAHED-136 ACCURATE PLANFORM
+           Nose tip: (380, 42)
+           Fuselage tail: (380, 472)
+           Wing root LE join: (362,200) left / (398,200) right
+           Wing root TE: (362,430) / (398,430)
+           Wingtips: (222,420) left / (538,420) right
+           Leading edge sweep ~65° from nose along fuselage to tip
+      ════════════════════════════════════ -->
+
+      <!-- ── LEFT WING (base structure, blended into fuselage) ── -->
+      <!-- Leading edge: from nose area (370,130) sweeping to tip (222,420) -->
+      <!-- Trailing edge: from fuselage root (362,430) to tip (222,420) -->
+      <path id="wing-left"
+        d="M370,130 L222,420 L232,432 L362,432 Z"
+        fill="url(#wingGrad)" stroke="#3e3e4e" stroke-width="1.2"/>
+
+      <!-- ── RIGHT WING ── -->
+      <path id="wing-right"
+        d="M390,130 L538,420 L528,432 L398,432 Z"
+        fill="url(#wingGradR)" stroke="#3e3e4e" stroke-width="1.2"/>
+
+      <!-- Wing panel lines / ribs (left) -->
+      <line x1="356" y1="240" x2="258" y2="398" stroke="#2a2a38" stroke-width="0.8" opacity="0.7"/>
+      <line x1="352" y1="310" x2="242" y2="410" stroke="#2a2a38" stroke-width="0.8" opacity="0.5"/>
+
+      <!-- Wing panel lines / ribs (right) -->
+      <line x1="404" y1="240" x2="502" y2="398" stroke="#2a2a38" stroke-width="0.8" opacity="0.7"/>
+      <line x1="408" y1="310" x2="518" y2="410" stroke="#2a2a38" stroke-width="0.8" opacity="0.5"/>
+
+      <!-- ── MAIN FUSELAGE (long central body) ── -->
+      <!-- Slightly tapered: wider at mid, narrows at nose & tail -->
+      <path d="M380,42
+               C374,55 366,90 364,130
+               L362,432
+               C362,450 368,462 380,472
+               C392,462 398,450 398,432
+               L396,130
+               C394,90 386,55 380,42 Z"
+            fill="url(#bodyGrad)" stroke="#505060" stroke-width="1.2"
+            filter="url(#fuse-shadow)"/>
+
+      <!-- Fuselage surface detail lines -->
+      <line x1="372" y1="100" x2="372" y2="445" stroke="#3a3a4a" stroke-width="0.7" opacity="0.6"/>
+      <line x1="388" y1="100" x2="388" y2="445" stroke="#3a3a4a" stroke-width="0.7" opacity="0.6"/>
+      <!-- Frame lines -->
+      <line x1="365" y1="180" x2="395" y2="180" stroke="#3a3a4a" stroke-width="0.6" opacity="0.5"/>
+      <line x1="364" y1="260" x2="396" y2="260" stroke="#3a3a4a" stroke-width="0.6" opacity="0.5"/>
+      <line x1="363" y1="340" x2="397" y2="340" stroke="#3a3a4a" stroke-width="0.6" opacity="0.5"/>
+
+      <!-- ── NOSE CONE (ogival, pointed) ── -->
+      <path d="M380,42 C377,50 373,65 371,85 L389,85 C387,65 383,50 380,42Z"
+            fill="url(#noseGrad)" stroke="#606070" stroke-width="1"/>
+      <!-- Nose tip dot -->
+      <circle cx="380" cy="44" r="2.5" fill="#707080"/>
+
+      <!-- Warhead section highlight -->
+      <rect x="371" y="85" width="18" height="55" rx="3"
+            fill="#252535" stroke="#48485a" stroke-width="0.8" opacity="0.9"/>
+
+      <!-- Seeker/optics dome -->
+      <ellipse cx="380" cy="96" rx="7" ry="5" fill="#1a2a4a" stroke="#2a5a9c" stroke-width="1"/>
+      <ellipse cx="380" cy="95" rx="4" ry="3" fill="#1e4d7a" opacity="0.9"/>
+
+      <!-- ── PUSHER PROPELLER at tail ── -->
+      <!-- Engine nacelle -->
+      <ellipse cx="380" cy="456" rx="10" ry="7" fill="#28283a" stroke="#484858" stroke-width="1"/>
+      <!-- Prop blades (2-blade) -->
+      <ellipse cx="380" cy="456" rx="28" ry="4" rx="28" ry="3.5"
+               fill="none" stroke="#505060" stroke-width="2.5" opacity="0.7"
+               transform="rotate(-30,380,456)"/>
+      <ellipse cx="380" cy="456" rx="28" ry="3.5"
+               fill="none" stroke="#505060" stroke-width="2.5" opacity="0.7"
+               transform="rotate(60,380,456)"/>
+      <!-- Prop hub -->
+      <circle cx="380" cy="456" r="4" fill="#404050" stroke="#606068" stroke-width="1"/>
+
+      <!-- Centerline (dashed) -->
+      <line x1="380" y1="44" x2="380" y2="470"
+            stroke="#ffffff" stroke-width="0.5" stroke-dasharray="6,8" opacity="0.08"/>
+
+      <!-- ════════════ CONTROL SURFACES ════════════ -->
+
+      <!--
+        Trailing edge layout (top-down):
+        Left TE runs from (362,432) to wingtip (222,420)
+        Split inboard/outboard at ~(292,427)
+        Right TE: (398,432) to (538,420), split at ~(468,427)
+
+        ELV_LI = inboard left  (362,432)→(292,427)   (near fuselage)
+        ELV_LO = outboard left (292,427)→(222,420)   (near wingtip)
+        ELV_RI = inboard right (398,432)→(468,427)
+        ELV_RO = outboard right(468,427)→(538,420)
+
+        Each elevon has ~14px chord depth along TE
+      -->
+
+      <!-- ─── ELV_LI — Left Inboard Elevon ─── -->
+      <g id="surf-ELV_LI" class="surf-group" onclick="selectSurface('ELV_LI')" style="cursor:pointer">
+        <!-- Strip along inboard trailing edge -->
+        <polygon
+          points="362,432  292,427  286,413  356,418"
+          fill="#5e5ce6" opacity="0.82" stroke="#8886ff" stroke-width="1.4"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="323" y="427" text-anchor="middle" fill="white"
+              font-size="8.5" font-weight="700" font-family="-apple-system,sans-serif"
+              opacity="0.95" transform="rotate(-2,323,427)">ELV_LI</text>
+      </g>
+
+      <!-- ─── ELV_LO — Left Outboard Elevon ─── -->
+      <g id="surf-ELV_LO" class="surf-group" onclick="selectSurface('ELV_LO')" style="cursor:pointer">
+        <polygon
+          points="292,427  222,420  217,406  286,413"
+          fill="#0a84ff" opacity="0.82" stroke="#3399ff" stroke-width="1.4"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="254" y="420" text-anchor="middle" fill="white"
+              font-size="8.5" font-weight="700" font-family="-apple-system,sans-serif"
+              opacity="0.95" transform="rotate(-2,254,420)">ELV_LO</text>
+      </g>
+
+      <!-- ─── ELV_RI — Right Inboard Elevon ─── -->
+      <g id="surf-ELV_RI" class="surf-group" onclick="selectSurface('ELV_RI')" style="cursor:pointer">
+        <polygon
+          points="398,432  468,427  474,413  404,418"
+          fill="#ff375f" opacity="0.82" stroke="#ff6680" stroke-width="1.4"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="437" y="427" text-anchor="middle" fill="white"
+              font-size="8.5" font-weight="700" font-family="-apple-system,sans-serif"
+              opacity="0.95" transform="rotate(2,437,427)">ELV_RI</text>
+      </g>
+
+      <!-- ─── ELV_RO — Right Outboard Elevon ─── -->
+      <g id="surf-ELV_RO" class="surf-group" onclick="selectSurface('ELV_RO')" style="cursor:pointer">
+        <polygon
+          points="468,427  538,420  543,406  474,413"
+          fill="#ff9f0a" opacity="0.82" stroke="#ffbf50" stroke-width="1.4"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="506" y="420" text-anchor="middle" fill="white"
+              font-size="8.5" font-weight="700" font-family="-apple-system,sans-serif"
+              opacity="0.95" transform="rotate(2,506,420)">ELV_RO</text>
+      </g>
+
+      <!--
+        WINGTIP VERTICAL STABILISERS (rudders)
+        Shahed-136: V-shaped (up+down) fins at each wingtip.
+        Top-down view: swept trapezoid extending outboard from wingtip.
+        Left wingtip: around (222,420), Right wingtip: around (538,420)
+      -->
+
+      <!-- ─── RUD_L — Left Wingtip Rudder ─── -->
+      <g id="surf-RUD_L" class="surf-group" onclick="selectSurface('RUD_L')" style="cursor:pointer">
+        <polygon
+          points="210,394  232,432  192,438  174,400"
+          fill="#30d158" opacity="0.88" stroke="#50e878" stroke-width="1.5"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="198" y="421" text-anchor="middle" fill="white"
+              font-size="8.5" font-weight="700" font-family="-apple-system,sans-serif"
+              opacity="0.95" transform="rotate(-8,198,421)">RUD_L</text>
+      </g>
+
+      <!-- ─── RUD_R — Right Wingtip Rudder ─── -->
+      <g id="surf-RUD_R" class="surf-group" onclick="selectSurface('RUD_R')" style="cursor:pointer">
+        <polygon
+          points="550,394  528,432  568,438  586,400"
+          fill="#40c8e0" opacity="0.88" stroke="#60d8f0" stroke-width="1.5"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="562" y="421" text-anchor="middle" fill="white"
+              font-size="8.5" font-weight="700" font-family="-apple-system,sans-serif"
+              opacity="0.95" transform="rotate(8,562,421)">RUD_R</text>
+      </g>
+
+      <!--
+        SFP (Side Force Panels) — mounted on fuselage sides, mid-body.
+        In top-down view: narrow rectangles on left/right of fuselage.
+      -->
+
+      <!-- ─── SFP_L — Left Side Force Panel ─── -->
+      <g id="surf-SFP_L" class="surf-group" onclick="selectSurface('SFP_L')" style="cursor:pointer">
+        <polygon
+          points="362,230  342,232  341,295  362,293"
+          fill="#bf5af2" opacity="0.88" stroke="#d980ff" stroke-width="1.4"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="350" y="267" text-anchor="middle" fill="white"
+              font-size="7.5" font-weight="700" font-family="-apple-system,sans-serif"
+              transform="rotate(-90,350,267)">SFP_L</text>
+      </g>
+
+      <!-- ─── SFP_R — Right Side Force Panel ─── -->
+      <g id="surf-SFP_R" class="surf-group" onclick="selectSurface('SFP_R')" style="cursor:pointer">
+        <polygon
+          points="398,230  418,232  419,295  398,293"
+          fill="#ff6961" opacity="0.88" stroke="#ff9490" stroke-width="1.4"
+          class="surf-path" filter="url(#surf-glow)"/>
+        <text x="410" y="267" text-anchor="middle" fill="white"
+              font-size="7.5" font-weight="700" font-family="-apple-system,sans-serif"
+              transform="rotate(90,410,267)">SFP_R</text>
+      </g>
+
+      <!-- ════ ANNOTATIONS ════ -->
+      <!-- Forward direction -->
+      <text x="380" y="22" text-anchor="middle" fill="#505060"
+            font-size="10" font-family="-apple-system,sans-serif" font-weight="600"
+            letter-spacing="1">▲ 전방</text>
+
+      <!-- Prop label -->
+      <text x="380" y="497" text-anchor="middle" fill="#404050"
+            font-size="8" font-family="-apple-system,sans-serif">PUSHER PROP</text>
+
+
+
+      <!-- ════ LEGEND ════ -->
+      <g transform="translate(10,24)">
+        <rect width="100" height="174" rx="9"
+              fill="rgba(0,0,0,0.68)" stroke="#2c2c2e" stroke-width="0.8"/>
+        <text x="50" y="16" text-anchor="middle" fill="#8e8e93"
+              font-size="8" font-weight="700" font-family="-apple-system,sans-serif"
+              letter-spacing="0.5">조종면</text>
+        <circle cx="14" cy="32"  r="5" fill="#5e5ce6"/>
+        <text x="23" y="36"  fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">ELV_LI</text>
+        <circle cx="14" cy="50"  r="5" fill="#0a84ff"/>
+        <text x="23" y="54"  fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">ELV_LO</text>
+        <circle cx="14" cy="68"  r="5" fill="#ff375f"/>
+        <text x="23" y="72"  fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">ELV_RI</text>
+        <circle cx="14" cy="86"  r="5" fill="#ff9f0a"/>
+        <text x="23" y="90"  fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">ELV_RO</text>
+        <circle cx="14" cy="104" r="5" fill="#30d158"/>
+        <text x="23" y="108" fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">RUD_L</text>
+        <circle cx="14" cy="122" r="5" fill="#40c8e0"/>
+        <text x="23" y="126" fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">RUD_R</text>
+        <circle cx="14" cy="140" r="5" fill="#bf5af2"/>
+        <text x="23" y="144" fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">SFP_L</text>
+        <circle cx="14" cy="158" r="5" fill="#ff6961"/>
+        <text x="23" y="162" fill="#c7c7cc" font-size="8.5" font-family="-apple-system,sans-serif">SFP_R</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+</div><!-- /col-left -->
+
+<!-- ════ MID COL: 측정값 입력 ════ -->
+<div class="col col-mid">
+  <div class="col-label">② 측정값 입력</div>
+
+<!-- ══════ DATA ENTRY ══════ -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title" id="entry-title">조종면을 선택하세요</div>
+      <div class="card-subtitle" id="entry-sub">항공기 도면 또는 탭 버튼으로 선택</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="clearCurrentSurface()">초기화</button>
+  </div>
+
+  <!-- Surface Tabs -->
+  <div class="surface-tabs">
+    <button class="surface-tab" onclick="selectSurface('ELV_LI')" id="tab-ELV_LI">
+      <span class="dot" style="background:#5e5ce6"></span>ELV_LI
+    </button>
+    <button class="surface-tab" onclick="selectSurface('ELV_LO')" id="tab-ELV_LO">
+      <span class="dot" style="background:#0a84ff"></span>ELV_LO
+    </button>
+    <button class="surface-tab" onclick="selectSurface('ELV_RI')" id="tab-ELV_RI">
+      <span class="dot" style="background:#ff375f"></span>ELV_RI
+    </button>
+    <button class="surface-tab" onclick="selectSurface('ELV_RO')" id="tab-ELV_RO">
+      <span class="dot" style="background:#ff9f0a"></span>ELV_RO
+    </button>
+    <button class="surface-tab" onclick="selectSurface('RUD_L')" id="tab-RUD_L">
+      <span class="dot" style="background:#30d158"></span>RUD_L
+    </button>
+    <button class="surface-tab" onclick="selectSurface('RUD_R')" id="tab-RUD_R">
+      <span class="dot" style="background:#40c8e0"></span>RUD_R
+    </button>
+    <button class="surface-tab" onclick="selectSurface('SFP_L')" id="tab-SFP_L">
+      <span class="dot" style="background:#bf5af2"></span>SFP_L
+      
+    </button>
+    <button class="surface-tab" onclick="selectSurface('SFP_R')" id="tab-SFP_R">
+      <span class="dot" style="background:#ff6961"></span>SFP_R
+      
+    </button>
+  </div>
+
+  <div class="card-body">
+    <div id="no-surface-msg" style="text-align:center;padding:28px 0;color:var(--text-tertiary);font-size:14px;">
+      위에서 조종면을 선택하거나 항공기 도면을 클릭하세요
+    </div>
+    <div id="table-area" style="display:none;">
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left;padding-left:14px;">
+                명령 각도 (°)
+                <span style="font-size:9px;font-weight:400;color:var(--text-tertiary);margin-left:4px;text-transform:none;letter-spacing:0;font-weight:normal;">편집 가능</span>
+              </th>
+              <th>실제 출력 각도 (°)</th>
+              <th>피드백 각도 (°)</th>
+            </tr>
+            <tr>
+              <td colspan="3" style="padding:5px 14px 6px;background:#f9f9fb;border-bottom:1px solid var(--border);">
+                <span style="font-size:10.5px;color:var(--text-tertiary);display:flex;align-items:center;gap:5px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  스프레드시트(엑셀·구글시트)에서 열 복사 후 원하는 셀에 <kbd style="font-size:10px;background:#eee;border:1px solid #ccc;border-radius:3px;padding:0 4px;">Ctrl+V</kbd> — 여러 열을 동시에 붙여넣기도 가능
+                </span>
+              </td>
+            </tr>
+          </thead>
+          <tbody id="angle-tbody"></tbody>
+        </table>
+      </div>
+      <div class="divider"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="computeRegression()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          회귀식 계산
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="autoFillDemo()">예시 데이터</button>
+      </div>
+      <div id="regression-result" style="display:none;margin-top:16px;" class="fade-in">
+        <div class="section-label">회귀 결과</div>
+        <div class="coeff-grid" id="coeff-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /col-mid -->
+
+<!-- ════ RIGHT COL: 리깅 실행 & JSON ════ -->
+<div class="col col-right">
+  <div class="col-label">③ 리깅 실행 &amp; JSON 출력</div>
+
+<!-- ══════ RIGGING OUTPUT ══════ -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">리깅 실행 및 JSON 출력</div>
+      <div class="card-subtitle" id="download-preview">파일명: — </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="btn-row" style="margin-bottom:14px;">
+      <button class="btn btn-success" onclick="startRigging()" style="font-size:15px;padding:12px 26px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        리깅 시작
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="copyJSON()">JSON 복사</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadJSON()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        JSON 다운로드
+      </button>
+    </div>
+    <div id="rig-status"></div>
+    <div id="json-out-wrap" style="display:none;margin-top:14px;">
+      <div class="json-output" id="json-output"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /col-right -->
+
+</div><!-- /three-col -->
+</div><!-- /page-wrapper -->
+
+<!-- ══════════════════════════════════
+  SCRIPT
+══════════════════════════════════ -->
+<script>
+// ─── Constants ──────────────────────────────────────
+const SURFACES    = ['ELV_LI','ELV_LO','ELV_RI','ELV_RO','RUD_L','RUD_R','SFP_L','SFP_R'];
+const SFP_SET     = new Set(['SFP_L','SFP_R']);
+const SURF_COLOR  = {
+  ELV_LI:'#5e5ce6', ELV_LO:'#0a84ff',
+  ELV_RI:'#ff375f', ELV_RO:'#ff9f0a',
+  RUD_L:'#30d158',  RUD_R:'#40c8e0',
+  SFP_L:'#bf5af2',  SFP_R:'#ff6961'
+};
+// 기본 명령 각도 (수정 가능, 조종면별 독립 저장)
+const DEFAULT_COMMANDS = [];
+for (let a = -30; a <= 30; a += 5) DEFAULT_COMMANDS.push(a);
+
+// ─── State ──────────────────────────────────────────
+let currentSurface = null;
+let originalJSON   = null;
+
+// 조종면별 명령 각도 (기본값 복사, 독립 편집 가능)
+const surfCommands = {};
+SURFACES.forEach(s => { surfCommands[s] = [...DEFAULT_COMMANDS]; });
+
+const measureData = {};
+SURFACES.forEach(s => { measureData[s] = DEFAULT_COMMANDS.map(() => ({ actual:null, fb:null })); });
+
+const regressionData = {};
+
+// ─── SID / Rev helpers ──────────────────────────────
+function getSID() {
+  return parseInt(document.getElementById('sid-input-field').value) || 1;
+}
+function getRev() {
+  return parseInt(document.getElementById('rev-input-field').value) || 0;
+}
+function onSIDChange(el) {
+  document.getElementById('svg-sid-label').textContent = `SID: ${el.value}`;
+  updateDownloadPreview();
+}
+function updateDownloadPreview() {
+  const name = buildFilename();
+  document.getElementById('download-preview').textContent = `저장 파일명: ${name}`;
+}
+function buildFilename() {
+  const sid = getSID();
+  const rev = getRev();
+  const now = new Date();
+  const yy  = String(now.getFullYear()).slice(2);           // "26"
+  const mm  = String(now.getMonth()+1).padStart(2,'0');
+  const dd  = String(now.getDate()).padStart(2,'0');
+  const dateStr = yy + mm + dd;                             // "260417"
+  const sidStr  = String(sid).padStart(2,'0');              // "02"
+  const revStr  = `R${rev}`;                                // "R0"
+  return `M${sidStr}-${dateStr}_${revStr}.json`;
+}
+
+// Listen to rev changes too
+document.getElementById('rev-input-field').addEventListener('input', updateDownloadPreview);
+
+// ─── JSON Load ──────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  document.getElementById('file-name-label').textContent = f.name;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const json = JSON.parse(ev.target.result);
+      originalJSON = json;
+      // Read SID from file
+      if (json.SID !== undefined) {
+        document.getElementById('sid-input-field').value = json.SID;
+        document.getElementById('svg-sid-label').textContent = `SID: ${json.SID}`;
+      }
+      updateDownloadPreview();
+      showStatus('load-status', `JSON 로드 완료 — SID ${json.SID ?? '?'}`, 'ok');
+    } catch { showStatus('load-status','JSON 파싱 오류','err'); }
+  };
+  r.readAsText(f);
+});
+
+// ─── Surface Selection ──────────────────────────────
+function selectSurface(name) {
+  currentSurface = name;
+  const isSFP = SFP_SET.has(name);
+  const color  = SURF_COLOR[name];
+
+  // Tabs
+  document.querySelectorAll('.surface-tab').forEach(t => {
+    t.classList.remove('active');
+    t.style.background = '';
+    t.style.color = '';
+    t.style.borderColor = '';
+  });
+  const tab = document.getElementById('tab-' + name);
+  if (tab) {
+    tab.classList.add('active');
+    tab.style.background    = color;
+    tab.style.borderColor   = 'transparent';
+    tab.style.color         = 'white';
+  }
+
+  // SVG highlight
+  document.querySelectorAll('.surf-path').forEach(p => {
+    p.style.opacity = '0.28';
+  });
+  const grp = document.getElementById('surf-' + name);
+  if (grp) grp.querySelector('.surf-path').style.opacity = '0.95';
+
+  document.getElementById('entry-title').textContent = `[${name}] 측정값 입력`;
+  document.getElementById('entry-sub').textContent =
+    isSFP ? '1차 회귀식 (y = a₀ + a₁·x)' : '3차 회귀식 (y = a₀ + a₁x + a₂x² + a₃x³)';
+  document.getElementById('no-surface-msg').style.display = 'none';
+  document.getElementById('table-area').style.display     = 'block';
+
+  buildTable();
+  showRegressionForCurrent();
+}
+
+// ─── Table ──────────────────────────────────────────
+function buildTable() {
+  const tbody = document.getElementById('angle-tbody');
+  tbody.innerHTML = '';
+  const data  = measureData[currentSurface];
+  const cmds  = surfCommands[currentSurface];
+  const isSFP = SFP_SET.has(currentSurface);
+
+  cmds.forEach((cmd, i) => {
+    const av = data[i] ? (data[i].actual !== null ? data[i].actual : '') : '';
+    const fv = data[i] ? (data[i].fb     !== null ? data[i].fb     : '') : '';
+    const isDefault = (cmd === DEFAULT_COMMANDS[i]);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <input type="number" step="1" value="${cmd}"
+          class="cell-input cmd-input${isDefault ? '' : ' cmd-modified'}"
+          title="명령 각도 수정 가능. 스프레드시트에서 복사 후 Ctrl+V로 붙여넣기 가능"
+          data-row="${i}" data-col="0"
+          oninput="saveCmd(${i},this)"
+          onchange="saveCmd(${i},this)"
+          onpaste="handlePaste(event,${i},0)">
+      </td>
+      <td><input type="number" step="0.01" value="${av}" placeholder="0.00"
+            class="cell-input ${av!==''?'filled':''}"
+            data-row="${i}" data-col="1"
+            oninput="saveVal(${i},'actual',this)"
+            onchange="saveVal(${i},'actual',this)"
+            onpaste="handlePaste(event,${i},1)"></td>
+      <td><input type="number" step="0.01" value="${fv}" placeholder="0.00"
+            class="cell-input ${fv!==''?(isSFP?'filled-sfp':'filled'):''}"
+            data-row="${i}" data-col="2"
+            oninput="saveVal(${i},'fb',this)"
+            onchange="saveVal(${i},'fb',this)"
+            onpaste="handlePaste(event,${i},2)"></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function saveCmd(idx, input) {
+  const v = input.value.trim();
+  if (v === '') {
+    // 빈칸이면 기본값 복원
+    const def = DEFAULT_COMMANDS[idx];
+    if (def !== undefined) {
+      surfCommands[currentSurface][idx] = def;
+      input.value = def;
+      input.classList.remove('cmd-modified');
+    }
+    return;
+  }
+  const num = parseFloat(v);
+  surfCommands[currentSurface][idx] = num;
+  const isDefault = (num === DEFAULT_COMMANDS[idx]);
+  input.classList.toggle('cmd-modified', !isDefault);
+}
+
+// ─── Paste Handler (스프레드시트 붙여넣기) ────────────
+// 스프레드시트에서 복사한 탭/줄 구분 데이터를 붙여넣으면
+// startRow부터 아래로 자동 채움. 다중 열도 지원.
+function handlePaste(e, startRow, startCol) {
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  // 탭/개행 없으면 단순 붙여넣기로 처리
+  if (!text.includes('\n') && !text.includes('\t')) return;
+
+  e.preventDefault();
+
+  // 줄 파싱 (\r\n / \n 모두 처리, 끝 빈줄 제거)
+  const rows = text.replace(/\r/g,'').split('\n');
+  while (rows.length && rows[rows.length-1].trim()==='') rows.pop();
+
+  const cmds   = surfCommands[currentSurface];
+  const data   = measureData[currentSurface];
+  const isSFP  = SFP_SET.has(currentSurface);
+  const maxRow = cmds.length;
+
+  rows.forEach((rowStr, ri) => {
+    const r = startRow + ri;
+    if (r >= maxRow) return;
+
+    const cols = rowStr.split('\t');
+    cols.forEach((val, ci) => {
+      const c = startCol + ci;
+      const trimmed = val.trim().replace(',', '.');  // 쉼표 소수점 대응
+      const num = trimmed === '' ? null : parseFloat(trimmed);
+      if (isNaN(num) && trimmed !== '') return; // 숫자가 아니면 skip
+
+      if (c === 0) {
+        // 명령 각도
+        if (trimmed === '' || isNaN(num)) {
+          cmds[r] = DEFAULT_COMMANDS[r] !== undefined ? DEFAULT_COMMANDS[r] : cmds[r];
+        } else {
+          cmds[r] = num;
+        }
+      } else if (c === 1) {
+        // 실제 출력 각도
+        data[r].actual = (trimmed === '' || isNaN(num)) ? null : num;
+      } else if (c === 2) {
+        // 피드백 각도
+        data[r].fb = (trimmed === '' || isNaN(num)) ? null : num;
+      }
+    });
+  });
+
+  // 테이블 다시 렌더
+  buildTable();
+
+  // 붙여넣기 완료 토스트
+  showPasteToast(rows.length);
+}
+
+function showPasteToast(count) {
+  let toast = document.getElementById('paste-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'paste-toast';
+    toast.style.cssText = `
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+      background:#1c1c1e; color:#f5f5f7;
+      font-size:13px; font-weight:500; font-family:var(--font);
+      padding:10px 20px; border-radius:20px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.3);
+      z-index:9999; pointer-events:none;
+      transition:opacity 0.3s;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = `✓ ${count}행 붙여넣기 완료`;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+}
+
+function saveVal(idx, field, input) {
+  const v = input.value.trim();
+  measureData[currentSurface][idx][field] = v === '' ? null : parseFloat(v);
+  const isSFP = SFP_SET.has(currentSurface);
+  input.className = 'cell-input' + (v !== ''
+    ? (field === 'fb' && isSFP ? ' filled-sfp' : ' filled')
+    : '');
+}
+
+function clearCurrentSurface() {
+  if (!currentSurface) return;
+  // 명령 각도를 기본값으로 리셋
+  surfCommands[currentSurface] = [...DEFAULT_COMMANDS];
+  measureData[currentSurface]  = DEFAULT_COMMANDS.map(() => ({ actual:null, fb:null }));
+  delete regressionData[currentSurface];
+  buildTable();
+  document.getElementById('regression-result').style.display = 'none';
+
+}
+
+// ─── Demo Data ──────────────────────────────────────
+function autoFillDemo() {
+  if (!currentSurface) return;
+  const isSFP = SFP_SET.has(currentSurface);
+  const n = () => (Math.random()-0.5)*0.25;
+  measureData[currentSurface] = surfCommands[currentSurface].map(cmd => {
+    if (isSFP) return {
+      actual: +((cmd*0.95 + 0.4 + n()).toFixed(2)),
+      fb:     +((cmd*0.98 + 0.2 + n()).toFixed(2))
+    };
+    return {
+      actual: +((cmd*0.96 + 0.4*Math.sin(cmd*0.1) + n()).toFixed(2)),
+      fb:     +((cmd*0.98 + 0.2*Math.sin(cmd*0.12)+ n()).toFixed(2))
+    };
+  });
+  buildTable();
+}
+
+// ─── Math: Linear Fit ───────────────────────────────
+function linearFit(xs, ys) {
+  const n = xs.length;
+  let sX=0,sY=0,sXX=0,sXY=0;
+  for (let i=0;i<n;i++){ sX+=xs[i]; sY+=ys[i]; sXX+=xs[i]**2; sXY+=xs[i]*ys[i]; }
+  const det = n*sXX - sX**2;
+  if (Math.abs(det)<1e-12) return null;
+  const a1 = (n*sXY - sX*sY) / det;
+  const a0 = (sY - a1*sX) / n;
+  const yMn = sY/n;
+  let ssTot=0,ssRes=0;
+  for (let i=0;i<n;i++){
+    ssTot+=(ys[i]-yMn)**2;
+    ssRes+=(ys[i]-(a0+a1*xs[i]))**2;
+  }
+  return { coeffs:[a0,a1,0,0], r2: ssTot<1e-14?1:1-ssRes/ssTot };
+}
+
+// ─── Math: Cubic Fit ────────────────────────────────
+function cubicFit(xs, ys) {
+  const n = xs.length;
+  if (n < 4) return null;
+  const S = Array(7).fill(0);
+  const T = Array(4).fill(0);
+  for (let i=0;i<n;i++) {
+    for (let p=0;p<=6;p++) S[p]+=xs[i]**p;
+    for (let p=0;p<=3;p++) T[p]+=xs[i]**p*ys[i];
+  }
+  const A = [
+    [S[0],S[1],S[2],S[3]],
+    [S[1],S[2],S[3],S[4]],
+    [S[2],S[3],S[4],S[5]],
+    [S[3],S[4],S[5],S[6]]
+  ];
+  const coeffs = gaussElim(A,[...T]);
+  if (!coeffs) return null;
+  const yMn = ys.reduce((a,v)=>a+v,0)/n;
+  let ssTot=0,ssRes=0;
+  for (let i=0;i<n;i++){
+    const p=coeffs[0]+coeffs[1]*xs[i]+coeffs[2]*xs[i]**2+coeffs[3]*xs[i]**3;
+    ssTot+=(ys[i]-yMn)**2; ssRes+=(ys[i]-p)**2;
+  }
+  return { coeffs, r2: ssTot<1e-14?1:1-ssRes/ssTot };
+}
+
+function gaussElim(A,b) {
+  const n=4;
+  const M=A.map((row,i)=>[...row,b[i]]);
+  for (let col=0;col<n;col++){
+    let mx=col;
+    for (let r=col+1;r<n;r++) if (Math.abs(M[r][col])>Math.abs(M[mx][col])) mx=r;
+    [M[col],M[mx]]=[M[mx],M[col]];
+    if (Math.abs(M[col][col])<1e-12) return null;
+    for (let r=col+1;r<n;r++){
+      const f=M[r][col]/M[col][col];
+      for (let j=col;j<=n;j++) M[r][j]-=f*M[col][j];
+    }
+  }
+  const x=Array(n).fill(0);
+  for (let i=n-1;i>=0;i--){
+    x[i]=M[i][n]/M[i][i];
+    for (let j=i-1;j>=0;j--) M[j][n]-=M[j][i]*x[i];
+  }
+  return x;
+}
+
+// ─── Compute & Show Regression ──────────────────────
+function computeRegression() {
+  if (!currentSurface) return;
+  const data  = measureData[currentSurface];
+  const isSFP = SFP_SET.has(currentSurface);
+  const minPts = isSFP ? 2 : 4;
+
+  // 실제 출력각도와 피드백 각도를 독립적으로 수집
+  // → 한쪽만 입력돼 있어도 해당 회귀에는 사용 가능
+  const xsA=[], ysA=[];
+  const xsF=[], ysFb=[];
+  surfCommands[currentSurface].forEach((cmd,i)=>{
+    if (data[i] && data[i].actual !== null) { xsA.push(cmd); ysA.push(data[i].actual); }
+    if (data[i] && data[i].fb     !== null) { xsF.push(cmd); ysFb.push(data[i].fb);    }
+  });
+
+  if (xsA.length < minPts){
+    showStatus('rig-status',
+      `실제 출력각도 입력 부족: ${xsA.length}개 (최소 ${minPts}개 필요)`,'warn'); return;
+  }
+  if (xsF.length < minPts){
+    showStatus('rig-status',
+      `피드백 각도 입력 부족: ${xsF.length}개 (최소 ${minPts}개 필요)`,'warn'); return;
+  }
+
+  const fit = isSFP ? linearFit : cubicFit;
+  const fwd = fit(xsA, ysA);
+  const rev = fit(xsF, ysFb);
+  if (!fwd||!rev){ showStatus('rig-status','회귀 계산 실패 (수치 오류 — 입력값 확인 요망)','err'); return; }
+  regressionData[currentSurface] = {
+    fwd: fwd.coeffs, r2fwd: fwd.r2,
+    rev: rev.coeffs, r2rev: rev.r2,
+    order: isSFP ? 1 : 3
+  };
+
+
+  showRegressionForCurrent();
+}
+
+function showRegressionForCurrent() {
+  const rd    = regressionData[currentSurface];
+  const el    = document.getElementById('regression-result');
+  const grid  = document.getElementById('coeff-grid');
+  if (!rd){ el.style.display='none'; return; }
+  el.style.display='block';
+
+  const color    = SURF_COLOR[currentSurface];
+  const isLinear = rd.order===1;
+
+  const fv = v => `<span class="cv">${v.toExponential(8)}</span>`;
+  const sg = v => v>=0 ? '+' : '';
+
+  const eqStr = c => isLinear
+    ? `y = ${fv(c[0])}\n    ${sg(c[1])}${fv(c[1])}·x`
+    : `y = ${fv(c[0])}\n    ${sg(c[1])}${fv(c[1])}·x\n    ${sg(c[2])}${fv(c[2])}·x²\n    ${sg(c[3])}${fv(c[3])}·x³`;
+
+  const lb = isLinear ? '<span class="linear-badge">1차식</span>' : '';
+
+  grid.innerHTML = `
+    <div class="coeff-card" style="border-left-color:${color}">
+      <div class="coeff-name" style="color:${color}">
+        <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>
+        FCA_RIG (실제 출력각도) ${lb}
+      </div>
+      <div class="coeff-eq">${eqStr(rd.fwd)}</div>
+      <div class="r2-badge">R² = ${rd.r2fwd.toFixed(6)}</div>
+    </div>
+    <div class="coeff-card" style="border-left-color:${color}">
+      <div class="coeff-name" style="color:${color}">
+        <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>
+        FCA_RIG_REVERS (피드백) ${lb}
+      </div>
+      <div class="coeff-eq">${eqStr(rd.rev)}</div>
+      <div class="r2-badge">R² = ${rd.r2rev.toFixed(6)}</div>
+    </div>`;
+}
+
+// ─── Rigging Export ─────────────────────────────────
+function buildOutput() {
+  // Compute any surface with enough data (if not already done)
+  SURFACES.forEach(s => {
+    if (regressionData[s]) return;
+    const data  = measureData[s];
+    const isSFP = SFP_SET.has(s);
+    const minPts = isSFP?2:4;
+    // 독립적으로 수집
+    const xsA=[],ysA=[],xsF=[],ysFb=[];
+    surfCommands[s].forEach((cmd,i)=>{
+      if (data[i] && data[i].actual !== null) { xsA.push(cmd); ysA.push(data[i].actual); }
+      if (data[i] && data[i].fb     !== null) { xsF.push(cmd); ysFb.push(data[i].fb);    }
+    });
+    if (xsA.length>=minPts && xsF.length>=minPts){
+      const fit = isSFP?linearFit:cubicFit;
+      const fwd=fit(xsA,ysA), rev=fit(xsF,ysFb);
+      if (fwd&&rev){
+        regressionData[s]={ fwd:fwd.coeffs,r2fwd:fwd.r2,rev:rev.coeffs,r2rev:rev.r2,order:isSFP?1:3 };
+
+      }
+    }
+  });
+
+  const sid = getSID();
+  const out = { SID: sid };
+
+  // FCA_RIG_0 ~ 7
+  for (let i=0;i<8;i++){
+    const s = SURFACES[i];
+    const rd = s ? regressionData[s] : null;
+    out[`FCA_RIG_${i}`] = rd ? rd.fwd
+      : (originalJSON?.[`FCA_RIG_${i}`] ?? [0,0,0,0]);
+  }
+  // FCA_RIG_REVERS_0 ~ 7
+  for (let i=0;i<8;i++){
+    const s = SURFACES[i];
+    const rd = s ? regressionData[s] : null;
+    out[`FCA_RIG_REVERS_${i}`] = rd ? rd.rev
+      : (originalJSON?.[`FCA_RIG_REVERS_${i}`] ?? [0,0,0,0]);
+  }
+
+  // Pass-through non-rig keys from original JSON
+  if (originalJSON){
+    Object.keys(originalJSON).forEach(k => {
+      if (!out.hasOwnProperty(k)) out[k] = originalJSON[k];
+    });
+  } else {
+    // Default analogue / reserve blocks (all zeros)
+    for (let i=0;i<10;i++){
+      if (!out[`ANALONG_${i}`]) out[`ANALONG_${i}`]=[0,0,0,0];
+      if (!out[`Reserb_${i}`])  out[`Reserb_${i}`] =[0,0,0,0];
+    }
+    for (let i=0;i<10;i++){
+      if (!out[`ANALONG_${i}_Note`]) out[`ANALONG_${i}_Note`]='';
+      if (!out[`Reserb_${i}_Note`])  out[`Reserb_${i}_Note`] ='';
+    }
+  }
+
+  // Notes
+  const noteMap={0:'ELV_LI',1:'ELV_LO',2:'ELV_RI',3:'ELV_RO',4:'RUD_L',5:'RUD_R',6:'SFP_L',7:'SFP_R'};
+  for (let i=0;i<8;i++){
+    if (!out[`FCA_RIG_${i}_Note`])        out[`FCA_RIG_${i}_Note`]        = noteMap[i]||'';
+    if (!out[`FCA_RIG_REVERS_${i}_Note`]) out[`FCA_RIG_REVERS_${i}_Note`] = noteMap[i]||'';
+  }
+
+  return out;
+}
+
+function startRigging() {
+  const out = buildOutput();
+  window._rigOutput = out;
+  renderJSON(out);
+  const filled = SURFACES.filter(s=>regressionData[s]).length;
+  showStatus('rig-status',
+    `리깅 완료 — ${filled}/8개 조종면 회귀식 적용 (SID: ${getSID()}, 저장명: ${buildFilename()})`,
+    filled>0 ? 'ok' : 'warn');
+  document.getElementById('json-out-wrap').style.display='block';
+  updateDownloadPreview();
+}
+
+function renderJSON(obj) {
+  const entries = Object.entries(obj);
+  let s='<span class="json-bracket">{</span>\n';
+  entries.forEach(([k,v],i)=>{
+    const comma = i<entries.length-1?',':'';
+    const key = `<span class="json-key">"${k}"</span>`;
+    if (Array.isArray(v)){
+      const vals = v.map(n=>`<span class="json-val">${typeof n==='number'?n:JSON.stringify(n)}</span>`).join(', ');
+      s+=`\t${key} : <span class="json-bracket">[</span>${vals}<span class="json-bracket">]</span>${comma}\n`;
+    } else if (typeof v==='string'){
+      s+=`\t${key} : <span class="json-str">"${v}"</span>${comma}\n`;
+    } else {
+      s+=`\t${key} : <span class="json-val">${v}</span>${comma}\n`;
+    }
+  });
+  s+='<span class="json-bracket">}</span>';
+  document.getElementById('json-output').innerHTML=s;
+}
+
+function copyJSON() {
+  if (!window._rigOutput){ startRigging(); return; }
+  navigator.clipboard.writeText(JSON.stringify(window._rigOutput,null,'\t'))
+    .then(()=>showStatus('rig-status','JSON 복사 완료','ok'))
+    .catch(()=>showStatus('rig-status','복사 실패','warn'));
+}
+
+function downloadJSON() {
+  if (!window._rigOutput){ startRigging(); return; }
+  const blob = new Blob([JSON.stringify(window._rigOutput,null,'\t')],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = buildFilename();
+  a.click();
+}
+
+// ─── Utility ────────────────────────────────────────
+function showStatus(id,msg,type){
+  const icons={ok:'✓',warn:'⚠',err:'✕'};
+  document.getElementById(id).innerHTML=
+    `<div class="status-bar status-${type}">${icons[type]} ${msg}</div>`;
+}
+
+// ─── Init ────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', ()=>{
+  updateDownloadPreview();
+  selectSurface('ELV_LI');
+});
+</script>
+</body>
+</html>

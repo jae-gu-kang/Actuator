@@ -103,6 +103,7 @@ nav {
 .card:active { transform: translateY(-1px) scale(0.99); }
 .card:nth-child(1){animation-delay:.05s} .card:nth-child(2){animation-delay:.12s}
 .card:nth-child(3){animation-delay:.19s} .card:nth-child(4){animation-delay:.26s}
+.card:nth-child(5){animation-delay:.33s}
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
@@ -149,6 +150,11 @@ nav {
 .theme-teal .card-tag { background: rgba(48,176,199,0.08); color: #1a7a8a; }
 .theme-teal .card-cta { color: var(--teal); }
 
+.theme-green .card-icon-wrap { background: rgba(50,215,75,0.1); }
+.theme-green .card-icon-wrap svg { color: var(--green-dark); }
+.theme-green .card-tag { background: rgba(50,215,75,0.08); color: var(--green-dark); }
+.theme-green .card-cta { color: var(--green-dark); }
+
 .section-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 16px; }
 
 footer { text-align: center; padding: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text3); }
@@ -170,13 +176,13 @@ footer { text-align: center; padding: 24px; border-top: 1px solid var(--border);
     </div>
     <span>Engineering Tools</span>
   </a>
-  <span class="nav-count">4개의 도구</span>
+  <span class="nav-count">5개의 도구</span>
 </nav>
 
 <section class="hero">
   <div class="hero-eyebrow"><span class="dot"></span>Engineering Toolkit</div>
   <h1>대한항공 항공기 설계를<br><span>더 스마트하게</span></h1>
-  <p>링크 해석, 힌지모멘트 계산, 회귀분석, 주파수응답 분석까지 — 필요한 도구는 계속 추가됩니다.</p>
+  <p>링크 해석, 힌지모멘트 계산, 회귀분석, 주파수응답 분석, 조종면 리깅까지 — 필요한 도구는 계속 추가됩니다.</p>
 </section>
 
 <section class="grid-section">
@@ -253,6 +259,26 @@ footer { text-align: center; padding: 24px; border-top: 1px solid var(--border);
       <div class="card-footer">
         <span class="card-cta">열기<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg></span>
         <span class="card-badge">Control · FRA</span>
+      </div>
+    </a>
+
+
+    <a class="card theme-green" href="cs_rigging.html">
+      <div class="card-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Aircraft delta wing shape -->
+          <path d="M12 3 L2 18 L7 17 L10 13 L10 19 L12 21 L14 19 L14 13 L17 17 L22 18 Z"/>
+          <!-- Control surface lines -->
+          <line x1="2" y1="18" x2="7" y2="17"/>
+          <line x1="17" y1="17" x2="22" y2="18"/>
+        </svg>
+      </div>
+      <span class="card-tag">리깅</span>
+      <h2>CS Rigging</h2>
+      <p>비행체 조종면 3차 회귀 리깅 시스템. 엘레본·러더·SFP 각도 측정값을 입력하고 회귀계수를 JSON으로 출력합니다.</p>
+      <div class="card-footer">
+        <span class="card-cta">열기<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg></span>
+        <span class="card-badge">Rigging · FCA</span>
       </div>
     </a>
 
