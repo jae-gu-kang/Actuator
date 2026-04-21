@@ -1344,34 +1344,48 @@ function computeRegression() {
   const isSFP = SFP_SET.has(currentSurface);
   const minPts = isSFP ? 2 : 4;
 
-  // 실제 출력각도와 피드백 각도를 독립적으로 수집
-  // → 한쪽만 입력돼 있어도 해당 회귀에는 사용 가능
-  const xsA=[], ysA=[];
-  const xsF=[], ysFb=[];
-  surfCommands[currentSurface].forEach((cmd,i)=>{
-    if (data[i] && data[i].actual !== null) { xsA.push(cmd); ysA.push(data[i].actual); }
-    if (data[i] && data[i].fb     !== null) { xsF.push(cmd); ysFb.push(data[i].fb);    }
+  // FCA_RIG:        x = 실제출력각도, y = 명령값
+  // FCA_RIG_REVERS: x = 피드백각도,   y = 실제출력각도
+  const xsRig=[], ysRig=[];
+  const xsRev=[], ysRev=[];
+  surfCommands[currentSurface].forEach((cmd, i) => {
+    // FCA_RIG: 실제출력각도만 있으면 수집 가능
+    if (data[i] && data[i].actual !== null) {
+      xsRig.push(data[i].actual); ysRig.push(cmd);
+    }
+    // FCA_RIG_REVERS: fb와 actual 둘 다 있어야 수집 가능 (y=actual이 필요)
+    if (data[i] && data[i].fb !== null && data[i].actual !== null) {
+      xsRev.push(data[i].fb); ysRev.push(data[i].actual);
+    }
   });
 
-  if (xsA.length < minPts){
-    showStatus('rig-status',
-      `실제 출력각도 입력 부족: ${xsA.length}개 (최소 ${minPts}개 필요)`,'warn'); return;
-  }
-  if (xsF.length < minPts){
-    showStatus('rig-status',
-      `피드백 각도 입력 부족: ${xsF.length}개 (최소 ${minPts}개 필요)`,'warn'); return;
+  // 어느 한쪽이라도 minPts 이상이면 계산 진행
+  if (xsRig.length < minPts && xsRev.length < minPts) {
+    if (xsRig.length > 0 || xsRev.length > 0) {
+      showStatus('rig-status',
+        `데이터 부족 — 실제출력각도 ${xsRig.length}개, 피드백+실제 쌍 ${xsRev.length}개 (각각 최소 ${minPts}개 필요)`, 'warn');
+    } else {
+      showStatus('rig-status', `측정값을 입력하세요 (최소 ${minPts}개 필요)`, 'warn');
+    }
+    return;
   }
 
   const fit = isSFP ? linearFit : cubicFit;
-  const fwd = fit(xsA, ysA);
-  const rev = fit(xsF, ysFb);
-  if (!fwd||!rev){ showStatus('rig-status','회귀 계산 실패 (수치 오류 — 입력값 확인 요망)','err'); return; }
-  regressionData[currentSurface] = {
-    fwd: fwd.coeffs, r2fwd: fwd.r2,
-    rev: rev.coeffs, r2rev: rev.r2,
-    order: isSFP ? 1 : 3
-  };
+  const fwd = xsRig.length >= minPts ? fit(xsRig, ysRig) : null;
+  const rev = xsRev.length >= minPts ? fit(xsRev, ysRev) : null;
 
+  if (!fwd && !rev) { showStatus('rig-status', '회귀 계산 실패 (수치 오류)', 'err'); return; }
+
+  const prev = regressionData[currentSurface] || {};
+  regressionData[currentSurface] = {
+    fwd:    fwd ? fwd.coeffs : (prev.fwd  || [0,0,0,0]),
+    r2fwd:  fwd ? fwd.r2     : null,
+    rev:    rev ? rev.coeffs : (prev.rev  || [0,0,0,0]),
+    r2rev:  rev ? rev.r2     : null,
+    hasFwd: !!fwd,
+    hasRev: !!rev,
+    order:  isSFP ? 1 : 3
+  };
 
   showRegressionForCurrent();
 }
@@ -1423,17 +1437,30 @@ function buildOutput() {
     const isSFP = SFP_SET.has(s);
     const minPts = isSFP?2:4;
     // 독립적으로 수집
-    const xsA=[],ysA=[],xsF=[],ysFb=[];
+    const xsRig=[],ysRig=[],xsRev=[],ysRev=[];
     surfCommands[s].forEach((cmd,i)=>{
-      if (data[i] && data[i].actual !== null) { xsA.push(cmd); ysA.push(data[i].actual); }
-      if (data[i] && data[i].fb     !== null) { xsF.push(cmd); ysFb.push(data[i].fb);    }
+      if (data[i] && data[i].actual !== null) {
+        xsRig.push(data[i].actual); ysRig.push(cmd);
+      }
+      if (data[i] && data[i].fb !== null && data[i].actual !== null) {
+        xsRev.push(data[i].fb); ysRev.push(data[i].actual);
+      }
     });
-    if (xsA.length>=minPts && xsF.length>=minPts){
+    // 어느 한쪽이라도 minPts 이상이면 계산
+    if (xsRig.length>=minPts || xsRev.length>=minPts){
       const fit = isSFP?linearFit:cubicFit;
-      const fwd=fit(xsA,ysA), rev=fit(xsF,ysFb);
-      if (fwd&&rev){
-        regressionData[s]={ fwd:fwd.coeffs,r2fwd:fwd.r2,rev:rev.coeffs,r2rev:rev.r2,order:isSFP?1:3 };
-
+      const fwd = xsRig.length>=minPts ? fit(xsRig,ysRig) : null;
+      const rev = xsRev.length>=minPts ? fit(xsRev,ysRev) : null;
+      if (fwd||rev){
+        const prev = regressionData[s]||{};
+        regressionData[s]={
+          fwd:   fwd?fwd.coeffs:(prev.fwd||[0,0,0,0]),
+          r2fwd: fwd?fwd.r2:null,
+          rev:   rev?rev.coeffs:(prev.rev||[0,0,0,0]),
+          r2rev: rev?rev.r2:null,
+          hasFwd:!!fwd, hasRev:!!rev,
+          order:isSFP?1:3
+        };
       }
     }
   });
