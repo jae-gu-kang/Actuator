@@ -1089,7 +1089,7 @@ function selectSurface(name) {
 
   document.getElementById('entry-title').textContent = `[${name}] 측정값 입력`;
   document.getElementById('entry-sub').textContent =
-    isSFP ? '1차 회귀식 (y = a₀ + a₁·x)' : '3차 회귀식 (y = a₀ + a₁x + a₂x² + a₃x³)';
+    isSFP ? '1차 회귀식 (y = a₁·x + a₀)' : '3차 회귀식 (y = a₃x³ + a₂x² + a₁x + a₀)';
   document.getElementById('no-surface-msg').style.display = 'none';
   document.getElementById('table-area').style.display     = 'block';
 
@@ -1286,7 +1286,7 @@ function linearFit(xs, ys) {
     ssTot+=(ys[i]-yMn)**2;
     ssRes+=(ys[i]-(a0+a1*xs[i]))**2;
   }
-  return { coeffs:[a0,a1,0,0], r2: ssTot<1e-14?1:1-ssRes/ssTot };
+  return { coeffs:[0,0,a1,a0], r2: ssTot<1e-14?1:1-ssRes/ssTot };
 }
 
 // ─── Math: Cubic Fit ────────────────────────────────
@@ -1305,12 +1305,13 @@ function cubicFit(xs, ys) {
     [S[2],S[3],S[4],S[5]],
     [S[3],S[4],S[5],S[6]]
   ];
-  const coeffs = gaussElim(A,[...T]);
-  if (!coeffs) return null;
+  const coeffsRaw = gaussElim(A,[...T]);
+  if (!coeffsRaw) return null;
+  const coeffs = [...coeffsRaw].reverse(); // [a3,a2,a1,a0] 고차→저차 순
   const yMn = ys.reduce((a,v)=>a+v,0)/n;
   let ssTot=0,ssRes=0;
   for (let i=0;i<n;i++){
-    const p=coeffs[0]+coeffs[1]*xs[i]+coeffs[2]*xs[i]**2+coeffs[3]*xs[i]**3;
+    const p=coeffs[3]+coeffs[2]*xs[i]+coeffs[1]*xs[i]**2+coeffs[0]*xs[i]**3;
     ssTot+=(ys[i]-yMn)**2; ssRes+=(ys[i]-p)**2;
   }
   return { coeffs, r2: ssTot<1e-14?1:1-ssRes/ssTot };
@@ -1403,8 +1404,8 @@ function showRegressionForCurrent() {
   const fv = v => '<span class="cv">' + v.toExponential(8) + '</span>';
   const sg = v => v>=0 ? '+' : '';
   const eqStr = c => isLinear
-    ? 'y = ' + fv(c[0]) + '\n    ' + sg(c[1]) + fv(c[1]) + '\xb7x'
-    : 'y = ' + fv(c[0]) + '\n    ' + sg(c[1]) + fv(c[1]) + '\xb7x\n    ' + sg(c[2]) + fv(c[2]) + '\xb7x\xb2\n    ' + sg(c[3]) + fv(c[3]) + '\xb7x\xb3';
+    ? 'y = ' + fv(c[2]) + '\xb7x\n    ' + sg(c[3]) + fv(c[3])
+    : 'y = ' + fv(c[0]) + '\xb7x\xb3\n    ' + sg(c[1]) + fv(c[1]) + '\xb7x\xb2\n    ' + sg(c[2]) + fv(c[2]) + '\xb7x\n    ' + sg(c[3]) + fv(c[3]);
   const lb = isLinear ? '<span class="linear-badge">1\ucc28\uc2dd</span>' : '';
 
   const makeCard = (label, coeffs, r2, hasData) => {
