@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Engineering Tools — 매뉴얼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #f5f5f7;
+  --card:       rgba(255,255,255,0.92);
+  --border:     rgba(0,0,0,0.08);
+  --text:       #1d1d1f;
+  --text2:      #6e6e73;
+  --text3:      #aeaeb2;
+  --blue:       #0071e3;
+  --blue-light: #e8f1fd;
+  --green:      #28a745;
+  --orange:     #ff9f0a;
+  --purple:     #bf5af2;
+  --red:        #ff453a;
+  --teal:       #5ac8fa;
+  --sidebar-w:  260px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TITLEBAR ── */
+.titlebar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 52px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+
+.titlebar-left { display: flex; align-items: center; gap: 10px; }
+
+.home-btn {
+  display: flex; align-items: center; gap: 5px;
+  text-decoration: none; color: var(--blue);
+  font-size: 13px; font-weight: 500;
+  padding: 5px 10px 5px 6px; border-radius: 8px;
+  background: transparent; border: none; cursor: pointer;
+  transition: background 0.15s;
+  margin-right: 2px;
+}
+.home-btn:hover { background: rgba(0,113,227,0.08); }
+.home-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.titlebar-divider { width: 1px; height: 16px; background: var(--border); }
+
+.app-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(145deg, #1c1c1e, #3a3a3c);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.app-icon svg { width: 16px; height: 16px; }
+
+.app-name { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+
+.titlebar-badge {
+  font-size: 11px; font-weight: 500;
+  padding: 3px 10px; border-radius: 20px;
+  background: rgba(0,113,227,0.1); color: var(--blue);
+}
+
+/* ── LAYOUT ── */
+.layout {
+  display: flex;
+  padding-top: 52px;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR NAV ── */
+.sidebar {
+  position: fixed;
+  top: 52px; left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 20px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.nav-section-title {
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  letter-spacing: 0.5px; text-transform: uppercase;
+  padding: 8px 12px 4px;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px;
+  cursor: pointer; text-decoration: none;
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  transition: all 0.15s; border: none; background: transparent;
+  width: 100%; text-align: left;
+}
+.nav-item:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+.nav-item.active { background: rgba(0,113,227,0.1); color: var(--blue); }
+.nav-item .nav-icon {
+  width: 26px; height: 26px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.nav-item .nav-icon svg { width: 14px; height: 14px; }
+.nav-item .nav-label { flex: 1; line-height: 1.3; }
+.nav-item .nav-sub { font-size: 10px; font-weight: 400; color: var(--text3); display: block; margin-top: 1px; }
+
+/* ── MAIN CONTENT ── */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  padding: 40px 48px;
+  max-width: calc(var(--sidebar-w) + 900px);
+}
+
+/* ── SECTIONS ── */
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── HERO ── */
+.hero {
+  text-align: center;
+  padding: 60px 20px 48px;
+}
+.hero-badge {
+  display: inline-block;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--blue);
+  background: var(--blue-light); padding: 5px 14px; border-radius: 20px;
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: 42px; font-weight: 700; letter-spacing: -1.5px;
+  line-height: 1.15; color: var(--text); margin-bottom: 14px;
+}
+.hero p {
+  font-size: 17px; color: var(--text2); font-weight: 400;
+  line-height: 1.6; max-width: 560px; margin: 0 auto 36px;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  max-width: 900px; margin: 0 auto;
+}
+
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  border-color: rgba(0,113,227,0.2);
+}
+.tool-card-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.tool-card-icon svg { width: 22px; height: 22px; }
+.tool-card h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 6px; }
+.tool-card p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.tool-card-arrow { margin-top: 14px; color: var(--blue); font-size: 12px; font-weight: 500; }
+
+/* ── TOOL MANUAL PAGE ── */
+.page-header {
+  display: flex; align-items: flex-start; gap: 18px;
+  padding: 32px 0 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 36px;
+}
+.page-icon {
+  width: 56px; height: 56px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.page-icon svg { width: 28px; height: 28px; }
+.page-header h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.8px; }
+.page-header p { font-size: 14px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
+.page-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.page-tag {
+  font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px;
+  background: rgba(0,0,0,0.06); color: var(--text2);
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.card-title {
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text3);
+  margin-bottom: 16px;
+}
+
+/* Steps */
+.step-list { display: flex; flex-direction: column; gap: 14px; }
+.step {
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.step-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.step-body p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* Terms */
+.term-grid { display: flex; flex-direction: column; gap: 0; }
+.term-row {
+  display: grid; grid-template-columns: 160px 1fr;
+  gap: 16px; padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+.term-row:last-child { border-bottom: none; }
+.term-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  display: flex; align-items: flex-start; gap: 6px;
+  flex-direction: column;
+}
+.term-symbol {
+  font-size: 11px; font-weight: 500; padding: 2px 7px;
+  border-radius: 5px; background: rgba(0,0,0,0.06);
+  color: var(--text2); font-family: -apple-system, sans-serif;
+  margin-top: 3px; display: inline-block;
+}
+.term-desc { font-size: 13px; color: var(--text2); line-height: 1.65; }
+.term-desc code {
+  font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px;
+  background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px;
+  color: var(--text);
+}
+
+/* Formula box */
+.formula-box {
+  background: rgba(0,0,0,0.03);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 10px 0;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 13px; color: var(--text);
+  line-height: 1.8;
+}
+
+/* Tip box */
+.tip-box {
+  display: flex; gap: 12px;
+  background: rgba(0,113,227,0.06);
+  border: 1px solid rgba(0,113,227,0.15);
+  border-radius: 12px; padding: 14px 16px;
+  margin: 10px 0;
+}
+.tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.tip-text strong { color: var(--text); }
+
+/* Warning box */
+.warn-box {
+  display: flex; gap: 12px;
+  background: rgba(255,159,10,0.08);
+  border: 1px solid rgba(255,159,10,0.2);
+  border-radius: 12px; padding: 14px 16px;
+  margin: 10px 0;
+}
+
+/* Input table */
+.input-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.input-table th {
+  text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--text3); text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 0 12px 10px 0; border-bottom: 1px solid var(--border);
+}
+.input-table td {
+  padding: 11px 12px 11px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  vertical-align: top; line-height: 1.5;
+}
+.input-table tr:last-child td { border-bottom: none; }
+.input-table td:first-child { font-weight: 600; white-space: nowrap; }
+.input-table td code {
+  font-family: 'SF Mono', monospace; font-size: 12px;
+  background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px;
+}
+
+/* unit badge */
+.unit { font-size: 11px; color: var(--text3); margin-left: 4px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; padding: 10px; overflow-x: auto; }
+  .layout { flex-direction: column; }
+  .main { margin-left: 0; padding: 24px 20px; }
+  .hero h1 { font-size: 28px; }
+  .term-row { grid-template-columns: 1fr; gap: 4px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <div class="titlebar-left">
+    <a class="home-btn" href="index.html">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"/>
+      </svg>
+      홈
+    </a>
+    <div class="titlebar-divider"></div>
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+        <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+      </svg>
+    </div>
+    <span class="app-name">Engineering Tools Manual</span>
+  </div>
+  <span class="titlebar-badge">v1.0 · 5 Tools</span>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section-title">개요</div>
+    <button class="nav-item active" onclick="showSection('home')">
+      <span class="nav-icon" style="background:rgba(0,0,0,0.06);">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#3a3a3c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h12v2H2zm0 4h8v2H2zm0 4h10v2H2z" fill="#3a3a3c" stroke="none"/>
+        </svg>
+      </span>
+      <span class="nav-label">홈<span class="nav-sub">도구 목록 & 개요</span></span>
+    </button>
+
+    <div class="nav-section-title" style="margin-top:8px;">도구별 매뉴얼</div>
+    <button class="nav-item" onclick="showSection('linkage')">
+      <span class="nav-icon" style="background:rgba(0,113,227,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
+          <circle cx="4" cy="4" r="2"/><circle cx="20" cy="10" r="2"/>
+          <line x1="4" y1="6" x2="4" y2="18"/>
+          <line x1="6" y1="4" x2="18" y2="10"/>
+          <line x1="6" y1="20" x2="18" y2="20"/>
+          <line x1="20" y1="12" x2="20" y2="18"/>
+        </svg>
+      </span>
+      <span class="nav-label">4-Bar Linkage<span class="nav-sub">링크 해석기</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('hinge')">
+      <span class="nav-icon" style="background:rgba(191,90,242,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bf5af2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M2 12h20"/>
+          <path d="M12 2C8 6 5 9 5 12s3 6 7 10"/>
+          <path d="M12 2c4 4 7 7 7 10s-3 6-7 10"/>
+        </svg>
+      </span>
+      <span class="nav-label">힌지모멘트 계산기<span class="nav-sub">Hinge Moment</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('regression')">
+      <span class="nav-icon" style="background:rgba(255,159,10,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 20 4 4"/><polyline points="4 20 20 20"/>
+          <circle cx="7" cy="14" r="1.2" fill="#ff9f0a"/>
+          <circle cx="10" cy="11" r="1.2" fill="#ff9f0a"/>
+          <circle cx="13" cy="13" r="1.2" fill="#ff9f0a"/>
+          <circle cx="17" cy="8" r="1.2" fill="#ff9f0a"/>
+          <line x1="5" y1="16" x2="19" y2="7" stroke-dasharray="2 1"/>
+        </svg>
+      </span>
+      <span class="nav-label">회귀분석 도구<span class="nav-sub">Regression Analysis</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('servo')">
+      <span class="nav-icon" style="background:rgba(48,176,199,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/>
+          <line x1="3" y1="20" x2="21" y2="20"/>
+        </svg>
+      </span>
+      <span class="nav-label">주파수 응답 분석기<span class="nav-sub">Servo FRA</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('rigging')">
+      <span class="nav-icon" style="background:rgba(50,215,75,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3 L2 18 L7 17 L10 13 L10 19 L12 21 L14 19 L14 13 L17 17 L22 18 Z"/>
+          <line x1="2" y1="18" x2="7" y2="17"/>
+          <line x1="17" y1="17" x2="22" y2="18"/>
+        </svg>
+      </span>
+      <span class="nav-label">CS Rigging<span class="nav-sub">조종면 리깅 도구</span></span>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ══════════════ HOME ══════════════ -->
+    <section class="section active" id="sec-home">
+      <div class="hero">
+        <div class="hero-badge">Engineering Tools</div>
+        <h1>항공 엔지니어링<br>도구 매뉴얼</h1>
+        <p>5가지 전문 엔지니어링 계산 도구의 사용법과 핵심 공학 용어를 정리한 공식 매뉴얼입니다.</p>
+      </div>
+
+      <div class="tool-grid">
+        <div class="tool-card" onclick="showSection('linkage')">
+          <div class="tool-card-icon" style="background:rgba(0,113,227,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
+              <circle cx="4" cy="4" r="2"/><circle cx="20" cy="10" r="2"/>
+              <line x1="4" y1="6" x2="4" y2="18"/>
+              <line x1="6" y1="4" x2="18" y2="10"/>
+              <line x1="6" y1="20" x2="18" y2="20"/>
+              <line x1="20" y1="12" x2="20" y2="18"/>
+            </svg>
+          </div>
+          <h3>4-Bar Linkage 해석기</h3>
+          <p>4절 링크 기구의 기하학적 해석 및 토크 전달 분석 도구. 크랭크–커플러–팔로워의 위치·속도·토크를 시각적으로 계산합니다.</p>
+          <div class="tool-card-arrow">매뉴얼 보기 →</div>
+        </div>
+        <div class="tool-card" onclick="showSection('hinge')">
+          <div class="tool-card-icon" style="background:rgba(191,90,242,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#bf5af2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M2 12h20"/>
+              <path d="M12 2C8 6 5 9 5 12s3 6 7 10"/>
+              <path d="M12 2c4 4 7 7 7 10s-3 6-7 10"/>
+            </svg>
+          </div>
+          <h3>힌지모멘트 계산기</h3>
+          <p>항공기 조종면에 작용하는 힌지모멘트(H)를 동압, 받음각, 편향각 계수를 이용해 계산합니다.</p>
+          <div class="tool-card-arrow">매뉴얼 보기 →</div>
+        </div>
+        <div class="tool-card" onclick="showSection('regression')">
+          <div class="tool-card-icon" style="background:rgba(255,159,10,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 20 4 4"/><polyline points="4 20 20 20"/>
+              <circle cx="7" cy="14" r="1.2" fill="#ff9f0a"/>
+              <circle cx="10" cy="11" r="1.2" fill="#ff9f0a"/>
+              <circle cx="13" cy="13" r="1.2" fill="#ff9f0a"/>
+              <circle cx="17" cy="8" r="1.2" fill="#ff9f0a"/>
+              <line x1="5" y1="16" x2="19" y2="7" stroke-dasharray="2 1"/>
+            </svg>
+          </div>
+          <h3>회귀분석 도구</h3>
+          <p>선형·다항·지수·대수·S형 등 다양한 회귀 모델을 자동 피팅하고 R², RMSE 등의 적합도 지표를 제공합니다.</p>
+          <div class="tool-card-arrow">매뉴얼 보기 →</div>
+        </div>
+        <div class="tool-card" onclick="showSection('servo')">
+          <div class="tool-card-icon" style="background:rgba(48,176,199,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/>
+              <line x1="3" y1="20" x2="21" y2="20"/>
+            </svg>
+          </div>
+          <h3>주파수 응답 분석기</h3>
+          <p>서보 스윕 CSV 데이터를 업로드하여 Bode Plot, Coherence, 전달함수를 자동으로 분석합니다.</p>
+          <div class="tool-card-arrow">매뉴얼 보기 →</div>
+        </div>
+        <div class="tool-card" onclick="showSection('rigging')">
+          <div class="tool-card-icon" style="background:rgba(50,215,75,0.1);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3 L2 18 L7 17 L10 13 L10 19 L12 21 L14 19 L14 13 L17 17 L22 18 Z"/>
+              <line x1="2" y1="18" x2="7" y2="17"/>
+              <line x1="17" y1="17" x2="22" y2="18"/>
+            </svg>
+          </div>
+          <h3>CS Rigging 도구</h3>
+          <p>조종면 리깅 측정값을 입력하고 회귀 분석을 통해 리깅 계수를 산출, JSON으로 저장하는 통합 관리 도구입니다.</p>
+          <div class="tool-card-arrow">매뉴얼 보기 →</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ 4-BAR LINKAGE ══════════════ -->
+    <section class="section" id="sec-linkage">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(0,113,227,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
+            <circle cx="4" cy="4" r="2"/><circle cx="20" cy="10" r="2"/>
+            <line x1="4" y1="6" x2="4" y2="18"/>
+            <line x1="6" y1="4" x2="18" y2="10"/>
+            <line x1="6" y1="20" x2="18" y2="20"/>
+            <line x1="20" y1="12" x2="20" y2="18"/>
+          </svg>
+        </div>
+        <div>
+          <h2>4-Bar Linkage 해석기</h2>
+          <p>4절 링크 기구의 위치 해석과 토크 전달 분석 도구</p>
+          <div class="page-tags">
+            <span class="page-tag">기구학</span>
+            <span class="page-tag">토크 해석</span>
+            <span class="page-tag">링크 설계</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 개요 -->
+      <div class="card">
+        <div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          4-Bar Linkage 해석기는 4개의 링크(크랭크, 커플러, 팔로워, 고정링크)로 구성된 기구학적 메커니즘의 위치, 각도, 토크를 분석합니다. 항공기 조종면 액추에이터, 로봇 팔, 자동차 서스펜션 등 다양한 분야에서 활용되는 기초 기구학 해석 도구입니다.
+        </p>
+        <div class="formula-box" style="margin-top:14px;">
+          루프 폐합 방정식: a·cos(θ₂) + b·cos(θ₃) = d + c·cos(θ₄)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a·sin(θ₂) + b·sin(θ₃) = c·sin(θ₄)
+        </div>
+      </div>
+
+      <!-- 사용 방법 -->
+      <div class="card">
+        <div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>링크 길이 입력</h4>
+              <p>좌측 패널의 <strong>링크 길이</strong> 섹션에서 고정링크(d), 크랭크(a), 커플러(b), 팔로워(c)의 길이를 숫자로 입력합니다. 단위는 mm이며 상대적 비율이 중요합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>각도 조정</h4>
+              <p><strong>팔로워 각도(θ₄)</strong> 슬라이더로 출력 링크의 각도를 직접 설정하거나, 캔버스에서 절점 A·B를 드래그하여 기구를 직접 조작합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>토크 해석</h4>
+              <p><strong>토크 해석</strong> 섹션에서 입력 토크 T₂를 입력하면, 가상일 원리에 의해 출력 토크 T₄와 기계적 이득(MA)이 자동 계산됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>출력 토크 플롯 확인</h4>
+              <p>팔로워 전체 회전 범위에 걸쳐 출력 토크가 어떻게 변화하는지 그래프로 확인합니다. 모터 토크 한계선을 입력하면 실제 동작 가능 범위를 시각화합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 입력 파라미터 -->
+      <div class="card">
+        <div class="card-title">입력 파라미터</div>
+        <table class="input-table">
+          <tr><th>파라미터</th><th>설명</th><th>범위</th></tr>
+          <tr><td>d <span class="unit">mm</span></td><td>고정링크 (Ground Link) — O₂와 O₄ 사이의 거리</td><td>10 ~ 400</td></tr>
+          <tr><td>a <span class="unit">mm</span></td><td>크랭크 (Crank) — 구동 링크. 모터에 연결</td><td>5 ~ 400</td></tr>
+          <tr><td>b <span class="unit">mm</span></td><td>커플러 (Coupler) — 크랭크와 팔로워 연결 링크</td><td>5 ~ 400</td></tr>
+          <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결</td><td>5 ~ 400</td></tr>
+          <tr><td>θ₄ <span class="unit">°</span></td><td>팔로워 각도 — 슬라이더 또는 숫자 입력</td><td>0 ~ 360</td></tr>
+          <tr><td>T₂ <span class="unit">N·m</span></td><td>입력 토크 — 크랭크에 인가되는 모터 토크</td><td>자유입력</td></tr>
+        </table>
+      </div>
+
+      <!-- 핵심 용어 -->
+      <div class="card">
+        <div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <div class="term-name">크랭크 (Crank)
+              <span class="term-symbol">링크 a</span>
+            </div>
+            <div class="term-desc">4절 링크에서 모터 등 구동원에 연결된 입력 링크. 회전 운동을 제공하며 360° 완전 회전이 가능한 경우를 <strong>크랭크</strong>, 그렇지 않은 경우를 <strong>로커(Rocker)</strong>라고 구분합니다. Grashof 조건에 의해 결정됩니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">커플러 (Coupler)
+              <span class="term-symbol">링크 b</span>
+            </div>
+            <div class="term-desc">크랭크와 팔로워를 연결하는 중간 링크. 커플러 위의 임의 점이 그리는 궤적을 <strong>커플러 곡선(Coupler Curve)</strong>이라 하며, 이를 이용해 다양한 동작 경로를 설계합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">팔로워 (Follower)
+              <span class="term-symbol">링크 c</span>
+            </div>
+            <div class="term-desc">출력 링크. 조종면, 아암, 레버 등에 연결되어 유효한 출력 운동을 전달합니다. 팔로워의 각도 θ₄가 출력 위치를 결정합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">전달각 (Transmission Angle)
+              <span class="term-symbol">μ</span>
+            </div>
+            <div class="term-desc">커플러와 팔로워 사이의 각도. 토크가 얼마나 효율적으로 전달되는지를 나타내는 지표로, <code>μ = 90°</code>일 때 전달 효율이 최대입니다. 일반적으로 <strong>μ &gt; 40°</strong>를 유지해야 기구가 정상적으로 동작합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">기계적 이득 (MA)
+              <span class="term-symbol">Mechanical Advantage</span>
+            </div>
+            <div class="term-desc">입력 토크 대비 출력 토크의 비율: <code>MA = T₄ / T₂ = ω₂ / ω₄</code>. 가상일 원리(Virtual Work Principle)로 계산됩니다. MA &gt; 1이면 힘 증폭, MA &lt; 1이면 속도 증폭을 의미합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">Grashof 조건
+              <span class="term-symbol">s + l ≤ p + q</span>
+            </div>
+            <div class="term-desc">4절 링크에서 완전 회전 가능한 링크가 존재하기 위한 조건. <code>s</code>는 최단 링크 길이, <code>l</code>은 최장 링크 길이, <code>p, q</code>는 나머지 두 링크 길이입니다. 이 조건을 만족하면 최단 링크는 크랭크로 사용 가능합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">루프 폐합 방정식
+              <span class="term-symbol">Loop Closure Eq.</span>
+            </div>
+            <div class="term-desc">4절 링크의 폐루프 벡터 합이 영(0)이 되는 조건으로, 기구의 기하학적 해를 구하는 기본 방정식입니다. θ₂를 입력으로 θ₃, θ₄를 구하며, Freudenstein 방정식으로 대수적 해가 가능합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 캔버스에서 링크 중간 부분을 호버하면 각 링크의 길이 레이블이 표시됩니다. 절점 A, B를 드래그하여 실시간으로 기구 형태를 바꿀 수 있습니다.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ HINGE MOMENT ══════════════ -->
+    <section class="section" id="sec-hinge">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(191,90,242,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#bf5af2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M2 12h20"/>
+            <path d="M12 2C8 6 5 9 5 12s3 6 7 10"/>
+            <path d="M12 2c4 4 7 7 7 10s-3 6-7 10"/>
+          </svg>
+        </div>
+        <div>
+          <h2>힌지모멘트 계산기</h2>
+          <p>항공기 조종면의 힌지모멘트 H 계산 및 감도 분석</p>
+          <div class="page-tags">
+            <span class="page-tag">항공역학</span>
+            <span class="page-tag">조종면 설계</span>
+            <span class="page-tag">서보 사이징</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          조종면(에일러론, 엘리베이터, 러더, 플랩 등)이 공기 중에서 편향될 때 힌지 축 주변에 발생하는 모멘트를 계산합니다. 이 힌지모멘트는 액추에이터(서보)가 극복해야 할 하중이므로, 서보 사이징의 핵심 설계 파라미터입니다.
+        </p>
+        <div class="formula-box" style="margin-top:14px;">
+          H = q · S · MAC · (C<sub>H,δ</sub>·δ + C<sub>H,α</sub>·α)<br><br>
+          q = ½ · ρ · V²<span style="margin-left:24px;color:#6e6e73;font-size:12px;">// 동압 (Dynamic Pressure)</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>입력 파라미터 설정</h4>
+              <p>날개 면적(S), 비행 속도(V), 편향각(δ), 평균공력시위(MAC)를 입력합니다. 고도 프리셋을 선택하면 해당 고도의 공기 밀도(ρ)가 자동 적용됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>C<sub>H</sub> 계수 입력</h4>
+              <p>힌지모멘트 계수 C<sub>H,δ</sub>(편향각에 대한 계수)와 C<sub>H,α</sub>(받음각에 대한 계수)를 풍동 시험 데이터 또는 경험치로 입력합니다. 음수가 일반적입니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>결과 확인 & 감도 분석</h4>
+              <p>힌지모멘트 H, 동압 q, C<sub>H</sub> 합산값이 즉시 표시됩니다. 하단 차트에서 속도·편향각·면적 변화에 따른 H의 민감도(감도) 곡선을 확인합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">입력 파라미터</div>
+        <table class="input-table">
+          <tr><th>파라미터</th><th>설명</th><th>단위</th></tr>
+          <tr><td>S</td><td>조종면 면적 (Control Surface Area)</td><td>m²</td></tr>
+          <tr><td>V</td><td>비행 속도 (Airspeed)</td><td>m/s</td></tr>
+          <tr><td>δ</td><td>편향각 (Deflection Angle) — 조종면 회전 각도</td><td>°</td></tr>
+          <tr><td>MAC</td><td>평균공력시위 (Mean Aerodynamic Chord)</td><td>m</td></tr>
+          <tr><td>C<sub>H,δ</sub></td><td>편향각에 대한 힌지모멘트 계수</td><td>무차원</td></tr>
+          <tr><td>C<sub>H,α</sub></td><td>받음각에 대한 힌지모멘트 계수</td><td>무차원</td></tr>
+          <tr><td>α</td><td>받음각 (Angle of Attack)</td><td>°</td></tr>
+          <tr><td>ρ</td><td>공기 밀도 — 고도 프리셋으로 자동 설정</td><td>kg/m³</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <div class="term-name">힌지모멘트 (H)
+              <span class="term-symbol">Hinge Moment</span>
+            </div>
+            <div class="term-desc">공기력이 조종면 힌지 축에 가하는 모멘트. 단위는 N·m이며, 이 값이 클수록 더 강력한 액추에이터(서보)가 필요합니다. <strong>서보 토크 선정의 핵심 기준값</strong>입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">동압 (q)
+              <span class="term-symbol">Dynamic Pressure</span>
+            </div>
+            <div class="term-desc">유체의 운동 에너지를 압력으로 표현한 것: <code>q = ½ρV²</code>. 속도의 제곱에 비례하므로, 속도가 2배 증가하면 동압(힌지모멘트)은 4배 증가합니다. 항공 하중 계산의 기본 단위입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">힌지모멘트 계수 (C<sub>H</sub>)
+              <span class="term-symbol">Hinge Moment Coefficient</span>
+            </div>
+            <div class="term-desc">무차원 힌지모멘트 계수로, 풍동 시험을 통해 획득합니다. 편향각 성분 <code>C<sub>H,δ</sub></code>와 받음각 성분 <code>C<sub>H,α</sub></code>로 분리됩니다. 대부분의 조종면에서 음수(restoring 방향)입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">받음각 (AoA)
+              <span class="term-symbol">Angle of Attack α</span>
+            </div>
+            <div class="term-desc">항공기 기준선(시위선)과 유입 기류 방향 사이의 각도. 받음각이 커지면 양력이 증가하고 동시에 힌지모멘트에도 영향을 미칩니다. 실속(Stall)은 임계 받음각 초과 시 발생합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">평균공력시위 (MAC)
+              <span class="term-symbol">Mean Aerodynamic Chord</span>
+            </div>
+            <div class="term-desc">날개 또는 조종면의 공력적으로 동등한 평균 시위 길이. 테이퍼 날개에서 직사각형 날개와 동일한 공력 특성을 나타내는 등가 시위로, 힌지모멘트 계산의 기준 길이로 사용됩니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">편향각 (δ)
+              <span class="term-symbol">Deflection Angle</span>
+            </div>
+            <div class="term-desc">조종면이 중립 위치에서 회전한 각도. 양(+)은 하향, 음(-)은 상향 편향을 의미하는 것이 일반적이나, 기준 축 설정에 따라 달라집니다. 힌지모멘트는 편향각의 선형 함수로 근사됩니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn-box">
+        <div class="tip-icon">⚠️</div>
+        <div class="tip-text"><strong>주의:</strong> C<sub>H</sub> 계수는 조종면 형상(밸런스비, 시위비, 에어포일)에 따라 크게 달라집니다. 풍동 시험 데이터 없이는 경험식 값을 사용하되, 안전 마진(Safety Factor)을 반드시 적용하십시오.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ REGRESSION ══════════════ -->
+    <section class="section" id="sec-regression">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(255,159,10,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 20 4 4"/><polyline points="4 20 20 20"/>
+            <circle cx="7" cy="14" r="1.2" fill="#ff9f0a"/>
+            <circle cx="10" cy="11" r="1.2" fill="#ff9f0a"/>
+            <circle cx="13" cy="13" r="1.2" fill="#ff9f0a"/>
+            <circle cx="17" cy="8" r="1.2" fill="#ff9f0a"/>
+            <line x1="5" y1="16" x2="19" y2="7" stroke-dasharray="2 1"/>
+          </svg>
+        </div>
+        <div>
+          <h2>회귀분석 도구</h2>
+          <p>다양한 회귀 모델 자동 피팅 및 적합도 평가</p>
+          <div class="page-tags">
+            <span class="page-tag">통계</span>
+            <span class="page-tag">데이터 분석</span>
+            <span class="page-tag">모델 피팅</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          X-Y 데이터 쌍을 입력하면 선택한 회귀 모델로 자동 피팅하고, 결정계수(R²), 잔차, RMSE 등 통계 지표를 제공합니다. 엔지니어링 데이터 경향 파악, 보정 곡선 작성, 센서 캘리브레이션에 활용됩니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>데이터 입력</h4>
+              <p>좌측 패널의 텍스트 영역에 <code>x, y</code> 형식으로 데이터를 입력하거나, 스프레드시트에서 복사·붙여넣기합니다. 또는 하단 예제 데이터 버튼으로 샘플 데이터를 불러옵니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>회귀 유형 선택</h4>
+              <p>선형(Linear), 다항(Polynomial), 지수(Exponential), 대수(Logarithmic), 멱함수(Power), 시그모이드(Sigmoid) 중 데이터 형태에 맞는 모델을 선택합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>결과 확인</h4>
+              <p>R², Adjusted R², RMSE, MAE 지표와 회귀 방정식을 확인합니다. 산점도와 회귀 곡선 차트, 잔차 분포 차트, 예측값 테이블을 분석합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">지원 회귀 모델</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <div class="term-name">선형 회귀<span class="term-symbol">Linear</span></div>
+            <div class="term-desc"><code>y = a·x + b</code> — 가장 기본적인 회귀 모델. 두 변수 사이에 선형 관계가 있을 때 사용합니다. 최소제곱법(OLS)으로 계수를 추정합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">다항 회귀<span class="term-symbol">Polynomial</span></div>
+            <div class="term-desc"><code>y = aₙxⁿ + ... + a₁x + a₀</code> — 비선형 곡선을 선형 모델로 피팅. 차수(degree)가 높을수록 데이터에 잘 맞지만 과적합(overfitting) 위험이 있습니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">지수 회귀<span class="term-symbol">Exponential</span></div>
+            <div class="term-desc"><code>y = a·eᵇˣ</code> — 성장/감쇠 현상에 적합. 세균 증식, 방사성 붕괴, 복리 계산 등에 사용됩니다. 로그 변환 후 선형 회귀로 해를 구합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">대수 회귀<span class="term-symbol">Logarithmic</span></div>
+            <div class="term-desc"><code>y = a·ln(x) + b</code> — x가 지수적으로 증가할 때 y가 천천히 변하는 관계. 데시벨 척도, 학습 곡선, 인구 성장 등에 적합합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">멱함수 회귀<span class="term-symbol">Power</span></div>
+            <div class="term-desc"><code>y = a·xᵇ</code> — 케플러 제3법칙, 생물 체중-뇌 관계 등 스케일링 법칙에 사용됩니다. 양측 로그 변환(log-log) 후 선형 회귀로 추정합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">시그모이드 회귀<span class="term-symbol">Sigmoid / Logistic</span></div>
+            <div class="term-desc"><code>y = L / (1 + e⁻ᵏ⁽ˣ⁻ˣ₀⁾)</code> — S자형 성장 곡선. 인구 성장, 기술 확산, 신약 반응 등 포화점이 있는 성장 모델에 사용됩니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">적합도 지표 해석</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <div class="term-name">R² (결정계수)
+              <span class="term-symbol">Coefficient of Determination</span>
+            </div>
+            <div class="term-desc">모델이 데이터의 분산을 얼마나 설명하는지: <code>R² = 1 - SS_res / SS_tot</code>. 0~1 범위이며, 1에 가까울수록 좋은 피팅입니다. <strong>R² ≥ 0.95</strong>면 통상 양호한 수준입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">Adjusted R²
+              <span class="term-symbol">수정 결정계수</span>
+            </div>
+            <div class="term-desc">파라미터 수에 따른 패널티를 반영한 R². 불필요한 변수 추가로 R²가 인위적으로 높아지는 것을 보정합니다. 다항 차수 비교 시 더 신뢰할 수 있는 지표입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">RMSE
+              <span class="term-symbol">Root Mean Square Error</span>
+            </div>
+            <div class="term-desc">잔차(실제값–예측값)의 제곱 평균의 제곱근: <code>RMSE = √(Σ(yᵢ–ŷᵢ)²/n)</code>. y와 같은 단위를 가지며, 낮을수록 좋습니다. 이상값에 민감합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">MAE
+              <span class="term-symbol">Mean Absolute Error</span>
+            </div>
+            <div class="term-desc">절대 오차의 평균: <code>MAE = Σ|yᵢ–ŷᵢ|/n</code>. RMSE보다 이상값에 덜 민감합니다. 실제 오차의 평균적 크기를 직관적으로 나타냅니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">잔차 (Residual)
+              <span class="term-symbol">e = y - ŷ</span>
+            </div>
+            <div class="term-desc">실제 측정값과 회귀 모델 예측값의 차이. 잔차가 무작위로 분포하면(패턴 없음) 모델이 적절합니다. 잔차에 패턴이 보이면 더 복잡한 모델이 필요한 신호입니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 어떤 모델을 선택할지 모를 때는 데이터 산점도를 먼저 확인하세요. 직선이면 선형, U자형이면 2차 다항, 급격한 증가/감소면 지수, 포화 경향이면 대수 또는 시그모이드가 적합합니다.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SERVO FRA ══════════════ -->
+    <section class="section" id="sec-servo">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(48,176,199,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/>
+            <line x1="3" y1="20" x2="21" y2="20"/>
+          </svg>
+        </div>
+        <div>
+          <h2>주파수 응답 분석기 (FRA)</h2>
+          <p>서보 스윕 데이터 기반 Bode Plot · 전달함수 추정</p>
+          <div class="page-tags">
+            <span class="page-tag">제어공학</span>
+            <span class="page-tag">서보 분석</span>
+            <span class="page-tag">주파수 응답</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          서보 시스템에 정현파 스윕(Chirp) 신호를 인가하고 측정한 명령(u)과 응답(y) 데이터를 CSV로 업로드하면, Bode Plot, 코히런스(Coherence), 2차 시스템 전달함수를 자동으로 추정합니다. 서보의 대역폭과 위상 지연을 평가하는 표준 방법입니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>CSV 파일 준비</h4>
+              <p>CSV 파일은 시간 열, 명령 u 열, 응답 y 열로 구성합니다. 헤더 행이 있어도 자동 감지됩니다. 샘플링 주파수는 자동 계산되거나 직접 입력합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>CSV 업로드</h4>
+              <p>드롭존에 파일을 드래그&드롭하거나 <strong>파일 선택</strong> 버튼을 클릭합니다. 업로드 후 스윕 파형 차트가 즉시 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>분석 설정 및 실행</h4>
+              <p>샘플링 주파수(Fs), 주파수 스케일(Log/Linear)을 확인 후 <strong>분석 실행</strong> 버튼을 클릭합니다. Bode Plot, Coherence, 전달함수 피팅 결과가 생성됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>결과 해석 및 내보내기</h4>
+              <p>Bode Plot에서 대역폭(−3 dB 주파수)과 위상 지연을 확인합니다. 각 차트 우측 CSV 다운로드 버튼으로 데이터를 내보낼 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <div class="term-name">Bode Plot
+              <span class="term-symbol">보드 선도</span>
+            </div>
+            <div class="term-desc">시스템의 주파수 응답을 크기(Magnitude, dB)와 위상(Phase, °) 두 그래프로 나타낸 것. X축은 주파수(Hz), 크기 Y축은 <code>20·log₁₀(|H(f)|)</code>입니다. 제어 시스템 안정성 분석의 핵심 도구입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">대역폭 (Bandwidth)
+              <span class="term-symbol">BW, −3 dB Frequency</span>
+            </div>
+            <div class="term-desc">시스템이 입력 신호를 충실히 추종할 수 있는 최대 주파수. Bode Plot에서 크기가 −3 dB(약 70.7%)로 떨어지는 주파수로 정의됩니다. 서보의 대역폭이 높을수록 빠른 명령을 추종할 수 있습니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">코히런스 γ²(f)
+              <span class="term-symbol">Coherence</span>
+            </div>
+            <div class="term-desc">입력과 출력 신호 간의 인과성 신뢰도를 나타내는 지표. 0~1 범위이며 <strong>γ² = 1</strong>이면 완벽한 선형 인과 관계, 낮으면 노이즈나 비선형성이 있음을 의미합니다. <strong>γ² ≥ 0.8</strong>인 주파수 범위만 신뢰할 수 있습니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">전달함수 H(s)
+              <span class="term-symbol">Transfer Function</span>
+            </div>
+            <div class="term-desc">라플라스 영역에서 입출력 관계를 나타내는 함수. 이 도구는 2차 표준형 <code>H(s) = ωₙ² / (s² + 2ζωₙs + ωₙ²)</code>으로 피팅하여 고유진동수(ωₙ)와 감쇠비(ζ)를 추정합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">고유진동수 ωₙ
+              <span class="term-symbol">Natural Frequency</span>
+            </div>
+            <div class="term-desc">감쇠가 없을 때 시스템이 자유 진동하는 각주파수 (rad/s). 2차 시스템 응답 특성의 핵심 파라미터로, <code>fₙ = ωₙ / (2π)</code>로 Hz로 변환합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">감쇠비 ζ
+              <span class="term-symbol">Damping Ratio</span>
+            </div>
+            <div class="term-desc">시스템이 얼마나 빨리 진동을 감쇠시키는지의 비율. <code>ζ &lt; 1</code>: 부족감쇠(진동 발생), <code>ζ = 1</code>: 임계감쇠(최적), <code>ζ &gt; 1</code>: 과감쇠(느린 응답). 일반 서보는 <strong>0.5 ~ 0.8</strong>이 적합합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">스윕 신호 (Chirp)
+              <span class="term-symbol">Frequency Sweep</span>
+            </div>
+            <div class="term-desc">시간에 따라 주파수가 증가(또는 감소)하는 정현파 신호. 서보 FRA 시험에서 넓은 주파수 범위의 응답을 한 번의 시험으로 측정할 수 있어 효율적입니다. 선형 스윕과 로그 스윕이 있습니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 코히런스가 낮은 고주파 영역의 Bode Plot 결과는 신뢰하기 어렵습니다. γ² ≥ 0.8인 범위만을 대역폭 판단 기준으로 사용하세요. 노이즈가 많은 경우 스윕 진폭을 키우거나 여러 번 평균화(Averaging)하면 코히런스가 개선됩니다.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ CS RIGGING ══════════════ -->
+    <section class="section" id="sec-rigging">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(50,215,75,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 L2 18 L7 17 L10 13 L10 19 L12 21 L14 19 L14 13 L17 17 L22 18 Z"/>
+            <line x1="2" y1="18" x2="7" y2="17"/>
+            <line x1="17" y1="17" x2="22" y2="18"/>
+          </svg>
+        </div>
+        <div>
+          <h2>CS Rigging 도구</h2>
+          <p>조종면 리깅 측정 관리 및 계수 산출 통합 도구</p>
+          <div class="page-tags">
+            <span class="page-tag">항공 정비</span>
+            <span class="page-tag">조종면 리깅</span>
+            <span class="page-tag">데이터 관리</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          항공기 조종면(CS: Control Surface)의 리깅(Rigging) 작업 시 측정한 명령각도-응답각도 데이터를 체계적으로 입력·관리하고, 회귀 분석을 통해 리깅 계수(기울기·오프셋)를 산출합니다. 결과는 JSON 파일로 저장되어 비행제어 소프트웨어에서 직접 활용할 수 있습니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">사용 방법 (3단계)</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">①</div>
+            <div class="step-body">
+              <h4>설정 파일 & 배치도</h4>
+              <p>기존 JSON 파일을 불러오거나 새 리깅을 시작합니다. <strong>호기 번호(SID)</strong>와 <strong>리비전</strong>을 입력합니다. 우측 항공기 배치도에서 원하는 조종면을 클릭해 선택합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">②</div>
+            <div class="step-body">
+              <h4>측정값 입력</h4>
+              <p>선택한 조종면의 명령 각도(Command)와 실제 측정 각도를 입력합니다. 스프레드시트에서 복사 후 <kbd>Ctrl+V</kbd>로 붙여넣기가 가능합니다. 회귀 결과(기울기·R²)가 실시간으로 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">③</div>
+            <div class="step-body">
+              <h4>리깅 실행 & JSON 출력</h4>
+              <p>메모를 입력하고 <strong>리깅 실행</strong> 버튼을 클릭하면 모든 조종면의 리깅 계수가 포함된 JSON 파일이 다운로드됩니다. 파일명에 SID와 리비전이 자동 포함됩니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <div class="term-name">리깅 (Rigging)
+              <span class="term-symbol">Control Surface Rigging</span>
+            </div>
+            <div class="term-desc">조종 입력(명령)과 조종면의 실제 편향 각도 사이의 관계를 조정하는 작업. 기계적 링키지의 마모, 온도 변화, 조립 오차로 인한 편차를 보정하여 설계된 게인(이득)을 유지합니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">리깅 계수
+              <span class="term-symbol">Rigging Coefficient</span>
+            </div>
+            <div class="term-desc">명령 각도 대비 실제 조종면 편향 각도의 선형 회귀 기울기(Slope)와 오프셋(Intercept). 비행제어 소프트웨어에서 명령을 물리적 편향으로 변환하는 핵심 보정 계수입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">조종면 (CS)
+              <span class="term-symbol">Control Surface</span>
+            </div>
+            <div class="term-desc">항공기의 자세와 비행 경로를 제어하는 가동 표면. 주요 조종면: <strong>에일러론</strong>(Aileron, 롤), <strong>엘리베이터</strong>(Elevator, 피치), <strong>러더</strong>(Rudder, 요), <strong>플랩</strong>(Flap, 양력증가), <strong>스포일러</strong>(Spoiler, 항력).</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">SID
+              <span class="term-symbol">Serial / Ship ID</span>
+            </div>
+            <div class="term-desc">개별 항공기 호기 번호. 동일 기종의 여러 항공기를 구별하는 식별자로, 각 항공기마다 고유한 리깅 데이터를 관리합니다. 리깅 JSON 파일명과 메타데이터에 포함됩니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">리비전 (Revision)
+              <span class="term-symbol">Rev.</span>
+            </div>
+            <div class="term-desc">리깅 데이터의 개정 번호. 정기 점검 또는 수정 후 재리깅 시 리비전을 올려 데이터 이력을 관리합니다. 형상 관리(Configuration Management)의 핵심 요소입니다.</div>
+          </div>
+          <div class="term-row">
+            <div class="term-name">R² (회귀 품질)
+              <span class="term-symbol">Goodness of Fit</span>
+            </div>
+            <div class="term-desc">측정 데이터와 선형 리깅 모델의 적합도. <strong>R² = 1.0</strong>이면 완벽한 선형성, 낮은 R²는 기계적 결함(백래시, 마찰, 결함 링키지)의 신호일 수 있습니다. 일반적으로 <strong>R² ≥ 0.999</strong>를 요구합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 측정 데이터를 스프레드시트에서 복사 후 입력 테이블에 <kbd>Ctrl+V</kbd>로 붙여넣기하면 빠르게 대량 데이터를 입력할 수 있습니다. JSON 출력 파일은 비행제어 컴퓨터(FCC) 파라미터 로딩에 직접 사용하도록 형식이 설계되었습니다.</div>
+      </div>
+
+      <div class="warn-box">
+        <div class="tip-icon">⚠️</div>
+        <div class="tip-text"><strong>주의:</strong> 리깅 데이터는 항공기 안전에 직결됩니다. 반드시 해당 기종의 정비 매뉴얼(AMM) 리깅 절차를 따르고, 인증된 정비사가 검토 및 승인해야 합니다.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+function showSection(id) {
+  // 모든 섹션 숨기기
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  // 선택한 섹션 표시
+  const sec = document.getElementById('sec-' + id);
+  if (sec) sec.classList.add('active');
+
+  // 네비 활성화
+  const navMap = {
+    home: 0, linkage: 1, hinge: 2, regression: 3, servo: 4, rigging: 5
+  };
+  const navItems = document.querySelectorAll('.nav-item');
+  const idx = navMap[id];
+  if (idx !== undefined && navItems[idx]) navItems[idx].classList.add('active');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
