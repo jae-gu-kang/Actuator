@@ -416,6 +416,58 @@ body {
 /* unit badge */
 .unit { font-size: 11px; color: var(--text3); margin-left: 4px; }
 
+/* ── SEARCH ── */
+.search-wrap {
+  position: relative;
+  margin-bottom: 8px;
+}
+.search-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; color: var(--text3); pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  padding: 8px 32px 8px 30px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(118,118,128,0.08);
+  font-size: 13px; color: var(--text);
+  font-family: inherit; outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.search-input:focus {
+  border-color: var(--blue);
+  background: rgba(0,113,227,0.04);
+}
+.search-input::placeholder { color: var(--text3); }
+.search-clear {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; border: none; background: transparent;
+  cursor: pointer; padding: 0; color: var(--text3); display: flex;
+  align-items: center; justify-content: center;
+}
+.search-clear svg { width: 12px; height: 12px; }
+.search-clear:hover { color: var(--text); }
+
+.search-result-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 12px; border-radius: 8px;
+  cursor: pointer; background: transparent;
+  border: none; text-align: left; width: 100%;
+  transition: background 0.12s;
+}
+.search-result-item:hover { background: rgba(0,113,227,0.06); }
+.search-result-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.search-result-snippet { font-size: 11px; color: var(--text2); line-height: 1.4; }
+.search-result-snippet mark {
+  background: rgba(0,113,227,0.15); color: var(--blue);
+  border-radius: 2px; padding: 0 1px; font-style: normal;
+}
+.search-no-result {
+  font-size: 12px; color: var(--text3); text-align: center;
+  padding: 12px 0;
+}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -458,18 +510,21 @@ body {
 
   <!-- SIDEBAR -->
   <nav class="sidebar">
-    <div class="nav-section-title">개요</div>
-    <button class="nav-item active" onclick="showSection('home')">
-      <span class="nav-icon" style="background:rgba(0,0,0,0.06);">
-        <svg viewBox="0 0 16 16" fill="none" stroke="#3a3a3c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 3h12v2H2zm0 4h8v2H2zm0 4h10v2H2z" fill="#3a3a3c" stroke="none"/>
-        </svg>
-      </span>
-      <span class="nav-label">홈<span class="nav-sub">도구 목록 & 개요</span></span>
-    </button>
+    <!-- 검색창 -->
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
+      </svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="매뉴얼 검색..." oninput="doSearch(this.value)">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none;">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+      </button>
+    </div>
+    <!-- 검색 결과 -->
+    <div id="searchResults" style="display:none; flex-direction:column; gap:2px; margin-bottom:4px;"></div>
 
-    <div class="nav-section-title" style="margin-top:8px;">도구별 매뉴얼</div>
-    <button class="nav-item" onclick="showSection('linkage')">
+    <div class="nav-section-title" id="navTitle">도구별 매뉴얼</div>
+    <button class="nav-item active" onclick="showSection('linkage')">
       <span class="nav-icon" style="background:rgba(0,113,227,0.1);">
         <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
@@ -529,85 +584,8 @@ body {
   <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- ══════════════ HOME ══════════════ -->
-    <section class="section active" id="sec-home">
-      <div class="hero">
-        <div class="hero-badge">Engineering Tools</div>
-        <h1>항공 엔지니어링<br>도구 매뉴얼</h1>
-        <p>5가지 전문 엔지니어링 계산 도구의 사용법과 핵심 공학 용어를 정리한 공식 매뉴얼입니다.</p>
-      </div>
-
-      <div class="tool-grid">
-        <div class="tool-card" onclick="showSection('linkage')">
-          <div class="tool-card-icon" style="background:rgba(0,113,227,0.1);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
-              <circle cx="4" cy="4" r="2"/><circle cx="20" cy="10" r="2"/>
-              <line x1="4" y1="6" x2="4" y2="18"/>
-              <line x1="6" y1="4" x2="18" y2="10"/>
-              <line x1="6" y1="20" x2="18" y2="20"/>
-              <line x1="20" y1="12" x2="20" y2="18"/>
-            </svg>
-          </div>
-          <h3>4-Bar Linkage 해석기</h3>
-          <p>4절 링크 기구의 기하학적 해석 및 토크 전달 분석 도구. 크랭크–커플러–팔로워의 위치·속도·토크를 시각적으로 계산합니다.</p>
-          <div class="tool-card-arrow">매뉴얼 보기 →</div>
-        </div>
-        <div class="tool-card" onclick="showSection('hinge')">
-          <div class="tool-card-icon" style="background:rgba(191,90,242,0.1);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#bf5af2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v20M2 12h20"/>
-              <path d="M12 2C8 6 5 9 5 12s3 6 7 10"/>
-              <path d="M12 2c4 4 7 7 7 10s-3 6-7 10"/>
-            </svg>
-          </div>
-          <h3>힌지모멘트 계산기</h3>
-          <p>항공기 조종면에 작용하는 힌지모멘트(H)를 동압, 받음각, 편향각 계수를 이용해 계산합니다.</p>
-          <div class="tool-card-arrow">매뉴얼 보기 →</div>
-        </div>
-        <div class="tool-card" onclick="showSection('regression')">
-          <div class="tool-card-icon" style="background:rgba(255,159,10,0.1);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="4 20 4 4"/><polyline points="4 20 20 20"/>
-              <circle cx="7" cy="14" r="1.2" fill="#ff9f0a"/>
-              <circle cx="10" cy="11" r="1.2" fill="#ff9f0a"/>
-              <circle cx="13" cy="13" r="1.2" fill="#ff9f0a"/>
-              <circle cx="17" cy="8" r="1.2" fill="#ff9f0a"/>
-              <line x1="5" y1="16" x2="19" y2="7" stroke-dasharray="2 1"/>
-            </svg>
-          </div>
-          <h3>회귀분석 도구</h3>
-          <p>선형·다항·지수·대수·S형 등 다양한 회귀 모델을 자동 피팅하고 R², RMSE 등의 적합도 지표를 제공합니다.</p>
-          <div class="tool-card-arrow">매뉴얼 보기 →</div>
-        </div>
-        <div class="tool-card" onclick="showSection('servo')">
-          <div class="tool-card-icon" style="background:rgba(48,176,199,0.1);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/>
-              <line x1="3" y1="20" x2="21" y2="20"/>
-            </svg>
-          </div>
-          <h3>주파수 응답 분석기</h3>
-          <p>서보 스윕 CSV 데이터를 업로드하여 Bode Plot, Coherence, 전달함수를 자동으로 분석합니다.</p>
-          <div class="tool-card-arrow">매뉴얼 보기 →</div>
-        </div>
-        <div class="tool-card" onclick="showSection('rigging')">
-          <div class="tool-card-icon" style="background:rgba(50,215,75,0.1);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3 L2 18 L7 17 L10 13 L10 19 L12 21 L14 19 L14 13 L17 17 L22 18 Z"/>
-              <line x1="2" y1="18" x2="7" y2="17"/>
-              <line x1="17" y1="17" x2="22" y2="18"/>
-            </svg>
-          </div>
-          <h3>CS Rigging 도구</h3>
-          <p>조종면 리깅 측정값을 입력하고 회귀 분석을 통해 리깅 계수를 산출, JSON으로 저장하는 통합 관리 도구입니다.</p>
-          <div class="tool-card-arrow">매뉴얼 보기 →</div>
-        </div>
-      </div>
-    </section>
-
     <!-- ══════════════ 4-BAR LINKAGE ══════════════ -->
-    <section class="section" id="sec-linkage">
+    <section class="section active" id="sec-linkage">
       <div class="page-header">
         <div class="page-icon" style="background:rgba(0,113,227,0.1);">
           <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -641,6 +619,107 @@ body {
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 8h12M8 2v12"/></svg>
             루프 폐합 방정식 (Loop Closure Equations)
           </div>
+
+          <!-- 4절 링크 다이어그램 -->
+          <div style="background:rgba(0,113,227,0.03); border-bottom:1px solid rgba(0,113,227,0.08); padding:20px 24px; display:flex; justify-content:center;">
+            <svg viewBox="0 0 420 200" width="100%" style="max-width:420px; font-family:-apple-system,sans-serif;">
+              <!-- 배경 그리드 점 -->
+              <defs>
+                <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <circle cx="1" cy="1" r="1" fill="rgba(0,0,0,0.07)"/>
+                </pattern>
+              </defs>
+              <rect width="420" height="200" fill="url(#dots)" rx="8"/>
+
+              <!-- 좌표 정의 : O2(80,150) O4(340,150) A(140,60) B(300,80) -->
+
+              <!-- 지면 해칭 (고정링크 양단) -->
+              <g stroke="#8e8e93" stroke-width="1">
+                <!-- O2 지면 -->
+                <line x1="68" y1="158" x2="92" y2="158" stroke-width="1.5"/>
+                <line x1="62" y1="164" x2="72" y2="158"/><line x1="68" y1="164" x2="78" y2="158"/>
+                <line x1="74" y1="164" x2="84" y2="158"/><line x1="80" y1="164" x2="90" y2="158"/>
+                <line x1="86" y1="164" x2="96" y2="158"/>
+                <!-- O4 지면 -->
+                <line x1="328" y1="158" x2="352" y2="158" stroke-width="1.5"/>
+                <line x1="322" y1="164" x2="332" y2="158"/><line x1="328" y1="164" x2="338" y2="158"/>
+                <line x1="334" y1="164" x2="344" y2="158"/><line x1="340" y1="164" x2="350" y2="158"/>
+                <line x1="346" y1="164" x2="356" y2="158"/>
+              </g>
+
+              <!-- 고정링크 d (O2→O4, 점선) -->
+              <line x1="80" y1="150" x2="340" y2="150" stroke="#8e8e93" stroke-width="2" stroke-dasharray="6 4"/>
+
+              <!-- 크랭크 a (O2→A) : 파랑 -->
+              <line x1="80" y1="150" x2="140" y2="60" stroke="#0071e3" stroke-width="3.5" stroke-linecap="round"/>
+              <!-- 커플러 b (A→B) : 보라 -->
+              <line x1="140" y1="60" x2="300" y2="80" stroke="#bf5af2" stroke-width="3.5" stroke-linecap="round"/>
+              <!-- 팔로워 c (O4→B) : 빨강 -->
+              <line x1="340" y1="150" x2="300" y2="80" stroke="#ff453a" stroke-width="3.5" stroke-linecap="round"/>
+
+              <!-- 각도 호 θ₂ at O2 -->
+              <path d="M 110 150 A 30 30 0 0 0 93 123" fill="none" stroke="#0071e3" stroke-width="1.5" stroke-dasharray="3 2"/>
+              <!-- 각도 호 θ₄ at O4 -->
+              <path d="M 310 150 A 30 30 0 0 1 322 122" fill="none" stroke="#ff453a" stroke-width="1.5" stroke-dasharray="3 2"/>
+              <!-- 각도 호 θ₃ on coupler (near A) -->
+              <path d="M 160 65 A 22 22 0 0 1 162 85" fill="none" stroke="#bf5af2" stroke-width="1.5" stroke-dasharray="3 2"/>
+
+              <!-- 절점 O2 (고정) -->
+              <circle cx="80" cy="150" r="7" fill="white" stroke="#8e8e93" stroke-width="2"/>
+              <circle cx="80" cy="150" r="3" fill="#8e8e93"/>
+              <!-- 절점 O4 (고정) -->
+              <circle cx="340" cy="150" r="7" fill="white" stroke="#8e8e93" stroke-width="2"/>
+              <circle cx="340" cy="150" r="3" fill="#8e8e93"/>
+              <!-- 절점 A (가동) -->
+              <circle cx="140" cy="60" r="7" fill="white" stroke="#0071e3" stroke-width="2.5"/>
+              <circle cx="140" cy="60" r="3" fill="#0071e3"/>
+              <!-- 절점 B (가동) -->
+              <circle cx="300" cy="80" r="7" fill="white" stroke="#bf5af2" stroke-width="2.5"/>
+              <circle cx="300" cy="80" r="3" fill="#bf5af2"/>
+
+              <!-- 링크 레이블 -->
+              <!-- a 레이블 (크랭크, 파랑) -->
+              <text x="96" y="96" fill="#0071e3" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">a</text>
+              <!-- b 레이블 (커플러, 보라) -->
+              <text x="222" y="57" fill="#bf5af2" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">b</text>
+              <!-- c 레이블 (팔로워, 빨강) -->
+              <text x="326" y="106" fill="#ff453a" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">c</text>
+              <!-- d 레이블 (고정, 회색) -->
+              <text x="210" y="143" fill="#8e8e93" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">d</text>
+
+              <!-- 절점 레이블 -->
+              <text x="62" y="148" fill="#6e6e73" font-size="11" font-weight="600" text-anchor="middle">O₂</text>
+              <text x="358" y="148" fill="#6e6e73" font-size="11" font-weight="600" text-anchor="start">O₄</text>
+              <text x="140" y="46" fill="#0071e3" font-size="11" font-weight="700" text-anchor="middle">A</text>
+              <text x="300" y="66" fill="#bf5af2" font-size="11" font-weight="700" text-anchor="middle">B</text>
+
+              <!-- 각도 레이블 -->
+              <text x="118" y="136" fill="#0071e3" font-size="12" font-weight="600" font-style="italic">θ₂</text>
+              <text x="303" y="134" fill="#ff453a" font-size="12" font-weight="600" font-style="italic">θ₄</text>
+              <text x="170" y="60" fill="#bf5af2" font-size="12" font-weight="600" font-style="italic">θ₃</text>
+
+              <!-- 회전 방향 화살표 (크랭크) -->
+              <path d="M 55 128 A 26 26 0 0 1 78 126" fill="none" stroke="#0071e3" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+              <defs>
+                <marker id="arr-blue" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                  <path d="M0,0 L6,3 L0,6 Z" fill="#0071e3"/>
+                </marker>
+              </defs>
+
+              <!-- 범례 -->
+              <rect x="10" y="8" width="200" height="22" rx="6" fill="rgba(255,255,255,0.7)"/>
+              <line x1="18" y1="19" x2="36" y2="19" stroke="#0071e3" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="40" y="23" fill="#0071e3" font-size="10.5" font-weight="600">크랭크 a</text>
+              <line x1="90" y1="19" x2="108" y2="19" stroke="#bf5af2" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="112" y="23" fill="#bf5af2" font-size="10.5" font-weight="600">커플러 b</text>
+              <rect x="10" y="34" width="200" height="22" rx="6" fill="rgba(255,255,255,0.7)"/>
+              <line x1="18" y1="45" x2="36" y2="45" stroke="#ff453a" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="40" y="49" fill="#ff453a" font-size="10.5" font-weight="600">팔로워 c</text>
+              <line x1="90" y1="45" x2="108" y2="45" stroke="#8e8e93" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="112" y="49" fill="#8e8e93" font-size="10.5" font-weight="600">고정링크 d</text>
+            </svg>
+          </div>
+
           <div class="eq-body">
             <div>
               <div class="eq-label">X 방향</div>
@@ -1518,25 +1597,136 @@ body {
 </div>
 
 <script>
+// ── 검색 인덱스 ──
+const SEARCH_INDEX = [
+  { id:'linkage', title:'4-Bar Linkage 해석기', keywords:'4절 링크 크랭크 커플러 팔로워 고정링크 토크 전달각 기계적이득 MA Grashof Grashof루프폐합 θ₂ θ₃ θ₄ 기구학 kinematics 링크 해석기 루프 폐합 방정식 mechanical advantage' },
+  { id:'linkage', title:'링크 길이 입력', keywords:'링크 길이 mm 고정링크 크랭크 커플러 팔로워 입력 파라미터 a b c d' },
+  { id:'linkage', title:'토크 해석', keywords:'토크 입력 T₂ T₄ 출력 가상일 virtual work 기계적이득 MA 플롯' },
+  { id:'linkage', title:'전달각 Transmission Angle', keywords:'전달각 μ 40도 효율 커플러 팔로워' },
+  { id:'linkage', title:'Grashof 조건', keywords:'Grashof s l p q 완전회전 크랭크 로커 조건식' },
+  { id:'hinge',   title:'힌지모멘트 계산기', keywords:'힌지모멘트 H 동압 q 조종면 편향각 δ 받음각 α MAC 면적 S 밀도 ρ 속도 V C_H 서보 사이징 aerodynamics 공기역학' },
+  { id:'hinge',   title:'힌지모멘트 공식', keywords:'H = q S MAC CH delta alpha 동압 dynamic pressure 공식' },
+  { id:'hinge',   title:'C_H 계수', keywords:'CH 힌지모멘트계수 편향각계수 받음각계수 풍동 무차원' },
+  { id:'hinge',   title:'평균공력시위 MAC', keywords:'mean aerodynamic chord MAC 시위 테이퍼 날개 기준 길이' },
+  { id:'hinge',   title:'동압 Dynamic Pressure', keywords:'동압 q 0.5 rho V^2 속도 밀도 압력 항공하중' },
+  { id:'regression', title:'회귀분석 도구', keywords:'회귀분석 regression linear polynomial exponential logarithmic power sigmoid logistic R² RMSE MAE 잔차 결정계수 적합도 statistics' },
+  { id:'regression', title:'선형 회귀 Linear', keywords:'선형 y=ax+b 최소제곱 OLS 직선' },
+  { id:'regression', title:'다항 회귀 Polynomial', keywords:'다항 polynomial 차수 degree 과적합 overfitting' },
+  { id:'regression', title:'지수 회귀 Exponential', keywords:'지수 exponential e^bx 성장 감쇠 세균 붕괴 복리' },
+  { id:'regression', title:'대수 회귀 Logarithmic', keywords:'대수 logarithmic ln 포화 데시벨 학습곡선' },
+  { id:'regression', title:'멱함수 회귀 Power', keywords:'멱함수 power law a*x^b 케플러 스케일링' },
+  { id:'regression', title:'시그모이드 회귀 Sigmoid', keywords:'시그모이드 sigmoid logistic S형 성장곡선 포화' },
+  { id:'regression', title:'R² 결정계수', keywords:'R squared R² 결정계수 SS_res SS_tot 0~1 0.95' },
+  { id:'regression', title:'RMSE MAE', keywords:'RMSE root mean square error MAE mean absolute error 잔차 오차 이상값' },
+  { id:'servo',   title:'주파수 응답 분석기 FRA', keywords:'주파수응답 FRA bode plot 보드선도 대역폭 bandwidth coherence 코히런스 전달함수 서보 sweep chirp 제어공학' },
+  { id:'servo',   title:'Bode Plot 보드선도', keywords:'bode plot 크기 magnitude dB 위상 phase frequency 주파수 응답' },
+  { id:'servo',   title:'전달함수 H(s)', keywords:'transfer function H(s) 2차 라플라스 ωn 감쇠비 ζ standard form' },
+  { id:'servo',   title:'대역폭 Bandwidth', keywords:'대역폭 bandwidth -3dB 주파수 서보 추종' },
+  { id:'servo',   title:'코히런스 Coherence γ²', keywords:'coherence 코히런스 γ² 0.8 신뢰도 노이즈 비선형' },
+  { id:'servo',   title:'감쇠비 ζ Damping Ratio', keywords:'감쇠비 damping ratio ζ 부족감쇠 임계감쇠 과감쇠 0.5 0.8' },
+  { id:'servo',   title:'고유진동수 ωₙ', keywords:'고유진동수 natural frequency ωn rad/s Hz fn 2π' },
+  { id:'rigging', title:'CS Rigging 도구', keywords:'rigging 리깅 조종면 CS control surface SID 호기번호 리비전 JSON 회귀계수 기울기 오프셋 항공정비' },
+  { id:'rigging', title:'리깅 계수', keywords:'리깅계수 slope intercept 기울기 오프셋 명령각도 응답각도 보정' },
+  { id:'rigging', title:'조종면 Control Surface', keywords:'조종면 에일러론 엘리베이터 러더 플랩 스포일러 aileron elevator rudder flap spoiler 롤 피치 요' },
+  { id:'rigging', title:'SID 호기번호', keywords:'SID serial ship id 호기 번호 식별자 항공기' },
+];
+
+const NAV_IDS = ['linkage','hinge','regression','servo','rigging'];
+
 function showSection(id) {
-  // 모든 섹션 숨기기
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
-  // 선택한 섹션 표시
   const sec = document.getElementById('sec-' + id);
   if (sec) sec.classList.add('active');
 
-  // 네비 활성화
-  const navMap = {
-    home: 0, linkage: 1, hinge: 2, regression: 3, servo: 4, rigging: 5
-  };
+  const idx = NAV_IDS.indexOf(id);
   const navItems = document.querySelectorAll('.nav-item');
-  const idx = navMap[id];
-  if (idx !== undefined && navItems[idx]) navItems[idx].classList.add('active');
+  if (idx !== -1 && navItems[idx]) navItems[idx].classList.add('active');
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  clearSearch();
 }
+
+// ── 검색 ──
+function doSearch(q) {
+  const qTrim = q.trim();
+  const clearBtn = document.getElementById('searchClear');
+  const resultsEl = document.getElementById('searchResults');
+  const navTitle = document.getElementById('navTitle');
+
+  clearBtn.style.display = qTrim ? 'flex' : 'none';
+
+  if (!qTrim) {
+    resultsEl.style.display = 'none';
+    resultsEl.innerHTML = '';
+    navTitle.style.display = '';
+    document.querySelectorAll('.nav-item').forEach(n => n.style.display = '');
+    return;
+  }
+
+  // 네비 메뉴 숨기기
+  navTitle.style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(n => n.style.display = 'none');
+
+  const tokens = qTrim.toLowerCase().split(/\s+/);
+  const seen = new Set();
+  const hits = [];
+
+  SEARCH_INDEX.forEach(entry => {
+    const hay = (entry.title + ' ' + entry.keywords).toLowerCase();
+    const score = tokens.filter(t => hay.includes(t)).length;
+    if (score > 0) {
+      const key = entry.id + '||' + entry.title;
+      if (!seen.has(key)) {
+        seen.add(key);
+        // snippet: 매칭 키워드 하이라이트
+        const snippet = entry.keywords.split(' ')
+          .filter(k => tokens.some(t => k.toLowerCase().includes(t)))
+          .slice(0, 4).join(' · ');
+        hits.push({ ...entry, score, snippet });
+      }
+    }
+  });
+
+  hits.sort((a,b) => b.score - a.score);
+
+  resultsEl.style.display = 'flex';
+  if (hits.length === 0) {
+    resultsEl.innerHTML = `<div class="search-no-result">검색 결과가 없습니다</div>`;
+    return;
+  }
+
+  const sectionLabel = { linkage:'4-Bar Linkage', hinge:'힌지모멘트', regression:'회귀분석', servo:'주파수 응답', rigging:'CS Rigging' };
+  resultsEl.innerHTML = hits.map(h => {
+    const snip = highlightTokens(h.snippet, tokens);
+    return `<button class="search-result-item" onclick="showSection('${h.id}')">
+      <span class="search-result-title">${highlightTokens(h.title, tokens)}</span>
+      <span class="search-result-snippet">${sectionLabel[h.id]} · ${snip}</span>
+    </button>`;
+  }).join('');
+}
+
+function highlightTokens(text, tokens) {
+  let result = text;
+  tokens.forEach(t => {
+    if (!t) return;
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+    result = result.replace(re, '<mark>$1</mark>');
+  });
+  return result;
+}
+
+function clearSearch() {
+  const inp = document.getElementById('searchInput');
+  inp.value = '';
+  doSearch('');
+}
+
+// ── 초기화: linkage를 기본 활성 ──
+document.addEventListener('DOMContentLoaded', () => {
+  showSection('linkage');
+});
 </script>
 </body>
 </html>
