@@ -467,6 +467,24 @@ body {
   font-size: 12px; color: var(--text3); text-align: center;
   padding: 12px 0;
 }
+.search-group-label {
+  display: flex; align-items: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; padding: 8px 12px 4px;
+  margin-top: 2px;
+}
+
+/* ── 검색 결과 하이라이트 ── */
+@keyframes searchPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,113,227,0.35), 0 0 0 0 rgba(0,113,227,0.15); background: rgba(0,113,227,0.08); }
+  40%  { box-shadow: 0 0 0 6px rgba(0,113,227,0.12), 0 0 0 12px rgba(0,113,227,0.05); background: rgba(0,113,227,0.06); }
+  100% { box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent; background: transparent; }
+}
+.search-highlight {
+  border-radius: 10px;
+  animation: searchPulse 2.2s ease-out forwards;
+  position: relative; z-index: 1;
+}
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 6px; }
@@ -610,14 +628,14 @@ body {
 
       <!-- 개요 -->
       <div class="card">
-        <div class="card-title">도구 개요</div>
+        <div <span id="anc-linkage-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           4-Bar Linkage 해석기는 4개의 링크(크랭크, 커플러, 팔로워, 고정링크)로 구성된 기구학적 메커니즘의 위치, 각도, 토크를 분석합니다. 항공기 조종면 액추에이터, 로봇 팔, 자동차 서스펜션 등 다양한 분야에서 활용되는 기초 기구학 해석 도구입니다.
         </p>
         <div class="eq-card" style="margin-top:16px;">
           <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 8h12M8 2v12"/></svg>
-            루프 폐합 방정식 (Loop Closure Equations)
+            <span id="anc-loop-closure" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>루프 폐합 방정식 (Loop Closure Equations)
           </div>
 
           <!-- 4절 링크 다이어그램 -->
@@ -769,7 +787,7 @@ body {
 
       <!-- 사용 방법 -->
       <div class="card">
-        <div class="card-title">사용 방법</div>
+        <div <span id="anc-linkage-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">사용 방법</div>
         <div class="step-list">
           <div class="step">
             <div class="step-num">1</div>
@@ -804,7 +822,7 @@ body {
 
       <!-- 입력 파라미터 -->
       <div class="card">
-        <div class="card-title">입력 파라미터</div>
+        <div <span id="anc-linkage-params" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">입력 파라미터</div>
         <table class="input-table">
           <tr><th>파라미터</th><th>설명</th><th>범위</th></tr>
           <tr><td>d <span class="unit">mm</span></td><td>고정링크 (Ground Link) — O₂와 O₄ 사이의 거리</td><td>10 ~ 400</td></tr>
@@ -818,34 +836,34 @@ body {
 
       <!-- 핵심 용어 -->
       <div class="card">
-        <div class="card-title">핵심 공학 용어</div>
+        <div <span id="anc-linkage-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">핵심 공학 용어</div>
         <div class="term-grid">
           <div class="term-row">
-            <div class="term-name">크랭크 (Crank)
+            <div <span id="anc-crank" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">크랭크 (Crank)
               <span class="term-symbol">링크 a</span>
             </div>
             <div class="term-desc">4절 링크에서 모터 등 구동원에 연결된 입력 링크. 회전 운동을 제공하며 360° 완전 회전이 가능한 경우를 <strong>크랭크</strong>, 그렇지 않은 경우를 <strong>로커(Rocker)</strong>라고 구분합니다. Grashof 조건에 의해 결정됩니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">커플러 (Coupler)
+            <div <span id="anc-coupler" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">커플러 (Coupler)
               <span class="term-symbol">링크 b</span>
             </div>
             <div class="term-desc">크랭크와 팔로워를 연결하는 중간 링크. 커플러 위의 임의 점이 그리는 궤적을 <strong>커플러 곡선(Coupler Curve)</strong>이라 하며, 이를 이용해 다양한 동작 경로를 설계합니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">팔로워 (Follower)
+            <div <span id="anc-follower" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">팔로워 (Follower)
               <span class="term-symbol">링크 c</span>
             </div>
             <div class="term-desc">출력 링크. 조종면, 아암, 레버 등에 연결되어 유효한 출력 운동을 전달합니다. 팔로워의 각도 θ₄가 출력 위치를 결정합니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">전달각 (Transmission Angle)
+            <div <span id="anc-transmission-angle" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">전달각 (Transmission Angle)
               <span class="term-symbol">μ</span>
             </div>
             <div class="term-desc">커플러와 팔로워 사이의 각도. 토크가 얼마나 효율적으로 전달되는지를 나타내는 지표로, <code>μ = 90°</code>일 때 전달 효율이 최대입니다. 일반적으로 <strong>μ &gt; 40°</strong>를 유지해야 기구가 정상적으로 동작합니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">기계적 이득 (MA)
+            <div <span id="anc-ma" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">기계적 이득 (MA)
               <span class="term-symbol">Mechanical Advantage</span>
             </div>
             <div class="term-desc" style="display:flex;flex-direction:column;gap:10px;">
@@ -879,7 +897,7 @@ body {
             </div>
           </div>
           <div class="term-row">
-            <div class="term-name">Grashof 조건
+            <div <span id="anc-grashof" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">Grashof 조건
               <span class="term-symbol">s + l ≤ p + q</span>
             </div>
             <div class="term-desc" style="display:flex;flex-direction:column;gap:10px;">
@@ -906,7 +924,7 @@ body {
             </div>
           </div>
           <div class="term-row">
-            <div class="term-name">루프 폐합 방정식
+            <div <span id="anc-loop-term" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">루프 폐합 방정식
               <span class="term-symbol">Loop Closure Eq.</span>
             </div>
             <div class="term-desc">4절 링크의 폐루프 벡터 합이 영(0)이 되는 조건으로, 기구의 기하학적 해를 구하는 기본 방정식입니다. θ₂를 입력으로 θ₃, θ₄를 구하며, Freudenstein 방정식으로 대수적 해가 가능합니다.</div>
@@ -942,14 +960,14 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">도구 개요</div>
+        <div <span id="anc-hinge-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           조종면(에일러론, 엘리베이터, 러더, 플랩 등)이 공기 중에서 편향될 때 힌지 축 주변에 발생하는 모멘트를 계산합니다. 이 힌지모멘트는 액추에이터(서보)가 극복해야 할 하중이므로, 서보 사이징의 핵심 설계 파라미터입니다.
         </p>
         <div class="eq-card" style="margin-top:16px;">
           <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2;">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v12M2 8h12"/><path d="M8 2C5.5 5 4 6.5 4 8s1.5 3 4 6"/><path d="M8 2c2.5 3 4 4.5 4 6s-1.5 3-4 6"/></svg>
-            힌지모멘트 공식
+            <span id="anc-hinge-formula" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>힌지모멘트 공식
           </div>
           <div class="eq-body">
             <div>
@@ -1006,7 +1024,7 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">사용 방법</div>
+        <div <span id="anc-hinge-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">사용 방법</div>
         <div class="step-list">
           <div class="step">
             <div class="step-num">1</div>
@@ -1033,7 +1051,7 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">입력 파라미터</div>
+        <div <span id="anc-hinge-params" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">입력 파라미터</div>
         <table class="input-table">
           <tr><th>파라미터</th><th>설명</th><th>단위</th></tr>
           <tr><td>S</td><td>조종면 면적 (Control Surface Area)</td><td>m²</td></tr>
@@ -1048,7 +1066,7 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">핵심 공학 용어</div>
+        <div <span id="anc-hinge-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">핵심 공학 용어</div>
         <div class="term-grid">
           <div class="term-row">
             <div class="term-name">힌지모멘트 (H)
@@ -1057,31 +1075,31 @@ body {
             <div class="term-desc">공기력이 조종면 힌지 축에 가하는 모멘트. 단위는 N·m이며, 이 값이 클수록 더 강력한 액추에이터(서보)가 필요합니다. <strong>서보 토크 선정의 핵심 기준값</strong>입니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">동압 (q)
+            <div <span id="anc-dynamic-pressure" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">동압 (q)
               <span class="term-symbol">Dynamic Pressure</span>
             </div>
             <div class="term-desc">유체의 운동 에너지를 압력으로 표현한 것: <code>q = ½ρV²</code>. 속도의 제곱에 비례하므로, 속도가 2배 증가하면 동압(힌지모멘트)은 4배 증가합니다. 항공 하중 계산의 기본 단위입니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">힌지모멘트 계수 (C<sub>H</sub>)
+            <div <span id="anc-ch" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">힌지모멘트 계수 (C<sub>H</sub>)
               <span class="term-symbol">Hinge Moment Coefficient</span>
             </div>
             <div class="term-desc">무차원 힌지모멘트 계수로, 풍동 시험을 통해 획득합니다. 편향각 성분 <code>C<sub>H,δ</sub></code>와 받음각 성분 <code>C<sub>H,α</sub></code>로 분리됩니다. 대부분의 조종면에서 음수(restoring 방향)입니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">받음각 (AoA)
+            <div <span id="anc-aoa" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">받음각 (AoA)
               <span class="term-symbol">Angle of Attack α</span>
             </div>
             <div class="term-desc">항공기 기준선(시위선)과 유입 기류 방향 사이의 각도. 받음각이 커지면 양력이 증가하고 동시에 힌지모멘트에도 영향을 미칩니다. 실속(Stall)은 임계 받음각 초과 시 발생합니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">평균공력시위 (MAC)
+            <div <span id="anc-mac" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">평균공력시위 (MAC)
               <span class="term-symbol">Mean Aerodynamic Chord</span>
             </div>
             <div class="term-desc">날개 또는 조종면의 공력적으로 동등한 평균 시위 길이. 테이퍼 날개에서 직사각형 날개와 동일한 공력 특성을 나타내는 등가 시위로, 힌지모멘트 계산의 기준 길이로 사용됩니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">편향각 (δ)
+            <div <span id="anc-deflection" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">편향각 (δ)
               <span class="term-symbol">Deflection Angle</span>
             </div>
             <div class="term-desc">조종면이 중립 위치에서 회전한 각도. 양(+)은 하향, 음(-)은 상향 편향을 의미하는 것이 일반적이나, 기준 축 설정에 따라 달라집니다. 힌지모멘트는 편향각의 선형 함수로 근사됩니다.</div>
@@ -1120,14 +1138,14 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">도구 개요</div>
+        <div <span id="anc-reg-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           X-Y 데이터 쌍을 입력하면 선택한 회귀 모델로 자동 피팅하고, 결정계수(R²), 잔차, RMSE 등 통계 지표를 제공합니다. 엔지니어링 데이터 경향 파악, 보정 곡선 작성, 센서 캘리브레이션에 활용됩니다.
         </p>
       </div>
 
       <div class="card">
-        <div class="card-title">사용 방법</div>
+        <div <span id="anc-reg-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">사용 방법</div>
         <div class="step-list">
           <div class="step">
             <div class="step-num">1</div>
@@ -1154,13 +1172,13 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">지원 회귀 모델</div>
+        <div <span id="anc-reg-models" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">지원 회귀 모델</div>
 
         <!-- 회귀 모델 공식 그리드 -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:4px;">
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3; font-size:10px;">선형 회귀 · Linear</div>
+            <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3; font-size:10px;"><span id="anc-linear" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>선형 회귀 · Linear</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
               <div class="eq-row">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
@@ -1176,7 +1194,7 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2; font-size:10px;">다항 회귀 · Polynomial</div>
+            <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2; font-size:10px;"><span id="anc-polynomial" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>다항 회귀 · Polynomial</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
               <div class="eq-row" style="font-size:17px;">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
@@ -1192,7 +1210,7 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;">지수 회귀 · Exponential</div>
+            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;"><span id="anc-exponential" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>지수 회귀 · Exponential</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
               <div class="eq-row">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
@@ -1206,7 +1224,7 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;">대수 회귀 · Logarithmic</div>
+            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;"><span id="anc-logarithmic" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>대수 회귀 · Logarithmic</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
               <div class="eq-row">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
@@ -1225,7 +1243,7 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">멱함수 회귀 · Power</div>
+            <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;"><span id="anc-power" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>멱함수 회귀 · Power</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
               <div class="eq-row">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
@@ -1239,7 +1257,7 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(40,167,69,0.08); color:#28a745; font-size:10px;">시그모이드 회귀 · Logistic</div>
+            <div class="eq-header" style="background:rgba(40,167,69,0.08); color:#28a745; font-size:10px;"><span id="anc-sigmoid" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>시그모이드 회귀 · Logistic</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
               <div class="eq-row">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
@@ -1258,12 +1276,12 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">적합도 지표 해석</div>
+        <div <span id="anc-gof" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">적합도 지표 해석</div>
 
         <div class="eq-card" style="margin-bottom:12px;">
           <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2 14 2 2"/><polyline points="2 14 14 14"/><circle cx="4.5" cy="10" r="1" fill="currentColor"/><circle cx="7" cy="7.5" r="1" fill="currentColor"/><circle cx="9.5" cy="9" r="1" fill="currentColor"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
-            R² — 결정계수 (Coefficient of Determination)
+            <span id="anc-r2" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>R² — 결정계수 (Coefficient of Determination)
           </div>
           <div class="eq-body">
             <div class="eq-row">
@@ -1297,7 +1315,7 @@ body {
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;">RMSE — Root Mean Square Error</div>
+            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;"><span id="anc-rmse" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>RMSE — Root Mean Square Error</div>
             <div class="eq-body" style="padding:18px 20px; align-items:center;">
               <div class="eq-row">
                 <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;font-weight:600;">RMSE</span>
@@ -1314,7 +1332,7 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;">MAE — Mean Absolute Error</div>
+            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;"><span id="anc-mae" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>MAE — Mean Absolute Error</div>
             <div class="eq-body" style="padding:18px 20px; align-items:center;">
               <div class="eq-row">
                 <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;font-weight:600;">MAE</span>
@@ -1363,14 +1381,14 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">도구 개요</div>
+        <div <span id="anc-servo-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           서보 시스템에 정현파 스윕(Chirp) 신호를 인가하고 측정한 명령(u)과 응답(y) 데이터를 CSV로 업로드하면, Bode Plot, 코히런스(Coherence), 2차 시스템 전달함수를 자동으로 추정합니다. 서보의 대역폭과 위상 지연을 평가하는 표준 방법입니다.
         </p>
       </div>
 
       <div class="card">
-        <div class="card-title">사용 방법</div>
+        <div <span id="anc-servo-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">사용 방법</div>
         <div class="step-list">
           <div class="step">
             <div class="step-num">1</div>
@@ -1404,34 +1422,34 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">핵심 공학 용어</div>
+        <div <span id="anc-servo-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">핵심 공학 용어</div>
         <div class="term-grid">
           <div class="term-row">
-            <div class="term-name">Bode Plot
+            <div <span id="anc-bode" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">Bode Plot
               <span class="term-symbol">보드 선도</span>
             </div>
             <div class="term-desc">시스템의 주파수 응답을 크기(Magnitude, dB)와 위상(Phase, °) 두 그래프로 나타낸 것. X축은 주파수(Hz), 크기 Y축은 <code>20·log₁₀(|H(f)|)</code>입니다. 제어 시스템 안정성 분석의 핵심 도구입니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">대역폭 (Bandwidth)
+            <div <span id="anc-bandwidth" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">대역폭 (Bandwidth)
               <span class="term-symbol">BW, −3 dB Frequency</span>
             </div>
             <div class="term-desc">시스템이 입력 신호를 충실히 추종할 수 있는 최대 주파수. Bode Plot에서 크기가 −3 dB(약 70.7%)로 떨어지는 주파수로 정의됩니다. 서보의 대역폭이 높을수록 빠른 명령을 추종할 수 있습니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">코히런스 γ²(f)
+            <div <span id="anc-coherence" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">코히런스 γ²(f)
               <span class="term-symbol">Coherence</span>
             </div>
             <div class="term-desc">입력과 출력 신호 간의 인과성 신뢰도를 나타내는 지표. 0~1 범위이며 <strong>γ² = 1</strong>이면 완벽한 선형 인과 관계, 낮으면 노이즈나 비선형성이 있음을 의미합니다. <strong>γ² ≥ 0.8</strong>인 주파수 범위만 신뢰할 수 있습니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">전달함수 H(s)
+            <div <span id="anc-transfer-fn" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">전달함수 H(s)
               <span class="term-symbol">Transfer Function</span>
             </div>
             <div class="term-desc" style="display:flex; flex-direction:column; gap:10px;">
               <span>라플라스 영역에서 입출력 관계를 나타내는 함수. 이 도구는 아래 2차 표준형으로 피팅합니다.</span>
               <div class="eq-card" style="margin:0;">
-                <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">2차 표준형 전달함수</div>
+                <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;"><span id="anc-2nd-order" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>2차 표준형 전달함수</div>
                 <div class="eq-body" style="padding:18px 24px; align-items:center;">
                   <div class="eq-row">
                     <span class="eq-sym"><span class="var-teal">H</span>(s)</span>
@@ -1452,13 +1470,13 @@ body {
             </div>
           </div>
           <div class="term-row">
-            <div class="term-name">고유진동수 ωₙ
+            <div <span id="anc-natural-freq" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">고유진동수 ωₙ
               <span class="term-symbol">Natural Frequency</span>
             </div>
             <div class="term-desc">감쇠가 없을 때 시스템이 자유 진동하는 각주파수 (rad/s). 2차 시스템 응답 특성의 핵심 파라미터로, <code>fₙ = ωₙ / (2π)</code>로 Hz로 변환합니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">감쇠비 ζ
+            <div <span id="anc-damping" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">감쇠비 ζ
               <span class="term-symbol">Damping Ratio</span>
             </div>
             <div class="term-desc">
@@ -1471,7 +1489,7 @@ body {
             </div>
           </div>
           <div class="term-row">
-            <div class="term-name">스윕 신호 (Chirp)
+            <div <span id="anc-chirp" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">스윕 신호 (Chirp)
               <span class="term-symbol">Frequency Sweep</span>
             </div>
             <div class="term-desc">시간에 따라 주파수가 증가(또는 감소)하는 정현파 신호. 서보 FRA 시험에서 넓은 주파수 범위의 응답을 한 번의 시험으로 측정할 수 있어 효율적입니다. 선형 스윕과 로그 스윕이 있습니다.</div>
@@ -1507,14 +1525,14 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">도구 개요</div>
+        <div <span id="anc-rigging-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           항공기 조종면(CS: Control Surface)의 리깅(Rigging) 작업 시 측정한 명령각도-응답각도 데이터를 체계적으로 입력·관리하고, 회귀 분석을 통해 리깅 계수(기울기·오프셋)를 산출합니다. 결과는 JSON 파일로 저장되어 비행제어 소프트웨어에서 직접 활용할 수 있습니다.
         </p>
       </div>
 
       <div class="card">
-        <div class="card-title">사용 방법 (3단계)</div>
+        <div <span id="anc-rigging-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">사용 방법 (3단계)</div>
         <div class="step-list">
           <div class="step">
             <div class="step-num">①</div>
@@ -1541,40 +1559,40 @@ body {
       </div>
 
       <div class="card">
-        <div class="card-title">핵심 공학 용어</div>
+        <div <span id="anc-rigging-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="card-title">핵심 공학 용어</div>
         <div class="term-grid">
           <div class="term-row">
-            <div class="term-name">리깅 (Rigging)
+            <div <span id="anc-rigging-def" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">리깅 (Rigging)
               <span class="term-symbol">Control Surface Rigging</span>
             </div>
             <div class="term-desc">조종 입력(명령)과 조종면의 실제 편향 각도 사이의 관계를 조정하는 작업. 기계적 링키지의 마모, 온도 변화, 조립 오차로 인한 편차를 보정하여 설계된 게인(이득)을 유지합니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">리깅 계수
+            <div <span id="anc-rigging-coef" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">리깅 계수
               <span class="term-symbol">Rigging Coefficient</span>
             </div>
             <div class="term-desc">명령 각도 대비 실제 조종면 편향 각도의 선형 회귀 기울기(Slope)와 오프셋(Intercept). 비행제어 소프트웨어에서 명령을 물리적 편향으로 변환하는 핵심 보정 계수입니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">조종면 (CS)
+            <div <span id="anc-control-surface" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">조종면 (CS)
               <span class="term-symbol">Control Surface</span>
             </div>
             <div class="term-desc">항공기의 자세와 비행 경로를 제어하는 가동 표면. 주요 조종면: <strong>에일러론</strong>(Aileron, 롤), <strong>엘리베이터</strong>(Elevator, 피치), <strong>러더</strong>(Rudder, 요), <strong>플랩</strong>(Flap, 양력증가), <strong>스포일러</strong>(Spoiler, 항력).</div>
           </div>
           <div class="term-row">
-            <div class="term-name">SID
+            <div <span id="anc-sid" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">SID
               <span class="term-symbol">Serial / Ship ID</span>
             </div>
             <div class="term-desc">개별 항공기 호기 번호. 동일 기종의 여러 항공기를 구별하는 식별자로, 각 항공기마다 고유한 리깅 데이터를 관리합니다. 리깅 JSON 파일명과 메타데이터에 포함됩니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">리비전 (Revision)
+            <div <span id="anc-revision" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">리비전 (Revision)
               <span class="term-symbol">Rev.</span>
             </div>
             <div class="term-desc">리깅 데이터의 개정 번호. 정기 점검 또는 수정 후 재리깅 시 리비전을 올려 데이터 이력을 관리합니다. 형상 관리(Configuration Management)의 핵심 요소입니다.</div>
           </div>
           <div class="term-row">
-            <div class="term-name">R² (회귀 품질)
+            <div <span id="anc-rigging-r2" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>class="term-name">R² (회귀 품질)
               <span class="term-symbol">Goodness of Fit</span>
             </div>
             <div class="term-desc">측정 데이터와 선형 리깅 모델의 적합도. <strong>R² = 1.0</strong>이면 완벽한 선형성, 낮은 R²는 기계적 결함(백래시, 마찰, 결함 링키지)의 신호일 수 있습니다. 일반적으로 <strong>R² ≥ 0.999</strong>를 요구합니다.</div>
@@ -1597,43 +1615,76 @@ body {
 </div>
 
 <script>
-// ── 검색 인덱스 ──
+// ── 검색 인덱스 (anchor 포함) ──
 const SEARCH_INDEX = [
-  { id:'linkage', title:'4-Bar Linkage 해석기', keywords:'4절 링크 크랭크 커플러 팔로워 고정링크 토크 전달각 기계적이득 MA Grashof Grashof루프폐합 θ₂ θ₃ θ₄ 기구학 kinematics 링크 해석기 루프 폐합 방정식 mechanical advantage' },
-  { id:'linkage', title:'링크 길이 입력', keywords:'링크 길이 mm 고정링크 크랭크 커플러 팔로워 입력 파라미터 a b c d' },
-  { id:'linkage', title:'토크 해석', keywords:'토크 입력 T₂ T₄ 출력 가상일 virtual work 기계적이득 MA 플롯' },
-  { id:'linkage', title:'전달각 Transmission Angle', keywords:'전달각 μ 40도 효율 커플러 팔로워' },
-  { id:'linkage', title:'Grashof 조건', keywords:'Grashof s l p q 완전회전 크랭크 로커 조건식' },
-  { id:'hinge',   title:'힌지모멘트 계산기', keywords:'힌지모멘트 H 동압 q 조종면 편향각 δ 받음각 α MAC 면적 S 밀도 ρ 속도 V C_H 서보 사이징 aerodynamics 공기역학' },
-  { id:'hinge',   title:'힌지모멘트 공식', keywords:'H = q S MAC CH delta alpha 동압 dynamic pressure 공식' },
-  { id:'hinge',   title:'C_H 계수', keywords:'CH 힌지모멘트계수 편향각계수 받음각계수 풍동 무차원' },
-  { id:'hinge',   title:'평균공력시위 MAC', keywords:'mean aerodynamic chord MAC 시위 테이퍼 날개 기준 길이' },
-  { id:'hinge',   title:'동압 Dynamic Pressure', keywords:'동압 q 0.5 rho V^2 속도 밀도 압력 항공하중' },
-  { id:'regression', title:'회귀분석 도구', keywords:'회귀분석 regression linear polynomial exponential logarithmic power sigmoid logistic R² RMSE MAE 잔차 결정계수 적합도 statistics' },
-  { id:'regression', title:'선형 회귀 Linear', keywords:'선형 y=ax+b 최소제곱 OLS 직선' },
-  { id:'regression', title:'다항 회귀 Polynomial', keywords:'다항 polynomial 차수 degree 과적합 overfitting' },
-  { id:'regression', title:'지수 회귀 Exponential', keywords:'지수 exponential e^bx 성장 감쇠 세균 붕괴 복리' },
-  { id:'regression', title:'대수 회귀 Logarithmic', keywords:'대수 logarithmic ln 포화 데시벨 학습곡선' },
-  { id:'regression', title:'멱함수 회귀 Power', keywords:'멱함수 power law a*x^b 케플러 스케일링' },
-  { id:'regression', title:'시그모이드 회귀 Sigmoid', keywords:'시그모이드 sigmoid logistic S형 성장곡선 포화' },
-  { id:'regression', title:'R² 결정계수', keywords:'R squared R² 결정계수 SS_res SS_tot 0~1 0.95' },
-  { id:'regression', title:'RMSE MAE', keywords:'RMSE root mean square error MAE mean absolute error 잔차 오차 이상값' },
-  { id:'servo',   title:'주파수 응답 분석기 FRA', keywords:'주파수응답 FRA bode plot 보드선도 대역폭 bandwidth coherence 코히런스 전달함수 서보 sweep chirp 제어공학' },
-  { id:'servo',   title:'Bode Plot 보드선도', keywords:'bode plot 크기 magnitude dB 위상 phase frequency 주파수 응답' },
-  { id:'servo',   title:'전달함수 H(s)', keywords:'transfer function H(s) 2차 라플라스 ωn 감쇠비 ζ standard form' },
-  { id:'servo',   title:'대역폭 Bandwidth', keywords:'대역폭 bandwidth -3dB 주파수 서보 추종' },
-  { id:'servo',   title:'코히런스 Coherence γ²', keywords:'coherence 코히런스 γ² 0.8 신뢰도 노이즈 비선형' },
-  { id:'servo',   title:'감쇠비 ζ Damping Ratio', keywords:'감쇠비 damping ratio ζ 부족감쇠 임계감쇠 과감쇠 0.5 0.8' },
-  { id:'servo',   title:'고유진동수 ωₙ', keywords:'고유진동수 natural frequency ωn rad/s Hz fn 2π' },
-  { id:'rigging', title:'CS Rigging 도구', keywords:'rigging 리깅 조종면 CS control surface SID 호기번호 리비전 JSON 회귀계수 기울기 오프셋 항공정비' },
-  { id:'rigging', title:'리깅 계수', keywords:'리깅계수 slope intercept 기울기 오프셋 명령각도 응답각도 보정' },
-  { id:'rigging', title:'조종면 Control Surface', keywords:'조종면 에일러론 엘리베이터 러더 플랩 스포일러 aileron elevator rudder flap spoiler 롤 피치 요' },
-  { id:'rigging', title:'SID 호기번호', keywords:'SID serial ship id 호기 번호 식별자 항공기' },
+  // ── 4-BAR LINKAGE ──
+  { id:'linkage', anchor:'anc-linkage-overview',   title:'4-Bar Linkage — 도구 개요',        keywords:'4절 링크 기구 기구학 kinematics 크랭크 커플러 팔로워 고정링크 액추에이터 서스펜션' },
+  { id:'linkage', anchor:'anc-loop-closure',        title:'루프 폐합 방정식',                  keywords:'loop closure equation 루프 폐합 방정식 θ₂ θ₃ θ₄ cos sin a b c d X Y방향' },
+  { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 토크 해석 플롯 슬라이더 드래그' },
+  { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ T₂ 고정링크 크랭크 커플러 팔로워 각도 범위' },
+  { id:'linkage', anchor:'anc-crank',               title:'크랭크 (Crank)',                    keywords:'크랭크 crank 링크 a 구동 모터 360 로커 rocker Grashof' },
+  { id:'linkage', anchor:'anc-coupler',             title:'커플러 (Coupler)',                  keywords:'커플러 coupler 링크 b 커플러곡선 coupler curve 중간링크' },
+  { id:'linkage', anchor:'anc-follower',            title:'팔로워 (Follower)',                 keywords:'팔로워 follower 링크 c 출력 θ₄ 조종면 아암 레버' },
+  { id:'linkage', anchor:'anc-transmission-angle',  title:'전달각 (Transmission Angle)',       keywords:'전달각 μ 40도 90도 전달효율 커플러 팔로워 transmission angle' },
+  { id:'linkage', anchor:'anc-ma',                  title:'기계적 이득 (MA)',                  keywords:'기계적이득 MA mechanical advantage T₄ T₂ ω₂ ω₄ 가상일 virtual work 힘증폭 속도증폭' },
+  { id:'linkage', anchor:'anc-grashof',             title:'Grashof 조건',                     keywords:'Grashof 조건 s l p q 완전회전 크랭크 로커 최단 최장' },
+  { id:'linkage', anchor:'anc-loop-term',           title:'루프 폐합 방정식 (용어)',            keywords:'루프 폐합 loop closure Freudenstein 벡터 합 영 기하학적 해' },
+
+  // ── HINGE MOMENT ──
+  { id:'hinge', anchor:'anc-hinge-overview',        title:'힌지모멘트 계산기 — 도구 개요',    keywords:'힌지모멘트 hinge moment 조종면 에일러론 aileron 엘리베이터 elevator 러더 rudder 플랩 flap 서보 사이징 액추에이터 aerodynamics 공기역학' },
+  { id:'hinge', anchor:'anc-hinge-formula',         title:'힌지모멘트 공식 H = q·S·MAC·(CH)',  keywords:'H q S MAC CH delta alpha 힌지모멘트 공식 동압 formula 편향각 받음각' },
+  { id:'hinge', anchor:'anc-hinge-how',             title:'힌지모멘트 — 사용 방법',            keywords:'날개면적 비행속도 편향각 MAC 고도 프리셋 공기밀도 감도분석 차트' },
+  { id:'hinge', anchor:'anc-hinge-params',          title:'힌지모멘트 — 입력 파라미터',        keywords:'S m² V m/s δ 편향각 MAC m CH 받음각 α ρ kg/m³ 단위' },
+  { id:'hinge', anchor:'anc-hinge-h',               title:'힌지모멘트 H',                     keywords:'힌지모멘트 H N·m 하중 서보 사이징 파라미터' },
+  { id:'hinge', anchor:'anc-dynamic-pressure',      title:'동압 (Dynamic Pressure) q',        keywords:'동압 dynamic pressure q 0.5 ρ V² 속도제곱 비례 항공하중 Pa' },
+  { id:'hinge', anchor:'anc-ch',                    title:'힌지모멘트 계수 C_H',               keywords:'힌지모멘트계수 CH 편향각계수 CH_delta 받음각계수 CH_alpha 풍동 무차원 음수' },
+  { id:'hinge', anchor:'anc-aoa',                   title:'받음각 (Angle of Attack) α',       keywords:'받음각 AoA angle of attack α 양력 실속 stall 임계' },
+  { id:'hinge', anchor:'anc-mac',                   title:'평균공력시위 (MAC)',                keywords:'평균공력시위 MAC mean aerodynamic chord 테이퍼 날개 등가 시위 기준길이' },
+  { id:'hinge', anchor:'anc-deflection',            title:'편향각 (δ)',                        keywords:'편향각 deflection angle δ 조종면 중립 하향 상향 선형' },
+
+  // ── REGRESSION ──
+  { id:'regression', anchor:'anc-reg-overview',     title:'회귀분석 — 도구 개요',              keywords:'회귀분석 regression 데이터 피팅 보정곡선 센서 캘리브레이션 통계 경향' },
+  { id:'regression', anchor:'anc-reg-how',          title:'회귀분석 — 사용 방법',              keywords:'데이터 입력 붙여넣기 회귀 유형 선택 결과 확인 차트 잔차 테이블' },
+  { id:'regression', anchor:'anc-reg-models',       title:'지원 회귀 모델 전체',               keywords:'회귀 모델 선형 다항 지수 대수 멱함수 시그모이드 6가지' },
+  { id:'regression', anchor:'anc-linear',           title:'선형 회귀 (Linear)',                keywords:'선형 linear y=ax+b 직선 최소제곱 OLS 선형관계' },
+  { id:'regression', anchor:'anc-polynomial',       title:'다항 회귀 (Polynomial)',            keywords:'다항 polynomial y=ax^n 차수 degree 과적합 overfitting 비선형' },
+  { id:'regression', anchor:'anc-exponential',      title:'지수 회귀 (Exponential)',           keywords:'지수 exponential y=a*e^bx 성장 감쇠 세균증식 방사성붕괴 복리' },
+  { id:'regression', anchor:'anc-logarithmic',      title:'대수 회귀 (Logarithmic)',           keywords:'대수 logarithmic y=a*ln(x)+b 포화 데시벨 학습곡선 인구성장' },
+  { id:'regression', anchor:'anc-power',            title:'멱함수 회귀 (Power)',               keywords:'멱함수 power y=a*x^b 케플러 스케일링 로그로그 log-log' },
+  { id:'regression', anchor:'anc-sigmoid',          title:'시그모이드 회귀 (Sigmoid/Logistic)','keywords':'시그모이드 sigmoid logistic S형 S자 성장곡선 포화 L / 1+e' },
+  { id:'regression', anchor:'anc-gof',              title:'적합도 지표 전체',                  keywords:'적합도 goodness of fit R² RMSE MAE MSE 잔차 지표' },
+  { id:'regression', anchor:'anc-r2',               title:'R² 결정계수',                      keywords:'R squared R² 결정계수 SS_res SS_tot 0~1 0.95 분산 설명' },
+  { id:'regression', anchor:'anc-rmse',             title:'RMSE (Root Mean Square Error)',     keywords:'RMSE root mean square error 제곱평균제곱근 잔차 이상값 민감' },
+  { id:'regression', anchor:'anc-mae',              title:'MAE (Mean Absolute Error)',         keywords:'MAE mean absolute error 절대오차 평균 이상값 강건 robust' },
+
+  // ── SERVO FRA ──
+  { id:'servo', anchor:'anc-servo-overview',        title:'주파수 응답 분석기 — 도구 개요',    keywords:'주파수응답 FRA frequency response 서보 스윕 chirp bode coherence 전달함수 대역폭 제어공학' },
+  { id:'servo', anchor:'anc-servo-how',             title:'주파수 응답 분석기 — 사용 방법',   keywords:'CSV 파일 업로드 샘플링 주파수 Fs 드래그드롭 분석 실행 차트 내보내기' },
+  { id:'servo', anchor:'anc-bode',                  title:'Bode Plot (보드선도)',              keywords:'bode plot 보드선도 크기 magnitude dB 위상 phase 주파수 Hz 안정성' },
+  { id:'servo', anchor:'anc-bandwidth',             title:'대역폭 (Bandwidth)',                keywords:'대역폭 bandwidth BW -3dB 주파수 추종 서보 응답속도' },
+  { id:'servo', anchor:'anc-coherence',             title:'코히런스 γ²(f)',                   keywords:'코히런스 coherence γ² 0.8 신뢰도 노이즈 비선형성 인과성' },
+  { id:'servo', anchor:'anc-transfer-fn',           title:'전달함수 H(s)',                    keywords:'전달함수 transfer function H(s) 라플라스 laplace 2차 입출력' },
+  { id:'servo', anchor:'anc-2nd-order',             title:'2차 표준형 전달함수 공식',          keywords:'2차 표준형 ωn² s² 2ζωns ωn² standard second order 공식' },
+  { id:'servo', anchor:'anc-natural-freq',          title:'고유진동수 ωₙ (Natural Frequency)', keywords:'고유진동수 natural frequency ωn rad/s fn Hz 2π 자유진동' },
+  { id:'servo', anchor:'anc-damping',               title:'감쇠비 ζ (Damping Ratio)',          keywords:'감쇠비 damping ratio ζ 부족감쇠 임계감쇠 과감쇠 0.5 0.8 진동' },
+  { id:'servo', anchor:'anc-chirp',                 title:'스윕 신호 (Chirp)',                 keywords:'스윕 신호 chirp sweep 정현파 주파수증가 선형스윕 로그스윕 FRA 시험' },
+
+  // ── CS RIGGING ──
+  { id:'rigging', anchor:'anc-rigging-overview',    title:'CS Rigging — 도구 개요',           keywords:'리깅 rigging 조종면 CS 명령각도 응답각도 회귀계수 JSON 비행제어 소프트웨어 FCC' },
+  { id:'rigging', anchor:'anc-rigging-how',         title:'CS Rigging — 사용 방법 3단계',     keywords:'설정파일 배치도 측정값 입력 JSON 출력 실행 붙여넣기 SID 리비전' },
+  { id:'rigging', anchor:'anc-rigging-def',         title:'리깅 (Rigging)',                   keywords:'리깅 rigging 조종 입력 편향 각도 링키지 마모 온도 조립 오차 보정 게인' },
+  { id:'rigging', anchor:'anc-rigging-coef',        title:'리깅 계수',                        keywords:'리깅계수 rigging coefficient slope intercept 기울기 오프셋 선형회귀 보정계수' },
+  { id:'rigging', anchor:'anc-control-surface',     title:'조종면 (Control Surface)',          keywords:'조종면 control surface 에일러론 aileron 엘리베이터 elevator 러더 rudder 플랩 flap 스포일러 spoiler 롤 피치 요' },
+  { id:'rigging', anchor:'anc-sid',                 title:'SID (호기번호)',                   keywords:'SID serial ship id 호기 번호 식별자 항공기 기종' },
+  { id:'rigging', anchor:'anc-revision',            title:'리비전 (Revision)',                 keywords:'리비전 revision 개정번호 이력 정기점검 형상관리 configuration management' },
+  { id:'rigging', anchor:'anc-rigging-r2',          title:'R² 리깅 품질',                    keywords:'R² 리깅 1.0 선형성 백래시 마찰 링키지 결함 0.999' },
 ];
 
 const NAV_IDS = ['linkage','hinge','regression','servo','rigging'];
+let highlightTimer = null;
 
-function showSection(id) {
+// ── 섹션 전환 ──
+function showSection(id, anchor) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -1644,8 +1695,33 @@ function showSection(id) {
   const navItems = document.querySelectorAll('.nav-item');
   if (idx !== -1 && navItems[idx]) navItems[idx].classList.add('active');
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
   clearSearch();
+
+  // 앵커로 스크롤
+  if (anchor) {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(anchor);
+        if (el) {
+          const target = el.nextElementSibling || el;
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          flashHighlight(target);
+        }
+      }, 60);
+    });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ── 하이라이트 애니메이션 ──
+function flashHighlight(el) {
+  if (!el) return;
+  if (highlightTimer) clearTimeout(highlightTimer);
+  el.classList.remove('search-highlight');
+  void el.offsetWidth; // reflow
+  el.classList.add('search-highlight');
+  highlightTimer = setTimeout(() => el.classList.remove('search-highlight'), 2200);
 }
 
 // ── 검색 ──
@@ -1665,31 +1741,34 @@ function doSearch(q) {
     return;
   }
 
-  // 네비 메뉴 숨기기
   navTitle.style.display = 'none';
   document.querySelectorAll('.nav-item').forEach(n => n.style.display = 'none');
 
-  const tokens = qTrim.toLowerCase().split(/\s+/);
-  const seen = new Set();
+  const tokens = qTrim.toLowerCase().split(/\s+/).filter(Boolean);
+
+  // 모든 항목 스코어링 — anchor 중복 제거만 (같은 앵커 두 번 표시 방지)
+  const seenAnchors = new Set();
   const hits = [];
 
   SEARCH_INDEX.forEach(entry => {
+    if (seenAnchors.has(entry.anchor)) return;
     const hay = (entry.title + ' ' + entry.keywords).toLowerCase();
-    const score = tokens.filter(t => hay.includes(t)).length;
+    // 각 토큰의 매칭 횟수 합산 (부분 일치 포함)
+    const score = tokens.reduce((s, t) => {
+      const count = (hay.match(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g')) || []).length;
+      return s + count;
+    }, 0);
     if (score > 0) {
-      const key = entry.id + '||' + entry.title;
-      if (!seen.has(key)) {
-        seen.add(key);
-        // snippet: 매칭 키워드 하이라이트
-        const snippet = entry.keywords.split(' ')
-          .filter(k => tokens.some(t => k.toLowerCase().includes(t)))
-          .slice(0, 4).join(' · ');
-        hits.push({ ...entry, score, snippet });
-      }
+      seenAnchors.add(entry.anchor);
+      const kws = entry.keywords.split(' ');
+      const snippet = kws
+        .filter(k => tokens.some(t => k.toLowerCase().includes(t)))
+        .slice(0, 4).join(' · ');
+      hits.push({ ...entry, score, snippet });
     }
   });
 
-  hits.sort((a,b) => b.score - a.score);
+  hits.sort((a, b) => b.score - a.score);
 
   resultsEl.style.display = 'flex';
   if (hits.length === 0) {
@@ -1697,21 +1776,61 @@ function doSearch(q) {
     return;
   }
 
-  const sectionLabel = { linkage:'4-Bar Linkage', hinge:'힌지모멘트', regression:'회귀분석', servo:'주파수 응답', rigging:'CS Rigging' };
-  resultsEl.innerHTML = hits.map(h => {
-    const snip = highlightTokens(h.snippet, tokens);
-    return `<button class="search-result-item" onclick="showSection('${h.id}')">
-      <span class="search-result-title">${highlightTokens(h.title, tokens)}</span>
-      <span class="search-result-snippet">${sectionLabel[h.id]} · ${snip}</span>
-    </button>`;
-  }).join('');
+  // 섹션별 그룹핑
+  const sectionLabel = {
+    linkage:'4-Bar Linkage',
+    hinge:'힌지모멘트',
+    regression:'회귀분석',
+    servo:'주파수 응답',
+    rigging:'CS Rigging'
+  };
+  const sectionColor = {
+    linkage:'#0071e3', hinge:'#bf5af2', regression:'#ff9f0a',
+    servo:'#30b0c7', rigging:'#28a745'
+  };
+
+  // 섹션 순서 유지하되 스코어 높은 섹션 먼저
+  const sectionOrder = [];
+  const grouped = {};
+  hits.forEach(h => {
+    if (!grouped[h.id]) { grouped[h.id] = []; sectionOrder.push(h.id); }
+    grouped[h.id].push(h);
+  });
+
+  // 섹션 내 최고 스코어 기준으로 섹션 정렬
+  sectionOrder.sort((a, b) => grouped[b][0].score - grouped[a][0].score);
+
+  const totalCount = hits.length;
+  let html = `<div style="font-size:10px;color:var(--text3);padding:4px 12px 6px;font-weight:600;letter-spacing:0.3px;">${totalCount}개 결과</div>`;
+
+  sectionOrder.forEach(sid => {
+    const group = grouped[sid];
+    const color = sectionColor[sid];
+    const label = sectionLabel[sid];
+
+    html += `<div class="search-group-label" style="color:${color};">
+      <span style="width:6px;height:6px;border-radius:50%;background:${color};display:inline-block;margin-right:5px;flex-shrink:0;"></span>
+      ${label}
+    </div>`;
+
+    group.forEach(h => {
+      const snip = highlightTokens(h.snippet || '', tokens);
+      const titleHl = highlightTokens(h.title, tokens);
+      html += `<button class="search-result-item" onclick="showSection('${h.id}','${h.anchor}')">
+        <span class="search-result-title">${titleHl}</span>
+        ${snip ? `<span class="search-result-snippet">${snip}</span>` : ''}
+      </button>`;
+    });
+  });
+
+  resultsEl.innerHTML = html;
 }
 
 function highlightTokens(text, tokens) {
   let result = text;
   tokens.forEach(t => {
     if (!t) return;
-    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
     result = result.replace(re, '<mark>$1</mark>');
   });
   return result;
@@ -1719,14 +1838,18 @@ function highlightTokens(text, tokens) {
 
 function clearSearch() {
   const inp = document.getElementById('searchInput');
-  inp.value = '';
-  doSearch('');
+  if (inp) inp.value = '';
+  const clearBtn = document.getElementById('searchClear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const resultsEl = document.getElementById('searchResults');
+  if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+  const navTitle = document.getElementById('navTitle');
+  if (navTitle) navTitle.style.display = '';
+  document.querySelectorAll('.nav-item').forEach(n => n.style.display = '');
 }
 
-// ── 초기화: linkage를 기본 활성 ──
-document.addEventListener('DOMContentLoaded', () => {
-  showSection('linkage');
-});
+// 초기화
+document.addEventListener('DOMContentLoaded', () => { showSection('linkage'); });
 </script>
 </body>
 </html>
