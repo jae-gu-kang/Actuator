@@ -269,17 +269,106 @@ body {
   color: var(--text);
 }
 
-/* Formula box */
-.formula-box {
-  background: rgba(0,0,0,0.03);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--blue);
-  border-radius: 10px;
+/* ── FORMULA CARDS ── */
+.eq-card {
+  margin: 16px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+.eq-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.eq-header svg { width: 13px; height: 13px; opacity: 0.7; }
+.eq-body {
+  padding: 22px 28px;
+  background: #fff;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.eq-body.dark-bg {
+  background: #1c1c1e;
+}
+
+/* single equation row */
+.eq-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; flex-wrap: wrap;
+}
+.eq-label {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  letter-spacing: 0.4px; text-transform: uppercase;
+  margin-bottom: 10px; text-align: center;
+}
+.eq-divider {
+  height: 1px; background: rgba(0,0,0,0.06); margin: 4px 0;
+}
+
+/* Math tokens */
+.m { font-family: 'Georgia', 'Times New Roman', serif; font-style: italic; }
+.m-up { font-family: 'Georgia', serif; font-style: normal; font-weight: 600; }
+.eq-sym {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 22px; color: var(--text);
+  display: inline-flex; align-items: center;
+  padding: 0 3px;
+}
+.eq-op {
+  font-size: 18px; color: var(--text2);
+  padding: 0 6px; font-family: 'SF Pro Display', sans-serif; font-weight: 300;
+}
+.eq-eq {
+  font-size: 20px; color: var(--text3);
+  padding: 0 10px; font-weight: 300;
+}
+
+/* Fraction */
+.frac {
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  vertical-align: middle; margin: 0 4px;
+}
+.frac-num, .frac-den {
+  font-family: 'Georgia', serif; font-style: italic;
+  font-size: 14px; padding: 0 4px; line-height: 1.3;
+  color: var(--text);
+}
+.frac-line { width: 100%; height: 1.5px; background: var(--text); margin: 2px 0; }
+
+/* Big symbol (Σ, √, ∫) */
+.big-sym {
+  font-size: 32px; line-height: 1; color: var(--text2);
+  font-family: 'Georgia', serif; padding-right: 2px;
+  vertical-align: middle;
+}
+
+/* Colored variable highlights */
+.var-blue  { color: #0071e3; font-style: italic; font-family: 'Georgia', serif; }
+.var-purple{ color: #bf5af2; font-style: italic; font-family: 'Georgia', serif; }
+.var-orange{ color: #ff9f0a; font-style: italic; font-family: 'Georgia', serif; }
+.var-teal  { color: #30b0c7; font-style: italic; font-family: 'Georgia', serif; }
+.var-green { color: #28a745; font-style: italic; font-family: 'Georgia', serif; }
+.var-red   { color: #ff453a; font-style: italic; font-family: 'Georgia', serif; }
+
+/* Sub/superscript */
+.sub { font-size: 0.65em; vertical-align: sub; font-style: normal; }
+.sup { font-size: 0.65em; vertical-align: super; font-style: normal; }
+
+/* Legend row below formula */
+.eq-legend {
+  display: flex; flex-wrap: wrap; gap: 8px 20px;
   padding: 14px 18px;
-  margin: 10px 0;
-  font-family: 'SF Mono', 'Menlo', monospace;
-  font-size: 13px; color: var(--text);
-  line-height: 1.8;
+  background: rgba(0,0,0,0.02);
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+.eq-legend-item {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 12px; color: var(--text2);
+}
+.eq-legend-sym {
+  font-family: 'Georgia', serif; font-style: italic;
+  font-size: 14px; font-weight: 500; min-width: 28px;
 }
 
 /* Tip box */
@@ -547,9 +636,55 @@ body {
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           4-Bar Linkage 해석기는 4개의 링크(크랭크, 커플러, 팔로워, 고정링크)로 구성된 기구학적 메커니즘의 위치, 각도, 토크를 분석합니다. 항공기 조종면 액추에이터, 로봇 팔, 자동차 서스펜션 등 다양한 분야에서 활용되는 기초 기구학 해석 도구입니다.
         </p>
-        <div class="formula-box" style="margin-top:14px;">
-          루프 폐합 방정식: a·cos(θ₂) + b·cos(θ₃) = d + c·cos(θ₄)<br>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a·sin(θ₂) + b·sin(θ₃) = c·sin(θ₄)
+        <div class="eq-card" style="margin-top:16px;">
+          <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 8h12M8 2v12"/></svg>
+            루프 폐합 방정식 (Loop Closure Equations)
+          </div>
+          <div class="eq-body">
+            <div>
+              <div class="eq-label">X 방향</div>
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">a</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">cos</span>
+                <span class="eq-sym">(θ<span class="sub">2</span>)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-purple">b</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">cos</span>
+                <span class="eq-sym">(θ<span class="sub">3</span>)</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">d</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-red">c</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">cos</span>
+                <span class="eq-sym">(θ<span class="sub">4</span>)</span>
+              </div>
+            </div>
+            <div class="eq-divider"></div>
+            <div>
+              <div class="eq-label">Y 방향</div>
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">a</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">sin</span>
+                <span class="eq-sym">(θ<span class="sub">2</span>)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-purple">b</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">sin</span>
+                <span class="eq-sym">(θ<span class="sub">3</span>)</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-red">c</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">sin</span>
+                <span class="eq-sym">(θ<span class="sub">4</span>)</span>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">a</span>크랭크 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">b</span>커플러 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">c</span>팔로워 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">d</span>고정링크 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">θ<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">2,3,4</span></span>각 링크 각도</div>
+          </div>
         </div>
       </div>
 
@@ -634,13 +769,62 @@ body {
             <div class="term-name">기계적 이득 (MA)
               <span class="term-symbol">Mechanical Advantage</span>
             </div>
-            <div class="term-desc">입력 토크 대비 출력 토크의 비율: <code>MA = T₄ / T₂ = ω₂ / ω₄</code>. 가상일 원리(Virtual Work Principle)로 계산됩니다. MA &gt; 1이면 힘 증폭, MA &lt; 1이면 속도 증폭을 의미합니다.</div>
+            <div class="term-desc" style="display:flex;flex-direction:column;gap:10px;">
+              <span>입력 토크 대비 출력 토크의 비율. 가상일 원리(Virtual Work Principle)로 계산됩니다. MA &gt; 1이면 힘 증폭, MA &lt; 1이면 속도 증폭을 의미합니다.</span>
+              <div class="eq-card" style="margin:0;">
+                <div class="eq-header" style="background:rgba(0,113,227,0.08);color:#0071e3;font-size:10px;">기계적 이득</div>
+                <div class="eq-body" style="padding:14px 20px;align-items:center;">
+                  <div class="eq-row">
+                    <span class="eq-sym" style="font-style:normal;font-family:sans-serif;font-size:16px;font-weight:600;">MA</span>
+                    <span class="eq-eq">=</span>
+                    <div class="frac">
+                      <div class="frac-num"><span class="var-red">T<span class="sub">4</span></span></div>
+                      <div class="frac-line"></div>
+                      <div class="frac-den"><span class="var-blue">T<span class="sub">2</span></span></div>
+                    </div>
+                    <span class="eq-eq">=</span>
+                    <div class="frac">
+                      <div class="frac-num"><span class="var-blue">ω<span class="sub">2</span></span></div>
+                      <div class="frac-line"></div>
+                      <div class="frac-den"><span class="var-red">ω<span class="sub">4</span></span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="eq-legend">
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-blue">T<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">2</span></span>입력 토크 (크랭크)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-red">T<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">4</span></span>출력 토크 (팔로워)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-blue">ω<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">2</span></span>크랭크 각속도</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-red">ω<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">4</span></span>팔로워 각속도</div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="term-row">
             <div class="term-name">Grashof 조건
               <span class="term-symbol">s + l ≤ p + q</span>
             </div>
-            <div class="term-desc">4절 링크에서 완전 회전 가능한 링크가 존재하기 위한 조건. <code>s</code>는 최단 링크 길이, <code>l</code>은 최장 링크 길이, <code>p, q</code>는 나머지 두 링크 길이입니다. 이 조건을 만족하면 최단 링크는 크랭크로 사용 가능합니다.</div>
+            <div class="term-desc" style="display:flex;flex-direction:column;gap:10px;">
+              <span>4절 링크에서 완전 회전 가능한 링크가 존재하기 위한 조건. 이 조건을 만족하면 최단 링크는 크랭크로 사용 가능합니다.</span>
+              <div class="eq-card" style="margin:0;">
+                <div class="eq-header" style="background:rgba(40,167,69,0.08);color:#28a745;font-size:10px;">Grashof 조건식</div>
+                <div class="eq-body" style="padding:14px 20px;align-items:center;">
+                  <div class="eq-row">
+                    <span class="eq-sym"><span class="var-blue">s</span></span>
+                    <span class="eq-op">+</span>
+                    <span class="eq-sym"><span class="var-red">l</span></span>
+                    <span class="eq-eq" style="font-size:22px;">≤</span>
+                    <span class="eq-sym"><span class="var-orange">p</span></span>
+                    <span class="eq-op">+</span>
+                    <span class="eq-sym"><span class="var-purple">q</span></span>
+                  </div>
+                </div>
+                <div class="eq-legend">
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-blue">s</span>최단 링크 길이</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-red">l</span>최장 링크 길이</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-orange">p, </span><span class="eq-legend-sym var-purple">q</span>나머지 두 링크</div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="term-row">
             <div class="term-name">루프 폐합 방정식
@@ -683,9 +867,62 @@ body {
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           조종면(에일러론, 엘리베이터, 러더, 플랩 등)이 공기 중에서 편향될 때 힌지 축 주변에 발생하는 모멘트를 계산합니다. 이 힌지모멘트는 액추에이터(서보)가 극복해야 할 하중이므로, 서보 사이징의 핵심 설계 파라미터입니다.
         </p>
-        <div class="formula-box" style="margin-top:14px;">
-          H = q · S · MAC · (C<sub>H,δ</sub>·δ + C<sub>H,α</sub>·α)<br><br>
-          q = ½ · ρ · V²<span style="margin-left:24px;color:#6e6e73;font-size:12px;">// 동압 (Dynamic Pressure)</span>
+        <div class="eq-card" style="margin-top:16px;">
+          <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v12M2 8h12"/><path d="M8 2C5.5 5 4 6.5 4 8s1.5 3 4 6"/><path d="M8 2c2.5 3 4 4.5 4 6s-1.5 3-4 6"/></svg>
+            힌지모멘트 공식
+          </div>
+          <div class="eq-body">
+            <div>
+              <div class="eq-label">힌지모멘트</div>
+              <div class="eq-row">
+                <span class="eq-sym" style="font-size:26px; font-weight:500;"><span class="var-purple">H</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-teal">q</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-blue">S</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym" style="font-style:normal;font-size:17px; font-weight:500;">MAC</span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym" style="font-size:22px;">(</span>
+                <span class="eq-sym">C<span class="sub">H,δ</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym">δ</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">H,α</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym">α</span>
+                <span class="eq-sym" style="font-size:22px;">)</span>
+              </div>
+            </div>
+            <div class="eq-divider"></div>
+            <div>
+              <div class="eq-label">동압 (Dynamic Pressure)</div>
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-teal">q</span></span>
+                <span class="eq-eq">=</span>
+                <div class="frac">
+                  <div class="frac-num">1</div>
+                  <div class="frac-line"></div>
+                  <div class="frac-den">2</div>
+                </div>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-orange">ρ</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-red">V</span><span class="sup">2</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">H</span>힌지모멘트 (N·m)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-teal">q</span>동압 (Pa)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">S</span>조종면 면적 (m²)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">MAC</span>평균공력시위 (m)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">ρ</span>공기 밀도 (kg/m³)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">V</span>비행 속도 (m/s)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">C<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">H,δ</span></span>편향각 계수</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">C<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">H,α</span></span>받음각 계수</div>
+          </div>
         </div>
       </div>
 
@@ -839,67 +1076,184 @@ body {
 
       <div class="card">
         <div class="card-title">지원 회귀 모델</div>
-        <div class="term-grid">
-          <div class="term-row">
-            <div class="term-name">선형 회귀<span class="term-symbol">Linear</span></div>
-            <div class="term-desc"><code>y = a·x + b</code> — 가장 기본적인 회귀 모델. 두 변수 사이에 선형 관계가 있을 때 사용합니다. 최소제곱법(OLS)으로 계수를 추정합니다.</div>
+
+        <!-- 회귀 모델 공식 그리드 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:4px;">
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3; font-size:10px;">선형 회귀 · Linear</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-red">x</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">b</span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">직선 관계. 최소제곱법(OLS)으로 추정</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">다항 회귀<span class="term-symbol">Polynomial</span></div>
-            <div class="term-desc"><code>y = aₙxⁿ + ... + a₁x + a₀</code> — 비선형 곡선을 선형 모델로 피팅. 차수(degree)가 높을수록 데이터에 잘 맞지만 과적합(overfitting) 위험이 있습니다.</div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2; font-size:10px;">다항 회귀 · Polynomial</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row" style="font-size:17px;">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">n</span></span><span class="var-red">x</span><span class="sup">n</span></span>
+                <span class="eq-op">+</span>
+                <span style="color:var(--text3);font-size:14px;">···</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">0</span></span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">비선형 곡선. 차수 높을수록 과적합 주의</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">지수 회귀<span class="term-symbol">Exponential</span></div>
-            <div class="term-desc"><code>y = a·eᵇˣ</code> — 성장/감쇠 현상에 적합. 세균 증식, 방사성 붕괴, 복리 계산 등에 사용됩니다. 로그 변환 후 선형 회귀로 해를 구합니다.</div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;">지수 회귀 · Exponential</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span style="font-style:normal;font-size:15px;font-family:sans-serif;">e</span><span class="sup"><span class="var-orange">b</span><span class="var-red">x</span></span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">성장·감쇠 현상. 세균 증식, 방사성 붕괴</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">대수 회귀<span class="term-symbol">Logarithmic</span></div>
-            <div class="term-desc"><code>y = a·ln(x) + b</code> — x가 지수적으로 증가할 때 y가 천천히 변하는 관계. 데시벨 척도, 학습 곡선, 인구 성장 등에 적합합니다.</div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;">대수 회귀 · Logarithmic</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;">ln</span>
+                <span class="eq-sym">(</span>
+                <span class="eq-sym"><span class="var-red">x</span></span>
+                <span class="eq-sym">)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">b</span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">포화 경향. 데시벨, 학습 곡선</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">멱함수 회귀<span class="term-symbol">Power</span></div>
-            <div class="term-desc"><code>y = a·xᵇ</code> — 케플러 제3법칙, 생물 체중-뇌 관계 등 스케일링 법칙에 사용됩니다. 양측 로그 변환(log-log) 후 선형 회귀로 추정합니다.</div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">멱함수 회귀 · Power</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-red">x</span><span class="sup"><span class="var-orange">b</span></span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">스케일링 법칙. 케플러 제3법칙</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">시그모이드 회귀<span class="term-symbol">Sigmoid / Logistic</span></div>
-            <div class="term-desc"><code>y = L / (1 + e⁻ᵏ⁽ˣ⁻ˣ₀⁾)</code> — S자형 성장 곡선. 인구 성장, 기술 확산, 신약 반응 등 포화점이 있는 성장 모델에 사용됩니다.</div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(40,167,69,0.08); color:#28a745; font-size:10px;">시그모이드 회귀 · Logistic</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <div class="frac">
+                  <div class="frac-num"><span class="var-green">L</span></div>
+                  <div class="frac-line"></div>
+                  <div class="frac-den" style="font-size:12px;">1 + e<span style="font-size:0.8em;vertical-align:super;">−k(x−x₀)</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">S형 성장. 포화점 있는 성장 모델</div>
           </div>
+
         </div>
       </div>
 
       <div class="card">
         <div class="card-title">적합도 지표 해석</div>
-        <div class="term-grid">
-          <div class="term-row">
-            <div class="term-name">R² (결정계수)
-              <span class="term-symbol">Coefficient of Determination</span>
-            </div>
-            <div class="term-desc">모델이 데이터의 분산을 얼마나 설명하는지: <code>R² = 1 - SS_res / SS_tot</code>. 0~1 범위이며, 1에 가까울수록 좋은 피팅입니다. <strong>R² ≥ 0.95</strong>면 통상 양호한 수준입니다.</div>
+
+        <div class="eq-card" style="margin-bottom:12px;">
+          <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2 14 2 2"/><polyline points="2 14 14 14"/><circle cx="4.5" cy="10" r="1" fill="currentColor"/><circle cx="7" cy="7.5" r="1" fill="currentColor"/><circle cx="9.5" cy="9" r="1" fill="currentColor"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
+            R² — 결정계수 (Coefficient of Determination)
           </div>
-          <div class="term-row">
-            <div class="term-name">Adjusted R²
-              <span class="term-symbol">수정 결정계수</span>
+          <div class="eq-body">
+            <div class="eq-row">
+              <span class="eq-sym" style="font-style:normal;font-weight:700;font-size:20px;font-family:sans-serif;">R<span class="sup" style="font-style:normal;">2</span></span>
+              <span class="eq-eq">=</span>
+              <span class="eq-sym" style="font-style:normal;font-size:17px;">1</span>
+              <span class="eq-op">−</span>
+              <div class="frac">
+                <div class="frac-num">SS<span style="font-size:0.65em;vertical-align:sub;">res</span></div>
+                <div class="frac-line"></div>
+                <div class="frac-den">SS<span style="font-size:0.65em;vertical-align:sub;">tot</span></div>
+              </div>
+              <span class="eq-op">=</span>
+              <span class="eq-sym" style="font-style:normal;font-size:17px;">1</span>
+              <span class="eq-op">−</span>
+              <div class="frac">
+                <div class="frac-num"><span class="big-sym" style="font-size:18px;">Σ</span>(<span class="var-blue">y<span class="sub">i</span></span> − <span class="var-red">ŷ<span class="sub">i</span></span>)<span class="sup">2</span></div>
+                <div class="frac-line"></div>
+                <div class="frac-den"><span class="big-sym" style="font-size:18px;">Σ</span>(<span class="var-blue">y<span class="sub">i</span></span> − <span class="var-orange">ȳ</span>)<span class="sup">2</span></div>
+              </div>
             </div>
-            <div class="term-desc">파라미터 수에 따른 패널티를 반영한 R². 불필요한 변수 추가로 R²가 인위적으로 높아지는 것을 보정합니다. 다항 차수 비교 시 더 신뢰할 수 있는 지표입니다.</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">RMSE
-              <span class="term-symbol">Root Mean Square Error</span>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">y<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">i</span></span>실제값</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">ŷ<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">i</span></span>예측값</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">ȳ</span>평균값</div>
+            <div class="eq-legend-item" style="flex-basis:100%; color:#1d1d1f;">0~1 범위. <strong>R² ≥ 0.95</strong>면 통상 양호. Adjusted R²는 파라미터 수에 패널티를 적용한 보정값.</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;">RMSE — Root Mean Square Error</div>
+            <div class="eq-body" style="padding:18px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;font-weight:600;">RMSE</span>
+                <span class="eq-eq">=</span>
+                <span class="big-sym" style="font-size:28px;color:var(--text2);">√</span>
+                <div class="frac">
+                  <div class="frac-num"><span class="big-sym" style="font-size:16px;">Σ</span>(<span class="var-blue">y<span class="sub">i</span></span>−<span class="var-red">ŷ<span class="sub">i</span></span>)<span class="sup">2</span></div>
+                  <div class="frac-line"></div>
+                  <div class="frac-den" style="font-style:normal;">n</div>
+                </div>
+              </div>
             </div>
-            <div class="term-desc">잔차(실제값–예측값)의 제곱 평균의 제곱근: <code>RMSE = √(Σ(yᵢ–ŷᵢ)²/n)</code>. y와 같은 단위를 가지며, 낮을수록 좋습니다. 이상값에 민감합니다.</div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">이상값에 민감. 낮을수록 좋음</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">MAE
-              <span class="term-symbol">Mean Absolute Error</span>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;">MAE — Mean Absolute Error</div>
+            <div class="eq-body" style="padding:18px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;font-weight:600;">MAE</span>
+                <span class="eq-eq">=</span>
+                <div class="frac">
+                  <div class="frac-num"><span class="big-sym" style="font-size:16px;">Σ</span>|<span class="var-blue">y<span class="sub">i</span></span>−<span class="var-red">ŷ<span class="sub">i</span></span>|</div>
+                  <div class="frac-line"></div>
+                  <div class="frac-den" style="font-style:normal;">n</div>
+                </div>
+              </div>
             </div>
-            <div class="term-desc">절대 오차의 평균: <code>MAE = Σ|yᵢ–ŷᵢ|/n</code>. RMSE보다 이상값에 덜 민감합니다. 실제 오차의 평균적 크기를 직관적으로 나타냅니다.</div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">이상값에 강건. 직관적 오차 크기</div>
           </div>
-          <div class="term-row">
-            <div class="term-name">잔차 (Residual)
-              <span class="term-symbol">e = y - ŷ</span>
-            </div>
-            <div class="term-desc">실제 측정값과 회귀 모델 예측값의 차이. 잔차가 무작위로 분포하면(패턴 없음) 모델이 적절합니다. 잔차에 패턴이 보이면 더 복잡한 모델이 필요한 신호입니다.</div>
-          </div>
+
+        </div>
+
+        <div style="margin-top:12px; padding:12px 16px; background:rgba(0,0,0,0.03); border-radius:10px; font-size:13px; color:var(--text2); line-height:1.6;">
+          <strong style="color:var(--text);">잔차 (Residual)</strong> <span style="font-family:'Georgia',serif;font-style:italic;">e<span style="font-size:0.75em;vertical-align:sub;font-style:normal;">i</span></span> = <span style="font-family:'Georgia',serif;font-style:italic;">y<span style="font-size:0.75em;vertical-align:sub;font-style:normal;">i</span></span> − <span style="font-family:'Georgia',serif;font-style:italic;">ŷ<span style="font-size:0.75em;vertical-align:sub;font-style:normal;">i</span></span> — 잔차가 무작위 분포이면 모델 적합, 패턴이 보이면 더 복잡한 모델이 필요한 신호입니다.
         </div>
       </div>
 
@@ -995,7 +1349,28 @@ body {
             <div class="term-name">전달함수 H(s)
               <span class="term-symbol">Transfer Function</span>
             </div>
-            <div class="term-desc">라플라스 영역에서 입출력 관계를 나타내는 함수. 이 도구는 2차 표준형 <code>H(s) = ωₙ² / (s² + 2ζωₙs + ωₙ²)</code>으로 피팅하여 고유진동수(ωₙ)와 감쇠비(ζ)를 추정합니다.</div>
+            <div class="term-desc" style="display:flex; flex-direction:column; gap:10px;">
+              <span>라플라스 영역에서 입출력 관계를 나타내는 함수. 이 도구는 아래 2차 표준형으로 피팅합니다.</span>
+              <div class="eq-card" style="margin:0;">
+                <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">2차 표준형 전달함수</div>
+                <div class="eq-body" style="padding:18px 24px; align-items:center;">
+                  <div class="eq-row">
+                    <span class="eq-sym"><span class="var-teal">H</span>(s)</span>
+                    <span class="eq-eq">=</span>
+                    <div class="frac">
+                      <div class="frac-num"><span class="var-teal">ω<span class="sub">n</span></span><span class="sup">2</span></div>
+                      <div class="frac-line"></div>
+                      <div class="frac-den">s<span class="sup">2</span> + 2<span class="var-orange">ζ</span><span class="var-teal">ω<span class="sub">n</span></span>s + <span class="var-teal">ω<span class="sub">n</span></span><span class="sup">2</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="eq-legend">
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-teal">ω<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">n</span></span>고유진동수 (rad/s)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-orange">ζ</span>감쇠비 (무차원)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">s</span>라플라스 변수</div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="term-row">
             <div class="term-name">고유진동수 ωₙ
@@ -1007,7 +1382,14 @@ body {
             <div class="term-name">감쇠비 ζ
               <span class="term-symbol">Damping Ratio</span>
             </div>
-            <div class="term-desc">시스템이 얼마나 빨리 진동을 감쇠시키는지의 비율. <code>ζ &lt; 1</code>: 부족감쇠(진동 발생), <code>ζ = 1</code>: 임계감쇠(최적), <code>ζ &gt; 1</code>: 과감쇠(느린 응답). 일반 서보는 <strong>0.5 ~ 0.8</strong>이 적합합니다.</div>
+            <div class="term-desc">
+              시스템이 얼마나 빨리 진동을 감쇠시키는지의 비율. 일반 서보는 <strong>0.5 ~ 0.8</strong>이 적합합니다.
+              <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                <span style="padding:4px 12px; border-radius:20px; font-size:12px; background:rgba(255,69,58,0.08); color:#ff453a;font-weight:500;">ζ &lt; 1 · 부족감쇠 (진동)</span>
+                <span style="padding:4px 12px; border-radius:20px; font-size:12px; background:rgba(40,167,69,0.08); color:#28a745;font-weight:500;">ζ = 1 · 임계감쇠 (최적)</span>
+                <span style="padding:4px 12px; border-radius:20px; font-size:12px; background:rgba(255,159,10,0.08); color:#c77a00;font-weight:500;">ζ &gt; 1 · 과감쇠 (느린 응답)</span>
+              </div>
+            </div>
           </div>
           <div class="term-row">
             <div class="term-name">스윕 신호 (Chirp)
