@@ -118,7 +118,7 @@ body{
 .surf-btn.on.peak .surf-h{color:var(--accent)}
 
 /* ── KPI ── */
-.kpi-row{display:grid;grid-template-columns:400px 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.kpi-row{display:grid;grid-template-columns:400px repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
 .kpi{background:var(--surface);border-radius:var(--rl);padding:11px 14px;box-shadow:var(--sh);text-align:center}
 .kpi-lbl{font-size:10.5px;font-weight:500;color:var(--text2);margin-bottom:6px;text-align:center}
 .kpi-val{font-size:22px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-.02em;margin-bottom:5px;text-align:center}
@@ -232,7 +232,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .chart-tabs{display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:2px;flex-shrink:0}
 .ct{font-size:10.5px;font-weight:500;padding:4px 10px;border-radius:6px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .ct.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.chart-wrap{position:relative;height:172px}
+.chart-wrap{position:relative;height:100%}
 
 /* Formula footnote */
 .chart-footnote{
@@ -277,13 +277,13 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .hide{display:none!important}
 
 /* ── Layout ── */
-.row-a{display:grid;grid-template-columns:400px 1fr;gap:10px;margin-bottom:10px;align-items:stretch}
-.row-b-basic{display:grid;grid-template-columns:400px 1fr 1fr;gap:10px;margin-bottom:10px;align-items:stretch}
-.row-b-datcom{display:grid;grid-template-columns:400px 1fr;gap:10px;margin-bottom:10px;align-items:stretch}
+.row-a{display:grid;grid-template-columns:400px minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
+.row-b-basic{display:grid;grid-template-columns:400px minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
+.row-b-datcom{display:grid;grid-template-columns:400px minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
 .row-c{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
-.chart-col{display:flex;flex-direction:column;gap:10px;height:100%}
-.chart-col > .panel{flex:1;display:flex;flex-direction:column}
-.chart-col .chart-wrap{flex:1;min-height:172px}
+.chart-col{display:flex;flex-direction:column;gap:10px}
+.chart-col > .panel{display:flex;flex-direction:column;overflow:hidden}
+.chart-wrap{position:relative;height:280px}
 </style>
 </head>
 <body>
@@ -1151,50 +1151,111 @@ function drawSection(){
 
 function drawPlanform(){
   const i=getInputs(),dc=i.dc;
-  // viewBox 360×200
-  const x0=52,x1=338,y0=18,y1=162;
-  const wH=y1-y0;
-  const swRad=dc.sweep*Math.PI/180, sOff=wH*Math.tan(swRad);
-  const wingP=`M ${x0},${y1} L ${x0+sOff},${y0} L ${x1},${y0} L ${x1},${y1} Z`;
-  const yi=y1-dc.spani*wH, yo=y1-dc.spano*wH;
-  const fi=(y1-yi)/wH, fo=(y1-yo)/wH;
-  const lexi=x0+fi*sOff, lexo=x0+fo*sOff;
-  const cfxi=x1-dc.cf*(x1-lexi), cfxo=x1-dc.cf*(x1-lexo);
-  const cfPath=`M ${cfxi},${yi} L ${cfxo},${yo} L ${x1},${yo} L ${x1},${yi} Z`;
-  const sdimX=x0-24;
+  // viewBox 360×200 — 조종면이 부착된 날개 패널만 표시
+  // 좌측 = 루트 (η_i), 우측 = 팁 (η_o)
+  // LE 위쪽, TE 아래쪽, 후퇴각은 LE의 우측 하향 기울기
+  const W=360, H=200;
+  const x0=42, x1=320;       // 좌우 마진
+  const wPx=x1-x0;            // 그림 영역 폭 = 조종면 스팬 길이
+  const cy=H/2;               // 세로 중앙
+  // 시위 (chord) 픽셀 길이 — AR에 따라 변동, AR 클수록 좁고 길어짐
+  // 조종면 스팬 = (η_o - η_i) × 전체 스팬, 시위는 평균 시위로 간략화
+  const spanFrac=Math.max(0.1, dc.spano - dc.spani);
+  // 표시용 시위 = 패널이 길수록 시위는 짧아짐. AR 영향을 시각적으로 반영
+  const chordPx=Math.min(110, Math.max(45, 1500/(dc.ar*spanFrac+2)));
+  // 후퇴각 (LE가 우측으로 갈수록 뒤로 밀림)
+  const swRad=dc.sweep*Math.PI/180;
+  const sweepX=wPx*Math.tan(swRad)*0.35; // 시각적 강조 비율
+
+  // 루트(좌측)의 LE/TE
+  const rootLEy=cy-chordPx/2;
+  const rootTEy=cy+chordPx/2;
+  // 팁(우측)의 LE/TE — 후퇴각 적용 (LE가 아래로 내려감)
+  const tipLEy=rootLEy+sweepX;
+  const tipTEy=rootTEy+sweepX;
+
+  // 날개 패널 폴리곤
+  const wingP=`M ${x0},${rootLEy} L ${x1},${tipLEy} L ${x1},${tipTEy} L ${x0},${rootTEy} Z`;
+
+  // 조종면 (후연부 cf/c)
+  // 루트와 팁에서의 조종면 LE x좌표
+  const cfRootX = x0 + (1-dc.cf) * 0;     // 후연 기준 cf만큼 안쪽
+  // 시위 방향이 세로축이므로 cf는 y방향 비율
+  const rootCfY = rootTEy - chordPx*dc.cf;
+  const tipCfY  = tipTEy  - chordPx*dc.cf;
+  const cfPath=`M ${x0},${rootCfY} L ${x1},${tipCfY} L ${x1},${tipTEy} L ${x0},${rootTEy} Z`;
+
   const lsz=10;
 
   const svg=`
-    <!-- CL axis -->
-    <line x1="${x0}" y1="${y0-10}" x2="${x0}" y2="${y1+10}" stroke="#cbd5e1" stroke-width="1.1" stroke-dasharray="5,3"/>
-    <text x="${x0}" y="${y0-13}" text-anchor="middle"
-          font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">CL</text>
-    <!-- wing -->
+    <!-- 비행 방향 (LE → TE = 위 → 아래) -->
+    <g opacity="0.55">
+      <line x1="${x0-22}" y1="${rootLEy-15}" x2="${x0-22}" y2="${rootLEy+5}" stroke="#94a3b8" stroke-width="1.2"/>
+      <polygon points="${x0-22},${rootLEy+5} ${x0-25},${rootLEy-1} ${x0-19},${rootLEy-1}" fill="#94a3b8"/>
+      <text x="${x0-22}" y="${rootLEy-19}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#94a3b8">FLOW</text>
+    </g>
+
+    <!-- 루트 (root) 측 표기 -->
+    <line x1="${x0}" y1="${rootLEy-12}" x2="${x0}" y2="${rootTEy+12}"
+          stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="4,2"/>
+    <text x="${x0-6}" y="${cy+3}" text-anchor="end"
+          font-family="-apple-system,sans-serif" font-size="9" fill="#64748b" font-weight="600">루트
+      <tspan x="${x0-6}" dy="11" font-size="8" fill="#94a3b8" font-weight="400">η<tspan font-size="6.5" baseline-shift="sub">i</tspan>=${dc.spani.toFixed(2)}</tspan>
+    </text>
+
+    <!-- 팁 (tip) 측 표기 -->
+    <line x1="${x1}" y1="${tipLEy-12}" x2="${x1}" y2="${tipTEy+12}"
+          stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="4,2"/>
+    <text x="${x1+6}" y="${cy+3}"
+          font-family="-apple-system,sans-serif" font-size="9" fill="#64748b" font-weight="600">팁
+      <tspan x="${x1+6}" dy="11" font-size="8" fill="#94a3b8" font-weight="400">η<tspan font-size="6.5" baseline-shift="sub">o</tspan>=${dc.spano.toFixed(2)}</tspan>
+    </text>
+
+    <!-- 날개 패널 -->
     <path d="${wingP}" class="d-wing"/>
-    <!-- control surface -->
+
+    <!-- 조종면 (보라색) -->
     <path d="${cfPath}" class="d-ctrl"/>
-    <!-- hinge line -->
-    <line x1="${cfxi}" y1="${yi}" x2="${cfxo}" y2="${yo}" stroke="#8b5cf6" stroke-width="1.4" stroke-dasharray="5,3"/>
-    <!-- span dimension bracket -->
-    ${arrowV(sdimX,yi,yo,'d-dim')}
-    <line x1="${x0-4}" y1="${yi}" x2="${x0+4}" y2="${yi}" class="d-dim" id="hl-spani-line"/>
-    <text x="${sdimX-6}" y="${yi+4}" text-anchor="end"
-          font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" id="hl-spani-text">η<tspan font-size="7.5" baseline-shift="sub">i</tspan> = ${dc.spani.toFixed(2)}</text>
-    <line x1="${x0-4}" y1="${yo}" x2="${x0+4}" y2="${yo}" class="d-dim" id="hl-spano-line"/>
-    <text x="${sdimX-6}" y="${yo+13}" text-anchor="end"
-          font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" id="hl-spano-text">η<tspan font-size="7.5" baseline-shift="sub">o</tspan> = ${dc.spano.toFixed(2)}</text>
-    <!-- AR label -->
-    <text x="${(x0+x1)/2+sOff/3}" y="${y1+18}" text-anchor="middle"
-          font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" id="hl-ar-text">AR = ${dc.ar.toFixed(1)}</text>
-    <!-- cf label inside surface -->
-    <text x="${(cfxi+x1)/2}" y="${(yi+y1)/2+5}" text-anchor="middle"
-          font-family="-apple-system,sans-serif" font-size="9" fill="#8b5cf6">c<tspan font-size="6.5" baseline-shift="sub">f</tspan></text>
-    <!-- sweep angle arc -->
+
+    <!-- 힌지 라인 (조종면 LE) -->
+    <line x1="${x0}" y1="${rootCfY}" x2="${x1}" y2="${tipCfY}"
+          stroke="#8b5cf6" stroke-width="1.4" stroke-dasharray="4,2"/>
+
+    <!-- LE / TE 라벨 -->
+    <text x="${(x0+x1)/2}" y="${(rootLEy+tipLEy)/2-7}" text-anchor="middle"
+          font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8" font-weight="600">LE — Leading Edge</text>
+    <text x="${(x0+x1)/2}" y="${(rootTEy+tipTEy)/2+15}" text-anchor="middle"
+          font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8" font-weight="600">TE — Trailing Edge</text>
+
+    <!-- 시위 c 표시 (루트) -->
+    <line x1="${x0-26}" y1="${rootLEy}" x2="${x0-26}" y2="${rootTEy}" class="d-dim"/>
+    <line x1="${x0-30}" y1="${rootLEy}" x2="${x0-22}" y2="${rootLEy}" class="d-dim"/>
+    <line x1="${x0-30}" y1="${rootTEy}" x2="${x0-22}" y2="${rootTEy}" class="d-dim"/>
+    <text x="${x0-32}" y="${cy+3}" text-anchor="end"
+          font-family="-apple-system,sans-serif" font-size="9" fill="#64748b">c</text>
+
+    <!-- cf 표시 (팁 측 우측에) -->
+    <line x1="${x1+30}" y1="${tipCfY}" x2="${x1+30}" y2="${tipTEy}" class="d-dim"/>
+    <line x1="${x1+26}" y1="${tipCfY}" x2="${x1+34}" y2="${tipCfY}" class="d-dim"/>
+    <line x1="${x1+26}" y1="${tipTEy}" x2="${x1+34}" y2="${tipTEy}" class="d-dim"/>
+    <text x="${x1+36}" y="${(tipCfY+tipTEy)/2+3}"
+          font-family="-apple-system,sans-serif" font-size="9" fill="#8b5cf6" font-weight="600" id="hl-cf-text">c<tspan font-size="6.5" baseline-shift="sub">f</tspan>=${(dc.cf*100).toFixed(0)}%</text>
+
+    <!-- 스팬 b 표시 (아래) -->
+    <line x1="${x0}" y1="${Math.max(rootTEy,tipTEy)+24}" x2="${x1}" y2="${Math.max(rootTEy,tipTEy)+24}" class="d-dim"/>
+    <line x1="${x0}" y1="${Math.max(rootTEy,tipTEy)+20}" x2="${x0}" y2="${Math.max(rootTEy,tipTEy)+28}" class="d-dim"/>
+    <line x1="${x1}" y1="${Math.max(rootTEy,tipTEy)+20}" x2="${x1}" y2="${Math.max(rootTEy,tipTEy)+28}" class="d-dim"/>
+    <text x="${(x0+x1)/2}" y="${Math.max(rootTEy,tipTEy)+38}" text-anchor="middle"
+          font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" id="hl-ar-text">조종면 스팬 · AR=${dc.ar.toFixed(1)}</text>
+
+    <!-- 후퇴각 호 -->
     ${dc.sweep>1?`
-      <path d="M ${x0+26},${y1} A 26,26 0 0,0 ${x0+26*Math.sin(swRad)},${y1-26*Math.cos(swRad)}"
-            fill="none" stroke="#2563eb" stroke-width="1.2"/>
-      <text x="${x0+36}" y="${y1-11}"
-            font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#2563eb" font-weight="700" id="hl-sw-text">Λ = ${dc.sweep}°</text>`:''}`;
+      <line x1="${x0}" y1="${rootLEy}" x2="${x0+30}" y2="${rootLEy}" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="2,2"/>
+      <path d="M ${x0+30},${rootLEy} A 30,30 0 0,1 ${x0+30*Math.cos(swRad)},${rootLEy+30*Math.sin(swRad)}"
+            fill="none" stroke="#2563eb" stroke-width="1.3"/>
+      <text x="${x0+38}" y="${rootLEy+18}"
+            font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#2563eb" font-weight="700" id="hl-sw-text">Λ=${dc.sweep}°</text>`:''}
+  `;
   document.getElementById('diag-planform').innerHTML=svg;
 }
 
@@ -1304,6 +1365,16 @@ document.getElementById('f-power-w').addEventListener('input',()=>{powerManual=t
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 renderSurfBar();loadCur();toggleACUI();recalcRho();drawDiags();update();
+
+// 창 리사이즈 시 차트 강제 재렌더 (가로폭은 자동, Chart.js만 인식 강제)
+let _resizeRAF = 0;
+window.addEventListener('resize', () => {
+  if(_resizeRAF) return;
+  _resizeRAF = requestAnimationFrame(() => {
+    _resizeRAF = 0;
+    if(chart) chart.resize();
+  });
+});
 </script>
 </body>
 </html>
