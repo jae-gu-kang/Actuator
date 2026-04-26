@@ -118,12 +118,12 @@ body{
 .surf-btn.on.peak .surf-h{color:var(--accent)}
 
 /* ── KPI ── */
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
-.kpi{background:var(--surface);border-radius:var(--rl);padding:11px 14px;box-shadow:var(--sh)}
-.kpi-lbl{font-size:10.5px;font-weight:500;color:var(--text2);margin-bottom:4px}
-.kpi-val{font-size:20px;font-weight:300;color:var(--text);line-height:1;letter-spacing:-.03em;margin-bottom:3px}
-.kpi-val .u{font-size:10.5px;font-weight:400;color:var(--text3);margin-left:2px}
-.kpi-sub{font-size:10.5px;color:var(--text2);line-height:1.3}
+.kpi-row{display:grid;grid-template-columns:400px 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.kpi{background:var(--surface);border-radius:var(--rl);padding:11px 14px;box-shadow:var(--sh);text-align:center}
+.kpi-lbl{font-size:10.5px;font-weight:500;color:var(--text2);margin-bottom:6px;text-align:center}
+.kpi-val{font-size:22px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-.02em;margin-bottom:5px;text-align:center}
+.kpi-val .u{font-size:11px;font-weight:500;color:var(--text3);margin-left:3px}
+.kpi-sub{font-size:10.5px;color:var(--text2);line-height:1.3;text-align:center}
 .kpi.accent .kpi-val{color:var(--accent)}
 .kpi.purple .kpi-val{color:var(--accent2)}
 .badge{display:inline-block;font-size:9.5px;font-weight:500;padding:1px 6px;border-radius:20px}
@@ -277,11 +277,13 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .hide{display:none!important}
 
 /* ── Layout ── */
-.row-a{display:grid;grid-template-columns:400px 1fr;gap:10px;margin-bottom:10px;align-items:start}
-.row-b-basic{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;align-items:start}
-.row-b-datcom{display:grid;grid-template-columns:300px 1fr;gap:10px;margin-bottom:10px;align-items:start}
-.row-c{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
-.chart-col{display:flex;flex-direction:column;gap:10px}
+.row-a{display:grid;grid-template-columns:400px 1fr;gap:10px;margin-bottom:10px;align-items:stretch}
+.row-b-basic{display:grid;grid-template-columns:400px 1fr 1fr;gap:10px;margin-bottom:10px;align-items:stretch}
+.row-b-datcom{display:grid;grid-template-columns:400px 1fr;gap:10px;margin-bottom:10px;align-items:stretch}
+.row-c{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.chart-col{display:flex;flex-direction:column;gap:10px;height:100%}
+.chart-col > .panel{flex:1;display:flex;flex-direction:column}
+.chart-col .chart-wrap{flex:1;min-height:172px}
 </style>
 </head>
 <body>
@@ -321,7 +323,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 <div class="page-header">
   <div class="eyebrow">Control Surface · DATCOM · BLDC Servo Sizing</div>
   <h1>힌지모멘트 계산기</h1>
-  <p>기체 타입별 조종면 힌지모멘트 · DATCOM 보정 · 서보 사이징 · 배터리 산정</p>
+  <p>기체 타입별 조종면 힌지모멘트 · DATCOM 보정 · 서보 사이징 · 전력 산정</p>
 </div>
 
 <!-- AC type -->
@@ -534,70 +536,53 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <div class="p-title-row">
       <span class="sec-name">DATCOM 형상 파라미터</span>
     </div>
-    <!-- 섹션: 단면 형상 -->
-    <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">단면 형상</div>
-    <div class="fgrid fg2" style="margin-bottom:10px">
+    <div class="fgrid fg2">
       <div class="field">
-        <label style="font-size:11px">cf/c</label>
+        <label>cf/c · 시위비</label>
         <input type="number" id="dc-cf" value="0.25" step="0.01" min="0.05" max="0.5">
-        <div class="sub">조종면 시위비</div>
       </div>
       <div class="field">
-        <label style="font-size:11px">t/c</label>
+        <label>t/c · 두께비</label>
         <input type="number" id="dc-tc" value="0.12" step="0.01" min="0.04" max="0.20">
-        <div class="sub">두께비</div>
       </div>
       <div class="field">
-        <label style="font-size:11px">xh/cf</label>
+        <label>xh/cf · 힌지위치</label>
         <input type="number" id="dc-hinge" value="0.0" step="0.05" min="-0.3" max="0.5">
-        <div class="sub">힌지 위치</div>
       </div>
       <div class="field">
-        <label style="font-size:11px">밸런스</label>
+        <label>밸런스</label>
         <input type="number" id="dc-balance" value="0.0" step="0.05" min="0.0" max="0.4">
-        <div class="sub">에어로 밸런스 비</div>
       </div>
-    </div>
-    <!-- 섹션: 날개 형상 -->
-    <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">날개 형상</div>
-    <div class="fgrid fg2" style="margin-bottom:10px">
       <div class="field">
-        <label style="font-size:11px">ηi</label>
+        <label>ηi · 내측 위치</label>
         <input type="number" id="dc-spani" value="0.6" step="0.05" min="0" max="1">
-        <div class="sub">조종면 내측 위치</div>
       </div>
       <div class="field">
-        <label style="font-size:11px">ηo</label>
+        <label>ηo · 외측 위치</label>
         <input type="number" id="dc-spano" value="0.95" step="0.05" min="0" max="1">
-        <div class="sub">조종면 외측 위치</div>
       </div>
       <div class="field">
-        <label style="font-size:11px">AR</label>
+        <label>AR · 종횡비</label>
         <input type="number" id="dc-ar" value="6.0" step="0.5" min="2" max="15">
-        <div class="sub">날개 종횡비</div>
       </div>
       <div class="field">
-        <label style="font-size:11px">Λ (°)</label>
+        <label>Λ · 후퇴각 (°)</label>
         <input type="number" id="dc-sweep" value="0" step="1" min="0" max="45">
-        <div class="sub">1/4c 후퇴각</div>
       </div>
-    </div>
-    <!-- V-tail / All-moving 전용 -->
-    <div class="field vtail-only hide">
-      <label style="font-size:11px">Γ (°)</label>
-      <input type="number" id="dc-dihedral" value="35" step="1" min="20" max="55">
-      <div class="sub">V-tail 경사각</div>
-    </div>
-    <div class="field allmv-only hide">
-      <label style="font-size:11px">xp/c</label>
-      <input type="number" id="dc-pivot" value="0.25" step="0.01" min="0.0" max="0.5">
-      <div class="sub">피벗 위치</div>
+      <div class="field vtail-only hide">
+        <label>Γ · V-tail 경사각 (°)</label>
+        <input type="number" id="dc-dihedral" value="35" step="1" min="20" max="55">
+      </div>
+      <div class="field allmv-only hide">
+        <label>xp/c · 피벗위치</label>
+        <input type="number" id="dc-pivot" value="0.25" step="0.01" min="0.0" max="0.5">
+      </div>
     </div>
     <div class="vtail-box vtail-only hide" id="vtail-box">
       <div class="vtail-row"><span class="vtail-k">피치 분배 (cos Γ)</span><span class="vtail-v" id="vt-pitch">—</span></div>
       <div class="vtail-row"><span class="vtail-k">요 분배 (sin Γ)</span><span class="vtail-v" id="vt-yaw">—</span></div>
     </div>
-    <div class="note">실제 형상 파라미터로 정밀 계산. 아음속(Mach ≤ 0.8) 적용. 필드 클릭 시 도식에서 해당 부위가 강조됩니다. 점성·갭·후연부 등 실측 보정(K_exp)이 자동 반영됩니다.</div>
+    <div class="note">아음속(Mach ≤ 0.8) 적용. 필드 클릭 시 도식 강조됨.</div>
   </div>
 
   <!-- Right: large diagrams + coeff/compare below -->
@@ -611,11 +596,11 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div class="diag-box">
           <div class="diag-lbl">단면도 — Section View</div>
-          <svg id="diag-section" viewBox="0 0 360 200" style="width:100%;height:200px"></svg>
+          <svg id="diag-section" viewBox="0 0 360 200" style="width:100%;height:150px"></svg>
         </div>
         <div class="diag-box">
           <div class="diag-lbl">평면도 — Planform View</div>
-          <svg id="diag-planform" viewBox="0 0 360 200" style="width:100%;height:200px"></svg>
+          <svg id="diag-planform" viewBox="0 0 360 200" style="width:100%;height:150px"></svg>
         </div>
       </div>
       <!-- Extra diagram (V-tail / all-moving) full width -->
@@ -682,28 +667,32 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 
   <div class="panel">
     <div class="p-title-row" style="margin-bottom:10px">
-      <span class="sec-name">전력 & 배터리</span>
+      <span class="sec-name">전력 & 용량 산정</span>
     </div>
     <div class="fgrid fg4">
-      <div class="field" style="grid-column:span 2">
+      <div class="field">
         <label>전력 소비<span id="pw-badge" class="mini-badge mb-blue">자동</span></label>
         <input type="number" id="f-power-w" value="0" step="0.1" min="0">
+        <div class="sub">W</div>
       </div>
-      <div class="field" style="grid-column:span 2">
-        <label>배터리 전압</label>
-        <div class="inp-pair"><input type="number" id="f-volt" value="22.2" step="0.1" min="3" max="100"><span class="u">V</span></div>
+      <div class="field">
+        <label>공급 전압</label>
+        <input type="number" id="f-volt" value="28" step="0.1" min="3" max="100">
+        <div class="sub">V</div>
       </div>
-      <div class="field" style="grid-column:span 2">
+      <div class="field">
         <label>비행 시간</label>
-        <div class="inp-pair"><input type="number" id="f-duty" value="30" step="1" min="1" max="600"><span class="u">분</span></div>
+        <input type="number" id="f-duty" value="30" step="1" min="1" max="600">
+        <div class="sub">분</div>
       </div>
-      <div class="field" style="grid-column:span 2">
+      <div class="field">
         <label>듀티 사이클</label>
-        <div class="inp-pair"><input type="number" id="f-duty-pct" value="20" step="5" min="1" max="100"><span class="u">%</span></div>
+        <input type="number" id="f-duty-pct" value="20" step="5" min="1" max="100">
+        <div class="sub">%</div>
       </div>
     </div>
     <div class="divider"></div>
-    <div class="p-title" style="margin-bottom:8px">배터리 산정</div>
+    <div class="p-title" style="margin-bottom:8px">전력 산정</div>
     <div class="dl">
       <div class="dlr"><span class="dk">전류</span><span class="dv" id="d-current">—</span></div>
       <div class="dlr"><span class="dk">용량 (이 조종면)</span><span class="dv" id="d-cap">—</span></div>
@@ -839,7 +828,7 @@ function initState(s){
       pivot: std.pivot ?? .25,
     },
     sf:1.25, gear:100, rate:60, eff:.75,
-    powerW:0, volt:22.2, duty:30, dutyPct:20,
+    powerW:0, volt:28, duty:30, dutyPct:20,
     powerManual:false,
   };
 }
@@ -910,8 +899,15 @@ function gi(id){return+gv(id);}
 function sv(id,v){const el=document.getElementById(id);if(el)el.value=v;}
 function st(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 
+// 부동소수점 오차로 누적되는 슬라이더 값 정리 (step 단위로 반올림)
+function rnd(v, step){return Math.round(v/step)*step;}
+
 function getInputs(){
-  return{area:gi('s-area'),V:gi('s-spd'),def:gi('s-def'),mac:gi('s-mac'),
+  return{
+    area: rnd(gi('s-area'), 0.01),
+    V:    rnd(gi('s-spd'),  1),
+    def:  rnd(gi('s-def'),  0.5),
+    mac:  rnd(gi('s-mac'),  0.01),
     ch0:gi('f-ch0'),chd:gi('f-chd'),cha:gi('f-cha'),alpha:gi('f-alpha'),
     rho:gi('f-rho'),alt:gi('f-alt'),dT:gi('f-dT'),
     sf:gi('f-sf'),gear:gi('f-gear'),rate:gi('f-rate'),eff:gi('f-eff'),
@@ -923,7 +919,9 @@ function getInputs(){
 function saveCur(){const i=getInputs(),s=getCurState();Object.assign(s,{area:i.area,V:i.V,def:i.def,mac:i.mac,ch0:i.ch0,chd:i.chd,cha:i.cha,alpha:i.alpha,sf:i.sf,gear:i.gear,rate:i.rate,eff:i.eff,powerW:i.powerW,volt:i.volt,duty:i.duty,dutyPct:i.dutyPct,dc:{...i.dc},powerManual});}
 function loadCur(){
   const s=getCurState();
-  sv('n-area',s.area);sv('s-area',s.area);sv('n-spd',s.V);sv('s-spd',s.V);sv('n-def',s.def);sv('s-def',s.def);sv('n-mac',s.mac);sv('s-mac',s.mac);
+  // step 단위로 반올림한 후 슬라이더와 숫자 입력에 동시 적용 (부동소수점 누적 방지)
+  const a=rnd(s.area,0.01), V=rnd(s.V,1), d=rnd(s.def,0.5), m=rnd(s.mac,0.01);
+  sv('n-area',a);sv('s-area',a);sv('n-spd',V);sv('s-spd',V);sv('n-def',d);sv('s-def',d);sv('n-mac',m);sv('s-mac',m);
   sv('f-ch0',(+s.ch0).toFixed(4));sv('f-chd',(+s.chd).toFixed(4));sv('f-cha',(+s.cha).toFixed(4));sv('f-alpha',s.alpha);
   sv('f-sf',s.sf);sv('f-gear',s.gear);sv('f-rate',s.rate);sv('f-eff',s.eff);
   sv('f-power-w',s.powerW);sv('f-volt',s.volt);sv('f-duty',s.duty);sv('f-duty-pct',s.dutyPct);
