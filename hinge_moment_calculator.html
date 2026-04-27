@@ -1377,25 +1377,25 @@ fill="none" stroke="#2563eb" stroke-width="1.4"/>
 <line x1="${cx}" y1="${cy-arcR-8}" x2="${cx}" y2="${cy-arcR}"
 stroke="#94a3b8" stroke-width="0.6" stroke-dasharray="2,2"/>
 <text x="${cx+arcR+8}" y="${cy-arcR*Math.cos(dhR)/2+4}"
-font-family="-apple-system,sans-serif" font-size="10" fill="#2563eb" font-weight="700" id="hl-dih-text">Γ=${dh}°</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#2563eb" font-weight="700" id="hl-dih-text">Γ=${dh}°</text>
 
 <!-- 분배 텍스트 (정면도 하단) -->
 <text x="${cx}" y="${cy+44}" text-anchor="middle"
-font-family="-apple-system,sans-serif" font-size="8.5" fill="#2563eb">피치 ${pitchPct}%</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#2563eb">피치 ${pitchPct}%</text>
 <text x="${cx}" y="${cy+56}" text-anchor="middle"
-font-family="-apple-system,sans-serif" font-size="8.5" fill="#f59e0b">요 ${yawPct}%</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#f59e0b">요 ${yawPct}%</text>
 
 <!-- ── 분해 벡터 (우측 패널) ── -->
 <rect x="370" y="12" width="330" height="145" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
 <text x="535" y="30" text-anchor="middle"
-font-family="-apple-system,sans-serif" font-size="9" fill="#64748b">모멘트 분배 (Γ = ${dh}°)</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#64748b">모멘트 분배 (Γ = ${dh}°)</text>
 
 <!-- 합력 벡터 H (우상향 45° 기준, 보라) -->
 <line x1="${vx}" y1="${vy}" x2="${vx-yawLen}" y2="${vy-pitchLen}"
 stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round"/>
 
 <text x="${vx-yawLen-8}" y="${vy-pitchLen-6}" text-anchor="middle"
-font-family="-apple-system,sans-serif" font-size="9" fill="#8b5cf6" font-weight="600">H (합력)</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#8b5cf6" font-weight="600">H (합력)</text>
 
 <!-- 요 성분 (수직 위쪽, 파랑) -->
 <line x1="${vx}" y1="${vy}" x2="${vx}" y2="${vy-pitchLen}"
@@ -1404,9 +1404,9 @@ stroke="#2563eb" stroke-width="2" stroke-dasharray="5,2"/>
 ${vx-4},${vy-pitchLen+8}
 ${vx+4},${vy-pitchLen+8}" fill="#2563eb"/>
 <text x="${vx+8}" y="${vy-pitchLen/2}"
-font-family="-apple-system,sans-serif" font-size="9" fill="#2563eb" font-weight="600">요</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#2563eb" font-weight="600">요</text>
 <text x="${vx+8}" y="${vy-pitchLen/2+12}"
-font-family="-apple-system,sans-serif" font-size="9" fill="#2563eb">cos Γ = ${pitchPct}%</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#2563eb">cos Γ = ${pitchPct}%</text>
 
 <!-- 피치 성분 (수평 좌쪽, 주황) -->
 <line x1="${vx}" y1="${vy}" x2="${vx-yawLen}" y2="${vy}"
@@ -1415,9 +1415,9 @@ stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,2"/>
 ${vx-yawLen+8},${vy-4}
 ${vx-yawLen+8},${vy+4}" fill="#f59e0b"/>
 <text x="${vx-yawLen/2}" y="${vy+16}" text-anchor="middle"
-font-family="-apple-system,sans-serif" font-size="9" fill="#f59e0b" font-weight="600">피치</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#f59e0b" font-weight="600">피치</text>
 <text x="${vx-yawLen/2}" y="${vy+28}" text-anchor="middle"
-font-family="-apple-system,sans-serif" font-size="9" fill="#f59e0b">sin Γ = ${yawPct}%</text>
+font-family="-apple-system,sans-serif" font-size="6" fill="#f59e0b">sin Γ = ${yawPct}%</text>
 
 <!-- 직각 표시 -->
 <rect x="${vx-8}" y="${vy-8}" width="8" height="8" fill="none" stroke="#cbd5e1" stroke-width="0.8"/>
