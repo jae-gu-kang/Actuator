@@ -4,26 +4,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>힌지모멘트 계산기</title>
+  <title>힌지모멘트 분석기</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
   <style>
     :root {
       --bg: #f2f2f7;
       --surface: #ffffff;
       --surface2: #f5f5f7;
-      --surface3: #e8e8ed;
-      --border: rgba(0, 0, 0, 0.07);
-      --border2: rgba(0, 0, 0, 0.12);
+      --border: rgba(0, 0, 0, 0.1);
       --accent: #0071e3;
-      --accent2: #bf5af2;
       --text: #1d1d1f;
       --text2: #6e6e73;
-      --text3: #aeaeb2;
-      --r: 8px;
-      --rl: 12px;
-      --rx: 16px;
-      --sh: 0 1px 2px rgba(0, 0, 0, 0.05), 0 3px 12px rgba(0, 0, 0, 0.04);
+      --rx: 12px;
+      --sh: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     * {
@@ -33,323 +29,271 @@
     }
 
     body {
-      font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      font-family: -apple-system, 'Noto Sans KR', sans-serif;
       background: var(--bg);
       color: var(--text);
-      font-size: 12.5px;
-      -webkit-font-smoothing: antialiased;
-      padding: 0 20px 28px;
-      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.5;
     }
 
-    /* ── Titlebar ── */
-    .titlebar {
-      position: sticky;
-      top: 0;
-      z-index: 200;
-      height: 44px;
-      background: rgba(242, 242, 247, 0.92);
-      backdrop-filter: saturate(180%) blur(20px);
-      -webkit-backdrop-filter: saturate(180%) blur(20px);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 14px;
-      margin: 0 -20px 16px;
-    }
-
-    .t-divider {
-      width: 1px;
-      height: 14px;
-      background: var(--border2);
-    }
-
-    .t-icon {
-      width: 26px;
-      height: 26px;
-      border-radius: 7px;
-      background: linear-gradient(150deg, #9b5de5 0%, #7c3aed 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 1px 4px rgba(124, 58, 237, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-      flex-shrink: 0;
-    }
-
-    .t-icon svg {
-      width: 18px;
-      height: 18px;
-      display: block;
-    }
-
-    .t-title {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: -.3px;
-      color: var(--text);
-    }
-
-    .t-home {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      color: var(--accent);
-      font-size: 12.5px;
-      font-weight: 500;
-      text-decoration: none;
-      padding: 3px 8px 3px 4px;
-      border-radius: 6px;
-      background: transparent;
-      cursor: pointer;
-      transition: background .15s;
-    }
-
-    .t-home:hover {
-      background: rgba(0, 113, 227, .08);
-    }
-
-    /* ── Header ── */
-    .page-header {
-      margin-bottom: 14px;
-    }
-
-    .eyebrow {
-      font-size: 10.5px;
-      font-weight: 500;
-      color: var(--accent);
-      letter-spacing: .07em;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-    }
-
-    .page-header h1 {
-      font-size: 20px;
-      font-weight: 500;
-      color: var(--text);
-      letter-spacing: -.02em;
-    }
-
-    /* ── Aircraft & Surface Bar ── */
-    .ac-bar {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-      flex-wrap: wrap;
-      background: var(--surface);
-      border-radius: var(--rx);
-      padding: 8px 12px;
-      box-shadow: var(--sh);
-      margin-bottom: 8px;
-    }
-
-    .ac-label {
-      font-size: 10.5px;
-      font-weight: 600;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      margin-right: 4px;
-    }
-
-    .ac-btn {
-      font-size: 11.5px;
-      font-weight: 500;
-      padding: 4px 11px;
-      border-radius: 7px;
-      border: 1px solid var(--border2);
-      background: var(--surface2);
-      color: var(--text2);
-      cursor: pointer;
-      font-family: inherit;
-      transition: all .15s;
-    }
-
-    .ac-btn.on {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-
-    .surf-bar {
-      display: flex;
-      gap: 3px;
-      background: var(--surface);
-      border-radius: var(--rl);
-      padding: 3px;
-      box-shadow: var(--sh);
-      margin-bottom: 10px;
-    }
-
-    .surf-btn {
-      flex: 1;
-      min-width: 80px;
-      padding: 7px 8px;
-      border-radius: 9px;
-      border: none;
-      background: transparent;
-      color: var(--text2);
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 11.5px;
-      font-weight: 500;
-      transition: all .15s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      position: relative;
-    }
-
-    .surf-btn.on {
-      background: var(--surface2);
-      color: var(--text);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
-    }
-
-    .surf-h {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text3);
-      font-variant-numeric: tabular-nums;
-      letter-spacing: -.02em;
-      line-height: 1;
-    }
-
-    .surf-btn.on .surf-h {
-      color: var(--accent);
-    }
-
-    /* ── Main Layout ── */
     .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* 상단 타이틀 섹션 */
+    .header {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* 메인 레이아웃 (좌우 2칸) */
+    .main-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      gap: 20px;
     }
 
     .panel {
       background: var(--surface);
-      padding: 20px;
+      padding: 24px;
       border-radius: var(--rx);
       box-shadow: var(--sh);
+      border: 1px solid var(--border);
     }
 
-    h3 {
-      font-size: 14px;
-      margin-bottom: 15px;
-      color: var(--text);
+    .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--bg);
     }
 
-    .row {
+    /* 입력 폼 스타일 */
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text2);
+      margin-bottom: 6px;
+    }
+
+    .input-row {
       display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      padding-bottom: 5px;
-      border-bottom: 1px dashed var(--border);
+      gap: 10px;
+      align-items: center;
     }
 
-    .label { font-weight: 500; color: var(--text2); }
-    .value { color: var(--accent); font-weight: 700; }
-
-    input {
-      width: 80px;
-      padding: 4px 8px;
+    input[type="number"] {
+      width: 100%;
+      padding: 8px 12px;
       border-radius: 6px;
-      border: 1px solid var(--border2);
+      border: 1px solid var(--border);
       background: var(--surface2);
+      outline: none;
+      font-size: 14px;
       text-align: right;
     }
 
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+
+    /* 결과 텍스트 스타일 */
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--surface2);
+    }
+
+    .result-label {
+      color: var(--text2);
+      font-size: 14px;
+    }
+
+    .result-value {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 16px;
+    }
+
+    .highlight-box {
+      background: #eef7ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    /* 차트 크기 조정 */
+    .chart-container {
+      height: 250px;
+      margin-top: 20px;
+    }
+
     @media (max-width: 768px) {
-      .container { grid-template-columns: 1fr; }
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 
 <body>
-  <div class="titlebar">
-    <div class="t-icon">
-      <svg viewBox="0 0 20 20" fill="none">
-        <path d="M2 10 Q5 6.8 10 6.4 Q15 6.1 18 10 Q15 11.6 10 12.0 Q5 12.4 2 10 Z" fill="white" />
-      </svg>
-    </div>
-    <span class="t-title">힌지모멘트 분석기</span>
-  </div>
-
-  <div class="page-header">
-    <div class="eyebrow">Aero Design · Hinge Moment</div>
-    <h1>조종면 밸런스 계산기</h1>
-  </div>
-
-  <div class="ac-bar">
-    <span class="ac-label">기체 타입</span>
-    <button class="ac-btn on">일반 고정익</button>
-    <button class="ac-btn">V-tail</button>
-    <button class="ac-btn">드론</button>
-  </div>
-
-  <div class="surf-bar">
-    <button class="surf-btn on">
-      <span>에일러론</span>
-      <span class="surf-h" id="h_val">0.00</span>
-    </button>
-    <button class="surf-btn">
-      <span>엘리베이터</span>
-      <span class="surf-h">0.00</span>
-    </button>
-  </div>
-
   <div class="container">
-    <div class="panel">
-      <h3>1. 비행 및 형상 변수</h3>
-      <div class="row">
-        <span class="label">에어스피드 (V)</span>
-        <span><input type="number" id="v_in" value="50" oninput="calc()"> m/s</span>
-      </div>
-      <div class="row">
-        <span class="label">편향각 (δ)</span>
-        <span><input type="number" id="d_in" value="15" oninput="calc()"> deg</span>
-      </div>
-      <div class="row">
-        <span class="label">조종면 면적 (S_f)</span>
-        <span><input type="number" id="s_in" value="0.1" oninput="calc()"> m²</span>
-      </div>
+    <div class="header">
+      <h1>Hinge Moment Analyzer</h1>
+      <p style="color: var(--text2);">조종면의 공력적 균형과 힌지 토크 계산</p>
     </div>
 
-    <div class="panel" style="background: #eef7ff;">
-      <h3>2. 분석 결과</h3>
-      <div class="row">
-        <span class="label">동압 (q)</span>
-        <span class="value" id="q_res">0</span> Pa
+    <div class="main-grid">
+      <div class="panel">
+        <div class="panel-title">비행 및 기하학적 데이터</div>
+
+        <div class="input-group">
+          <label>에어스피드 (V) : <span id="v_text">50</span> m/s</label>
+          <div class="input-row">
+            <input type="range" id="v_range" min="1" max="300" value="50" oninput="calculate()">
+            <input type="number" id="v_num" value="50" oninput="sync('v')">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>편향각 (δ) : deg</label>
+          <div class="input-row">
+            <input type="range" id="d_range" min="-30" max="30" value="15" oninput="calculate()">
+            <input type="number" id="d_num" value="15" oninput="sync('d')">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>조종면 면적 (S_f) : m²</label>
+          <input type="number" id="area" value="0.1" step="0.01" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
+          <label>평균 시위 (c_bar) : m</label>
+          <input type="number" id="chord" value="0.2" step="0.01" oninput="calculate()">
+        </div>
       </div>
-      <div class="row" style="font-size: 1.1em;">
-        <span class="label">힌지 모멘트 (H)</span>
-        <span class="value" id="h_res">0.000</span> N·m
+
+      <div class="panel">
+        <div class="panel-title">계산 분석 결과</div>
+
+        <div class="result-row">
+          <span class="result-label">동압 (Dynamic Pressure, q)</span>
+          <span class="result-value"><span id="q_res">0</span> Pa</span>
+        </div>
+
+        <div class="highlight-box">
+          <div class="result-row" style="border:none;">
+            <span class="result-label" style="font-weight:600;">최종 힌지 모멘트 (H)</span>
+            <span class="result-value" style="font-size:22px;"><span id="h_res">0.000</span> N·m</span>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="hmChart"></canvas>
+        </div>
       </div>
-      <p style="font-size: 11px; color: var(--text3); margin-top: 10px;">
-        * 공기 밀도 1.225 kg/m³, CH_delta -0.006 기준으로 계산되었습니다.
-      </p>
     </div>
   </div>
 
   <script>
-    function calc() {
-      const v = parseFloat(document.getElementById('v_in').value) || 0;
-      const delta = parseFloat(document.getElementById('d_in').value) || 0;
-      const Sf = parseFloat(document.getElementById('s_in').value) || 0;
-      
-      const rho = 1.225;
-      const c_bar = 0.2; // 평균 시위 가정
-      const ch_delta = -0.006;
+    let myChart = null;
 
-      const q = 0.5 * rho * v * v;
-      const H = Math.abs(ch_delta * delta * q * Sf * c_bar);
-
-      document.getElementById('q_res').innerText = Math.round(q);
-      document.getElementById('h_res').innerText = H.toFixed(3);
-      document.getElementById('h_val').innerText = H.toFixed(2);
+    // 슬라이더와 숫자 입력칸 동기화
+    function sync(type) {
+      const num = document.getElementById(type + '_num');
+      const range = document.getElementById(type + '_range');
+      range.value = num.value;
+      calculate();
     }
-    window.onload = calc;
+
+    function calculate() {
+      // 값 가져오기
+      const v = parseFloat(document.getElementById('v_range').value);
+      const delta = parseFloat(document.getElementById('d_range').value);
+      const Sf = parseFloat(document.getElementById('area').value);
+      const c = parseFloat(document.getElementById('chord').value);
+
+      // 텍스트 업데이트
+      document.getElementById('v_text').innerText = v;
+      document.getElementById('v_num').value = v;
+      document.getElementById('d_num').value = delta;
+
+      // 공력 계산 (표준 대기 밀도 1.225)
+      const rho = 1.225;
+      const q = 0.5 * rho * v * v;
+      const ch_delta = -0.006; // 일반적인 에어포일 계수 가정
+      const ch_alpha = -0.003;
+      const alpha = 3; // 받음각 3도 가정
+
+      const CH = (ch_delta * delta) + (ch_alpha * alpha);
+      const H = Math.abs(CH * q * Sf * c);
+
+      // UI 업데이트
+      document.getElementById('q_res').innerText = Math.round(q).toLocaleString();
+      document.getElementById('h_res').innerText = H.toFixed(3);
+
+      updateChart(Sf, c, delta, ch_delta, ch_alpha, alpha, rho);
+    }
+
+    function updateChart(Sf, c, delta, chd, cha, a, rho) {
+      const labels = [];
+      const data = [];
+      for (let speed = 0; speed <= 200; speed += 20) {
+        labels.push(speed);
+        const q_v = 0.5 * rho * speed * speed;
+        const h_v = Math.abs(((chd * delta) + (cha * a)) * q_v * Sf * c);
+        data.push(h_v);
+      }
+
+      const ctx = document.getElementById('hmChart').getContext('2d');
+      if (myChart) {
+        myChart.destroy();
+      }
+
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '속도별 모멘트 (N·m)',
+            data: data,
+            borderColor: '#0071e3',
+            backgroundColor: 'rgba(0, 113, 227, 0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    // 초기 실행
+    window.onload = calculate;
   </script>
 </body>
 
