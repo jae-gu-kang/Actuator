@@ -1,1 +1,1500 @@
+<!DOCTYPE html>
 
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>힌지모멘트 계산기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+--bg: #f2f2f7;
+--surface: #ffffff;
+--surface2: #f5f5f7;
+--surface3: #e8e8ed;
+--border: rgba(0,0,0,0.07);
+--border2: rgba(0,0,0,0.12);
+--accent: #0071e3;
+--accent2: #bf5af2;
+--text: #1d1d1f;
+--text2: #6e6e73;
+--text3: #aeaeb2;
+--r: 8px;
+--rl: 12px;
+--rx: 16px;
+--sh: 0 1px 2px rgba(0,0,0,0.05), 0 3px 12px rgba(0,0,0,0.04);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+font-family:-apple-system,'Noto Sans KR',BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+background:var(--bg);color:var(--text);font-size:12.5px;
+-webkit-font-smoothing:antialiased;
+padding:0 20px 28px;min-height:100vh;
+}
+
+/* ── Titlebar ── */
+.titlebar{
+position:sticky;top:0;z-index:200;height:44px;
+background:rgba(242,242,247,0.92);
+backdrop-filter:saturate(180%) blur(20px);
+-webkit-backdrop-filter:saturate(180%) blur(20px);
+border-bottom:1px solid var(--border);
+display:flex;align-items:center;gap:8px;
+padding:0 14px;margin:0 -20px 16px;
+}
+.t-divider{width:1px;height:14px;background:var(--border2)}
+
+/* Aero icon: airfoil + streamlines */
+.t-icon{
+width:26px;height:26px;border-radius:7px;
+background:linear-gradient(150deg,#9b5de5 0%,#7c3aed 100%);
+display:flex;align-items:center;justify-content:center;
+box-shadow:0 1px 4px rgba(124,58,237,0.4),inset 0 1px 0 rgba(255,255,255,0.18);
+flex-shrink:0;
+}
+.t-icon svg{width:18px;height:18px;display:block}
+
+.t-title{font-size:13px;font-weight:600;letter-spacing:-.3px;color:var(--text)}
+.t-home{
+display:flex;align-items:center;gap:4px;color:var(--accent);
+font-size:12.5px;font-weight:500;text-decoration:none;
+padding:3px 8px 3px 4px;border-radius:6px;border:none;
+background:transparent;cursor:pointer;transition:background .15s;
+}
+.t-home:hover{background:rgba(0,113,227,.08)}
+.t-home svg{width:14px;height:14px}
+
+/* ── Header ── */
+.page-header{margin-bottom:14px}
+.eyebrow{font-size:10.5px;font-weight:500;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:2px}
+.page-header h1{font-size:20px;font-weight:500;color:var(--text);letter-spacing:-.02em}
+.page-header p{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* ── AC type bar ── */
+.ac-bar{
+display:flex;gap:5px;align-items:center;flex-wrap:wrap;
+background:var(--surface);border-radius:var(--rx);
+padding:8px 12px;box-shadow:var(--sh);margin-bottom:8px;
+}
+.ac-label{font-size:10.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-right:4px}
+.ac-btn{
+font-size:11.5px;font-weight:500;padding:4px 11px;
+border-radius:7px;border:1px solid var(--border2);
+background:var(--surface2);color:var(--text2);
+cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.ac-btn:hover{background:var(--surface3);color:var(--text)}
+.ac-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── Surface tabs ── */
+.surf-bar{
+display:flex;gap:3px;background:var(--surface);
+border-radius:var(--rl);padding:3px;
+box-shadow:var(--sh);margin-bottom:10px;
+}
+.surf-btn{
+flex:1;min-width:80px;padding:7px 8px;
+border-radius:9px;border:none;background:transparent;
+color:var(--text2);cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:500;
+transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;
+position:relative;
+}
+.surf-btn:hover{background:var(--surface2)}
+.surf-btn.on{background:var(--surface2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.surf-h{
+font-size:13px;font-weight:700;color:var(--text3);
+font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1;
+}
+.surf-btn.on .surf-h{color:var(--accent)}
+.surf-h-unit{font-size:9px;font-weight:500;color:var(--text3);margin-left:1px}
+.surf-btn.on .surf-h-unit{color:var(--accent);opacity:.7}
+.surf-peak-dot{
+position:absolute;top:6px;right:7px;
+width:6px;height:6px;border-radius:50%;
+background:#ff6b00;box-shadow:0 0 0 1.5px var(--surface);display:none;
+}
+.surf-btn.peak .surf-peak-dot{display:block}
+.surf-btn.peak .surf-h{color:#ff6b00}
+.surf-btn.on.peak .surf-h{color:var(--accent)}
+
+/* ── KPI ── */
+.kpi-row{display:grid;grid-template-columns:400px repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.kpi{background:var(--surface);border-radius:var(--rl);padding:11px 14px;box-shadow:var(--sh);text-align:center}
+.kpi-lbl{font-size:10.5px;font-weight:500;color:var(--text2);margin-bottom:6px;text-align:center}
+.kpi-val{font-size:22px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-.02em;margin-bottom:5px;text-align:center}
+.kpi-val .u{font-size:11px;font-weight:500;color:var(--text3);margin-left:3px}
+.kpi-sub{font-size:10.5px;color:var(--text2);line-height:1.3;text-align:center}
+.kpi.accent .kpi-val{color:var(--accent)}
+.kpi.purple .kpi-val{color:var(--accent2)}
+.badge{display:inline-block;font-size:9.5px;font-weight:500;padding:1px 6px;border-radius:20px}
+.b-low{background:rgba(52,199,89,.12);color:#1a7a33}
+.b-mid{background:rgba(255,159,10,.12);color:#9a5d00}
+.b-hi {background:rgba(255,59,48,.12);color:#c0150a}
+
+/* ── Mode toggle ── */
+.mode-toggle{display:flex;gap:3px;align-items:center}
+.mode-btn-basic{
+font-size:11px;font-weight:500;padding:5px 11px;
+border-radius:7px;border:1px solid var(--border2);
+background:var(--surface2);color:var(--text2);
+cursor:pointer;font-family:inherit;transition:all .18s;
+}
+.mode-btn-basic:hover{background:var(--surface3);color:var(--text)}
+.mode-btn-basic.on{background:var(--surface);color:var(--text);border-color:var(--border2);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.mode-btn-datcom{
+font-size:11px;font-weight:600;padding:5px 11px;
+border-radius:7px;border:none;cursor:pointer;font-family:inherit;
+transition:all .18s;white-space:nowrap;
+background:linear-gradient(135deg,#6e40c9,#bf5af2);
+color:rgba(255,255,255,.72);
+box-shadow:0 1px 4px rgba(110,64,201,.2);
+}
+.mode-btn-datcom:hover{background:linear-gradient(135deg,#5c35ad,#a748d8);color:rgba(255,255,255,.88);box-shadow:0 2px 8px rgba(110,64,201,.35)}
+.mode-btn-datcom.on{background:linear-gradient(135deg,#5c35ad,#bf5af2);color:#fff;box-shadow:0 2px 8px rgba(110,64,201,.4),inset 0 1px 0 rgba(255,255,255,.2)}
+
+/* ── Panel ── */
+.panel{background:var(--surface);border-radius:var(--rx);padding:14px;box-shadow:var(--sh)}
+.p-title{font-size:10.5px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.p-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.p-title-row .p-title{margin-bottom:0}
+.sec-name{font-size:12px;font-weight:600;color:var(--text)}
+
+/* ── Fields ── */
+.field{margin-bottom:8px}
+.field:last-child{margin-bottom:0}
+.field label{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;font-weight:500;color:var(--text2);margin-bottom:3px}
+.field input,.field select{
+width:100%;background:var(--surface2);border:1px solid var(--border2);
+border-radius:7px;color:var(--text);font-size:12.5px;padding:5px 9px;
+outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s;
+-moz-appearance:textfield;
+}
+.field input::-webkit-inner-spin-button,.field input::-webkit-outer-spin-button{-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.field .sub{font-size:9.5px;color:var(--text3);margin-top:2px}
+.field input[readonly]{color:var(--accent);background:rgba(0,113,227,.04);border-color:rgba(0,113,227,.18)}
+
+.inp-pair{display:flex;gap:5px;align-items:center}
+.inp-pair input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:5px 9px;outline:none;font-size:12.5px;color:var(--text);font-family:inherit;transition:border-color .15s,box-shadow .15s;-moz-appearance:textfield}
+.inp-pair input::-webkit-inner-spin-button{-webkit-appearance:none}
+.inp-pair input:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.inp-pair .u{font-size:10.5px;color:var(--text3);white-space:nowrap}
+
+.fgrid{display:grid;gap:7px}
+.fg2{grid-template-columns:1fr 1fr}
+.fg4{grid-template-columns:1fr 1fr 1fr 1fr}
+
+/* Slider */
+.slider-row{margin-bottom:8px}
+.slider-row:last-child{margin-bottom:0}
+.slider-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.slider-name{font-size:12px;color:var(--text)}
+.inp-box{display:flex;align-items:center;gap:3px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px 6px 2px 8px;transition:border-color .15s,box-shadow .15s}
+.inp-box:focus-within{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(0,113,227,.10)}
+.inp-box input[type=number]{width:54px;border:none;outline:none;background:transparent;font-size:12.5px;font-weight:500;color:var(--text);text-align:right;font-family:inherit;-moz-appearance:textfield}
+.inp-box input[type=number]::-webkit-inner-spin-button,.inp-box input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+.inp-box .u{font-size:10.5px;color:var(--text3)}
+
+input[type=range]{
+-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;outline:none;border:none;cursor:pointer;
+background:linear-gradient(to right,var(--accent) var(--pct,26%),var(--surface3) var(--pct,26%));
+}
+input[type=range]::-webkit-slider-thumb{
+-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;border:none;cursor:pointer;
+box-shadow:0 1px 3px rgba(0,0,0,.16),0 0 0 0.5px rgba(0,0,0,.08);transition:transform .1s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.12)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#fff;border:none;box-shadow:0 1px 3px rgba(0,0,0,.16)}
+
+/* dT presets */
+.dt-presets{display:flex;gap:3px;margin-top:5px}
+.dt-btn{flex:1;font-size:10.5px;font-weight:500;padding:4px 0;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;text-align:center}
+.dt-btn:hover{background:var(--surface3);color:var(--text)}
+.dt-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Detail list */
+.dl{margin-top:1px}
+.dlr{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--border);font-size:11.5px}
+.dlr:last-child{border-bottom:none}
+.dk{color:var(--text2)}.dv{font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
+.divider{height:1px;background:var(--border);margin:10px 0}
+
+/* mini badge */
+.mini-badge{font-size:9.5px;font-weight:500;padding:1px 6px;border-radius:20px;flex-shrink:0}
+.mb-blue {background:rgba(0,113,227,.10);color:var(--accent)}
+.mb-orange{background:rgba(255,159,10,.12);color:#9a5d00}
+.mb-green {background:rgba(52,199,89,.12);color:#1a7a33}
+.mb-red {background:rgba(255,59,48,.12);color:#c0150a}
+
+/* ── Chart ── */
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+.chart-title{font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap}
+.chart-tabs{display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:2px;flex-shrink:0}
+.ct{font-size:10.5px;font-weight:500;padding:4px 10px;border-radius:6px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.ct.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.chart-wrap{position:relative;height:100%}
+
+/* Formula footnote */
+.chart-footnote{
+margin-top:8px;padding:7px 10px;
+background:var(--surface2);border-radius:8px;
+display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center;
+}
+.fn-label{font-size:9.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
+.fn-eq{font-size:10.5px;color:var(--text2);font-family:‘SF Mono’,‘Fira Mono’,monospace;letter-spacing:-.01em}
+.fn-eq var{color:var(--accent);font-style:italic}
+.fn-sep{color:var(--text3);font-size:10.5px;padding:0 1px}
+
+/* ── DATCOM diagram ── */
+.diag-wrap{background:linear-gradient(170deg,#fafafa,#f0f0f5);border:1px solid var(--border);border-radius:var(--rl);padding:8px;margin-bottom:10px}
+.diag-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.diag-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px}
+.diag-lbl{font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;text-align:center}
+.diag-box svg{width:100%;height:auto;display:block}
+.diag-extra{margin-top:7px}
+
+/* SVG primitives */
+.d-wing {fill:#e8f0fa;stroke:#2563eb;stroke-width:1.2;stroke-linejoin:round}
+.d-ctrl {fill:#f0e8fa;stroke:#8b5cf6;stroke-width:1.0;stroke-linejoin:round}
+.d-hinge {fill:#ef4444;stroke:#fff;stroke-width:1}
+.d-ac {fill:#6b7280;stroke:#fff;stroke-width:0.8}
+.d-dim {stroke:#94a3b8;stroke-width:0.7;fill:none}
+.d-dim-dash{stroke:#94a3b8;stroke-width:0.7;fill:none;stroke-dasharray:3,2}
+.d-arrow {fill:#94a3b8}
+.d-label {font-family:-apple-system,‘Helvetica Neue’,sans-serif;font-size:7.5px;fill:#64748b;font-weight:500}
+.d-label-hl{fill:#2563eb!important;font-weight:700!important}
+.d-val {font-family:-apple-system,‘Helvetica Neue’,sans-serif;font-size:7px;fill:#94a3b8;font-weight:400}
+
+/* V-tail info */
+.vtail-box{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:7px 10px;margin-top:8px}
+.vtail-row{display:flex;justify-content:space-between;padding:2px 0;font-size:11px}
+.vtail-k{color:var(--text2)}.vtail-v{color:var(--accent2);font-weight:500;font-variant-numeric:tabular-nums}
+
+/* note */
+.note{font-size:10px;color:var(--text2);line-height:1.4;padding:6px 9px;background:rgba(0,113,227,.04);border-radius:6px;border-left:2px solid var(--accent);margin-top:8px}
+
+/* helpers */
+.hide{display:none!important}
+
+/* ── Layout ── */
+.row-a{display:grid;grid-template-columns:400px minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
+.row-b-basic{display:grid;grid-template-columns:400px minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
+.row-b-datcom{display:grid;grid-template-columns:400px minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
+.row-c{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.chart-col{display:flex;flex-direction:column;gap:10px}
+.chart-col > .panel{display:flex;flex-direction:column;overflow:hidden}
+.chart-wrap{position:relative;height:280px}
+
+/* ── 반응형: 960px 이하에서 2열 → 1열 ── */
+@media(max-width:960px){
+.row-a{grid-template-columns:1fr}
+.row-b-basic{grid-template-columns:1fr 1fr}
+.row-b-datcom{grid-template-columns:1fr}
+.row-c{grid-template-columns:1fr}
+.kpi-row{grid-template-columns:1fr 1fr}
+.chart-wrap{height:220px}
+}
+
+/* ── 반응형: 600px 이하에서 완전 1열 ── */
+@media(max-width:600px){
+body{padding:0 12px 24px}
+.titlebar{padding:0 10px;margin:0 -12px 16px}
+.row-b-basic{grid-template-columns:1fr}
+.row-c{grid-template-columns:1fr}
+.kpi-row{grid-template-columns:1fr 1fr}
+.chart-wrap{height:180px}
+.ac-bar{padding:8px 10px}
+.surf-bar{flex-wrap:wrap}
+.surf-btn{min-width:60px}
+.fgrid.fg4{grid-template-columns:1fr 1fr}
+.fgrid.fg2{grid-template-columns:1fr 1fr}
+.diag-grid{grid-template-columns:1fr}
+.mode-toggle{flex-wrap:wrap}
+}
+</style>
+
+</head>
+<body>
+
+<!-- Titlebar -->
+
+<div class="titlebar">
+<a class="t-home" href="index.html">
+<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+<path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"/>
+</svg>
+홈
+</a>
+<div class="t-divider"></div>
+
+<!-- Aero icon: airfoil cross-section + streamlines (pressure field) -->
+
+<div class="t-icon" aria-hidden="true">
+<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- upper streamlines (compressed) -->
+<path d="M1 5.8 Q5 4.4 10 4.7 Q14 5.0 19 5.4" stroke="rgba(200,180,255,0.65)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
+<path d="M1 7.2 Q5 5.6 10 6.0 Q14 6.3 19 6.8" stroke="rgba(200,180,255,0.80)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
+<!-- airfoil -->
+<path d="M2 10 Q5 6.8 10 6.4 Q15 6.1 18 10 Q15 11.6 10 12.0 Q5 12.4 2 10 Z"
+fill="rgba(255,255,255,0.92)" stroke="rgba(255,255,255,0.55)" stroke-width="0.7"/>
+<!-- lower streamlines (expanded) -->
+<path d="M1 13.2 Q5 14.0 10 13.8 Q14 13.6 19 14.0" stroke="rgba(200,180,255,0.65)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
+<path d="M1 15.0 Q5 15.6 10 15.4 Q14 15.2 19 15.6" stroke="rgba(200,180,255,0.50)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
+<!-- hinge pivot -->
+<circle cx="14.8" cy="10" r="1.5" fill="rgba(220,180,255,1)" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"/>
+<circle cx="14.8" cy="10" r="0.6" fill="rgba(255,255,255,0.9)"/>
+</svg>
+</div>
+
+<span class="t-title">힌지모멘트 & 액추에이터 사이징</span>
+
+</div>
+
+<!-- Header -->
+
+<div class="page-header">
+<div class="eyebrow">Control Surface · DATCOM · BLDC Servo Sizing</div>
+<h1>힌지모멘트 계산기</h1>
+<p>기체 타입별 조종면 힌지모멘트 · DATCOM 보정 · 서보 사이징 · 전력 산정</p>
+</div>
+
+<!-- AC type -->
+
+<div class="ac-bar">
+<span class="ac-label">기체 타입</span>
+<button class="ac-btn on" data-ac="conv" onclick="setAC('conv')">일반 고정익</button>
+<button class="ac-btn" data-ac="vtail" onclick="setAC('vtail')">V-tail 고정익</button>
+<button class="ac-btn" data-ac="allmv" onclick="setAC('allmv')">올무빙 테일</button>
+<button class="ac-btn" data-ac="drone" onclick="setAC('drone')">드론</button>
+</div>
+
+<!-- Surface tabs -->
+
+<div class="surf-bar" id="surf-bar"></div>
+
+<!-- KPI -->
+
+<div class="kpi-row">
+<div class="kpi accent">
+<div class="kpi-lbl">힌지모멘트 H</div>
+<div class="kpi-val" id="k-hm">—<span class="u">N·m</span></div>
+<div class="kpi-sub" id="k-regime">—</div>
+</div>
+<div class="kpi">
+<div class="kpi-lbl">설계 토크 (출력축)</div>
+<div class="kpi-val" id="k-torque">—<span class="u">N·m</span></div>
+<div class="kpi-sub" id="k-torque-sub">안전계수 적용</div>
+</div>
+<div class="kpi purple">
+<div class="kpi-lbl">필요 전력</div>
+<div class="kpi-val" id="k-power">—<span class="u">W</span></div>
+<div class="kpi-sub" id="k-power-sub">효율 반영</div>
+</div>
+<div class="kpi">
+<div class="kpi-lbl">동압 q</div>
+<div class="kpi-val" id="k-q">—<span class="u">Pa</span></div>
+<div class="kpi-sub" id="k-mach">Mach —</div>
+</div>
+</div>
+
+<!-- ── ROW A ── -->
+
+<div class="row-a">
+
+<!-- LEFT: flight params + atmosphere -->
+
+<div class="panel">
+<div class="p-title-row">
+<span class="sec-name">비행 조건</span>
+<div class="mode-toggle">
+<button class="mode-btn-basic on" id="mode-basic" onclick="setMode('basic')">기본</button>
+<button class="mode-btn-datcom" id="mode-datcom" onclick="setMode('datcom')">DATCOM 보정</button>
+</div>
+</div>
+
+```
+<div class="fgrid fg2" style="margin-bottom:10px">
+<div>
+<div class="slider-row">
+<div class="slider-hd">
+<span class="slider-name">조종면 면적 S<sub>f</sub></span>
+<div class="inp-box"><input type="number" id="n-area" min="0.001" max="5" step="0.01" value="0.10"><span class="u">m²</span></div>
+</div>
+<input type="range" id="s-area" min="0.001" max="5" step="0.01" value="0.10">
+</div>
+<div class="slider-row">
+<div class="slider-hd">
+<span class="slider-name">에어스피드 V</span>
+<div class="inp-box"><input type="number" id="n-spd" min="1" max="300" step="1" value="50"><span class="u">m/s</span></div>
+</div>
+<input type="range" id="s-spd" min="1" max="300" step="1" value="50">
+</div>
+</div>
+<div>
+<div class="slider-row">
+<div class="slider-hd">
+<span class="slider-name">편향각 δ</span>
+<div class="inp-box"><input type="number" id="n-def" min="-30" max="30" step="0.5" value="15"><span class="u">°</span></div>
+</div>
+<input type="range" id="s-def" min="-30" max="30" step="0.5" value="15">
+</div>
+<div class="slider-row">
+<div class="slider-hd">
+<span class="slider-name">평균 시위 c̄</span>
+<div class="inp-box"><input type="number" id="n-mac" min="0.05" max="3" step="0.01" value="0.20"><span class="u">m</span></div>
+</div>
+<input type="range" id="s-mac" min="0.05" max="3" step="0.01" value="0.20">
+</div>
+</div>
+</div>
+
+<div class="divider"></div>
+<div style="margin-bottom:7px">
+<span class="p-title" style="display:inline-block;margin-bottom:0;margin-right:6px">대기 조건 (ISA)</span>
+</div>
+<div class="fgrid fg4" style="margin-bottom:5px">
+<div class="field" style="grid-column:span 2">
+<label>고도<span id="dT-badge" class="mini-badge mb-green">ISA</span></label>
+<div class="inp-pair">
+<input type="number" id="f-alt" value="0" step="100" min="0" max="20000">
+<span class="u">m</span>
+</div>
+</div>
+<div class="field" style="grid-column:span 2">
+<label>온도편차 ΔT<span id="rho-badge" class="mini-badge mb-blue">자동</span></label>
+<div class="inp-pair">
+<input type="number" id="f-dT" value="0" step="1" min="-50" max="50">
+<span class="u">°C</span>
+</div>
+</div>
+<div class="field" style="grid-column:span 4">
+<label>밀도 ρ</label>
+<input type="number" id="f-rho" value="1.225" step="0.001" min="0.001">
+</div>
+</div>
+<div class="dt-presets">
+<button onclick="setDT(-15)" class="dt-btn" id="dtb--15">ISA−15</button>
+<button onclick="setDT(0)" class="dt-btn on" id="dtb-0">ISA</button>
+<button onclick="setDT(15)" class="dt-btn" id="dtb-15">ISA+15</button>
+<button onclick="setDT(20)" class="dt-btn" id="dtb-20">ISA+20</button>
+<button onclick="setDT(30)" class="dt-btn" id="dtb-30">ISA+30</button>
+</div>
+```
+
+</div>
+
+<!-- RIGHT: chart stacked with compare cards -->
+
+<div class="chart-col">
+<div class="panel">
+<div class="chart-header">
+<span class="chart-title">파라미터 감도</span>
+<div class="chart-tabs">
+<button class="ct on" id="tb-spd" onclick="setTab('spd')">속도 vs H</button>
+<button class="ct" id="tb-def" onclick="setTab('def')">편향각 vs H</button>
+<button class="ct" id="tb-area" onclick="setTab('area')">면적 vs H</button>
+</div>
+</div>
+<div class="chart-wrap"><canvas id="hmChart"></canvas></div>
+<!-- Formula footnote -->
+<div class="chart-footnote">
+<span class="fn-label">공식</span>
+<span class="fn-eq"><var>H</var> = <var>C<sub>H</sub></var> · <var>q</var> · <var>S<sub>f</sub></var> · <var>c̄</var></span>
+<span class="fn-sep">·</span>
+<span class="fn-eq"><var>C<sub>H</sub></var> = <var>C<sub>H,0</sub></var> + <var>C<sub>H,δ</sub></var>δ + <var>C<sub>H,α</sub></var>α</span>
+<span class="fn-sep">·</span>
+<span class="fn-eq"><var>q</var> = ½<var>ρV</var>²</span>
+<span class="fn-sep">·</span>
+<span class="fn-eq"><var>P</var> = <var>T</var> · <var>ω̇</var> / <var>η</var></span>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- ── ROW B basic ── -->
+
+<div class="row-b-basic" id="row-b-basic">
+<!-- Col 1: CH coefficients -->
+<div class="panel">
+<div class="p-title-row">
+<span class="sec-name">C<sub>H</sub> 계수</span>
+</div>
+<div class="fgrid fg2">
+<div class="field">
+<label>CH,0</label>
+<input type="number" id="f-ch0" value="0" step="0.0001">
+<div class="sub">영위 계수</div>
+</div>
+<div class="field">
+<label>CH,δ</label>
+<input type="number" id="f-chd" value="-0.0060" step="0.0001">
+<div class="sub">편향각 계수 (/°)</div>
+</div>
+<div class="field">
+<label>CH,α</label>
+<input type="number" id="f-cha" value="-0.0035" step="0.0001">
+<div class="sub">받음각 계수 (/°)</div>
+</div>
+<div class="field">
+<label>받음각 α</label>
+<div class="inp-pair">
+<input type="number" id="f-alpha" value="3" step="0.5" min="-20" max="20">
+<span class="u">°</span>
+</div>
+</div>
+</div>
+<div class="note">표준 형상 가정으로 산출된 추정값입니다. 실제 항공기 형상에 맞춰 정밀 계산하려면 DATCOM 보정 모드를 사용하세요.</div>
+</div>
+<!-- Col 2: intermediate calc -->
+<div class="panel">
+<div class="p-title">중간 계산값</div>
+<div class="dl">
+<div class="dlr"><span class="dk">밀도 ρ</span><span class="dv" id="d-rho">—</span></div>
+<div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q">—</span></div>
+<div class="dlr"><span class="dk">CH,0</span><span class="dv" id="d-ch0">—</span></div>
+<div class="dlr"><span class="dk">CH,δ · δ</span><span class="dv" id="d-chd">—</span></div>
+<div class="dlr"><span class="dk">CH,α · α</span><span class="dv" id="d-cha">—</span></div>
+<div class="dlr"><span class="dk">CH 합산</span><span class="dv" id="d-ch">—</span></div>
+<div class="dlr"><span class="dk">q · Sf</span><span class="dv" id="d-load">—</span></div>
+</div>
+</div>
+<!-- Col 3: ISA atmosphere -->
+<div class="panel">
+<div class="p-title">ISA 대기</div>
+<div class="dl">
+<div class="dlr"><span class="dk">ISA 밀도</span><span class="dv" id="d-rho-isa">—</span></div>
+<div class="dlr"><span class="dk">온도 T</span><span class="dv" id="d-temp">—</span></div>
+<div class="dlr"><span class="dk">음속 a</span><span class="dv" id="d-sos">—</span></div>
+<div class="dlr"><span class="dk">Mach</span><span class="dv" id="d-mach2">—</span></div>
+</div>
+</div>
+</div>
+
+<!-- ── ROW B datcom ── -->
+
+<div class="row-b-datcom hide" id="row-b-datcom">
+<!-- Col 1: shape params -->
+<div class="panel">
+<div class="p-title-row">
+<span class="sec-name">DATCOM 형상 파라미터</span>
+</div>
+<div class="fgrid fg2">
+<div class="field">
+<label>cf/c · 시위비</label>
+<input type="number" id="dc-cf" value="0.25" step="0.01" min="0.05" max="0.5">
+</div>
+<div class="field">
+<label>t/c · 두께비</label>
+<input type="number" id="dc-tc" value="0.12" step="0.01" min="0.04" max="0.20">
+</div>
+<div class="field">
+<label>xh/cf · 힌지위치</label>
+<input type="number" id="dc-hinge" value="0.0" step="0.05" min="-0.3" max="0.5">
+</div>
+<div class="field">
+<label>밸런스</label>
+<input type="number" id="dc-balance" value="0.0" step="0.05" min="0.0" max="0.4">
+</div>
+<div class="field">
+<label>ηi · 내측 위치</label>
+<input type="number" id="dc-spani" value="0.6" step="0.05" min="0" max="1">
+</div>
+<div class="field">
+<label>ηo · 외측 위치</label>
+<input type="number" id="dc-spano" value="0.95" step="0.05" min="0" max="1">
+</div>
+<div class="field">
+<label>AR · 종횡비</label>
+<input type="number" id="dc-ar" value="6.0" step="0.5" min="2" max="15">
+</div>
+<div class="field">
+<label>Λ · 후퇴각 (°)</label>
+<input type="number" id="dc-sweep" value="0" step="1" min="0" max="45">
+</div>
+<div class="field vtail-only hide">
+<label>Γ · V-tail 경사각 (°)</label>
+<input type="number" id="dc-dihedral" value="35" step="1" min="20" max="55">
+</div>
+<div class="field allmv-only hide">
+<label>xp/c · 피벗위치</label>
+<input type="number" id="dc-pivot" value="0.25" step="0.01" min="0.0" max="0.5">
+</div>
+</div>
+<div class="vtail-box vtail-only hide" id="vtail-box">
+<div class="vtail-row"><span class="vtail-k">요 분배 (cos Γ)</span><span class="vtail-v" id="vt-pitch">—</span></div>
+<div class="vtail-row"><span class="vtail-k">피치 분배 (sin Γ)</span><span class="vtail-v" id="vt-yaw">—</span></div>
+</div>
+<div class="note">아음속(Mach ≤ 0.8) 적용. 필드 클릭 시 도식 강조됨.</div>
+</div>
+
+<!-- Right: large diagrams + coeff/compare below -->
+
+<div>
+<div class="panel" style="margin-bottom:10px">
+<div class="p-title-row" style="margin-bottom:12px">
+<span class="sec-name">형상 도식</span>
+<span style="font-size:10px;color:var(--text3)">필드 클릭 시 해당 파라미터 강조</span>
+</div>
+<!-- Two large diagrams side-by-side -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+<div class="diag-box">
+<div class="diag-lbl">단면도 — Section View</div>
+<svg id="diag-section" viewBox="0 0 360 200" style="width:100%;height:150px"></svg>
+</div>
+<div class="diag-box">
+<div class="diag-lbl">평면도 — Planform View</div>
+<svg id="diag-planform" viewBox="0 0 360 200" style="width:100%;height:150px"></svg>
+</div>
+</div>
+<!-- Extra diagram (V-tail / all-moving) full width -->
+<div id="diag-extra-wrap" class="hide">
+<div class="diag-box">
+<div class="diag-lbl" id="diag-extra-lbl">추가 도식</div>
+<svg id="diag-extra" viewBox="0 0 720 150" style="width:100%;height:auto"></svg>
+</div>
+</div>
+</div>
+
+```
+<!-- CH coeff + intermediate in 2-col strip -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<!-- DATCOM coefficients + alpha -->
+<div class="panel">
+<div class="p-title" style="margin-bottom:8px">C<sub>H</sub> 계수 <span style="font-weight:400;color:var(--accent);text-transform:none;letter-spacing:0;font-size:10px">자동</span></div>
+<div class="dl">
+<div class="dlr"><span class="dk">CH,0</span><span class="dv" id="dc-out-ch0">—</span></div>
+<div class="dlr"><span class="dk">CH,δ</span><span class="dv" id="dc-out-chd">—</span></div>
+<div class="dlr"><span class="dk">CH,α</span><span class="dv" id="dc-out-cha">—</span></div>
+</div>
+<div class="divider"></div>
+<div class="field">
+<label>받음각 α</label>
+<div class="inp-pair"><input type="number" id="f-alpha-d" value="3" step="0.5" min="-20" max="20"><span class="u">°</span></div>
+</div>
+<input type="number" id="f-ch0-d" style="display:none" readonly>
+<input type="number" id="f-chd-d" style="display:none" readonly>
+<input type="number" id="f-cha-d" style="display:none" readonly>
+</div>
+<!-- Intermediate calc -->
+<div class="panel">
+<div class="p-title" style="margin-bottom:8px">중간 계산값</div>
+<div class="dl">
+<div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q-d">—</span></div>
+<div class="dlr"><span class="dk">C<sub>H</sub> 합산</span><span class="dv" id="d-ch-d">—</span></div>
+<div class="dlr"><span class="dk">q·S<sub>f</sub></span><span class="dv" id="d-load-d">—</span></div>
+</div>
+</div>
+</div>
+```
+
+</div>
+</div>
+
+<!-- ── ROW C: Servo + Battery ── -->
+
+<div class="row-c">
+<div class="panel">
+<div class="p-title-row" style="margin-bottom:10px">
+<span class="sec-name">BLDC 서보 사이징</span>
+</div>
+<div class="fgrid fg4">
+<div class="field"><label>SF</label><input type="number" id="f-sf" value="1.25" step="0.05" min="1.0" max="3.0"><div class="sub">안전계수</div></div>
+<div class="field"><label>기어비 N</label><input type="number" id="f-gear" value="100" step="1" min="1" max="1000"></div>
+<div class="field"><label>속도 ω̇</label><input type="number" id="f-rate" value="60" step="5" min="1" max="500"><div class="sub">°/s</div></div>
+<div class="field"><label>효율 η</label><input type="number" id="f-eff" value="0.75" step="0.05" min="0.3" max="1.0"></div>
+</div>
+<div class="divider"></div>
+<div class="p-title" style="margin-bottom:8px">결과</div>
+<div class="dl">
+<div class="dlr"><span class="dk">설계 토크 (H × SF)</span><span class="dv" id="d-torque-design">—</span></div>
+<div class="dlr"><span class="dk">모터 토크 (역산)</span><span class="dv" id="d-torque-motor">—</span></div>
+<div class="dlr"><span class="dk">기계 출력 T·ω̇</span><span class="dv" id="d-power-mech">—</span></div>
+</div>
+</div>
+
+<div class="panel">
+<div class="p-title-row" style="margin-bottom:10px">
+<span class="sec-name">전력 & 용량 산정</span>
+</div>
+<div class="fgrid fg4">
+<div class="field">
+<label>전력 소비<span id="pw-badge" class="mini-badge mb-blue">자동</span></label>
+<input type="number" id="f-power-w" value="0" step="0.1" min="0">
+<div class="sub">W</div>
+</div>
+<div class="field">
+<label>공급 전압</label>
+<input type="number" id="f-volt" value="28" step="0.1" min="3" max="100">
+<div class="sub">V</div>
+</div>
+<div class="field">
+<label>비행 시간</label>
+<input type="number" id="f-duty" value="30" step="1" min="1" max="600">
+<div class="sub">분</div>
+</div>
+<div class="field">
+<label>듀티 사이클</label>
+<input type="number" id="f-duty-pct" value="20" step="5" min="1" max="100">
+<div class="sub">%</div>
+</div>
+</div>
+<div class="divider"></div>
+<div class="p-title" style="margin-bottom:8px">전력 산정</div>
+<div class="dl">
+<div class="dlr"><span class="dk">전류</span><span class="dv" id="d-current">—</span></div>
+<div class="dlr"><span class="dk">용량 (이 조종면)</span><span class="dv" id="d-cap">—</span></div>
+<div class="dlr"><span class="dk">전체 조종면 합산</span><span class="dv" id="d-cap-total">—</span></div>
+</div>
+</div>
+</div>
+
+<script>
+// ── Data ─────────────────────────────────────────────────────────────────────
+const AC_SURFACES={
+// CH 계수 단위: /deg (calcOne에서 def·alpha를 도(°) 그대로 곱함)
+// 기본값 산출: 각 조종면 타입의 표준 형상(아래 주석 참조)을 가정하고
+// DATCOM 함수에 K_exp 보정 포함하여 산출.
+// DATCOM 모드에서 형상을 변경하면 이 기본값으로부터의 상대 변화를 보여줌.
+//
+// 표준 형상 가정:
+// 플랩 : cf/c=0.30, t/c=0.12, AR=6.0, Λ=0°
+// 에일러론 : cf/c=0.25, t/c=0.12, AR=6.0, Λ=0°
+// 엘리베이터 : cf/c=0.35, t/c=0.10, AR=4.5, Λ=5°
+// 러더 : cf/c=0.30, t/c=0.12, AR=1.8, Λ=15° (수직미익 짧은 AR)
+// 러더베이터 : cf/c=0.30, t/c=0.10, AR=3.5, Λ=10°
+// 올무빙 : 전체 가동, AR=4.0, t/c=0.08, 피벗 0.30c
+// 엘러본 : cf/c=0.25, t/c=0.12, AR=5.0, Λ=0°
+conv: [{id:'flap', name:'플랩', ch0:0,chd:-.00611,cha:-.00365},
+{id:'ail', name:'에일러론', ch0:0,chd:-.00577,cha:-.00333},
+{id:'elev', name:'엘리베이터', ch0:0,chd:-.00588,cha:-.00362},
+{id:'rud', name:'러더', ch0:0,chd:-.00373,cha:-.00223}],
+vtail:[{id:'flap', name:'플랩', ch0:0,chd:-.00611,cha:-.00365},
+{id:'ail', name:'에일러론', ch0:0,chd:-.00577,cha:-.00333},
+{id:'rudvat', name:'러더베이터', ch0:0,chd:-.00514,cha:-.00305}],
+allmv:[{id:'flap', name:'플랩', ch0:0,chd:-.00611,cha:-.00365},
+{id:'ail', name:'에일러론', ch0:0,chd:-.00577,cha:-.00333},
+{id:'allmv', name:'올무빙 테일', ch0:0,chd:-.00570,cha:-.00244}],
+drone:[{id:'elvon',name:'엘러본',ch0:0,chd:-.00550,cha:-.00317},
+{id:'rud', name:'러더', ch0:0,chd:-.00373,cha:-.00223}],
+};
+let curAC='conv',curSurfId='flap',surfStates={},mode='basic',tab='spd',chart=null;
+let rhoManual=false,powerManual=false;
+
+// ── ISA ──────────────────────────────────────────────────────────────────────
+function isaRho(alt,dT=0){
+const T0=288.15+dT,L=.0065,R=287.05,g=9.80665,rho0=1.225*(288.15/T0);
+if(alt<=11000){const T=T0-L*alt;return rho0*Math.pow(T/T0,g/(R*L)-1);}
+const T11=T0-L*11000,rho11=rho0*Math.pow(T11/T0,g/(R*L)-1);
+return rho11*Math.exp(-g*(alt-11000)/(R*T11));
+}
+function isaT(alt,dT=0){return 288.15+dT-.0065*Math.min(alt,11000);}
+
+// ── DATCOM ───────────────────────────────────────────────────────────────────
+// 출력 CH 계수 단위: /deg (calcOne 단위와 일치)
+//
+// 구조: thin-airfoil theory (/rad) → 3D 보정 → 실측 보정 → /deg 변환
+//
+// 실측 보정 (K_exp): thin-airfoil이 무시하는 효과들
+// - 점성/경계층 후연부 영향
+// - 조종면 갭 누설 흐름
+// - 유한 두께(특히 후연부 곡률) 영향
+// NACA TR1113·Roskam DATCOM 방법에서 1.4~1.8배 실측 보정이 일반적.
+// 두께비에 따라 1.4(얇음)~1.8(두꺼움) 사이로 가변 적용.
+//
+// 후연부 각도 보정 (K_te): 두께비로 대용 추정 (얇을수록 후연 예리 → 보정 1)
+// 편향각 비선형 감소 (K_def): |δ|가 커지면 흐름박리로 |CHd| 약간 감소
+function datcomCH(p, defAbs){
+const cf=p.cf, tc=p.tc, ar=p.ar, sw=p.sweep*Math.PI/180;
+const D2R=Math.PI/180;
+
+// 2D 기저값 (/rad) — thin airfoil theory
+const tc_corr = 1 - 0.3*(tc/0.12 - 1);
+const chd_2d = -(2/Math.PI)*Math.sqrt(cf*(1-cf)) * tc_corr;
+const cha_2d = -(1/Math.PI)*Math.sqrt(cf) * (1 - 0.25*(tc/0.12 - 1));
+
+// 3D 보정: AR + 후퇴각 + 힌지위치 + 밸런스
+const ar_f = ar / (ar + 2);
+const sw_f = Math.cos(sw);
+const hn_f = 1 - 1.2 * p.hinge;
+const bal_f = 1 - 1.5 * p.balance;
+
+// 실측 보정 K_exp: 두께비에 따라 1.4 (얇음) ~ 1.8 (두꺼움)
+// tc=0.06 → 1.40, tc=0.12 → 1.60, tc=0.18 → 1.80
+const K_exp = 1.40 + (tc - 0.06) * (0.40 / 0.12);
+
+// 편향각 비선형 감소 K_def: |δ|>10° 부터 점진 감소, 25°에서 약 0.85배
+const dabs = Math.abs(defAbs || 0);
+const K_def = dabs <= 10 ? 1.0 : Math.max(0.80, 1.0 - (dabs-10)*0.01);
+
+let chd_rad = chd_2d * ar_f * sw_f * hn_f * bal_f * K_exp * K_def;
+let cha_rad = cha_2d * ar_f * sw_f * hn_f * K_exp;
+
+// 올무빙: 피벗-공력중심 오프셋 기반 (/rad), 동일 보정 적용
+if(p.type==='allmv'){
+const off = Math.abs(p.pivot - 0.25);
+chd_rad = -(2/Math.PI) * (0.25 + 2*off) * K_exp * K_def;
+cha_rad = -(1/Math.PI) * (0.20 + 2*off) * K_exp;
+}
+
+// /rad → /deg 변환
+return { ch0: 0, chd: chd_rad * D2R, cha: cha_rad * D2R };
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+// AC_SURFACES 기본 CH값은 아래 dc 표준 형상 + DATCOM(K_exp 포함)으로 산출됨.
+// → DATCOM 모드 첫 전환 시 두 모드의 H가 거의 동일.
+// → 사용자가 dc 형상을 변경하면 그 차이만큼 DATCOM H가 변함.
+const STD_DC = {
+// 일반 고정익
+flap: {cf:.30, tc:.12, ar:6.0, sweep:0, spani:.10, spano:.50},
+ail: {cf:.25, tc:.12, ar:6.0, sweep:0, spani:.55, spano:.95},
+elev: {cf:.35, tc:.10, ar:4.5, sweep:5, spani:.10, spano:.95},
+rud: {cf:.30, tc:.12, ar:1.8, sweep:15, spani:.05, spano:.95},
+// V-tail
+rudvat: {cf:.30, tc:.10, ar:3.5, sweep:10, spani:.10, spano:.95},
+// 올무빙
+allmv: {cf:1.00,tc:.08, ar:4.0, sweep:0, spani:.05, spano:.95, pivot:.30},
+// 드론
+elvon: {cf:.25, tc:.12, ar:5.0, sweep:0, spani:.10, spano:.95},
+};
+function initState(s){
+const std = STD_DC[s.id] || STD_DC.flap;
+return {
+area:.10, V:50, def:15, mac:.20,
+ch0:s.ch0, chd:s.chd, cha:s.cha, alpha:3,
+dc:{
+cf: std.cf,
+tc: std.tc,
+hinge: 0,
+balance: 0,
+spani: std.spani,
+spano: std.spano,
+ar: std.ar,
+sweep: std.sweep,
+dihedral: 35,
+pivot: std.pivot ?? .25,
+},
+sf:1.25, gear:100, rate:60, eff:.75,
+powerW:0, volt:28, duty:30, dutyPct:20,
+powerManual:false,
+};
+}
+function getCurSurf(){return AC_SURFACES[curAC].find(s=>s.id===curSurfId);}
+function getCurState(){if(!surfStates[curAC])surfStates[curAC]={};if(!surfStates[curAC][curSurfId])surfStates[curAC][curSurfId]=initState(getCurSurf());return surfStates[curAC][curSurfId];}
+
+// ── Surface tabs ──────────────────────────────────────────────────────────────
+function renderSurfBar(){
+const bar=document.getElementById('surf-bar');bar.innerHTML='';
+AC_SURFACES[curAC].forEach(s=>{
+const b=document.createElement('button');
+b.className='surf-btn'+(s.id===curSurfId?' on':'');
+b.id='sb-'+s.id;
+b.innerHTML=`<span class="surf-peak-dot" id="spk-${s.id}"></span><span style="font-size:12px;font-weight:500">${s.name}</span><span class="surf-h" id="sh-${s.id}">—<span class="surf-h-unit">N·m</span></span>`;
+b.onclick=()=>switchSurf(s.id);
+bar.appendChild(b);
+});
+}
+function switchSurf(id){
+saveCur(); // 현재 탭 UI → state 저장
+curSurfId=id; // 탭 전환
+loadCur(); // 새 탭 state → UI 로드
+document.querySelectorAll('.surf-btn').forEach(b=>b.classList.toggle('on',b.id==='sb-'+id));
+toggleACUI();
+if(mode==='datcom')drawDiags();
+update(); // update() 내부에서 saveCur() 재호출하지 않도록 주의
+}
+function setAC(ac){saveCur();curAC=ac;curSurfId=AC_SURFACES[ac][0].id;document.querySelectorAll('.ac-btn').forEach(b=>b.classList.toggle('on',b.dataset.ac===ac));renderSurfBar();loadCur();toggleACUI();if(mode==='datcom')drawDiags();update();}
+function toggleACUI(){
+const s=getCurSurf();
+document.querySelectorAll('.vtail-only').forEach(el=>el.classList.toggle('hide',s.id!=='rudvat'));
+document.querySelectorAll('.allmv-only').forEach(el=>el.classList.toggle('hide',s.id!=='allmv'));
+const vb=document.getElementById('vtail-box');if(vb)vb.classList.toggle('hide',!(s.id==='rudvat'&&mode==='datcom'));
+}
+
+// ── Mode ──────────────────────────────────────────────────────────────────────
+function setMode(m){
+mode=m;
+document.getElementById('mode-basic').classList.toggle('on',m==='basic');
+document.getElementById('mode-datcom').classList.toggle('on',m==='datcom');
+document.getElementById('row-b-basic').classList.toggle('hide',m==='datcom');
+document.getElementById('row-b-datcom').classList.toggle('hide',m==='basic');
+toggleACUI();if(m==='datcom')drawDiags();update();
+}
+
+// ── Sliders ───────────────────────────────────────────────────────────────────
+const PAIRS=[['s-area','n-area'],['s-spd','n-spd'],['s-def','n-def'],['s-mac','n-mac']];
+function setPct(el){el.style.setProperty('--pct',((+el.value-+el.min)/(+el.max-+el.min)*100).toFixed(1)+'%');}
+PAIRS.forEach(([sid,nid])=>{
+const sl=document.getElementById(sid),ni=document.getElementById(nid);
+sl.addEventListener('input',()=>{ni.value=sl.value;setPct(sl);saveCur();update();});
+ni.addEventListener('input',()=>{const v=Math.min(+ni.max,Math.max(+ni.min,+ni.value));sl.value=v;setPct(sl);saveCur();update();});
+setPct(sl);
+});
+
+// ── ISA / density ─────────────────────────────────────────────────────────────
+function recalcRho(){if(rhoManual)return;const alt=+gv('f-alt'),dT=+gv('f-dT');sv('f-rho',isaRho(alt,dT).toFixed(4));setBadge('rho-badge','자동','mb-blue');}
+function setDT(v){sv('f-dT',v);rhoManual=false;recalcRho();updateDTBadge(v);[-15,0,15,20,30].forEach(x=>{const b=document.getElementById('dtb-'+x);if(b)b.classList.toggle('on',x===v);});update();}
+function updateDTBadge(v){const b=document.getElementById('dT-badge');if(v===0){b.textContent='ISA';b.className='mini-badge mb-green';}else if(v>0){b.textContent='ISA+'+v;b.className='mini-badge mb-red';}else{b.textContent='ISA'+v;b.className='mini-badge mb-blue';}}
+function setBadge(id,text,cls){const el=document.getElementById(id);if(el){el.textContent=text;el.className='mini-badge '+cls;}}
+document.getElementById('f-alt').addEventListener('input',()=>{rhoManual=false;recalcRho();saveCur();update();});
+document.getElementById('f-dT').addEventListener('input',()=>{rhoManual=false;recalcRho();updateDTBadge(+gv('f-dT'));saveCur();update();});
+document.getElementById('f-rho').addEventListener('input',()=>{rhoManual=true;setBadge('rho-badge','수동','mb-orange');saveCur();update();});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function gv(id){const el=document.getElementById(id);return el?el.value:'';}
+function gi(id){return+gv(id);}
+function sv(id,v){const el=document.getElementById(id);if(el)el.value=v;}
+function st(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+
+// 부동소수점 오차로 누적되는 슬라이더 값 정리 (step 단위로 반올림)
+function rnd(v, step){return Math.round(v/step)*step;}
+
+function getInputs(){
+return{
+area: rnd(gi('s-area'), 0.01),
+V: rnd(gi('s-spd'), 1),
+def: rnd(gi('s-def'), 0.5),
+mac: rnd(gi('s-mac'), 0.01),
+ch0:gi('f-ch0'),chd:gi('f-chd'),cha:gi('f-cha'),alpha:gi('f-alpha'),
+rho:gi('f-rho'),alt:gi('f-alt'),dT:gi('f-dT'),
+sf:gi('f-sf'),gear:gi('f-gear'),rate:gi('f-rate'),eff:gi('f-eff'),
+powerW:gi('f-power-w'),volt:gi('f-volt'),duty:gi('f-duty'),dutyPct:gi('f-duty-pct'),
+dc:{cf:gi('dc-cf'),tc:gi('dc-tc'),hinge:gi('dc-hinge'),balance:gi('dc-balance'),
+spani:gi('dc-spani'),spano:gi('dc-spano'),ar:gi('dc-ar'),sweep:gi('dc-sweep'),
+dihedral:gi('dc-dihedral'),pivot:gi('dc-pivot')}};
+}
+function saveCur(){const i=getInputs(),s=getCurState();Object.assign(s,{area:i.area,V:i.V,def:i.def,mac:i.mac,ch0:i.ch0,chd:i.chd,cha:i.cha,alpha:i.alpha,sf:i.sf,gear:i.gear,rate:i.rate,eff:i.eff,powerW:i.powerW,volt:i.volt,duty:i.duty,dutyPct:i.dutyPct,dc:{...i.dc},powerManual});}
+function loadCur(){
+const s=getCurState();
+// step 단위로 반올림한 후 슬라이더와 숫자 입력에 동시 적용 (부동소수점 누적 방지)
+const a=rnd(s.area,0.01), V=rnd(s.V,1), d=rnd(s.def,0.5), m=rnd(s.mac,0.01);
+sv('n-area',a);sv('s-area',a);sv('n-spd',V);sv('s-spd',V);sv('n-def',d);sv('s-def',d);sv('n-mac',m);sv('s-mac',m);
+sv('f-ch0',(+s.ch0).toFixed(4));sv('f-chd',(+s.chd).toFixed(4));sv('f-cha',(+s.cha).toFixed(4));sv('f-alpha',s.alpha);
+sv('f-sf',s.sf);sv('f-gear',s.gear);sv('f-rate',s.rate);sv('f-eff',s.eff);
+sv('f-power-w',s.powerW);sv('f-volt',s.volt);sv('f-duty',s.duty);sv('f-duty-pct',s.dutyPct);
+sv('dc-cf',s.dc.cf);sv('dc-tc',s.dc.tc);sv('dc-hinge',s.dc.hinge);sv('dc-balance',s.dc.balance);
+sv('dc-spani',s.dc.spani);sv('dc-spano',s.dc.spano);sv('dc-ar',s.dc.ar);sv('dc-sweep',s.dc.sweep);
+sv('dc-dihedral',s.dc.dihedral);sv('dc-pivot',s.dc.pivot);
+PAIRS.forEach(([sid])=>setPct(document.getElementById(sid)));
+powerManual=!!s.powerManual;setBadge('pw-badge',powerManual?'수동':'자동',powerManual?'mb-orange':'mb-blue');
+}
+
+// ── Calc ──────────────────────────────────────────────────────────────────────
+function calcOne(p,ch0,chd,cha){
+const q=.5*p.rho*p.V*p.V;
+// CH 계수 단위 /deg → 편향각·받음각을 도(°) 그대로 곱함
+const CH=ch0+chd*p.def+cha*p.alpha;
+return{q,CH,H:CH*q*p.area*p.mac,load:q*p.area,mach:p.V/340.3,chd_t:chd*p.def,cha_t:cha*p.alpha};
+}
+function regime(m){if(m<.3)return['저속 아음속','b-low'];if(m<.8)return['고속 아음속','b-mid'];if(m<1.2)return['천음속','b-mid'];return['초음속','b-hi'];}
+function getActiveCH(){
+const i=getInputs();
+if(mode==='datcom'){
+const o=datcomCH({...i.dc,type:getCurSurf().id}, i.def);
+// DATCOM 모드 전용 표시 필드만 업데이트 (기본모드 UI f-ch0/chd/cha는 건드리지 않음)
+sv('f-ch0-d',o.ch0.toFixed(4));sv('f-chd-d',o.chd.toFixed(4));sv('f-cha-d',o.cha.toFixed(4));
+st('dc-out-ch0',o.ch0.toFixed(5));st('dc-out-chd',o.chd.toFixed(5));st('dc-out-cha',o.cha.toFixed(5));
+return o;
+}
+return{ch0:i.ch0,chd:i.chd,cha:i.cha};
+}
+
+// ── Update ────────────────────────────────────────────────────────────────────
+function update(){
+const i=getInputs(),ch=getActiveCH(),r=calcOne(i,ch.ch0,ch.chd,ch.cha);
+const [rt,rc]=regime(r.mach),surf=getCurSurf();
+
+// 현재 탭 H를 state에 저장
+getCurState().lastH = r.H;
+
+document.getElementById('k-hm').innerHTML=r.H.toFixed(2)+'<span class="u">N·m</span>';
+document.getElementById('k-regime').innerHTML=`<span class="badge ${rc}">${rt}</span> · ${surf.name}`;
+document.getElementById('k-q').innerHTML=r.q.toFixed(0)+'<span class="u">Pa</span>';
+st('k-mach','Mach '+r.mach.toFixed(3));
+const Td=Math.abs(r.H)*i.sf,Tm=Td/Math.max(1,i.gear),w=i.rate*Math.PI/180,Pm=Td*w,Pe=Pm/Math.max(.01,i.eff);
+document.getElementById('k-torque').innerHTML=Td.toFixed(2)+'<span class="u">N·m</span>';
+st('k-torque-sub',`모터 ${(Tm*1000).toFixed(1)} mN·m · 기어비 ${i.gear}`);
+document.getElementById('k-power').innerHTML=Pe.toFixed(2)+'<span class="u">W</span>';
+st('k-power-sub',`기계 ${Pm.toFixed(2)} W · η=${(i.eff*100).toFixed(0)}%`);
+if(!powerManual){sv('f-power-w',Pe.toFixed(2));setBadge('pw-badge','자동','mb-blue');}
+const usedP=+gv('f-power-w'),Ia=usedP/Math.max(.1,i.volt),th=(i.duty*i.dutyPct/100)/60,cap=Ia*th;
+st('d-current',Ia.toFixed(3)+' A');st('d-cap',(cap*1000).toFixed(1)+' mAh');
+st('d-torque-design',Td.toFixed(3)+' N·m');st('d-torque-motor',(Tm*1000).toFixed(3)+' mN·m');st('d-power-mech',Pm.toFixed(3)+' W');
+st('d-rho',i.rho.toFixed(4)+' kg/m³');
+const Tisa=isaT(i.alt,i.dT),sos=Math.sqrt(1.4*287.05*Tisa);
+st('d-rho-isa',isaRho(i.alt,i.dT).toFixed(4)+' kg/m³');
+st('d-temp',Tisa.toFixed(1)+' K / '+(Tisa-273.15).toFixed(1)+' °C');
+st('d-sos',sos.toFixed(1)+' m/s');st('d-mach2',r.mach.toFixed(4));
+st('d-q',r.q.toFixed(2)+' Pa');st('d-ch0',ch.ch0.toFixed(6));
+st('d-chd',r.chd_t.toFixed(6));st('d-cha',r.cha_t.toFixed(6));
+st('d-ch',r.CH.toFixed(6));st('d-load',r.load.toFixed(1)+' N');
+st('d-q-d',r.q.toFixed(2)+' Pa');st('d-ch-d',r.CH.toFixed(6));st('d-load-d',r.load.toFixed(1)+' N');
+const fad=document.getElementById('f-alpha-d');if(fad)fad.value=i.alpha;
+if(surf.id==='rudvat'){
+const dh=i.dc.dihedral*Math.PI/180;
+st('vt-pitch',(Math.cos(dh)*100).toFixed(1)+'% (cos Γ)');
+st('vt-yaw', (Math.sin(dh)*100).toFixed(1)+'% (sin Γ)');
+}
+
+// 탭 H 표시 및 peak 갱신
+updateTabH();
+if(mode==='datcom')drawDiags();drawChart();
+}
+
+function updateTabH(){
+// 각 탭의 H = 해당 조종면 state에 저장된 마지막 계산값만 표시
+// (다른 탭을 재계산하지 않음 → 탭 전환해도 변하지 않음)
+const list=AC_SURFACES[curAC];
+let peakAbsH=0,peakId=null;
+let totalCap=0;
+
+list.forEach(s=>{
+const s2=surfStates[curAC]&&surfStates[curAC][s.id];
+const H=s2&&s2.lastH!=null ? s2.lastH : null;
+const sh=document.getElementById('sh-'+s.id);
+if(sh){
+if(H!=null) sh.innerHTML=H.toFixed(2)+'<span class="surf-h-unit">N·m</span>';
+else sh.innerHTML='—<span class="surf-h-unit">N·m</span>';
+}
+if(H!=null && Math.abs(H)>peakAbsH){peakAbsH=Math.abs(H);peakId=s.id;}
+
+// 배터리 합산은 계산된 조종면만
+if(s2){
+const Td=Math.abs(s2.lastH||0)*s2.sf;
+const Pe=Td*(s2.rate*Math.PI/180)/Math.max(.01,s2.eff);
+const Ia=Pe/Math.max(.1,s2.volt);
+const th=(s2.duty*s2.dutyPct/100)/60;
+totalCap+=Ia*th;
+}
+});
+
+list.forEach(s=>{
+const btn=document.getElementById('sb-'+s.id);
+const dot=document.getElementById('spk-'+s.id);
+if(btn)btn.classList.toggle('peak',s.id===peakId);
+if(dot)dot.style.display=s.id===peakId?'block':'none';
+});
+st('d-cap-total',(totalCap*1000).toFixed(1)+' mAh');
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+function setTab(t){tab=t;['spd','def','area'].forEach(x=>document.getElementById('tb-'+x).classList.toggle('on',x===t));drawChart();}
+function drawChart(){
+const i=getInputs();
+const isDatcom = mode==='datcom';
+const dcParam = isDatcom ? {...i.dc, type:getCurSurf().id} : null;
+// 현재 def 기준의 ch (속도/면적 차트는 def 고정)
+const chFixed = isDatcom ? datcomCH(dcParam, i.def) : {ch0:i.ch0,chd:i.chd,cha:i.cha};
+const base={area:i.area,V:i.V,def:i.def,mac:i.mac,rho:i.rho,alpha:i.alpha};
+let labels=[],data=[],xl='';
+if(tab==='spd'){
+for(let v=0;v<=300;v+=5){labels.push(v);data.push(+calcOne({...base,V:v},chFixed.ch0,chFixed.chd,chFixed.cha).H.toFixed(3));}
+xl='에어스피드 (m/s)';
+} else if(tab==='def'){
+// 편향각 스윕: K_def 보정이 def에 따라 달라지므로 매 점마다 재계산
+for(let d=-30;d<=30;d++){
+labels.push(d);
+const ch_d = isDatcom ? datcomCH(dcParam, d) : chFixed;
+data.push(+calcOne({...base,def:d},ch_d.ch0,ch_d.chd,ch_d.cha).H.toFixed(3));
+}
+xl='편향각 δ (°)';
+} else {
+for(let a=.005;a<=1;a+=.01){labels.push(a.toFixed(3));data.push(+calcOne({...base,area:a},chFixed.ch0,chFixed.chd,chFixed.cha).H.toFixed(3));}
+xl='면적 (m²)';
+}
+if(chart)chart.destroy();
+chart=new Chart(document.getElementById('hmChart').getContext('2d'),{
+type:'line',
+data:{labels,datasets:[{label:'H',data,borderColor:'#0071e3',backgroundColor:'rgba(0,113,227,.07)',borderWidth:1.5,pointRadius:0,tension:.35,fill:true}]},
+options:{responsive:true,maintainAspectRatio:false,
+plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',borderColor:'rgba(0,0,0,.1)',borderWidth:1,titleColor:'#6e6e73',bodyColor:'#1d1d1f',padding:10,cornerRadius:8,titleFont:{family:'-apple-system',size:11},bodyFont:{family:'-apple-system',size:12,weight:'500'},callbacks:{label:c=>' H = '+(+c.raw).toFixed(3)+' N·m'}}},
+scales:{x:{title:{display:true,text:xl,color:'#aeaeb2',font:{size:11,family:'-apple-system'}},ticks:{color:'#aeaeb2',maxTicksLimit:8,font:{size:11,family:'-apple-system'}},grid:{color:'rgba(0,0,0,.04)'},border:{color:'rgba(0,0,0,.08)'}},
+y:{title:{display:true,text:'H (N·m)',color:'#aeaeb2',font:{size:11,family:'-apple-system'}},ticks:{color:'#aeaeb2',font:{size:11,family:'-apple-system'}},grid:{color:'rgba(0,0,0,.04)'},border:{color:'rgba(0,0,0,.08)'}}}
+}
+});
+}
+
+// ── SVG Diagrams ──────────────────────────────────────────────────────────────
+// NACA 4-digit symmetric thickness distribution
+function nacaPts(x0,cW,cy,tpx,steps=60){
+const pts=[];
+for(let k=0;k<=steps;k++){
+const t=k/steps;
+const x=x0+t*cW;
+const yt=5*tpx*(0.2969*Math.sqrt(t)-0.1260*t-0.3516*t*t+0.2843*t*t*t-0.1015*t*t*t*t);
+pts.push({x,yt});
+}
+return pts;
+}
+function nacaPath(x0,cW,cy,tpx){
+const pts=nacaPts(x0,cW,cy,tpx);
+let u=pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(2)+','+(cy-p.yt).toFixed(2)).join(' ');
+let l=[...pts].reverse().map(p=>'L'+p.x.toFixed(2)+','+(cy+p.yt).toFixed(2)).join(' ');
+return u+' '+l+' Z';
+}
+
+// Arrow helpers
+function arrowH(x1,x2,y,cls='d-dim'){
+const d=x2>x1?1:-1;
+return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" class="${cls}"/>
+<polygon points="${x2},${y} ${x2-d*4},${y-2} ${x2-d*4},${y+2}" class="d-arrow"/>`;
+}
+function arrowV(x,y1,y2,cls='d-dim'){
+const d=y2>y1?1:-1;
+return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" class="${cls}"/>
+<polygon points="${x},${y2} ${x-2},${y2-d*4} ${x+2},${y2-d*4}" class="d-arrow"/>`;
+}
+
+function drawSection(){
+const i=getInputs(),dc=i.dc;
+const x0=30,x1=308,cW=x1-x0,cy=90;
+const tpx=dc.tc*cW*1.10;
+const cfX=x1-dc.cf*cW;
+const hnX=cfX+dc.hinge*dc.cf*cW;
+const balX=cfX-dc.balance*dc.cf*cW;
+const defRad=i.def*Math.PI/180;
+const cfLen=x1-hnX, off=tpx*.28;
+// 편향각: 양수→아래편향, 음수→위편향 (항공 관습)
+const tip={x:hnX+cfLen*Math.cos(defRad), y:cy+cfLen*Math.sin(defRad)};
+const cfPoly=`M ${hnX},${cy-off} L ${tip.x},${tip.y-off*.35} L ${tip.x},${tip.y+off*.35} L ${hnX},${cy+off} Z`;
+const dimY=cy+tpx+20, dimY2=cy+tpx+36;
+const lsz=10;
+
+// 편향각 호: 시위선(수평)에서 조종면 편향 방향까지
+const arcR=36;
+const arcEndX=hnX+arcR*Math.cos(defRad);
+const arcEndY=cy+arcR*Math.sin(defRad);
+const arcSweep=i.def>=0?'1':'0';
+
+const svg=`<defs><clipPath id="cw"><rect x="${x0-1}" y="0" width="${cfX-x0+3}" height="200"/></clipPath></defs>
+<!-- 시위선 -->
+<line x1="${x0}" y1="${cy}" x2="${x1}" y2="${cy}" class="d-dim-dash"/>
+<!-- 날개 본체 (힌지 앞) -->
+<path d="${nacaPath(x0,cW,cy,tpx)}" class="d-wing" clip-path="url(#cw)"/>
+<!-- 조종면 (편향) -->
+<path d="${cfPoly}" class="d-ctrl" id="hl-cf"/>
+<!-- 힌지 피벗 -->
+<circle cx="${hnX}" cy="${cy}" r="5" class="d-hinge" id="hl-hinge"/>
+<circle cx="${hnX}" cy="${cy}" r="2" fill="white"/>
+<!-- 힌지 라벨 -->
+<text x="${hnX}" y="${cy-off-10}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="9" fill="#8b5cf6">힌지</text>
+<!-- 에어로 밸런스 -->
+${dc.balance>.005?`
+<rect x="${balX}" y="${cy-tpx*.22}" width="${cfX-balX}" height="${tpx*.44}" rx="2"
+fill="rgba(139,92,246,.22)" stroke="#8b5cf6" stroke-width="1.2" id="hl-bal"/>
+${arrowH(balX,cfX,cy-tpx-4,'d-dim')}
+<text x="${(balX+cfX)/2}" y="${cy-tpx-10}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#8b5cf6" id="hl-bal-text">밸런스</text>`:''}
+<!-- 시위 c 치수 -->
+${arrowH(x0,x1,dimY)}
+<text x="${(x0+x1)/2}" y="${dimY+14}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" font-weight="600">c</text>
+<!-- cf/c 치수 -->
+${arrowH(cfX,x1,dimY2,'d-dim')}
+<text x="${(cfX+x1)/2}" y="${dimY2+14}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" id="hl-cf-text">c<tspan font-size="7.5" baseline-shift="sub">f</tspan>/c = ${dc.cf.toFixed(2)}</text>
+<!-- t/c 치수 -->
+${arrowV(x0+cW*.2,cy-tpx,cy+tpx,'d-dim')}
+<text x="${x0+cW*.2-8}" y="${cy+4}" text-anchor="end"
+font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" id="hl-tc-text">t/c = ${dc.tc.toFixed(2)}</text>
+<!-- 편향각 호 (시위선에서 조종면 방향까지) -->
+${Math.abs(i.def)>0.5?`
+<line x1="${hnX}" y1="${cy}" x2="${hnX+arcR+8}" y2="${cy}" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="3,2"/>
+<path d="M ${hnX+arcR},${cy} A ${arcR},${arcR} 0 0,${arcSweep} ${arcEndX},${arcEndY}"
+fill="none" stroke="#2563eb" stroke-width="1.3"/>
+<text x="${hnX+arcR+14}" y="${cy+(i.def>0?14:-8)}"
+font-family="-apple-system,sans-serif" font-size="${lsz+1}" fill="#2563eb" font-weight="700">δ = ${i.def.toFixed(0)}°</text>`:''}
+`;
+document.getElementById('diag-section').innerHTML=svg;
+}
+
+function drawPlanform(){
+const i=getInputs(),dc=i.dc;
+const W=360, H=200;
+const x0=42, x1=320;
+const wPx=x1-x0;
+const cy=H/2;
+const spanFrac=Math.max(0.1, dc.spano - dc.spani);
+const chordPx=Math.min(110, Math.max(45, 1500/(dc.ar*spanFrac+2)));
+const swRad=dc.sweep*Math.PI/180;
+const sweepX=wPx*Math.tan(swRad)*0.35;
+
+// 루트(좌)의 LE/TE y좌표
+const rootLEy=cy-chordPx/2;
+const rootTEy=cy+chordPx/2;
+// 팁(우)의 LE는 후퇴각만큼 아래(+y)로 이동
+const tipLEy=rootLEy+sweepX;
+const tipTEy=rootTEy+sweepX;
+
+const wingP=`M ${x0},${rootLEy} L ${x1},${tipLEy} L ${x1},${tipTEy} L ${x0},${rootTEy} Z`;
+const rootCfY = rootTEy - chordPx*dc.cf;
+const tipCfY = tipTEy - chordPx*dc.cf;
+const cfPath=`M ${x0},${rootCfY} L ${x1},${tipCfY} L ${x1},${tipTEy} L ${x0},${rootTEy} Z`;
+
+const lsz=10;
+const maxTEy=Math.max(rootTEy,tipTEy);
+
+// 후퇴각 호: 루트 LE에서 수평 기준선으로부터 LE 방향까지
+// LE는 루트에서 팁쪽으로 아래로 내려가므로 스윕 방향=아래(+y)
+// 기준선: x0에서 수평(→), 실제 LE: x0에서 우하향
+// 호는 수평선과 LE 사이 각도
+const sweepArcR=30;
+
+const svg=`
+<!-- 비행 방향 (LE→TE = 위→아래) -->
+<g opacity="0.55">
+<line x1="${x0-22}" y1="${rootLEy-15}" x2="${x0-22}" y2="${rootLEy+5}" stroke="#94a3b8" stroke-width="1.2"/>
+<polygon points="${x0-22},${rootLEy+5} ${x0-25},${rootLEy-1} ${x0-19},${rootLEy-1}" fill="#94a3b8"/>
+<text x="${x0-22}" y="${rootLEy-19}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="8" fill="#94a3b8">FLOW</text>
+</g>
+<!-- 루트 경계선 -->
+<line x1="${x0}" y1="${rootLEy-12}" x2="${x0}" y2="${rootTEy+12}" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="4,2"/>
+<text x="${x0-6}" y="${cy}" text-anchor="end"
+font-family="-apple-system,sans-serif" font-size="9" fill="#64748b" font-weight="600">루트</text>
+<text x="${x0-6}" y="${cy+12}" text-anchor="end"
+font-family="-apple-system,sans-serif" font-size="8" fill="#94a3b8">η<tspan font-size="6.5" baseline-shift="sub">i</tspan>=${dc.spani.toFixed(2)}</text>
+<!-- 팁 경계선 -->
+<line x1="${x1}" y1="${tipLEy-12}" x2="${x1}" y2="${tipTEy+12}" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="4,2"/>
+<text x="${x1+6}" y="${cy}"
+font-family="-apple-system,sans-serif" font-size="9" fill="#64748b" font-weight="600">팁</text>
+<text x="${x1+6}" y="${cy+12}"
+font-family="-apple-system,sans-serif" font-size="8" fill="#94a3b8">η<tspan font-size="6.5" baseline-shift="sub">o</tspan>=${dc.spano.toFixed(2)}</text>
+<!-- 날개 패널 -->
+<path d="${wingP}" class="d-wing"/>
+<!-- 조종면 -->
+<path d="${cfPath}" class="d-ctrl"/>
+<!-- 힌지 라인 -->
+<line x1="${x0}" y1="${rootCfY}" x2="${x1}" y2="${tipCfY}"
+stroke="#8b5cf6" stroke-width="1.4" stroke-dasharray="4,2"/>
+<!-- LE / TE 라벨 -->
+<text x="${(x0+x1)/2}" y="${(rootLEy+tipLEy)/2-6}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8" font-weight="600">LE</text>
+<text x="${(x0+x1)/2}" y="${(rootTEy+tipTEy)/2+14}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8" font-weight="600">TE</text>
+<!-- 시위 c 치수 (루트 좌측) -->
+<line x1="${x0-24}" y1="${rootLEy}" x2="${x0-24}" y2="${rootTEy}" class="d-dim"/>
+<line x1="${x0-28}" y1="${rootLEy}" x2="${x0-20}" y2="${rootLEy}" class="d-dim"/>
+<line x1="${x0-28}" y1="${rootTEy}" x2="${x0-20}" y2="${rootTEy}" class="d-dim"/>
+<text x="${x0-30}" y="${cy+4}" text-anchor="end"
+font-family="-apple-system,sans-serif" font-size="9" fill="#64748b">c</text>
+<!-- cf 치수 (팁 우측) -->
+<line x1="${x1+22}" y1="${tipCfY}" x2="${x1+22}" y2="${tipTEy}" class="d-dim"/>
+<line x1="${x1+18}" y1="${tipCfY}" x2="${x1+26}" y2="${tipCfY}" class="d-dim"/>
+<line x1="${x1+18}" y1="${tipTEy}" x2="${x1+26}" y2="${tipTEy}" class="d-dim"/>
+<text x="${x1+28}" y="${(tipCfY+tipTEy)/2+4}"
+font-family="-apple-system,sans-serif" font-size="9" fill="#8b5cf6" font-weight="600" id="hl-cf-text">c<tspan font-size="6.5" baseline-shift="sub">f</tspan>=${(dc.cf*100).toFixed(0)}%</text>
+<!-- 스팬 치수 (아래) -->
+<line x1="${x0}" y1="${maxTEy+22}" x2="${x1}" y2="${maxTEy+22}" class="d-dim"/>
+<line x1="${x0}" y1="${maxTEy+18}" x2="${x0}" y2="${maxTEy+26}" class="d-dim"/>
+<line x1="${x1}" y1="${maxTEy+18}" x2="${x1}" y2="${maxTEy+26}" class="d-dim"/>
+<text x="${(x0+x1)/2}" y="${maxTEy+36}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#64748b" id="hl-ar-text">AR = ${dc.ar.toFixed(1)}</text>
+<!-- 후퇴각 호: 루트 LE를 기준점으로, 수평선(→)과 LE 기울기 사이 각도 -->
+${dc.sweep>1?`
+<!-- 수평 기준선 -->
+<line x1="${x0}" y1="${rootLEy}" x2="${x0+sweepArcR+10}" y2="${rootLEy}"
+stroke="#94a3b8" stroke-width="0.6" stroke-dasharray="2,2"/>
+<!-- 호: 수평에서 LE 방향으로 (시계방향 = sweep>0) -->
+<path d="M ${x0+sweepArcR},${rootLEy}
+A ${sweepArcR},${sweepArcR} 0 0,1
+${x0+sweepArcR*Math.cos(swRad)},${rootLEy+sweepArcR*Math.sin(swRad)}"
+fill="none" stroke="#2563eb" stroke-width="1.3"/>
+<text x="${x0+sweepArcR+14}" y="${rootLEy+sweepArcR*Math.sin(swRad)/2+4}"
+font-family="-apple-system,sans-serif" font-size="${lsz}" fill="#2563eb" font-weight="700" id="hl-sw-text">Λ=${dc.sweep}°</text>`:''}
+`;
+document.getElementById('diag-planform').innerHTML=svg;
+}
+
+function drawExtra(){
+const surf=getCurSurf();
+const wrap=document.getElementById('diag-extra-wrap');
+if(mode!=='datcom'){wrap.classList.add('hide');return;}
+
+if(surf.id==='rudvat'){
+wrap.classList.remove('hide');
+document.getElementById('diag-extra-lbl').textContent='V-tail 정면도 — 피치 / 요 모멘트 분배';
+const i=getInputs(),dh=i.dc.dihedral,dhR=dh*Math.PI/180;
+
+// 피치 = cos Γ (경사각 작을수록 수직에 가까워 요 분배 ↑)
+// 요 = sin Γ (경사각 클수록 수평에 가까워 피치 분배 ↑)
+const pitchRatio = Math.cos(dhR);
+const yawRatio = Math.sin(dhR);
+const pitchPct = (pitchRatio*100).toFixed(0);
+const yawPct = (yawRatio *100).toFixed(0);
+
+// 정면도 좌측: V-tail 형상
+const cx=175, cy=100, len=72;
+// 정면도에서 V-tail: 동체 중심(cx,cy)에서 양쪽으로 뻗음
+// 좌측 날개 끝: 좌하향 (−x, +y 기준이면 ←↗ 방향)
+// 수직에서 경사각 Γ만큼 옆으로 기울어진 날개
+// Γ=0° → 수평, Γ=90° → 수직
+const lx = cx - len*Math.sin(dhR); // 좌측 팁 x
+const ly = cy - len*Math.cos(dhR); // 좌측 팁 y (위로)
+const rx = cx + len*Math.sin(dhR); // 우측 팁 x
+const ry = cy - len*Math.cos(dhR); // 우측 팁 y (위로)
+
+// 조종면 (외측 절반에 표시)
+const cfL_x = cx - len*.5*Math.sin(dhR), cfL_y = cy - len*.5*Math.cos(dhR);
+const cfR_x = cx + len*.5*Math.sin(dhR), cfR_y = cy - len*.5*Math.cos(dhR);
+
+// 경사각 호: 수직선(↑)과 날개 사이의 각도 = Γ
+const arcR=30;
+// 수직 방향 = (cx, cy-arcR)
+// V-tail 우측 방향 = (cx+arcR*sinΓ, cy-arcR*cosΓ) → 이미 위에서 계산
+const arcEndX = cx + arcR*Math.sin(dhR);
+const arcEndY = cy - arcR*Math.cos(dhR);
+
+// 분해 벡터 (우측 패널)
+const vx=535, vy=105, vLen=65;
+const pitchLen = vLen*pitchRatio;
+const yawLen = vLen*yawRatio;
+
+document.getElementById('diag-extra').innerHTML=`
+<!-- ── 정면도 (좌측) ── -->
+<!-- 수평선 (지평선) -->
+<line x1="20" y1="${cy}" x2="340" y2="${cy}" stroke="#e2e8f0" stroke-width="1.2"/>
+<!-- 수직 기준선 (중력 방향) -->
+<line x1="${cx}" y1="${cy-82}" x2="${cx}" y2="${cy+10}"
+stroke="#e2e8f0" stroke-width="0.8" stroke-dasharray="3,2"/>
+<!-- 동체 단면 -->
+<ellipse cx="${cx}" cy="${cy+12}" rx="16" ry="10" fill="#dbeafe" stroke="#2563eb" stroke-width="1.2"/>
+<!-- V-tail 구조 (보라) -->
+<line x1="${cx}" y1="${cy}" x2="${lx}" y2="${ly}" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round" opacity=".6"/>
+<line x1="${cx}" y1="${cy}" x2="${rx}" y2="${ry}" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round" opacity=".6"/>
+<!-- 조종면 (외측, 파랑) -->
+<line x1="${cfL_x}" y1="${cfL_y}" x2="${lx}" y2="${ly}" stroke="#60a5fa" stroke-width="7" stroke-linecap="round"/>
+<line x1="${cfR_x}" y1="${cfR_y}" x2="${rx}" y2="${ry}" stroke="#60a5fa" stroke-width="7" stroke-linecap="round"/>
+
+<!-- 경사각 호: 수직선에서 V-tail 우측 날개까지 -->
+<!-- 수직 기준선 방향 = (cx, cy-arcR) -->
+<path d="M ${cx},${cy-arcR}
+A ${arcR},${arcR} 0 0,1 ${arcEndX},${arcEndY}"
+fill="none" stroke="#2563eb" stroke-width="1.4"/>
+<!-- 수직 기준 단선 -->
+<line x1="${cx}" y1="${cy-arcR-8}" x2="${cx}" y2="${cy-arcR}"
+stroke="#94a3b8" stroke-width="0.6" stroke-dasharray="2,2"/>
+<text x="${cx+arcR+8}" y="${cy-arcR*Math.cos(dhR)/2+4}"
+font-family="-apple-system,sans-serif" font-size="10" fill="#2563eb" font-weight="700" id="hl-dih-text">Γ=${dh}°</text>
+
+<!-- 분배 텍스트 (정면도 하단) -->
+<text x="${cx}" y="${cy+44}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="8.5" fill="#2563eb">피치 ${pitchPct}%</text>
+<text x="${cx}" y="${cy+56}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="8.5" fill="#f59e0b">요 ${yawPct}%</text>
+
+<!-- ── 분해 벡터 (우측 패널) ── -->
+<rect x="370" y="12" width="330" height="145" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+<text x="535" y="30" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="9" fill="#64748b">모멘트 분배 (Γ = ${dh}°)</text>
+
+<!-- 합력 벡터 H (우상향 45° 기준, 보라) -->
+<line x1="${vx}" y1="${vy}" x2="${vx-yawLen}" y2="${vy-pitchLen}"
+stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round"/>
+
+<text x="${vx-yawLen-8}" y="${vy-pitchLen-6}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="9" fill="#8b5cf6" font-weight="600">H (합력)</text>
+
+<!-- 요 성분 (수직 위쪽, 파랑) -->
+<line x1="${vx}" y1="${vy}" x2="${vx}" y2="${vy-pitchLen}"
+stroke="#2563eb" stroke-width="2" stroke-dasharray="5,2"/>
+<polygon points="${vx},${vy-pitchLen}
+${vx-4},${vy-pitchLen+8}
+${vx+4},${vy-pitchLen+8}" fill="#2563eb"/>
+<text x="${vx+8}" y="${vy-pitchLen/2}"
+font-family="-apple-system,sans-serif" font-size="9" fill="#2563eb" font-weight="600">요</text>
+<text x="${vx+8}" y="${vy-pitchLen/2+12}"
+font-family="-apple-system,sans-serif" font-size="9" fill="#2563eb">cos Γ = ${pitchPct}%</text>
+
+<!-- 피치 성분 (수평 좌쪽, 주황) -->
+<line x1="${vx}" y1="${vy}" x2="${vx-yawLen}" y2="${vy}"
+stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,2"/>
+<polygon points="${vx-yawLen},${vy}
+${vx-yawLen+8},${vy-4}
+${vx-yawLen+8},${vy+4}" fill="#f59e0b"/>
+<text x="${vx-yawLen/2}" y="${vy+16}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="9" fill="#f59e0b" font-weight="600">피치</text>
+<text x="${vx-yawLen/2}" y="${vy+28}" text-anchor="middle"
+font-family="-apple-system,sans-serif" font-size="9" fill="#f59e0b">sin Γ = ${yawPct}%</text>
+
+<!-- 직각 표시 -->
+<rect x="${vx-8}" y="${vy-8}" width="8" height="8" fill="none" stroke="#cbd5e1" stroke-width="0.8"/>
+
+<!-- 수직/수평 기준선 (연한 선) -->
+<line x1="${vx}" y1="${vy+12}" x2="${vx}" y2="${vy-vLen-5}"
+stroke="#e2e8f0" stroke-width="0.8"/>
+<line x1="${vx+12}" y1="${vy}" x2="${vx-vLen-5}" y2="${vy}"
+stroke="#e2e8f0" stroke-width="0.8"/>
+`;
+} else if(surf.id==='allmv'){
+wrap.classList.remove('hide');
+document.getElementById('diag-extra-lbl').textContent='올무빙 테일 — 피벗 위치 & 공력중심 (AC)';
+const i=getInputs(),pv=i.dc.pivot;
+const x0=50,x1=670,W=x1-x0,cy=70;
+const tpx=i.dc.tc*W*0.72;
+const acX=x0+.25*W, pvX=x0+pv*W;
+document.getElementById('diag-extra').innerHTML=`
+<path d="${nacaPath(x0,W,cy,tpx)}" class="d-ctrl"/>
+<line x1="${x0}" y1="${cy}" x2="${x1}" y2="${cy}" class="d-dim-dash"/>
+${arrowH(x0,x1,cy+tpx+18)}
+<text x="${(x0+x1)/2}" y="${cy+tpx+30}" text-anchor="middle" class="d-label">c (시위)</text>
+<circle cx="${acX}" cy="${cy}" r="5.5" class="d-ac"/>
+<circle cx="${acX}" cy="${cy}" r="2.2" fill="white"/>
+<line x1="${acX}" y1="${cy-tpx-6}" x2="${acX}" y2="${cy-tpx}" class="d-dim"/>
+<text x="${acX}" y="${cy-tpx-10}" text-anchor="middle" class="d-label" font-size="8.5">AC (0.25c)</text>
+<circle cx="${pvX}" cy="${cy}" r="6.5" class="d-hinge" id="hl-pivot"/>
+<circle cx="${pvX}" cy="${cy}" r="2.5" fill="white"/>
+<line x1="${pvX}" y1="${cy+tpx+6}" x2="${pvX}" y2="${cy+tpx+14}" class="d-dim"/>
+<text x="${pvX}" y="${cy+tpx+26}" text-anchor="middle" class="d-label d-label-hl" id="hl-pivot-text" font-size="8.5">피벗 ${(pv*100).toFixed(0)}%c</text>
+${Math.abs(pvX-acX)>12?`
+<line x1="${acX}" y1="${cy}" x2="${pvX}" y2="${cy}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,2"/>
+<text x="${(acX+pvX)/2}" y="${cy-tpx-28}" text-anchor="middle" class="d-label" fill="#ef4444" font-size="8.5">Δx = ${((pv-.25)*100).toFixed(1)}%c</text>`:''}
+`;
+} else {
+wrap.classList.add('hide');
+}
+}
+function drawDiags(){drawSection();drawPlanform();drawExtra();}
+
+// Highlight on focus
+const HL={'dc-cf':['hl-cf','hl-cf-text'],'dc-tc':['hl-tc-text'],'dc-hinge':['hl-hinge'],'dc-balance':['hl-bal','hl-bal-text'],'dc-spani':['hl-spani-line','hl-spani-text'],'dc-spano':['hl-spano-line','hl-spano-text'],'dc-ar':['hl-ar-text'],'dc-sweep':['hl-sw-text'],'dc-dihedral':['hl-dih-text'],'dc-pivot':['hl-pivot','hl-pivot-text']};
+function hlDiag(key){
+document.querySelectorAll('[id^="hl-"]').forEach(el=>{el.style.stroke='';el.style.fill='';el.style.fontWeight='';el.style.strokeWidth='';});
+if(!key||!HL[key])return;
+HL[key].forEach(id=>{
+const el=document.getElementById(id);if(!el)return;
+if(el.tagName==='line'||el.tagName==='path'){el.style.stroke='#2563eb';el.style.strokeWidth='2px';}
+if(el.tagName==='circle'){el.style.fill='#2563eb';}
+if(el.tagName==='text'||el.tagName==='tspan'){el.style.fill='#2563eb';el.style.fontWeight='700';}
+});
+}
+['dc-cf','dc-tc','dc-hinge','dc-balance','dc-spani','dc-spano','dc-ar','dc-sweep','dc-dihedral','dc-pivot'].forEach(id=>{
+const el=document.getElementById(id);
+if(el){el.addEventListener('focus',()=>hlDiag(id));el.addEventListener('blur',()=>hlDiag(null));}
+});
+
+// ── Events ────────────────────────────────────────────────────────────────────
+['f-ch0','f-chd','f-cha','f-alpha','f-sf','f-gear','f-rate','f-eff','f-volt','f-duty','f-duty-pct',
+'dc-cf','dc-tc','dc-hinge','dc-balance','dc-spani','dc-spano','dc-ar','dc-sweep','dc-dihedral','dc-pivot'
+].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{saveCur();update();});});
+document.getElementById('f-alpha-d').addEventListener('input',()=>{sv('f-alpha',gv('f-alpha-d'));saveCur();update();});
+document.getElementById('f-power-w').addEventListener('input',()=>{powerManual=true;setBadge('pw-badge','수동','mb-orange');saveCur();update();});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderSurfBar();loadCur();toggleACUI();recalcRho();drawDiags();update();
+
+// 창 리사이즈 시 차트 강제 재렌더 (가로폭은 자동, Chart.js만 인식 강제)
+let _resizeRAF = 0;
+window.addEventListener('resize', () => {
+if(_resizeRAF) return;
+_resizeRAF = requestAnimationFrame(() => {
+_resizeRAF = 0;
+if(chart) chart.resize();
+});
+});
+</script>
+
+</body>
+</html>
