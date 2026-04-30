@@ -739,6 +739,11 @@ function runStepAnalysis(){
 
 // ── 연속 스윕 분석 ──
 function runContinuousAnalysis(){
+  // 스텝 주파수 데이터를 연속 스윕 모드로 분석하려는 경우 경고
+  if(raw.segments&&raw.segments.length>0){
+    alert('현재 파일은 스텝 주파수 데이터입니다.\n분석 모드를 "스텝 주파수"로 변경해 주세요.');
+    return;
+  }
   const fv=parseFloat(document.getElementById('fsIn').value);
   if(!isNaN(fv)&&fv>0)fs=fv;
   const logX=document.getElementById('fscale').value==='log',maxRows=parseInt(document.getElementById('tblRows').value);
@@ -762,7 +767,21 @@ function runContinuousAnalysis(){
     HMagNorm.push(mag);HdB.push(20*Math.log10(mag+1e-300));HPh.push(ph);
     const k=i+1;Coh.push(Math.min(1,(PxyR[k]**2+PxyI[k]**2)/((Pxx[k]*Pyy[k])+1e-300)));
   }
-  const{wn,zeta,fitted}=fit2ndOrder(fSlice,HMagNorm),fn=wn/(2*Math.PI);
+  // 피팅용 다운샘플: 로그 간격 80개 대표 포인트 → 속도↑ 정확도↑
+  const N_FIT=80;
+  const fitIdxs=Array.from({length:N_FIT},(_,i)=>{
+    const fTarget=fSlice[0]*Math.pow(fSlice[fSlice.length-1]/fSlice[0],i/(N_FIT-1));
+    let best=0,bestDist=Infinity;
+    fSlice.forEach((f,j)=>{const d=Math.abs(Math.log(f)-Math.log(fTarget));if(d<bestDist){bestDist=d;best=j;}});
+    return best;
+  }).filter((v,i,a)=>a.indexOf(v)===i); // 중복 제거
+  const fFit=fitIdxs.map(i=>fSlice[i]);
+  const HMagFit=fitIdxs.map(i=>HMagNorm[i]);
+
+  const{wn,zeta,fitted}=fit2ndOrder(fFit,HMagFit),fn=wn/(2*Math.PI);
+  // fitted는 fFit 기준이므로 fSlice 전체에 대해 다시 계산
+  const fittedFull=fSlice.map(f=>Math.sqrt(h2mag(2*Math.PI*f,wn,zeta)));
+  const fittedNorm=fittedFull.map(v=>v/(fittedFull[0]||1));
   const bwAmpF=calcBW(fSlice,HdB,-3),bwPhF=calcBW(fSlice,HPh,-90);
 
   // 스윕 파형을 주파수 축으로 변환: t → f(t) = f0 * k^t (로그 스윕)
@@ -774,7 +793,7 @@ function runContinuousAnalysis(){
   // 각 샘플의 시간 → 순시 주파수 변환
   const swpF=dsTime.t.map(ti=>sweepF0*Math.exp(logK*(ti-tMin)));
   const bodeXmin=logX?Math.max(fSlice[0],0.1):0,bodeXmax=sweepFmax*1.05;
-  R={fSlice,HdB,HPh,HMagNorm,Coh,fitted,fn,wn,zeta,logX,maxRows,bwAmpF,bwPhF,
+  R={fSlice,HdB,HPh,HMagNorm,Coh,fitted:fittedNorm,fn,wn,zeta,logX,maxRows,bwAmpF,bwPhF,
     dsTime,swpF,totalPts:t.length,uMax,bodeXmin,bodeXmax,sweepFmax,isStep:false};
 
   document.getElementById('statsRow').innerHTML=`
