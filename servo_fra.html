@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주파수 응답 분석기 — Engineering Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f5f5f7;
+  --card:      rgba(255,255,255,0.9);
+  --border:    rgba(0,0,0,0.08);
+  --border2:   rgba(0,0,0,0.05);
+  --text:      #1d1d1f;
+  --text2:     #6e6e73;
+  --text3:     #aeaeb2;
+  --blue:      #0071e3;
+  --red:       #ff453a;
+  --orange:    #ff9f0a;
+  --purple:    #bf5af2;
+  --green:     #32d74b;
+  --teal:      #30b0c7;
+  --teal-dark: #1a7a8a;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.titlebar {
+  height: 52px;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px;
+  position: sticky; top: 0; z-index: 100;
+}
+.titlebar-left { display: flex; align-items: center; gap: 10px; }
+.home-btn {
+  display: flex; align-items: center; gap: 5px;
+  text-decoration: none; color: var(--teal);
+  font-size: 13px; font-weight: 500;
+  padding: 5px 10px 5px 6px; border-radius: 8px;
+  background: transparent; border: none; cursor: pointer;
+  transition: background 0.15s; font-family: inherit; margin-right: 2px;
+}
+.home-btn:hover { background: rgba(48,176,199,0.08); }
+.home-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.titlebar-divider { width: 1px; height: 16px; background: var(--border); margin-right: 2px; }
+.app-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(145deg, #30b0c7, #1a8fa8);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.app-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.app-name { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
+
+.wrap { max-width: 1060px; margin: 0 auto; padding: 28px 24px 56px; }
+
+.page-hdr { margin-bottom: 22px; }
+.page-eyebrow { font-size: 11px; font-weight: 500; color: var(--teal-dark); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+.page-hdr h1 { font-size: 24px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
+.page-hdr p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+.s-title { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 8px; }
+
+/* Drop zone */
+.drop-zone {
+  background: var(--card); border: 1.5px dashed rgba(0,0,0,0.14);
+  border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.drop-zone.over { border-color: var(--teal); background: rgba(48,176,199,0.04); }
+.drop-icon {
+  width: 44px; height: 44px; margin: 0 auto 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(48,176,199,0.1); border-radius: 11px;
+}
+.drop-icon svg { width: 20px; height: 20px; stroke: var(--teal); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.drop-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.drop-sub { font-size: 12px; color: var(--text2); }
+.drop-btns { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.drop-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid; transition: background .15s; font-family: inherit;
+}
+.drop-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.drop-btn-default { background: rgba(118,118,128,0.1); border-color: rgba(0,0,0,0.12); color: var(--text); }
+.drop-btn-default:hover { background: rgba(118,118,128,0.18); }
+.drop-btn-sample { background: rgba(48,176,199,0.1); border-color: rgba(48,176,199,0.3); color: var(--teal-dark); }
+.drop-btn-sample:hover { background: rgba(48,176,199,0.18); }
+
+/* File badge */
+.file-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 4px 10px; font-size: 12px; color: var(--text2); margin-bottom: 10px;
+}
+.fbdot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+/* Settings card */
+.settings-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border2); padding: 14px 16px; margin-bottom: 14px; }
+.settings-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.s-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+.s-field label { font-size: 11px; font-weight: 500; color: var(--text2); }
+.s-field select, .s-field input[type=number] {
+  height: 34px; background: rgba(118,118,128,0.08); border: 1px solid transparent;
+  border-radius: 8px; padding: 0 10px; font-size: 13px; color: var(--text);
+  outline: none; transition: border-color .15s, background .15s;
+  font-family: inherit; -webkit-appearance: none; appearance: none;
+}
+.s-field select:focus, .s-field input[type=number]:focus {
+  border-color: var(--teal); background: rgba(48,176,199,0.04);
+}
+.run-btn {
+  height: 34px; padding: 0 20px; background: var(--teal); color: #fff;
+  border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap;
+}
+.run-btn:hover { background: var(--teal-dark); }
+
+/* KPI row */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.kpi-card { border-radius: 12px; border: 1px solid; padding: 14px 16px; }
+.kpi-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 8px; }
+.kpi-val { font-size: 24px; font-weight: 300; line-height: 1; letter-spacing: -0.04em; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+.kpi-unit { font-size: 12px; font-weight: 400; margin-left: 2px; }
+.kpi-sub { font-size: 11px; }
+
+.kpi-red { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.05); }
+.kpi-red .kpi-lbl { color: var(--text2); }
+.kpi-red .kpi-val { color: #d4190a; font-weight: 600; }
+.kpi-red .kpi-unit { color: #d4190a; }
+.kpi-red .kpi-sub { color: var(--text3); }
+
+.kpi-blue { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.05); }
+.kpi-blue .kpi-lbl { color: var(--text2); }
+.kpi-blue .kpi-val { color: #0051a2; font-weight: 600; }
+.kpi-blue .kpi-unit { color: #0051a2; }
+.kpi-blue .kpi-sub { color: var(--text3); }
+
+/* Stats chips */
+.stats-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.stat-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--text2);
+}
+.stat-chip b { font-weight: 500; color: var(--text); margin-left: 2px; font-variant-numeric: tabular-nums; }
+
+/* Segmented tabs */
+.seg-ctrl {
+  display: flex; background: rgba(118,118,128,0.12);
+  border-radius: 9px; padding: 2px; gap: 1px; width: fit-content; flex-wrap: wrap;
+}
+.seg-btn {
+  padding: 5px 16px; border-radius: 7px; border: none;
+  background: transparent; color: var(--text2);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+  letter-spacing: -0.1px; white-space: nowrap; font-family: inherit;
+}
+.seg-btn.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.08); }
+.top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+/* Chart card */
+.chart-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border2); padding: 16px 18px; margin-bottom: 10px; }
+.chart-hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.chart-title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+.chart-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text2); align-items: center; }
+.lpip { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+/* Icon button */
+.icon-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 7px;
+  background: rgba(118,118,128,0.08); border: 1px solid var(--border2);
+  font-size: 11px; font-weight: 500; color: var(--text2);
+  cursor: pointer; text-decoration: none; font-family: inherit; transition: background .15s;
+}
+.icon-btn:hover { background: rgba(118,118,128,0.14); color: var(--text); }
+.icon-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Bode */
+.bode-lbl { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 6px; }
+.bode-sep { height: 1px; background: var(--border2); margin: 14px 0; }
+
+/* TF */
+.tf-params { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.tf-param { background: rgba(118,118,128,0.07); border-radius: 10px; border: 1px solid var(--border2); padding: 10px 12px; }
+.tf-param-lbl { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 5px; }
+.tf-param-val { font-size: 18px; font-weight: 300; color: var(--text); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.tf-param-unit { font-size: 11px; color: var(--text3); margin-left: 2px; }
+.tf-eq {
+  font-size: 12px; color: var(--text2);
+  background: rgba(118,118,128,0.07); border-radius: 8px; border: 1px solid var(--border2);
+  padding: 9px 12px; margin-bottom: 12px;
+  font-family: 'SF Mono','Cascadia Code','Consolas',monospace;
+}
+
+/* Table */
+.tbl-wrap { overflow-x: auto; margin-top: 12px; border-top: 1px solid var(--border2); padding-top: 12px; }
+table.dtbl { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+table.dtbl th { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; text-transform: uppercase; text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+table.dtbl th:first-child { text-align: left; }
+table.dtbl td { text-align: right; padding: 5px 10px; color: var(--text); border-bottom: 1px solid var(--border2); font-weight: 300; }
+table.dtbl td:first-child { text-align: left; color: var(--text2); font-weight: 400; }
+table.dtbl tr:last-child td { border-bottom: none; }
+table.dtbl tr:hover td { background: rgba(118,118,128,0.04); }
+table.dtbl tr.bw-row td { background: rgba(255,69,58,0.04); }
+table.dtbl tr.bw-row td:first-child { color: #c01008; font-weight: 500; }
+
+.sec { display: none; } .sec.on { display: block; }
+
+/* 모드 선택 버튼 */
+.mode-btn {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: rgba(118,118,128,0.06); color: var(--text2);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all 0.15s; font-family: inherit; flex: 1; min-width: 200px;
+  flex-direction: column;
+}
+.mode-btn svg { flex-shrink: 0; margin-bottom: 2px; }
+.mode-btn.on {
+  background: rgba(48,176,199,0.08); border-color: var(--teal);
+  color: var(--teal-dark);
+}
+.mode-btn:hover:not(.on) { background: rgba(118,118,128,0.1); border-color: rgba(0,0,0,0.15); }
+.mode-desc { font-size: 11px; font-weight: 400; color: var(--text3); margin-top: 2px; line-height: 1.4; }
+.mode-btn.on .mode-desc { color: rgba(26,122,138,0.7); }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="titlebar-left">
+    <a class="home-btn" href="index.html">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"/>
+      </svg>
+      홈
+    </a>
+    <div class="titlebar-divider"></div>
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24"><polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/></svg>
+    </div>
+    <span class="app-name">주파수 응답 분석기</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="page-hdr">
+    <div class="page-eyebrow">제어공학 · FRA</div>
+    <h1>주파수 응답 분석기</h1>
+    <p>서보 사인 스윕 CSV → Bode Plot · 대역폭 · 고유진동수 · 감쇠비 자동 계산</p>
+  </div>
+
+  <div class="drop-zone" id="dz">
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v12"/></svg>
+    </div>
+    <div class="drop-title">CSV 파일을 여기에 드롭하세요</div>
+    <div class="drop-sub">표준: t, u, y · FRF 로그: ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg</div>
+    <div class="drop-btns">
+      <label class="drop-btn drop-btn-default" for="fi">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        파일 선택
+      </label>
+      <button class="drop-btn drop-btn-sample" onclick="loadSampleData()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="10 8 16 12 10 16 10 8"/></svg>
+        샘플 데이터
+      </button>
+    </div>
+    <input type="file" id="fi" accept=".csv" style="display:none">
+  </div>
+
+  <div id="cfgSec" style="display:none;margin-top:12px">
+    <div class="file-badge"><span class="fbdot"></span><span id="fname">data.csv</span></div>
+
+    <!-- 모드 선택 -->
+    <div class="settings-card" style="margin-bottom:10px">
+      <div class="s-title">분석 모드</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="mode-btn on" id="modeContBtn" onclick="setMode('continuous',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/></svg>
+          연속 스윕
+          <span class="mode-desc">시간에 따라 주파수가 연속 변화 · Welch FFT 분석</span>
+        </button>
+        <button class="mode-btn" id="modeStepBtn" onclick="setMode('step',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 20 4 4"/><polyline points="4 20 20 20"/><line x1="4" y1="16" x2="8" y2="16"/><line x1="8" y1="16" x2="8" y2="11"/><line x1="8" y1="11" x2="13" y2="11"/><line x1="13" y1="11" x2="13" y2="7"/><line x1="13" y1="7" x2="20" y2="7"/></svg>
+          스텝 주파수
+          <span class="mode-desc">주파수별 구간 데이터 · 구간별 RMS/위상 직접 계산</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 분석 설정 -->
+    <div class="settings-card">
+      <div class="s-title">분석 설정</div>
+      <div class="settings-row">
+        <div class="s-field" id="fsField"><label>샘플링 주파수 Fs (Hz)</label><input type="number" id="fsIn" placeholder="자동 감지" min="0.001" step="any"></div>
+        <div class="s-field"><label>주파수 스케일</label><select id="fscale"><option value="log">Log</option><option value="linear">Linear</option></select></div>
+        <div class="s-field"><label>테이블 행 수</label><select id="tblRows"><option value="20">20행</option><option value="50">50행</option><option value="100">100행</option><option value="0">전체</option></select></div>
+        <button class="run-btn" onclick="runAnalysis()">분석 실행</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="resSec" style="display:none">
+    <div class="kpi-row" id="kpiRow"></div>
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="top-row">
+      <div class="seg-ctrl">
+        <button class="seg-btn on" onclick="sw('time',this)">스윕 파형</button>
+        <button class="seg-btn" onclick="sw('bode',this)">Bode Plot</button>
+        <button class="seg-btn" onclick="sw('coh',this)">Coherence</button>
+        <button class="seg-btn" onclick="sw('tf',this)">Transfer Function</button>
+      </div>
+      <a class="icon-btn" href="#" onclick="dlAll(event)">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        전체 결과 CSV
+      </a>
+    </div>
+
+    <div id="time" class="sec on">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title" id="timeChartTitle">스윕 파형</div><div class="chart-sub" id="timeChartSub">X축: 순시 주파수(Hz) · 명령과 응답 비교</div></div>
+          <div class="legend">
+            <span><span class="lpip" style="background:rgba(0,113,227,0.7)"></span>명령 u</span>
+            <span><span class="lpip" style="background:rgba(50,215,75,0.7)"></span>응답 y</span>
+          </div>
+        </div>
+        <div style="position:relative;height:280px"><canvas id="cTime" role="img" aria-label="파형">파형</canvas></div>
+      </div>
+    </div>
+
+    <div id="bode" class="sec">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title">Bode Plot</div><div id="bodeSubLbl" class="chart-sub">저주파 기준 정규화 · 공유 주파수 축</div></div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <div class="legend">
+              <span><span class="lpip" style="background:#bf5af2"></span>크기 (dB)</span>
+              <span><span class="lpip" style="background:#ff9f0a"></span>위상 (°)</span>
+            </div>
+            <a class="icon-btn" href="#" onclick="dlSec('bode',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
+          </div>
+        </div>
+        <div class="bode-lbl">크기 (dB)</div>
+        <div style="position:relative;height:200px"><canvas id="cBmag" role="img" aria-label="Bode 크기">Bode Magnitude</canvas></div>
+        <div class="bode-sep"></div>
+        <div class="bode-lbl">위상 (°)</div>
+        <div style="position:relative;height:200px"><canvas id="cBph" role="img" aria-label="Bode 위상">Bode Phase</canvas></div>
+        <div class="tbl-wrap"><div id="tBode"></div></div>
+      </div>
+    </div>
+
+    <div id="coh" class="sec">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title">Coherence γ²(f)</div><div class="chart-sub">1에 가까울수록 신호 품질이 좋고 결과를 신뢰할 수 있음</div></div>
+          <a class="icon-btn" href="#" onclick="dlSec('coh',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="cCoh" role="img" aria-label="코히런스">Coherence</canvas></div>
+        <div class="tbl-wrap"><div id="tCoh"></div></div>
+      </div>
+    </div>
+
+    <div id="tf" class="sec">
+      <div class="chart-card">
+        <div class="chart-hdr">
+          <div><div class="chart-title">Transfer Function 추정</div><div class="chart-sub">H(s) = ωn² / (s² + 2ζωn·s + ωn²) 피팅 결과</div></div>
+          <a class="icon-btn" href="#" onclick="dlSec('tf',event)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</a>
+        </div>
+        <div class="tf-params" id="tfParams"></div>
+        <div class="tf-eq" id="tfEq"></div>
+        <div class="legend" style="margin-bottom:10px">
+          <span><span class="lpip" style="background:#ff9f0a"></span>측정 |H(f)|</span>
+          <span><span class="lpip" style="background:#0071e3"></span>피팅 모델</span>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="cTf" role="img" aria-label="전달함수">Transfer Function</canvas></div>
+        <div class="tbl-wrap"><div id="tTf"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let raw=null,fs=1,R={},analysisMode='continuous';
+const CH={},NFFT=2048,MAX_PTS=4000;
+
+function setMode(mode,el){
+  analysisMode=mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  // 스텝 모드면 Fs 입력 숨김 (불필요)
+  document.getElementById('fsField').style.display=mode==='step'?'none':'flex';
+}
+
+function loadSampleData(){
+  const FS=1000,T=30,N=FS*T,f0=1,f1=10,wn=2*Math.PI*5,zeta=0.6,delay=10;
+  const k=Math.pow(f1/f0,1/T),dt=1/FS,t=[],u=[],y=[];
+  let y2=0,yd2=0;const ubuf=new Array(delay+2).fill(0);
+  for(let i=0;i<N;i++){
+    const ti=i*dt,ph=2*Math.PI*f0*(Math.pow(k,ti)-1)/Math.log(k),un=2*Math.sin(ph);
+    ubuf.push(un);const ud=ubuf[ubuf.length-(delay+1)];
+    const f=(yv,ydv,uv)=>[ydv,wn*wn*uv-2*zeta*wn*ydv-wn*wn*yv];
+    const[k1y,k1d]=f(y2,yd2,ud),[k2y,k2d]=f(y2+dt/2*k1y,yd2+dt/2*k1d,ud);
+    const[k3y,k3d]=f(y2+dt/2*k2y,yd2+dt/2*k2d,ud),[k4y,k4d]=f(y2+dt*k3y,yd2+dt*k3d,ud);
+    const y1=y2+dt/6*(k1y+2*k2y+2*k3y+k4y),yd1=yd2+dt/6*(k1d+2*k2d+2*k3d+k4d);
+    const noise=0.004*Math.sin(2*Math.PI*173*ti+1.1)+0.002*Math.sin(2*Math.PI*317*ti);
+    t.push(parseFloat(ti.toFixed(4)));u.push(parseFloat(un.toFixed(6)));y.push(parseFloat((y1+noise).toFixed(6)));
+    y2=y1;yd2=yd1;
+  }
+  raw={t,u,y};fs=FS;
+  document.getElementById('fname').textContent='sample_servo_sweep.csv';
+  document.getElementById('fsIn').placeholder=FS+' Hz (샘플 데이터)';
+  document.getElementById('cfgSec').style.display='block';
+  document.getElementById('dz').style.display='none';
+  runAnalysis();
+}
+
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+document.getElementById('fi').addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0])});
+
+function loadFile(f){
+  const r=new FileReader();
+  r.onload=e=>{parseCSV(e.target.result);document.getElementById('fname').textContent=f.name;document.getElementById('cfgSec').style.display='block';dz.style.display='none'};
+  r.readAsText(f);
+}
+
+function parseCSV(txt){
+  // 터미널 로그 등 앞부분 쓰레기 제거 → 실제 헤더 행 탐색
+  const lines=txt.replace(/\r/g,'').split('\n');
+  let headerIdx=-1;
+  for(let i=0;i<lines.length;i++){
+    const l=lines[i].toLowerCase().trim();
+    if(!l||l.startsWith('#'))continue;
+    const cols=l.split(',').map(h=>h.trim());
+    if(cols.includes('u')||cols.includes('y')||cols.includes('t')||
+       cols.includes('cmd_mdeg')||cols.includes('angle_mdeg')){
+      headerIdx=i;break;
+    }
+  }
+  if(headerIdx<0){
+    alert('헤더를 찾을 수 없습니다.\n\n지원 포맷:\n① t, u, y  (표준)\n② ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg  (FRF 로그)');
+    return;
+  }
+
+  const hdr=lines[headerIdx].toLowerCase().split(',').map(h=>h.trim());
+
+  // ── FRF 로그 포맷: cmd_mdeg / angle_mdeg ──
+  if(hdr.includes('cmd_mdeg')&&hdr.includes('angle_mdeg')){
+    const ci_t=hdr.indexOf('t_ms')>=0?hdr.indexOf('t_ms'):hdr.indexOf('ms');
+    const ci_u=hdr.indexOf('cmd_mdeg');
+    const ci_y=hdr.indexOf('angle_mdeg');
+    const t=[],u=[],y=[];
+    // 스텝 주파수 구간 파싱
+    const segments=[]; // [{freqHz, t[], u[], y[]}]
+    let curFreq=null,curT=[],curU=[],curY=[];
+    for(let i=headerIdx+1;i<lines.length;i++){
+      const l=lines[i].trim();
+      if(!l)continue;
+      if(l.startsWith('#')){
+        // 구간 저장
+        if(curFreq!==null&&curT.length>0)segments.push({freqHz:curFreq,t:[...curT],u:[...curU],y:[...curY]});
+        const m=l.match(/freq_mHz=(\d+)/);
+        if(m){curFreq=parseInt(m[1])/1000;curT=[];curU=[];curY=[];}
+        continue;
+      }
+      const c=l.split(',');
+      if(c.length<=Math.max(ci_u,ci_y))continue;
+      const uv=parseFloat(c[ci_u]),yv=parseFloat(c[ci_y]),tv=parseFloat(c[ci_t]);
+      if(isNaN(uv)||isNaN(yv)||isNaN(tv))continue;
+      t.push(tv/1000);u.push(uv/1000);y.push(yv/1000);
+      if(curFreq!==null){curT.push(tv/1000);curU.push(uv/1000);curY.push(yv/1000);}
+    }
+    if(curFreq!==null&&curT.length>0)segments.push({freqHz:curFreq,t:[...curT],u:[...curU],y:[...curY]});
+    if(t.length<10){alert('유효한 데이터가 부족합니다.');return}
+    raw={t,u,y};
+    raw.segments=segments; // 스텝 분석용
+    if(t.length>1){const dt=t[1]-t[0];if(dt>0){fs=1/dt;document.getElementById('fsIn').placeholder=fs.toFixed(1)+' Hz (자동 감지 · FRF 로그)';}}
+    // 스텝 구간이 있으면 스텝 모드 자동 추천
+    if(segments.length>0){
+      setMode('step',document.getElementById('modeStepBtn'));
+    }
+    return;
+  }
+
+  // ── 표준 포맷: t/n, u, y ──
+  const ti=hdr.findIndex(h=>['t','n','time','index'].includes(h));
+  const ui=hdr.findIndex(h=>h==='u'||h==='input');
+  const yi=hdr.findIndex(h=>h==='y'||h==='output');
+  if(ui<0||yi<0){
+    alert('컬럼을 인식할 수 없습니다.\n\n지원 포맷:\n① t, u, y  (표준)\n② ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg  (FRF 로그)');
+    return;
+  }
+  const t=[],u=[],y=[];
+  for(let i=headerIdx+1;i<lines.length;i++){
+    const l=lines[i].trim();if(!l||l.startsWith('#'))continue;
+    const c=l.split(',');if(c.length<2)continue;
+    const uv=parseFloat(c[ui]),yv=parseFloat(c[yi]);
+    if(isNaN(uv)||isNaN(yv))continue;
+    t.push(ti>=0?parseFloat(c[ti]):i-headerIdx-1);
+    u.push(uv);y.push(yv);
+  }
+  if(t.length<10){alert('유효한 데이터가 부족합니다.');return}
+  raw={t,u,y};
+  if(t.length>1){const dt=t[1]-t[0];if(dt>0){fs=1/dt;document.getElementById('fsIn').placeholder=fs.toFixed(1)+' Hz (자동 감지)';}}
+}
+
+function mkWin(N){const w=new Float64Array(N);for(let i=0;i<N;i++)w[i]=.5*(1-Math.cos(2*Math.PI*i/(N-1)));return w}
+
+function fft(re,im){
+  const N=re.length;if(N<=1)return;
+  const ree=new Float64Array(N/2),ime=new Float64Array(N/2),reo=new Float64Array(N/2),imo=new Float64Array(N/2);
+  for(let i=0;i<N/2;i++){ree[i]=re[2*i];ime[i]=im[2*i];reo[i]=re[2*i+1];imo[i]=im[2*i+1]}
+  fft(ree,ime);fft(reo,imo);
+  for(let k=0;k<N/2;k++){
+    const a=-2*Math.PI*k/N,wr=Math.cos(a),wi=Math.sin(a),tr=wr*reo[k]-wi*imo[k],ti=wr*imo[k]+wi*reo[k];
+    re[k]=ree[k]+tr;im[k]=ime[k]+ti;re[k+N/2]=ree[k]-tr;im[k+N/2]=ime[k]-ti;
+  }
+}
+function doFFT(sig,N){const re=new Float64Array(N),im=new Float64Array(N);for(let i=0;i<Math.min(sig.length,N);i++)re[i]=sig[i];fft(re,im);return{re,im}}
+
+function welch(x,y,N,wArr){
+  const hop=Math.floor(N/2),nSeg=Math.floor((x.length-N)/hop)+1;
+  if(nSeg<1)return null;
+  const Pxx=new Float64Array(N/2+1),Pyy=new Float64Array(N/2+1),PxyR=new Float64Array(N/2+1),PxyI=new Float64Array(N/2+1);
+  const wN=wArr.reduce((s,v)=>s+v*v,0);
+  for(let s=0;s<nSeg;s++){
+    const st=s*hop,xs=new Float64Array(N),ys=new Float64Array(N);
+    for(let i=0;i<N;i++){xs[i]=x[st+i]*wArr[i];ys[i]=y[st+i]*wArr[i]}
+    const X=doFFT(xs,N),Y=doFFT(ys,N);
+    for(let k=0;k<=N/2;k++){
+      Pxx[k]+=(X.re[k]*X.re[k]+X.im[k]*X.im[k])/wN;Pyy[k]+=(Y.re[k]*Y.re[k]+Y.im[k]*Y.im[k])/wN;
+      PxyR[k]+=(X.re[k]*Y.re[k]+X.im[k]*Y.im[k])/wN;PxyI[k]+=(X.re[k]*Y.im[k]-X.im[k]*Y.re[k])/wN;
+    }
+  }
+  const freqs=[];for(let k=0;k<=N/2;k++)freqs.push(k*fs/N);
+  return{freqs,Pxx,Pyy,PxyR,PxyI};
+}
+
+function detectSweepMax(u){
+  const N=NFFT,wArr=mkWin(N),hop=Math.floor(N/2),nSeg=Math.floor((u.length-N)/hop)+1;
+  const Pxx=new Float64Array(N/2+1),wN=wArr.reduce((s,v)=>s+v*v,0);
+  for(let s=0;s<nSeg;s++){
+    const st=s*hop,xs=new Float64Array(N);for(let i=0;i<N;i++)xs[i]=u[st+i]*wArr[i];
+    const X=doFFT(xs,N);for(let k=0;k<=N/2;k++)Pxx[k]+=(X.re[k]*X.re[k]+X.im[k]*X.im[k])/wN;
+  }
+  let total=0;for(let k=1;k<=N/2;k++)total+=Pxx[k];
+  let cum=0;for(let k=1;k<=N/2;k++){cum+=Pxx[k];if(cum/total>=0.99)return k*fs/N;}
+  return N/2*fs/N;
+}
+
+function h2mag(w,wn,z){const wn2=wn*wn,w2=w*w,re=wn2-w2,im=2*z*wn*w;return wn2*wn2/(re*re+im*im)}
+
+function loss(ws,HM2,wn,zeta){
+  let s=0;
+  for(let i=0;i<ws.length;i++){const pred=h2mag(ws[i],wn,zeta),err=pred-HM2[i];s+=err*err;}
+  return s;
+}
+
+function adamOptimize(ws,HM2,wn0,zeta0,iters=600){
+  let wn=wn0,zeta=zeta0;
+  let mWn=0,vWn=0,mZ=0,vZ=0;
+  const beta1=0.9,beta2=0.999,eps=1e-8,lr=0.005;
+  for(let t=1;t<=iters;t++){
+    let gWn=0,gZ=0;
+    for(let i=0;i<ws.length;i++){
+      const w=ws[i],wn2=wn*wn,w2=w*w;
+      const D=(wn2-w2)**2+(2*zeta*wn*w)**2,pred=wn2*wn2/D,err=pred-HM2[i];
+      gWn+=2*err*(4*wn*wn2*D-wn2*wn2*(4*wn*(wn2-w2)+8*zeta*zeta*wn*w2))/(D*D);
+      gZ +=2*err*(-wn2*wn2*8*zeta*wn2*w2/(D*D));
+    }
+    mWn=0.9*mWn+(1-0.9)*gWn; vWn=0.999*vWn+(1-0.999)*gWn*gWn;
+    mZ =0.9*mZ +(1-0.9)*gZ;  vZ =0.999*vZ +(1-0.999)*gZ*gZ;
+    wn =Math.max(wn -lr*(mWn/(1-Math.pow(0.9,t)))/(Math.sqrt(vWn/(1-Math.pow(0.999,t)))+eps), 0.1);
+    zeta=Math.max(Math.min(zeta-lr*(mZ/(1-Math.pow(0.9,t)))/(Math.sqrt(vZ/(1-Math.pow(0.999,t)))+eps),3.0),0.01);
+  }
+  return{wn,zeta,l:loss(ws,HM2,wn,zeta)};
+}
+
+function fit2ndOrder(freqs,HMagNorm){
+  const ws=freqs.map(f=>2*Math.PI*f),HM2=HMagNorm.map(v=>v*v);
+  const fMin=freqs[0],fMax=freqs[freqs.length-1];
+
+  // ── Step 1: Grid Search ──
+  // wn: fMin~fMax*2 로그 간격 25개, ζ: 0.05~2.5 로그 간격 20개 → 500개 격자
+  const wnGrid=[],zGrid=[];
+  for(let i=0;i<25;i++) wnGrid.push(2*Math.PI*fMin*Math.pow((fMax*2)/fMin,i/24));
+  for(let j=0;j<20;j++) zGrid.push(0.05*Math.pow(2.5/0.05,j/19));
+
+  const candidates=[];
+  for(const wn of wnGrid){
+    for(const z of zGrid){
+      candidates.push({wn,z,l:loss(ws,HM2,wn,z)});
+    }
+  }
+  // 손실 기준 오름차순 정렬 → 상위 8개 선택
+  candidates.sort((a,b)=>a.l-b.l);
+  const top=candidates.slice(0,8);
+
+  // ── Step 2: Multi-start 정밀 최적화 ──
+  let best={l:Infinity};
+  for(const{wn,z} of top){
+    const res=adamOptimize(ws,HM2,wn,z,600);
+    if(res.l<best.l)best=res;
+  }
+
+  return{wn:best.wn,zeta:best.zeta,fitted:freqs.map(f=>Math.sqrt(h2mag(2*Math.PI*f,best.wn,best.zeta)))};
+}
+
+function calcBW(freqs,vals,threshold){
+  for(let i=1;i<vals.length;i++){
+    if(vals[i]<=threshold&&vals[i-1]>threshold){
+      const t=(threshold-vals[i-1])/(vals[i]-vals[i-1]);return freqs[i-1]+t*(freqs[i]-freqs[i-1]);
+    }
+  }return null;
+}
+
+function freqToTime(f,t0,t1,f0,f1){
+  if(f<=f0)return t0;if(f>=f1)return t1;return t0+Math.log(f/f0)/Math.log(f1/f0)*(t1-t0);
+}
+
+function downsample(t,u,y,maxPts){
+  if(t.length<=maxPts)return{t,u,y};
+  const step=Math.ceil(t.length/maxPts),td=[],ud=[],yd=[];
+  for(let i=0;i<t.length;i+=step){td.push(t[i]);ud.push(u[i]);yd.push(y[i])}
+  return{t:td,u:ud,y:yd};
+}
+
+function runAnalysis(){
+  if(!raw){alert('먼저 CSV를 업로드하세요');return}
+  if(analysisMode==='step') return runStepAnalysis();
+  return runContinuousAnalysis();
+}
+
+// ── 스텝 주파수 분석 ──
+function runStepAnalysis(){
+  const segs=raw.segments;
+  if(!segs||segs.length===0){alert('스텝 주파수 구간 데이터가 없습니다.\n# freq_mHz=xxxx 형식의 구간 마커가 필요합니다.');return}
+  const logX=document.getElementById('fscale').value==='log';
+  const maxRows=parseInt(document.getElementById('tblRows').value);
+
+  const fSlice=[],HdB=[],HPh=[],HMagNorm=[],Coh=[];
+  segs.forEach(seg=>{
+    const{freqHz,u,y}=seg;
+    if(u.length<4)return;
+    // 앞 20% 과도구간 제거 후 정상상태만 사용
+    const skip=Math.floor(u.length*0.2);
+    const us=u.slice(skip),ys=y.slice(skip);
+    // RMS 계산
+    const rmsU=Math.sqrt(us.reduce((s,v)=>s+v*v,0)/us.length);
+    const rmsY=Math.sqrt(ys.reduce((s,v)=>s+v*v,0)/ys.length);
+    const gain=rmsY/(rmsU+1e-12);
+    // 위상: 상호상관으로 지연 추정
+    const dt=seg.t.length>1?(seg.t[1]-seg.t[0]):0.001;
+    const T=1/freqHz;
+    // DFT at exactly freqHz
+    const w=2*Math.PI*freqHz;
+    let reU=0,imU=0,reY=0,imY=0;
+    for(let i=0;i<us.length;i++){
+      const t2=i*dt,c=Math.cos(w*t2),s=-Math.sin(w*t2);
+      reU+=us[i]*c;imU+=us[i]*s;
+      reY+=ys[i]*c;imY+=ys[i]*s;
+    }
+    // H = Y/U at this frequency
+    const denom=reU*reU+imU*imU+1e-24;
+    const hr=(reY*reU+imY*imU)/denom;
+    const hi=(imY*reU-reY*imU)/denom;
+    const magH=Math.sqrt(hr*hr+hi*hi);
+    let phH=Math.atan2(hi,hr)*180/Math.PI;
+    while(phH>10)phH-=360;while(phH<-360)phH+=360;
+    fSlice.push(freqHz);
+    HMagNorm.push(magH);
+    HdB.push(20*Math.log10(magH+1e-300));
+    HPh.push(phH);
+    Coh.push(1); // 스텝 방식은 coherence 개념 없음 → 1로 표시
+  });
+
+  if(fSlice.length<2){alert('유효한 구간이 부족합니다.');return}
+
+  // 0dB 정규화 (첫 구간 기준)
+  const ref0=HdB[0];
+  const HdBn=HdB.map(v=>v-ref0);
+  const HMagN=HMagNorm.map(v=>v/HMagNorm[0]);
+
+  const{wn,zeta,fitted}=fit2ndOrder(fSlice,HMagN);
+  const fn=wn/(2*Math.PI);
+
+  // 피팅 모델 곡선으로 촘촘한 주파수 그리드 생성 → 정확한 BW 계산
+  const fMin=fSlice[0],fMax=fSlice[fSlice.length-1];
+  const nGrid=2000;
+  const fGrid=Array.from({length:nGrid},(_,i)=>fMin*Math.pow(fMax/fMin,i/(nGrid-1)));
+  const fittedGrid=fGrid.map(f=>Math.sqrt(h2mag(2*Math.PI*f,wn,zeta)));
+  const fittedGridN=fittedGrid.map(v=>v/fittedGrid[0]); // 정규화
+  const HdBgrid=fittedGridN.map(v=>20*Math.log10(v+1e-300));
+  // 위상: 2차 시스템 모델 위상 = -arctan(2ζ(f/fn) / (1-(f/fn)²))
+  const HPhGrid=fGrid.map(f=>{
+    const r=f/fn,ph=-Math.atan2(2*zeta*r,1-r*r)*180/Math.PI;
+    return ph;
+  });
+
+  // 피팅 곡선 기준 BW 계산
+  const bwAmpF=calcBW(fGrid,HdBgrid,-3);
+  const bwPhF=calcBW(fGrid,HPhGrid,-90);
+
+  const bodeXmin=logX?Math.max(fSlice[0],0.1):0;
+  const bodeXmax=fSlice[fSlice.length-1]*1.1;
+  const sweepFmax=fSlice[fSlice.length-1];
+
+  R={fSlice,HdB:HdBn,HPh,HMagNorm:HMagN,Coh,fitted,fn,wn,zeta,logX,maxRows,
+    bwAmpF,bwPhF,bodeXmin,bodeXmax,sweepFmax,
+    dsTime:null,swpF:null,totalPts:raw.t.length,uMax:0,isStep:true};
+
+  renderResults();
+  drawCharts();
+}
+
+// ── 연속 스윕 분석 ──
+function runContinuousAnalysis(){
+  const fv=parseFloat(document.getElementById('fsIn').value);
+  if(!isNaN(fv)&&fv>0)fs=fv;
+  const logX=document.getElementById('fscale').value==='log',maxRows=parseInt(document.getElementById('tblRows').value);
+  const{u,y,t}=raw,wArr=mkWin(NFFT),sweepFmax=detectSweepMax(u);
+  const res=welch(u,y,NFFT,wArr);if(!res){alert('데이터가 너무 짧습니다.');return}
+  const{freqs,Pxx,Pyy,PxyR,PxyI}=res,fRes=fs/NFFT,allFreqs=freqs.slice(1),allHR=[],allHI=[];
+  for(let k=1;k<freqs.length;k++){allHR.push(PxyR[k]/(Pxx[k]+1e-300));allHI.push(PxyI[k]/(Pxx[k]+1e-300))}
+  const refFmax=sweepFmax*0.08,refIdxs=allFreqs.map((f,i)=>i).filter(i=>allFreqs[i]>0&&allFreqs[i]<=refFmax);
+  let refMag=1,refPhase=0;
+  if(refIdxs.length>0){
+    const mags=refIdxs.map(i=>Math.sqrt(allHR[i]**2+allHI[i]**2));
+    refMag=mags.reduce((a,b)=>a+b,0)/mags.length;
+    refPhase=refIdxs.map(i=>Math.atan2(allHI[i],allHR[i])).reduce((a,b)=>a+b,0)/refIdxs.length;
+  }
+  const validIdxs=allFreqs.map((f,i)=>i).filter(i=>allFreqs[i]<=sweepFmax*1.05&&allFreqs[i]>=fRes);
+  const fSlice=validIdxs.map(i=>allFreqs[i]),HdB=[],HPh=[],HMagNorm=[],Coh=[];
+  for(const i of validIdxs){
+    const hr=allHR[i],hi=allHI[i],mag=Math.sqrt(hr*hr+hi*hi)/refMag;
+    let ph=(Math.atan2(hi,hr)-refPhase)*180/Math.PI;
+    while(ph>10)ph-=360;while(ph<-360)ph+=360;
+    HMagNorm.push(mag);HdB.push(20*Math.log10(mag+1e-300));HPh.push(ph);
+    const k=i+1;Coh.push(Math.min(1,(PxyR[k]**2+PxyI[k]**2)/((Pxx[k]*Pyy[k])+1e-300)));
+  }
+  const{wn,zeta,fitted}=fit2ndOrder(fSlice,HMagNorm),fn=wn/(2*Math.PI);
+  const bwAmpF=calcBW(fSlice,HdB,-3),bwPhF=calcBW(fSlice,HPh,-90);
+
+  // 스윕 파형을 주파수 축으로 변환: t → f(t) = f0 * k^t (로그 스윕)
+  // f0 = 스윕 시작 주파수(=fSlice[0]), sweepFmax = 스윕 끝 주파수, T = 총 시간
+  const tMin=t[0],tMax=t[t.length-1],uMax=Math.max(...u.map(Math.abs));
+  const sweepF0=fSlice[0],sweepT=tMax-tMin;
+  const logK=Math.log(sweepFmax/sweepF0)/sweepT;
+  const dsTime=downsample(t,u,y,MAX_PTS);
+  // 각 샘플의 시간 → 순시 주파수 변환
+  const swpF=dsTime.t.map(ti=>sweepF0*Math.exp(logK*(ti-tMin)));
+  const bodeXmin=logX?Math.max(fSlice[0],0.1):0,bodeXmax=sweepFmax*1.05;
+  R={fSlice,HdB,HPh,HMagNorm,Coh,fitted,fn,wn,zeta,logX,maxRows,bwAmpF,bwPhF,
+    dsTime,swpF,totalPts:t.length,uMax,bodeXmin,bodeXmax,sweepFmax,isStep:false};
+
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat-chip">샘플 <b>${u.length.toLocaleString()}</b></div>
+    <div class="stat-chip">Fs <b>${fs.toFixed(0)} Hz</b></div>
+    <div class="stat-chip">스윕 상한 <b>${sweepFmax.toFixed(1)} Hz</b></div>`;
+
+  renderResults();
+  drawCharts();
+}
+
+function renderResults(){
+  const{bwAmpF,bwPhF,fn,wn,zeta,fSlice,sweepFmax,isStep}=R;
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi-card kpi-red"><div class="kpi-lbl">진폭 대역폭</div>
+      <div class="kpi-val">${bwAmpF!==null?bwAmpF.toFixed(3):'—'}<span class="kpi-unit">${bwAmpF!==null?'Hz':''}</span></div>
+      <div class="kpi-sub">−3 dB 하강 주파수</div></div>
+    <div class="kpi-card kpi-red"><div class="kpi-lbl">위상 대역폭</div>
+      <div class="kpi-val">${bwPhF!==null?bwPhF.toFixed(3):'—'}<span class="kpi-unit">${bwPhF!==null?'Hz':''}</span></div>
+      <div class="kpi-sub">−90° 위상 지연 주파수</div></div>
+    <div class="kpi-card kpi-blue"><div class="kpi-lbl">고유 진동수 fn</div>
+      <div class="kpi-val">${fn.toFixed(3)}<span class="kpi-unit">Hz</span></div>
+      <div class="kpi-sub">2차 시스템 피팅 추정</div></div>
+    <div class="kpi-card kpi-blue"><div class="kpi-lbl">감쇠비 ζ</div>
+      <div class="kpi-val">${zeta.toFixed(4)}</div>
+      <div class="kpi-sub">${zeta<0.5?'부족 감쇠':zeta<0.707?'적정 감쇠':zeta<1?'과감쇠 근접':'과감쇠'}</div></div>`;
+
+  if(isStep){
+    document.getElementById('statsRow').innerHTML=`
+      <div class="stat-chip">분석 모드 <b>스텝 주파수</b></div>
+      <div class="stat-chip">구간 수 <b>${fSlice.length}</b></div>
+      <div class="stat-chip">범위 <b>${fSlice[0].toFixed(1)} – ${sweepFmax.toFixed(1)} Hz</b></div>`;
+  }
+
+  document.getElementById('bodeSubLbl').textContent=
+    `${isStep?'스텝 주파수 · 구간별 DFT 계산':'저주파 기준 정규화 · Welch FFT'} · ${fSlice[0].toFixed(2)} – ${sweepFmax.toFixed(1)} Hz`;
+
+  // 탭 제목 업데이트
+  const timeBtn=document.querySelector('[onclick="sw(\'time\',this)"]');
+  timeBtn.style.display='';
+  timeBtn.textContent=isStep?'스텝 파형':'스윕 파형';
+
+  document.getElementById('resSec').style.display='block';
+}
+
+function bwAnnotPlugin(bwAmpF,bwPhF,type){
+  return{id:'bwAnnot',afterDraw(chart){
+    const ctx=chart.ctx,xAxis=chart.scales.x,yAxis=chart.scales.y;
+    const lines=[];
+    if(type==='mag'&&bwAmpF!==null)lines.push({f:bwAmpF,color:'#ff453a',label:bwAmpF.toFixed(3)+' Hz'});
+    if(type==='ph'){
+      if(bwPhF!==null)lines.push({f:bwPhF,color:'#ff9f0a',label:bwPhF.toFixed(3)+' Hz'});
+      if(bwAmpF!==null)lines.push({f:bwAmpF,color:'#ff453a',label:bwAmpF.toFixed(3)+' Hz'});
+    }
+    lines.forEach(({f,color,label})=>{
+      const x=xAxis.getPixelForValue(f);if(x<xAxis.left||x>xAxis.right)return;
+      ctx.save();ctx.setLineDash([4,3]);ctx.strokeStyle=color;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(x,yAxis.top);ctx.lineTo(x,yAxis.bottom);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='600 10px -apple-system,sans-serif';
+      const tw=ctx.measureText(label).width,ly=yAxis.bottom+5;
+      ctx.fillStyle='rgba(255,255,255,0.92)';
+      if(ctx.roundRect)ctx.roundRect(x-tw/2-4,ly-1,tw+8,13,3);else ctx.rect(x-tw/2-4,ly-1,tw+8,13);
+      ctx.fill();ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(label,x,ly);
+      ctx.restore();
+    });
+  }};
+}
+
+function vLine(x,ymin,ymax,color){return{label:'',data:[{x,y:ymin},{x,y:ymax}],borderColor:color,borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:0,parsing:false}}
+function hLine(x0,x1,y,color,dash){return{label:'',data:[{x:x0,y},{x:x1,y}],borderColor:color,borderWidth:1,borderDash:dash||[3,3],pointRadius:0,fill:false,tension:0,parsing:false}}
+function mkDs(lbl,data,freqs,color,w=2){return{label:lbl,data:freqs.map((f,i)=>({x:f,y:data[i]})),borderColor:color,borderWidth:w,pointRadius:0,fill:false,tension:0,parsing:false}}
+
+function bOpts(yl,logX,xmin,xmax,yex){
+  const gc='rgba(0,0,0,0.05)',tc='rgba(0,0,0,0.35)';
+  const o={responsive:true,maintainAspectRatio:false,animation:{duration:250},
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,filter:i=>i.datasetIndex===0,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(3)}`}}},
+    scales:{
+      x:{type:logX?'logarithmic':'linear',min:xmin,max:xmax,
+        title:{display:true,text:'주파수 (Hz)',font:{size:10,weight:'600'},color:tc},
+        ticks:{font:{size:10},color:tc,maxTicksLimit:8},grid:{color:gc}},
+      y:{title:{display:true,text:yl,font:{size:10,weight:'600'},color:tc},
+        ticks:{font:{size:10},color:tc,maxTicksLimit:5},grid:{color:gc}}
+    }};
+  if(yex)Object.assign(o.scales.y,yex);return o;
+}
+
+function mk(id,ds,opts,plugins){
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(document.getElementById(id),{type:'line',data:{datasets:ds},options:opts,plugins:plugins||[]});
+}
+
+function drawCharts(){
+  const{fSlice,HdB,HPh,HMagNorm,Coh,fitted,wn,zeta,fn,logX,
+    bwAmpF,bwPhF,dsTime,swpF,uMax,bodeXmin,bodeXmax,sweepFmax,isStep}=R;
+
+  // ── 파형 (연속 스윕 / 스텝 공통) ──
+  const tc='rgba(0,0,0,0.35)',gc='rgba(0,0,0,0.05)';
+
+  if(isStep&&raw.segments){
+    // 스텝 파형: 각 구간 데이터를 주파수별로 이어붙여 표시
+    // X축: 각 구간의 순시 시간을 해당 주파수 기준으로 정규화 (0~1 사이클)
+    // → 구간별 색상 구분 없이 하나의 연속 데이터처럼 표시
+    const segs=raw.segments;
+    const uPts=[],yPts=[];
+    segs.forEach(seg=>{
+      const{freqHz,t,u,y}=seg;
+      if(u.length<2)return;
+      const dt=t[1]-t[0];
+      // 구간 내 각 샘플의 순시 주파수 = freqHz (고정)
+      // X = freqHz로 모두 같으니 jitter를 약간 줘서 겹침 방지 → 그냥 freqHz 사용
+      for(let i=0;i<u.length;i++){
+        uPts.push({x:freqHz,y:u[i]});
+        yPts.push({x:freqHz,y:y[i]});
+      }
+    });
+    const allY2=[...uPts.map(p=>p.y),...yPts.map(p=>p.y)];
+    const yMin2=Math.min(...allY2),yMax2=Math.max(...allY2);
+    const yPad2=(yMax2-yMin2)*0.1||0.5;
+    document.getElementById('timeChartTitle').textContent='스텝 파형';
+    document.getElementById('timeChartSub').textContent='주파수별 구간 데이터 · 각 주파수에서의 명령/응답 분포';
+    mk('cTime',[
+      {label:'명령 u',data:uPts,borderColor:'rgba(0,113,227,0.35)',borderWidth:0,pointRadius:2,pointBackgroundColor:'rgba(0,113,227,0.5)',fill:false,parsing:false,showLine:false},
+      {label:'응답 y',data:yPts,borderColor:'rgba(50,215,75,0.35)',borderWidth:0,pointRadius:2,pointBackgroundColor:'rgba(50,215,75,0.5)',fill:false,parsing:false,showLine:false},
+    ],{...bOpts('각도 (deg)',logX,bodeXmin,bodeXmax,{min:yMin2-yPad2,max:yMax2+yPad2}),
+      plugins:{legend:{display:false},tooltip:{mode:'nearest',intersect:true,
+        callbacks:{
+          title:items=>`${items[0].parsed.x.toFixed(1)} Hz`,
+          label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(3)} deg`
+        }}}});
+  } else if(!isStep&&dsTime&&swpF){
+    const allY=[...dsTime.u,...dsTime.y];
+    const yMin=Math.min(...allY),yMax=Math.max(...allY);
+    const yPad=(yMax-yMin)*0.08||0.5;
+    const yLo=yMin-yPad,yHi=yMax+yPad;
+    document.getElementById('timeChartTitle').textContent='스윕 파형';
+    document.getElementById('timeChartSub').textContent='X축: 순시 주파수(Hz) · 명령과 응답 비교';
+    const swpDs=[
+      {label:'명령 u',data:swpF.map((f,i)=>({x:f,y:dsTime.u[i]})),borderColor:'rgba(0,113,227,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
+      {label:'응답 y',data:swpF.map((f,i)=>({x:f,y:dsTime.y[i]})),borderColor:'rgba(50,215,75,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,parsing:false},
+    ];
+    mk('cTime',swpDs,{...bOpts('각도 (deg)',logX,bodeXmin,bodeXmax,{min:yLo,max:yHi}),
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,
+        filter:i=>i.datasetIndex<2,
+        callbacks:{
+          title:items=>`${items[0].parsed.x.toFixed(3)} Hz`,
+          label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(3)} deg`
+        }}}});
+  }
+
+  const magYmin=Math.min(...HdB)-2,magYmax=Math.max(...HdB)+2;
+  const bmagDs=[mkDs('크기 (dB)',HdB,fSlice,'#bf5af2')];
+  bmagDs.push(hLine(bodeXmin,bodeXmax,0,'rgba(0,0,0,0.15)',[2,2]));
+  bmagDs.push(hLine(bodeXmin,bodeXmax,-3,'rgba(255,69,58,0.45)'));
+  if(bwAmpF!==null)bmagDs.push(vLine(bwAmpF,magYmin,magYmax,'#ff453a'));
+  mk('cBmag',bmagDs,bOpts('크기 (dB)',logX,bodeXmin,bodeXmax),[bwAnnotPlugin(bwAmpF,bwPhF,'mag')]);
+
+  const phYmin=Math.min(Math.min(...HPh)-5,-50),phYmax=Math.max(Math.max(...HPh)+5,5);
+  const bphDs=[mkDs('위상 (°)',HPh,fSlice,'#ff9f0a')];
+  bphDs.push(hLine(bodeXmin,bodeXmax,0,'rgba(0,0,0,0.15)',[2,2]));
+  bphDs.push(hLine(bodeXmin,bodeXmax,-90,'rgba(255,159,10,0.45)'));
+  if(bwPhF!==null)bphDs.push(vLine(bwPhF,phYmin,phYmax,'#ff9f0a'));
+  if(bwAmpF!==null)bphDs.push(vLine(bwAmpF,phYmin,phYmax,'#ff453a'));
+  mk('cBph',bphDs,bOpts('위상 (°)',logX,bodeXmin,bodeXmax),[bwAnnotPlugin(bwAmpF,bwPhF,'ph')]);
+
+  mk('cCoh',[mkDs('γ²',Coh,fSlice,'#32d74b')],bOpts('γ²',logX,bodeXmin,bodeXmax,{min:0,max:1}));
+
+  document.getElementById('tfParams').innerHTML=`
+    <div class="tf-param"><div class="tf-param-lbl">고유 진동수 fn</div><div class="tf-param-val">${fn.toFixed(3)}<span class="tf-param-unit">Hz</span></div></div>
+    <div class="tf-param"><div class="tf-param-lbl">각 고유 진동수 ωn</div><div class="tf-param-val">${wn.toFixed(3)}<span class="tf-param-unit">rad/s</span></div></div>
+    <div class="tf-param"><div class="tf-param-lbl">감쇠비 ζ</div><div class="tf-param-val">${zeta.toFixed(4)}</div></div>
+    <div class="tf-param"><div class="tf-param-lbl">감쇠 유형</div><div class="tf-param-val" style="font-size:13px">${zeta<1?'부족 감쇠':'과감쇠'}</div></div>`;
+  document.getElementById('tfEq').textContent=`H(s) = ${(wn*wn).toFixed(2)} / (s² + ${(2*zeta*wn).toFixed(2)}s + ${(wn*wn).toFixed(2)})`;
+  mk('cTf',[mkDs('측정 |H(f)|',HMagNorm,fSlice,'#ff9f0a',2),mkDs('피팅 모델',fitted,fSlice,'#0071e3',1.5)],bOpts('|H(f)|',logX,bodeXmin,bodeXmax));
+
+  buildTables(R.maxRows);
+}
+
+function sArr(arr,max){return max===0?arr:arr.slice(0,max)}
+function buildTable(cid,headers,rows,hlFn){
+  let h='<table class="dtbl"><thead><tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach(r=>{const cls=hlFn&&hlFn(r)?' class="bw-row"':'';h+=`<tr${cls}>`+r.map(v=>`<td>${v}</td>`).join('')+'</tr>'});
+  h+='</tbody></table>';document.getElementById(cid).innerHTML=h;
+}
+function buildTables(maxRows){
+  const{fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted}=R;const s=a=>sArr(a,maxRows);
+  buildTable('tBode',['주파수 (Hz)','게인 (dB)','게인 (선형)','위상 (°)','Coherence γ²','비고'],
+    s(fSlice).map((f,i)=>{
+      let note='';
+      if(bwAmpF!==null&&i>0&&fSlice[i-1]<bwAmpF&&f>=bwAmpF)note='▶ 진폭 BW';
+      if(bwPhF!==null&&i>0&&fSlice[i-1]<bwPhF&&f>=bwPhF)note+=(note?' / ':'')+'▶ 위상 BW';
+      return[f.toFixed(4),HdB[i].toFixed(3),HMagNorm[i].toFixed(4),HPh[i].toFixed(3),Coh[i].toFixed(4),note];
+    }),r=>r[5]&&r[5].includes('BW'));
+  buildTable('tCoh',['주파수 (Hz)','Coherence γ²'],s(fSlice).map((f,i)=>[f.toFixed(4),Coh[i].toFixed(4)]));
+  buildTable('tTf',['주파수 (Hz)','측정 |H(f)|','피팅 모델 |H(f)|','게인 (dB)'],
+    s(fSlice).map((f,i)=>[f.toFixed(4),HMagNorm[i].toFixed(5),fitted[i].toFixed(5),HdB[i].toFixed(3)]));
+}
+
+function toCSV(hdr,rows){return[hdr.join(','),...rows.map(r=>r.join(','))].join('\n')}
+function dlCSV(name,csv){const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=name;a.click()}
+
+function dlSec(id,e){
+  e.preventDefault();const{fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted,fn,wn,zeta}=R;
+  if(id==='bode'){
+    let csv=`# 진폭 대역폭 (-3 dB): ${bwAmpF!==null?bwAmpF.toFixed(6)+' Hz':'검출불가'}\n# 위상 대역폭 (-90 deg): ${bwPhF!==null?bwPhF.toFixed(6)+' Hz':'검출불가'}\n`;
+    csv+=toCSV(['freq_hz','gain_db','gain_linear','phase_deg','coherence'],fSlice.map((f,i)=>[f.toFixed(6),HdB[i].toFixed(6),HMagNorm[i].toFixed(6),HPh[i].toFixed(6),Coh[i].toFixed(6)]));
+    dlCSV('bode_plot.csv',csv);
+  }else if(id==='coh'){dlCSV('coherence.csv',toCSV(['freq_hz','coherence'],fSlice.map((f,i)=>[f.toFixed(6),Coh[i].toFixed(6)])));
+  }else if(id==='tf'){
+    let csv=`# fn: ${fn.toFixed(6)} Hz\n# wn: ${wn.toFixed(6)} rad/s\n# zeta: ${zeta.toFixed(6)}\n# H(s) = ${(wn*wn).toFixed(4)} / (s^2 + ${(2*zeta*wn).toFixed(4)}s + ${(wn*wn).toFixed(4)})\n`;
+    csv+=toCSV(['freq_hz','H_mag_measured','H_mag_fitted','gain_db'],fSlice.map((f,i)=>[f.toFixed(6),HMagNorm[i].toFixed(7),fitted[i].toFixed(7),HdB[i].toFixed(6)]));
+    dlCSV('transfer_function.csv',csv);
+  }
+}
+function dlAll(e){
+  e.preventDefault();const{fSlice,HdB,HPh,HMagNorm,Coh,bwAmpF,bwPhF,fitted,fn,wn,zeta,sweepFmax}=R;
+  let csv='=== 주파수 응답 시험 결과 요약 ===\n';
+  csv+=`진폭 대역폭 (-3 dB),${bwAmpF!==null?bwAmpF.toFixed(6)+' Hz':'검출불가'}\n위상 대역폭 (-90 deg),${bwPhF!==null?bwPhF.toFixed(6)+' Hz':'검출불가'}\n`;
+  csv+=`fn,${fn.toFixed(6)} Hz\nwn,${wn.toFixed(6)} rad/s\nzeta,${zeta.toFixed(6)}\nH(s),${(wn*wn).toFixed(4)} / (s^2 + ${(2*zeta*wn).toFixed(4)}s + ${(wn*wn).toFixed(4)})\n`;
+  csv+=`스윕 상한,${sweepFmax.toFixed(3)} Hz\nFs,${fs.toFixed(1)} Hz\n\n`;
+  csv+='=== BODE + COHERENCE ===\n'+toCSV(['freq_hz','gain_db','gain_linear','phase_deg','coherence'],fSlice.map((f,i)=>[f.toFixed(6),HdB[i].toFixed(6),HMagNorm[i].toFixed(6),HPh[i].toFixed(6),Coh[i].toFixed(6)]));
+  csv+='\n\n=== TRANSFER FUNCTION ===\n'+toCSV(['freq_hz','H_mag_measured','H_mag_fitted','gain_db'],fSlice.map((f,i)=>[f.toFixed(6),HMagNorm[i].toFixed(7),fitted[i].toFixed(7),HdB[i].toFixed(6)]));
+  dlCSV('servo_fra_results.csv',csv);
+}
+function sw(id,el){
+  document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  el.classList.add('on');document.getElementById(id).classList.add('on');
+  setTimeout(()=>Object.values(CH).forEach(c=>{try{c.resize()}catch(e){}}),40);
+}
+</script>
+</body>
+</html>
