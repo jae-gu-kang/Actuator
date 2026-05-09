@@ -1135,6 +1135,15 @@ function buildTable() {
   });
 }
 
+function parseNumeric(raw) {
+  const normalized = String(raw ?? '')
+    .trim()
+    .replace(/[−–—]/g, '-')
+    .replace(',', '.');
+  if (normalized === '') return NaN;
+  return parseFloat(normalized);
+}
+
 function saveCmd(idx, input) {
   const v = input.value.trim();
   if (v === '') {
@@ -1149,7 +1158,8 @@ function saveCmd(idx, input) {
     }
     return;
   }
-  const num = parseFloat(v);
+  const num = parseNumeric(v);
+  if (isNaN(num)) return;
   surfCommands[currentSurface][idx] = num;
   const isDefault = (num === DEFAULT_COMMANDS[idx]);
   input.classList.toggle('cmd-modified', !isDefault);
@@ -1182,8 +1192,8 @@ function handlePaste(e, startRow, startCol) {
     const cols = rowStr.split('\t');
     cols.forEach((val, ci) => {
       const c = startCol + ci;
-      const trimmed = val.trim().replace(',', '.');  // 쉼표 소수점 대응
-      const num = trimmed === '' ? null : parseFloat(trimmed);
+      const trimmed = val.trim();
+      const num = trimmed === '' ? null : parseNumeric(trimmed);
       if (isNaN(num) && trimmed !== '') return; // 숫자가 아니면 skip
 
       if (c === 0) {
@@ -1235,7 +1245,7 @@ function showPasteToast(msg) {
 
 function saveVal(idx, field, input) {
   const v = input.value.trim();
-  const num = v === '' ? null : parseFloat(v);
+  const num = v === '' ? null : parseNumeric(v);
   measureData[currentSurface][idx][field] = num;
   // 실제출력각도 직접 수정 시: base를 리셋해서 새 입력값이 새 기준이 되게 함
   if (field === 'actual' && offsets[currentSurface]) {
@@ -1259,36 +1269,55 @@ function saveVal(idx, field, input) {
 const offsets = {};
 SURFACES.forEach(s => { offsets[s] = { pos: 0, neg: 0 }; });
 
+function commandMatchesOffsetSign(sign, cmd) {
+  return (sign === 'pos' && cmd > 0) || (sign === 'neg' && cmd < 0);
+}
+
+function readCommandFromRow(tr, i) {
+  var inputs = tr.querySelectorAll('input');
+  var cmd = inputs.length ? parseNumeric(inputs[0].value) : NaN;
+  if (!isNaN(cmd)) {
+    if (surfCommands[currentSurface]) surfCommands[currentSurface][i] = cmd;
+    return cmd;
+  }
+
+  var stored = surfCommands[currentSurface] ? surfCommands[currentSurface][i] : null;
+  cmd = parseNumeric(stored);
+  return isNaN(cmd) ? null : cmd;
+}
+
+function getOffsetTargetRows(sign) {
+  var tbody = document.getElementById('angle-tbody');
+  var rows  = tbody.querySelectorAll('tr');
+  var targets = [];
+
+  rows.forEach(function(tr, i) {
+    var cmd = readCommandFromRow(tr, i);
+    if (cmd === null || cmd === undefined) return;
+    if (commandMatchesOffsetSign(sign, cmd)) {
+      targets.push({ i: i, cmd: cmd, tr: tr });
+    }
+  });
+
+  return targets;
+}
+
 function applyOffset(sign, delta) {
   if (!currentSurface) return;
 
-  // 현재 테이블의 input에서 직접 값을 읽어서 delta만큼 더함
-  const tbody = document.getElementById('angle-tbody');
-  const rows  = tbody.querySelectorAll('tr');
   const data  = measureData[currentSurface];
 
-  var cmds = surfCommands[currentSurface];
-
-  rows.forEach(function(tr, i) {
-    // 명령각도 기준으로 구간 판단
-    var cmd = cmds[i];
-    if (cmd === null || cmd === undefined) return;
-
-    var apply = false;
-    if (sign === 'pos' && cmd > 0) apply = true;
-    if (sign === 'neg' && cmd < 0) apply = true;
-    if (!apply) return;
-
-    var inputs = tr.querySelectorAll('input');
+  getOffsetTargetRows(sign).forEach(function(target) {
+    var inputs = target.tr.querySelectorAll('input');
     if (inputs.length < 2) return;
     var input = inputs[1]; // 실제출력각도
-    var val = parseFloat(input.value);
+    var val = parseNumeric(input.value);
     if (isNaN(val)) return;
 
     var newVal = Math.round((val + delta) * 100) / 100;
     input.value = newVal;
     input.classList.add('filled');
-    if (data[i]) data[i].actual = newVal;
+    if (data[target.i]) data[target.i].actual = newVal;
   });
 
   // 누적 표시 업데이트
@@ -1304,32 +1333,19 @@ function resetOffset(sign) {
   var off = offsets[currentSurface];
   var reversal = sign === 'pos' ? -off.pos : -off.neg;
 
-  // 현재 input에 역방향 delta 적용
-  var tbody = document.getElementById('angle-tbody');
-  var rows  = tbody.querySelectorAll('tr');
   var data  = measureData[currentSurface];
 
-  var cmds2 = surfCommands[currentSurface];
-
-  rows.forEach(function(tr, i) {
-    var cmd = cmds2[i];
-    if (cmd === null || cmd === undefined) return;
-
-    var apply = false;
-    if (sign === 'pos' && cmd > 0) apply = true;
-    if (sign === 'neg' && cmd < 0) apply = true;
-    if (!apply) return;
-
-    var inputs = tr.querySelectorAll('input');
+  getOffsetTargetRows(sign).forEach(function(target) {
+    var inputs = target.tr.querySelectorAll('input');
     if (inputs.length < 2) return;
     var input = inputs[1];
-    var val = parseFloat(input.value);
+    var val = parseNumeric(input.value);
     if (isNaN(val)) return;
 
     var newVal = Math.round((val + reversal) * 100) / 100;
     input.value = newVal;
     input.classList.add('filled');
-    if (data[i]) data[i].actual = newVal;
+    if (data[target.i]) data[target.i].actual = newVal;
   });
 
   if (sign === 'pos') off.pos = 0;
@@ -1366,20 +1382,9 @@ function applyLinear(sign, delta) {
   document.getElementById('linear-pos-val').textContent = lo.pos.toFixed(1) + '°';
   document.getElementById('linear-neg-val').textContent = lo.neg.toFixed(1) + '°';
 
-  var tbody = document.getElementById('angle-tbody');
-  var rows  = tbody.querySelectorAll('tr');
-
-  // cmd를 DOM input[0]에서 직접 읽어 수집
+  // cmd를 현재 DOM input[0]에서 직접 읽어 수집한다.
   // pos → cmd > 0 (0도 초과), neg → cmd < 0 (0도 미만)
-  var pairs = [];
-  for (var i = 0; i < rows.length; i++) {
-    var ins = rows[i].querySelectorAll('input');
-    if (ins.length < 3) continue;
-    var cmd = parseFloat(ins[0].value);
-    if (isNaN(cmd)) continue;
-    if (sign === 'pos' && cmd > 0) pairs.push({i: i, cmd: cmd, tr: rows[i]});
-    if (sign === 'neg' && cmd < 0) pairs.push({i: i, cmd: cmd, tr: rows[i]});
-  }
+  var pairs = getOffsetTargetRows(sign);
   if (pairs.length === 0) return;
 
   // 양수/음수 구간별 base 스냅샷을 따로 잡아야 양쪽 선형 오프셋이 독립적으로 동작한다.
@@ -1387,21 +1392,23 @@ function applyLinear(sign, delta) {
     lo[baseKey] = {};
     for (var p = 0; p < pairs.length; p++) {
       var ins2 = pairs[p].tr.querySelectorAll('input');
-      var v = ins2.length >= 2 ? parseFloat(ins2[1].value) : NaN;
+      var v = ins2.length >= 2 ? parseNumeric(ins2[1].value) : NaN;
       lo[baseKey][pairs[p].i] = isNaN(v) ? null : v;
     }
   }
 
-  // cmd 절댓값 오름차순: 0근처→앞(ratio 작음), 끝(±max)→뒤(ratio=1)
-  pairs.sort(function(a, b) { return Math.abs(a.cmd) - Math.abs(b.cmd); });
-  var n = pairs.length;
+  // 명령각도 절댓값 기준 선형 보간: 0도 근처는 작게, 끝점(±max)은 누적값 전체를 적용한다.
+  var maxAbsCmd = pairs.reduce(function(max, pr) {
+    return Math.max(max, Math.abs(pr.cmd));
+  }, 0);
+  if (maxAbsCmd <= 0) return;
 
-  for (var k = 0; k < n; k++) {
+  for (var k = 0; k < pairs.length; k++) {
     var pr      = pairs[k];
     var baseVal = lo[baseKey][pr.i];
     if (baseVal === null || baseVal === undefined) continue;
 
-    var ratio  = (k + 1) / n;
+    var ratio  = Math.abs(pr.cmd) / maxAbsCmd;
     var newVal = Math.round((baseVal + endDelta * ratio) * 100) / 100;
 
     if (data[pr.i]) data[pr.i].actual = newVal;
@@ -1431,17 +1438,14 @@ function resetLinear(sign) {
 
   if (base) {
     var data = measureData[currentSurface];
-    var rlRows = document.getElementById('angle-tbody').querySelectorAll('tr');
-    for (var i = 0; i < rlRows.length; i++) {
-      var rins = rlRows[i].querySelectorAll('input');
+    var targets = getOffsetTargetRows(sign);
+    for (var i = 0; i < targets.length; i++) {
+      var target = targets[i];
+      var rins = target.tr.querySelectorAll('input');
       if (rins.length < 3) continue;
-      var rcmd = parseFloat(rins[0].value);
-      if (isNaN(rcmd)) continue;
-      var apply = (sign === 'pos' && rcmd > 0) || (sign === 'neg' && rcmd < 0);
-      if (!apply) continue;
-      var baseVal = base[i];
+      var baseVal = base[target.i];
       if (baseVal === null || baseVal === undefined) continue;
-      if (data[i]) data[i].actual = baseVal;
+      if (data[target.i]) data[target.i].actual = baseVal;
       rins[1].value = baseVal;
       rins[1].classList.add('filled');
     }
