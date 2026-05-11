@@ -192,7 +192,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  input[type="number"].cell-input {
+  input.cell-input {
     width: 68px; padding: 3px 4px;
     border: 1.5px solid var(--border2);
     border-radius: var(--radius-xs);
@@ -204,15 +204,15 @@
     font-variant-numeric: tabular-nums;
   }
   input[type="number"].cell-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-  input[type="number"].cell-input:focus {
+  input.cell-input:focus {
     outline: none; border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(0,113,227,0.13);
   }
-  input[type="number"].cell-input.filled { background: #f0f6ff; border-color: rgba(0,113,227,0.28); }
-  input[type="number"].cell-input.filled-sfp { background: #fdf5ff; border-color: rgba(191,90,242,0.28); }
+  input.cell-input.filled { background: #f0f6ff; border-color: rgba(0,113,227,0.28); }
+  input.cell-input.filled-sfp { background: #fdf5ff; border-color: rgba(191,90,242,0.28); }
 
   /* 명령 각도 입력칸 */
-  input[type="number"].cmd-input {
+  input.cmd-input {
     width: 58px;
     background: #f2f2f7;
     color: var(--text-secondary);
@@ -222,18 +222,18 @@
     font-variant-numeric: tabular-nums;
     text-align: center;
   }
-  input[type="number"].cmd-input:hover {
+  input.cmd-input:hover {
     background: #e8e8f0;
     border-color: var(--border2);
   }
-  input[type="number"].cmd-input:focus {
+  input.cmd-input:focus {
     background: white;
     border-color: var(--warning);
     box-shadow: 0 0 0 3px rgba(255,159,10,0.15);
     color: var(--text-primary);
   }
   /* 기본값에서 수정된 명령 각도 */
-  input[type="number"].cmd-input.cmd-modified {
+  input.cmd-input.cmd-modified {
     background: #fff8e6;
     border-color: rgba(255,159,10,0.45);
     color: #92510e;
@@ -1111,12 +1111,13 @@ function buildTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <input type="number" step="1" value="${cmd !== null ? cmd : ''}"
+        <input type="text" inputmode="decimal" value="${cmd !== null ? cmd : ''}"
           class="cell-input cmd-input${isDefault ? '' : ' cmd-modified'}"
           title="명령 각도 수정 가능. 스프레드시트에서 복사 후 Ctrl+V로 붙여넣기 가능"
           data-row="${i}" data-col="0"
-          oninput="saveCmd(${i},this)"
-          onchange="saveCmd(${i},this)"
+          oninput="saveCmd(${i},this,false)"
+          onchange="saveCmd(${i},this,true)"
+          onblur="saveCmd(${i},this,true)"
           onpaste="handlePaste(event,${i},0)">
       </td>
       <td><input type="number" step="0.01" value="${av}" placeholder="0.00"
@@ -1141,28 +1142,41 @@ function parseNumeric(raw) {
     .replace(/[−–—]/g, '-')
     .replace(',', '.');
   if (normalized === '') return NaN;
+  if (!/^[+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)$/i.test(normalized)) return NaN;
   return parseFloat(normalized);
 }
 
-function saveCmd(idx, input) {
+function isDefaultCommand(surface, idx, value) {
+  const defArr = SFP_SET.has(surface) ? SFP_DEFAULT_COMMANDS : DEFAULT_COMMANDS;
+  const def = defArr[idx];
+  return (value === def) || (value === null && def === null);
+}
+
+function saveCmd(idx, input, commit) {
   const v = input.value.trim();
-  if (v === '') {
-    // 빈칸이면 기본값 복원
-    const defArr = SFP_SET.has(currentSurface) ? [0, 90] : DEFAULT_COMMANDS;
-    const def = defArr[idx];
-    if (def !== undefined) {
-      surfCommands[currentSurface][idx] = def; // null이면 null 유지
-      input.value = def !== null ? def : '';
-      input.classList.remove('cmd-modified');
+  const intermediate = v === '' || v === '-' || v === '+' || v === '.' || v === '-.' || v === '+.';
+
+  if (intermediate) {
+    surfCommands[currentSurface][idx] = null;
+    input.classList.toggle('cmd-modified', !isDefaultCommand(currentSurface, idx, null));
+    resetLinearState(currentSurface);
+    return;
+  }
+
+  const num = parseNumeric(v);
+  if (isNaN(num)) {
+    if (commit) {
+      input.value = '';
+      surfCommands[currentSurface][idx] = null;
+      input.classList.toggle('cmd-modified', !isDefaultCommand(currentSurface, idx, null));
       resetLinearState(currentSurface);
     }
     return;
   }
-  const num = parseNumeric(v);
-  if (isNaN(num)) return;
+
   surfCommands[currentSurface][idx] = num;
-  const isDefault = (num === DEFAULT_COMMANDS[idx]);
-  input.classList.toggle('cmd-modified', !isDefault);
+  input.value = v.replace(/[−–—]/g, '-').replace(',', '.');
+  input.classList.toggle('cmd-modified', !isDefaultCommand(currentSurface, idx, num));
   resetLinearState(currentSurface);
 }
 
@@ -1199,7 +1213,7 @@ function handlePaste(e, startRow, startCol) {
       if (c === 0) {
         // 명령 각도
         if (trimmed === '' || isNaN(num)) {
-          cmds[r] = DEFAULT_COMMANDS[r] !== undefined ? DEFAULT_COMMANDS[r] : cmds[r];
+          cmds[r] = null;
         } else {
           cmds[r] = num;
         }
