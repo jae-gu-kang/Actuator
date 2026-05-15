@@ -67,6 +67,22 @@
     white-space: nowrap;
     letter-spacing: 0.2px;
   }
+  .type-input {
+    width: 52px;
+    padding: 6px 8px;
+    border: 1.5px solid #e5e5ea;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'SF Mono','Menlo',monospace;
+    color: #1c1c1e;
+    background: white;
+    text-align: center;
+    text-transform: uppercase;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .type-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,113,227,0.15); }
+
   .sid-input {
     width: 60px;
     padding: 4px 8px;
@@ -521,6 +537,11 @@
       </div>
     </div>
     <div class="header-meta">
+      <label for="type-input-field" style="font-size:12px;font-weight:600;color:var(--text-secondary);">비행체 타입</label>
+      <input type="text" id="type-input-field" class="type-input"
+             maxlength="4" placeholder="M2"
+             oninput="onTypeChange()" value="M2">
+      <div class="sid-sep"></div>
       <label for="sid-input-field">호기 번호 (SID)</label>
       <div class="sid-sep"></div>
       <input type="number" id="sid-input-field" class="sid-input"
@@ -1000,24 +1021,35 @@ function getRev() {
   return parseInt(document.getElementById('rev-input-field').value) || 0;
 }
 function onSIDChange(el) {
-  document.getElementById('svg-sid-label').textContent = `SID: ${el.value}`;
+  document.getElementById('svg-sid-label').textContent = `${getType()}-${String(parseInt(el.value)||1).padStart(2,'0')}`;
+  updateDownloadPreview();
+}
+function onTypeChange() {
+  const sid = getSID();
+  document.getElementById('svg-sid-label').textContent = `${getType()}-${String(sid).padStart(2,'0')}`;
   updateDownloadPreview();
 }
 function updateDownloadPreview() {
   const name = buildFilename();
   document.getElementById('download-preview').textContent = `저장 파일명: ${name}`;
 }
+function getType() {
+  const v = (document.getElementById('type-input-field').value || 'M2').trim().toUpperCase();
+  return v || 'M2';
+}
+
 function buildFilename() {
-  const sid = getSID();
-  const rev = getRev();
-  const now = new Date();
-  const yy  = String(now.getFullYear()).slice(2);           // "26"
-  const mm  = String(now.getMonth()+1).padStart(2,'0');
-  const dd  = String(now.getDate()).padStart(2,'0');
-  const dateStr = yy + mm + dd;                             // "260417"
-  const sidStr  = String(sid).padStart(2,'0');              // "02"
+  const type = getType();
+  const sid  = getSID();
+  const rev  = getRev();
+  const now  = new Date();
+  const yy   = String(now.getFullYear()).slice(2);
+  const mm   = String(now.getMonth()+1).padStart(2,'0');
+  const dd   = String(now.getDate()).padStart(2,'0');
+  const dateStr = yy + mm + dd;                             // "260515"
+  const sidStr  = String(sid).padStart(2,'0');              // "01"
   const revStr  = `R${rev}`;                                // "R0"
-  return `M${sidStr}-${dateStr}_${revStr}.json`;
+  return `${type}-${sidStr}_${dateStr}_${revStr}.json`;     // "M2-01_260515_R0.json"
 }
 
 // Listen to rev changes too
@@ -1036,7 +1068,7 @@ document.getElementById('file-input').addEventListener('change', e => {
       // Read SID from file
       if (json.SID !== undefined) {
         document.getElementById('sid-input-field').value = json.SID;
-        document.getElementById('svg-sid-label').textContent = `SID: ${json.SID}`;
+        document.getElementById('svg-sid-label').textContent = `${getType()}-${String(json.SID).padStart(2,'0')}`;
       }
       updateDownloadPreview();
       showStatus('load-status', `JSON 로드 완료 — SID ${json.SID ?? '?'}`, 'ok');
@@ -2014,7 +2046,7 @@ function buildTxtContent() {
   lines.push('========================================');
   lines.push('  비행체 조종면 리깅 측정 기록');
   lines.push('  날짜: ' + dateStr);
-  lines.push('  SID : ' + getSID());
+  lines.push('  기체 : ' + getType() + '-' + String(getSID()).padStart(2,'0'));
   lines.push('========================================');
   lines.push('');
 
