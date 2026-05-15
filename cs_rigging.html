@@ -884,7 +884,7 @@
   <div class="card-header">
     <div>
       <div class="card-title">메모</div>
-      <div class="card-subtitle">JSON 파일 상단에 주석으로 포함됩니다</div>
+      <div class="card-subtitle">메모사항과 입력한 각도값은 TXT 파일로 별도 저장됩니다</div>
     </div>
   </div>
   <div class="card-body" style="padding:12px 16px;">
@@ -1859,9 +1859,8 @@ function buildJSONText(obj) {
     }
   });
   lines.push('}');
-  let text = buildMemoCommentText(memo);
-  text += lines.join('\n');
-  return text;
+  // 메모는 JSON에 포함하지 않음 — 별도 txt 파일로 저장
+  return lines.join('\n');
 }
 
 // ── Syntax highlight: plain text → HTML ──
@@ -1956,23 +1955,182 @@ function copyJSON() {
 }
 
 function downloadJSON() {
-  const ta = document.getElementById('json-output');
-  if (!ta || !ta.value.trim()) {
-    startRigging();
-  }
-  const text = ta ? ta.value : '';
-  if (!text.trim()) {
+  // 리깅 결과가 없으면 먼저 실행
+  if (!window._rigOutput) { startRigging(); }
+  if (!window._rigOutput) {
     showStatus('rig-status', '먼저 리깅 시작을 눌러주세요', 'warn'); return;
   }
-  const blob = new Blob([text], {type:'application/json'});
+
+  showFilenameModal(buildFilename(), function(filename) {
+    if (!filename) return;
+    const baseName = filename.replace(/\.json$/i, '');
+
+    const jsonText = document.getElementById('json-output').value || buildJSONText(window._rigOutput);
+    const txtText  = buildTxtContent();
+
+    downloadFileQueue([
+      {
+        blob: new Blob([jsonText], {type: 'application/octet-stream;charset=utf-8'}),
+        filename: baseName + '.json'
+      },
+      {
+        blob: new Blob([txtText], {type: 'text/plain;charset=utf-8'}),
+        filename: baseName + '.txt'
+      }
+    ]);
+  });
+}
+
+function downloadFileQueue(files) {
+  files.forEach(function(file, i) {
+    setTimeout(function() {
+      triggerDownload(file.blob, file.filename);
+    }, i * 1600);
+  });
+  showStatus('rig-status', 'JSON과 TXT 다운로드를 시작했습니다', 'ok');
+}
+
+function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = buildFilename();
+  const a   = document.createElement('a');
+  a.href    = url;
+  a.download = filename;
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+  setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 2000);
+}
+
+function buildTxtContent() {
+  const memo = (document.getElementById('memo-input').value || '').trim();
+  const lines = [];
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' +
+    String(now.getMonth()+1).padStart(2,'0') + '-' +
+    String(now.getDate()).padStart(2,'0') + ' ' +
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0');
+
+  lines.push('========================================');
+  lines.push('  비행체 조종면 리깅 측정 기록');
+  lines.push('  날짜: ' + dateStr);
+  lines.push('  SID : ' + getSID());
+  lines.push('========================================');
+  lines.push('');
+
+  if (memo) {
+    lines.push('[메모]');
+    lines.push(memo);
+    lines.push('');
+  }
+
+  // 각 조종면별 측정값 출력
+  SURFACES.forEach(function(s) {
+    if (!s) return;
+    const cmds = surfCommands[s];
+    const data = measureData[s];
+    if (!cmds || !data) return;
+
+    // 입력값이 하나라도 있는지 확인
+    const hasData = data.some(function(d) {
+      return d && (d.actual !== null || d.fb !== null);
+    });
+    if (!hasData) return;
+
+    lines.push('----------------------------------------');
+    lines.push('  조종면: ' + s);
+    lines.push('----------------------------------------');
+    lines.push('  명령각도(°)	실제출력각도(°)	피드백각도(°)');
+    cmds.forEach(function(cmd, i) {
+      const av = (data[i] && data[i].actual !== null) ? data[i].actual : '';
+      const fv = (data[i] && data[i].fb     !== null) ? data[i].fb     : '';
+      if (cmd === null && av === '' && fv === '') return; // 빈 행 skip
+      const cmdStr = cmd !== null ? cmd : '';
+      lines.push('  ' + cmdStr + '	' + av + '	' + fv);
+    });
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
+function showFilenameModal(defaultName, callback) {
+  // 기존 모달 제거
+  var existing = document.getElementById('filename-modal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'filename-modal';
+  overlay.style.cssText =
+    'position:fixed;inset:0;background:rgba(0,0,0,0.4);' +
+    'display:flex;align-items:center;justify-content:center;' +
+    'z-index:9999;backdrop-filter:blur(4px);';
+
+  var box = document.createElement('div');
+  box.style.cssText =
+    'background:white;border-radius:16px;padding:28px 32px;' +
+    'min-width:360px;max-width:480px;width:90%;' +
+    'box-shadow:0 20px 60px rgba(0,0,0,0.18);font-family:var(--font);';
+
+  var title = document.createElement('p');
+  title.style.cssText = 'font-size:15px;font-weight:700;color:#1c1c1e;margin:0 0 6px;';
+  title.textContent = '파일명 입력';
+
+  var sub = document.createElement('p');
+  sub.style.cssText = 'font-size:12px;color:#888;margin:0 0 16px;';
+  sub.textContent = 'JSON과 TXT 파일이 동일한 이름으로 저장됩니다.';
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.value = defaultName.replace(/\.json$/i, '');
+  input.style.cssText =
+    'width:100%;box-sizing:border-box;' +
+    'border:1.5px solid #d1d1d6;border-radius:10px;' +
+    'padding:10px 14px;font-size:14px;font-family:var(--font);' +
+    'outline:none;color:#1c1c1e;margin-bottom:18px;';
+  input.onfocus = function() { this.style.borderColor = '#0071e3'; };
+  input.onblur  = function() { this.style.borderColor = '#d1d1d6'; };
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '취소';
+  cancelBtn.style.cssText =
+    'padding:9px 20px;border-radius:980px;border:1px solid #d1d1d6;' +
+    'background:white;color:#1c1c1e;font-size:14px;font-family:var(--font);cursor:pointer;';
+  cancelBtn.onclick = function() { overlay.remove(); };
+
+  var okBtn = document.createElement('button');
+  okBtn.textContent = '저장';
+  okBtn.style.cssText =
+    'padding:9px 20px;border-radius:980px;border:none;' +
+    'background:#0071e3;color:white;font-size:14px;font-weight:600;' +
+    'font-family:var(--font);cursor:pointer;';
+  okBtn.onclick = function() {
+    var name = input.value.trim();
+    if (!name) { input.style.borderColor = '#ff3b30'; return; }
+    overlay.remove();
+    callback(name);
+  };
+
+  // Enter키로 확인
+  input.onkeydown = function(e) {
+    if (e.key === 'Enter') okBtn.click();
+    if (e.key === 'Escape') cancelBtn.click();
+  };
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(okBtn);
+  box.appendChild(title);
+  box.appendChild(sub);
+  box.appendChild(input);
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  // 입력창 전체 선택
+  setTimeout(function() { input.select(); }, 50);
 }
 
 // ─── Utility ────────────────────────────────────────
