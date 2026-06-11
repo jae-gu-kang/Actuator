@@ -152,6 +152,63 @@
   #aircraft-svg { position: relative; z-index: 1; }
 
   /* ── Surface tabs ── */
+  /* 멀티뷰 모드 */
+  .mode-btn-group { display:flex; gap:6px; margin-bottom:10px; }
+  .mode-btn {
+    padding:6px 16px; border-radius:980px; border:1.5px solid var(--border2);
+    font-size:12px; font-weight:600; font-family:var(--font);
+    background:var(--card2); color:var(--text-secondary); cursor:pointer;
+    transition:all 0.15s;
+  }
+  .mode-btn.active {
+    background:var(--accent); border-color:var(--accent);
+    color:white;
+  }
+  .multi-view-wrap {
+    display:none;
+    gap:6px;
+  }
+  .multi-view-wrap.visible { display:grid; }
+  .multi-col { display:flex; flex-direction:column; gap:6px; }
+
+  /* 멀티뷰 미니 테이블 */
+  .mini-tbl-card {
+    border:1.5px solid var(--border); border-radius:var(--radius-xs);
+    overflow:hidden; background:var(--card);
+  }
+  .mini-tbl-hdr {
+    display:flex; align-items:center; gap:6px;
+    padding:5px 8px; background:var(--card2);
+    border-bottom:1px solid var(--border);
+  }
+  .mini-tbl-hdr .dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+  .mini-tbl-hdr span { font-size:11px; font-weight:700; color:var(--text-primary); }
+  .mini-tbl { width:100%; border-collapse:collapse; }
+  .mini-tbl th {
+    font-size:9.5px; font-weight:600; color:var(--text-tertiary);
+    padding:3px 6px; text-align:center;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  .mini-tbl td { padding:1px 3px; border-bottom:1px solid #f0f0f5; }
+  .mini-tbl td:first-child {
+    font-size:10px; font-weight:600; color:var(--text-secondary);
+    text-align:center; width:28px;
+    background:var(--card2);
+  }
+  .mini-input {
+    width:58px; padding:2px 4px; border:1px solid transparent;
+    border-radius:4px; font-size:11px; text-align:right;
+    background:transparent; color:var(--text-primary); outline:none;
+    font-family:'SF Mono','Menlo',monospace;
+  }
+  .mini-input:focus { border-color:var(--accent); background:var(--bg); }
+  .mini-input.filled { background:#f0f6ff; border-color:#c8d8f0; }
+
+  /* 멀티뷰 중앙 비행체 이미지 */
+  .multi-aircraft-center {
+    display:flex; align-items:center; justify-content:center;
+  }
+
   .surface-tabs {
     display: flex; gap: 5px; flex-wrap: wrap;
     padding: 8px 14px;
@@ -331,6 +388,30 @@
 
   /* ── JSON ── */
   /* JSON syntax highlighting (VSCode dark) */
+  /* FCA_RIG 오프셋 패널 */
+  .rig-off-row  { padding: 3px 0; }
+  .rig-off-lbl  {
+    font-size: 11px; font-family: 'SF Mono','Menlo',monospace;
+    font-weight: 600; color: #9cdcfe; min-width: 90px;
+  }
+  .rig-off-name {
+    font-size: 11px; color: var(--text-secondary);
+    min-width: 56px; font-weight: 500;
+  }
+  .rig-off-input {
+    width: 90px; padding: 4px 8px;
+    border: 1.5px solid var(--border2); border-radius: 7px;
+    font-size: 12px; font-family: 'SF Mono','Menlo',monospace;
+    color: var(--text-primary); background: var(--card2);
+    outline: none; text-align: right;
+    transition: border-color 0.15s;
+  }
+  .rig-off-input:focus { border-color: var(--accent); }
+  .rig-off-result {
+    font-size: 11px; font-family: 'SF Mono','Menlo',monospace;
+    color: #b5cea8; min-width: 120px; white-space: nowrap;
+  }
+
   #json-display .jk  { color: #9cdcfe; }          /* key */
   #json-display .jn  { color: #b5cea8; }          /* number */
   #json-display .js  { color: #ce9178; }          /* string value */
@@ -414,13 +495,16 @@
     flex-direction: column;
     min-height: 100vh;
     overflow: visible;
+    padding-top: 70px;
   }
   .page-header {
     padding: 20px 24px 16px;
     background: var(--card);
     border-bottom: 1px solid var(--border);
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
     box-shadow: 0 1px 8px rgba(0,0,0,0.06);
   }
@@ -436,12 +520,13 @@
 
   .three-col {
     display: grid;
-    grid-template-columns: auto 1fr 1.4fr;
+    grid-template-columns: auto 1.8fr 1.4fr;
+    grid-auto-rows: 1fr;
     gap: 0;
     flex: 1;
     min-height: 0;
     width: 100%;
-    align-items: start;
+    align-items: stretch;
   }
   /* aircraft wrap: 이미지 꽉 채움 */
   .aircraft-wrap {
@@ -454,9 +539,12 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    overflow-y: visible;
-    height: auto;
-    padding: 16px 12px 32px;
+    overflow-y: auto;
+    height: 100%;
+    min-height: 0;
+    padding: 16px 18px 32px;
+    box-sizing: border-box;
+    align-self: stretch;
   }
   .col:not(:last-child) {
     border-right: 1px solid var(--border);
@@ -464,6 +552,22 @@
   .col-left  { background: var(--bg); }
   .col-mid   { background: #f8f8fc; }
   .col-right { background: var(--bg); }
+
+  /* 리깅 후 높이 맞춤: col-mid의 마지막 카드(측정값입력)가 늘어남 */
+  .col-mid {
+    display: flex;
+    flex-direction: column;
+  }
+  .col-mid > .card:last-child {
+    flex: 1;
+  }
+  .col-right {
+    display: flex;
+    flex-direction: column;
+  }
+  .col-right > .card:last-child {
+    flex: 1;
+  }
 
   .col .card { margin-bottom: 14px; }
   .col .card:last-child { margin-bottom: 0; }
@@ -564,7 +668,7 @@
   <div class="col-label">① 설정 파일 &amp; 배치도</div>
 
 <!-- ══════ LOAD JSON ══════ -->
-<div class="card">
+<div class="card" id="load-json-card">
   <div class="card-header">
     <div>
       <div class="card-title">설정 파일 불러오기</div>
@@ -582,6 +686,16 @@
         JSON 불러오기
       </label>
       <input type="file" id="file-input" accept=".json">
+      <label class="file-label" for="txt-file-input" title="TXT 파일로 이전 측정값 복원">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        TXT 불러오기
+      </label>
+      <input type="file" id="txt-file-input" accept=".txt" style="display:none;"
+             onchange="loadTxtFile(this)">
       <span id="file-name-label" style="font-size:12px;color:var(--text-secondary);">파일을 선택하거나 새 리깅을 시작하세요</span>
     </div>
     <div id="load-status"></div>
@@ -589,7 +703,7 @@
 </div>
 
 <!-- ══════ AIRCRAFT SVG ══════ -->
-<div class="card" style="border-color:#c8dff5;">
+<div class="card" id="aircraft-card" style="border-color:#c8dff5;">
   <div class="card-header" style="background:#f0f7ff;border-color:#c8dff5;">
     <div>
       <div class="card-title" style="color:#0a2d6e;">조종면 배치도</div>
@@ -750,11 +864,18 @@
       <div class="card-title" id="entry-title">조종면을 선택하세요</div>
       <div class="card-subtitle" id="entry-sub">항공기 도면 또는 탭 버튼으로 선택</div>
     </div>
-    <button class="btn btn-secondary btn-sm" onclick="clearCurrentSurface()">초기화</button>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <div class="mode-btn-group" style="margin-bottom:0;">
+        <button class="mode-btn active" id="mode-btn-single" onclick="setViewMode('single')">단일</button>
+        <button class="mode-btn" id="mode-btn-all" onclick="setViewMode('all')">전체</button>
+      </div>
+      <button class="btn btn-secondary btn-sm"
+              onclick="currentViewMode === 'all' ? clearAllSurfaces() : clearCurrentSurface()">초기화</button>
+    </div>
   </div>
 
   <!-- Surface Tabs -->
-  <div class="surface-tabs">
+  <div class="surface-tabs" id="surface-tabs-wrap">
     <button class="surface-tab" onclick="selectSurface('ELV_LI')" id="tab-ELV_LI">
       <span class="dot" style="background:#5e5ce6"></span>ELV_LI
     </button>
@@ -784,6 +905,37 @@
   </div>
 
   <div class="card-body">
+    <!-- 멀티뷰: 엘레본 / 러더SFP -->
+    <div id="multi-view-area" style="display:none;">
+      <!-- 헤더: 항공기 이미지 + 테이블들 -->
+      <div id="multi-grid" class="multi-view-wrap visible"
+           style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:start;gap:8px;">
+        <div class="multi-col" id="multi-col-0"></div>
+        <div class="multi-col" id="multi-col-1"></div>
+        <div class="multi-col" id="multi-col-2"></div>
+        <div class="multi-col" id="multi-col-3"></div>
+      </div>
+      <!-- 회귀식 계산 버튼 -->
+      <div class="divider" style="margin-top:10px;"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="computeMultiRegression()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          전체 회귀식 계산
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="autoFillDemoAll()">예시 데이터</button>
+        <button class="btn btn-secondary btn-sm" onclick="copyMultiTableToClipboard()" title="엑셀/구글시트에 붙여넣기 가능">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+          테이블 복사
+        </button>
+      </div>
+    </div>
+
+    <!-- 단일뷰 -->
+    <div id="single-view-area">
     <div id="no-surface-msg" style="text-align:center;padding:28px 0;color:var(--text-tertiary);font-size:14px;">
       위에서 조종면을 선택하거나 항공기 도면을 클릭하세요
     </div>
@@ -891,6 +1043,7 @@
         <div class="coeff-grid" id="coeff-grid"></div>
       </div>
     </div>
+  </div><!-- /single-view-area -->
   </div>
 </div>
 
@@ -898,7 +1051,8 @@
 
 <!-- ════ RIGHT COL: 리깅 실행 & JSON ════ -->
 <div class="col col-right">
-  <div class="col-label">③ 리깅 실행 &amp; JSON 출력</div>
+  <div class="col-label" id="right-col-label">③ 리깅 실행 &amp; JSON 출력</div>
+
 
 <!-- ══════ MEMO ══════ -->
 <div class="card">
@@ -947,28 +1101,95 @@
         </svg>
         JSON 다운로드
       </button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadTxt()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        TXT 다운로드
+      </button>
     </div>
     <div id="rig-status"></div>
     <div id="json-out-wrap" style="display:none;margin-top:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-size:10.5px;color:var(--text-tertiary);font-weight:500;">JSON 직접 수정 가능 — 수정 후 복사/다운로드 시 반영됩니다</span>
-        <button class="btn btn-secondary btn-sm" onclick="formatJSONEditor()" style="font-size:11px;padding:4px 10px;">정렬</button>
+
+      <!-- 상단 컨트롤 바 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:10.5px;color:var(--text-tertiary);font-weight:500;">JSON 직접 수정 가능</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px;cursor:pointer;">
+            비교 파일
+            <input type="file" accept=".json" id="compare-file-input"
+                   style="display:none;" onchange="loadCompareJSON(this)">
+          </label>
+          <button class="btn btn-secondary btn-sm" id="compare-clear-btn"
+                  onclick="clearCompareJSON()"
+                  style="display:none;font-size:11px;padding:4px 10px;color:var(--danger);border-color:var(--danger);">
+            비교 해제
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="formatJSONEditor()" style="font-size:11px;padding:4px 10px;">정렬</button>
+        </div>
       </div>
-      <!-- 숨김 textarea: value 저장/읽기용 -->
-      <textarea id="json-output" style="display:none;"></textarea>
-      <!-- contenteditable: 색상 표시 + 편집 -->
-      <div id="json-display"
-        contenteditable="true"
-        spellcheck="false"
-        style="width:100%;min-height:340px;
-               background:#0a0a0f;border:1px solid #2c2c2e;border-radius:var(--radius-sm);
-               padding:16px 18px;font-family:'SF Mono','Menlo',monospace;
-               font-size:11.5px;line-height:1.75;color:#e5e5ea;
-               outline:none;box-sizing:border-box;white-space:pre;overflow-x:auto;
-               cursor:text;"
-        oninput="syncDisplayToTextarea()"
-      ></div>
+
+      <!-- 오프셋 + JSON 좌우 배치 -->
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:10px;align-items:start;">
+
+        <!-- 좌: 상수항 오프셋 패널 (compact) -->
+        <div id="rig-offset-panel" style="display:none;
+             background:var(--card2);border:1px solid var(--border2);
+             border-radius:var(--radius-xs);padding:10px 10px 10px;">
+          <div style="font-size:10px;font-weight:700;color:var(--text-secondary);
+                      margin-bottom:8px;letter-spacing:0.3px;">a₀ 오프셋</div>
+          <div style="font-size:9.5px;font-weight:600;color:#9cdcfe;
+                      margin-bottom:3px;">FCA_RIG</div>
+          <div id="rig-offset-rows" style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px;"></div>
+          <div style="font-size:9.5px;font-weight:600;color:#ce9178;
+                      margin-bottom:3px;">FCA_RIG_REVERS</div>
+          <div id="rig-revers-offset-rows" style="display:flex;flex-direction:column;gap:3px;"></div>
+        </div>
+
+        <!-- 우: JSON 표시 영역 -->
+        <div>
+          <div id="json-compare-wrap" style="display:grid;grid-template-columns:1fr;gap:8px;">
+
+            <!-- 현재 JSON -->
+            <div>
+              <div id="json-current-label"
+                   style="display:none;font-size:10.5px;font-weight:600;color:#30d158;
+                          margin-bottom:4px;letter-spacing:0.3px;">현재 리깅</div>
+              <textarea id="json-output" style="display:none;"></textarea>
+              <div id="json-display"
+                contenteditable="true"
+                spellcheck="false"
+                style="width:100%;min-height:320px;
+                       background:#0a0a0f;border:1px solid #2c2c2e;border-radius:var(--radius-sm);
+                       padding:14px 16px;font-family:'SF Mono','Menlo',monospace;
+                       font-size:11px;line-height:1.75;color:#e5e5ea;
+                       outline:none;box-sizing:border-box;white-space:pre;overflow-x:auto;
+                       cursor:text;"
+                oninput="syncDisplayToTextarea()"
+              ></div>
+            </div>
+
+            <!-- 비교 JSON (기본 숨김) -->
+            <div id="compare-json-col" style="display:none;">
+              <div style="font-size:10.5px;font-weight:600;color:#ff9f0a;
+                          margin-bottom:4px;letter-spacing:0.3px;" id="compare-file-label">비교 파일</div>
+              <div id="compare-display"
+                style="width:100%;min-height:320px;
+                       background:#0a0a0f;border:1px solid #2c2c2e;border-radius:var(--radius-sm);
+                       padding:14px 16px;font-family:'SF Mono','Menlo',monospace;
+                       font-size:11px;line-height:1.75;color:#e5e5ea;
+                       box-sizing:border-box;white-space:pre;overflow-x:auto;">
+              </div>
+            </div>
+
+          </div><!-- /json-compare-wrap -->
+        </div><!-- /right col -->
+
+      </div><!-- /offset+json grid -->
     </div>
+
   </div>
 </div>
 
@@ -1021,12 +1242,12 @@ function getRev() {
   return parseInt(document.getElementById('rev-input-field').value) || 0;
 }
 function onSIDChange(el) {
-  document.getElementById('svg-sid-label').textContent = `${getType()}-${String(parseInt(el.value)||1).padStart(2,'0')}`;
+  var _sl = document.getElementById('svg-sid-label'); if(_sl)var _sl = _sl; if(_sl)_sl.textContent = `${getType()}-${String(parseInt(el.value)||1).padStart(2,'0')}`;
   updateDownloadPreview();
 }
 function onTypeChange() {
   const sid = getSID();
-  document.getElementById('svg-sid-label').textContent = `${getType()}-${String(sid).padStart(2,'0')}`;
+  var _sl = document.getElementById('svg-sid-label'); if(_sl)var _sl = _sl; if(_sl)_sl.textContent = `${getType()}-${String(sid).padStart(2,'0')}`;
   updateDownloadPreview();
 }
 function updateDownloadPreview() {
@@ -1056,6 +1277,106 @@ function buildFilename() {
 document.getElementById('rev-input-field').addEventListener('input', updateDownloadPreview);
 
 // ─── JSON Load ──────────────────────────────────────
+function loadTxtFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      parseTxtAndRestore(e.target.result, file.name);
+    } catch(err) {
+      showStatus('load-status', 'TXT 파싱 오류: ' + err.message, 'err');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function parseTxtAndRestore(text, filename) {
+  var lines = text.split('\n');
+  var currentSurf = null;
+  var inDataSection = false;
+  var restoredSurfs = [];
+  var inMemo = false;
+  var memoLines = [];
+  var surfData = {};
+
+  for (var i = 0; i < lines.length; i++) {
+    var raw = lines[i];
+    var trimmed = raw.replace(/\r$/, '').trim();
+
+    // 메모
+    if (trimmed === '[메모]') { inMemo = true; continue; }
+    if (inMemo) {
+      if (trimmed === '' || trimmed.indexOf('---') === 0) { inMemo = false; }
+      else { memoLines.push(trimmed); continue; }
+    }
+
+    // 조종면 헤더
+    if (trimmed.indexOf('조종면:') >= 0) {
+      currentSurf = trimmed.replace('조종면:', '').trim();
+      inDataSection = false;
+      if (!surfData[currentSurf]) surfData[currentSurf] = [];
+      continue;
+    }
+
+    // 열 헤더
+    if (trimmed.indexOf('명령각도') === 0) { inDataSection = true; continue; }
+
+    // 구분선
+    if (trimmed.indexOf('---') === 0 || trimmed.indexOf('===') === 0) {
+      inDataSection = false; continue;
+    }
+
+    // 데이터 행: 탭으로 분리
+    if (currentSurf && inDataSection && trimmed !== '') {
+      var parts = trimmed.split('\t');
+      var cmd    = parts[0] && parts[0].trim() !== '' ? parseFloat(parts[0]) : null;
+      var actual = parts[1] && parts[1].trim() !== '' ? parseFloat(parts[1]) : null;
+      var fb     = parts[2] && parts[2].trim() !== '' ? parseFloat(parts[2]) : null;
+      if (cmd !== null) surfData[currentSurf].push({ cmd: cmd, actual: actual, fb: fb });
+    }
+  }
+
+  // measureData / surfCommands 복원
+  Object.keys(surfData).forEach(function(s) {
+    if (!measureData[s]) return;
+    var rows = surfData[s];
+    var cmds = surfCommands[s];
+    rows.forEach(function(row) {
+      var idx = cmds ? cmds.indexOf(row.cmd) : -1;
+      if (idx < 0 && cmds) {
+        var nullIdx = cmds.indexOf(null);
+        if (nullIdx >= 0) { cmds[nullIdx] = row.cmd; idx = nullIdx; }
+      }
+      if (idx >= 0) measureData[s][idx] = { actual: row.actual, fb: row.fb };
+    });
+    restoredSurfs.push(s);
+  });
+
+  // 메모 복원
+  if (memoLines.length > 0) {
+    var memoEl = document.getElementById('memo-input');
+    if (memoEl) memoEl.value = memoLines.join('\n');
+  }
+
+  // 단일 모드 테이블 갱신
+  if (currentSurface) { buildTable(); showRegressionForCurrent(); }
+  // 전체 모드가 열려있으면 미니 테이블 갱신, 아니면 자동으로 전체 모드로 전환
+  if (currentViewMode !== 'single') {
+    buildMultiView();
+  } else if (restoredSurfs.length > 1) {
+    setViewMode('all');
+  }
+
+  document.getElementById('file-name-label').textContent = filename;
+  showStatus('load-status',
+    restoredSurfs.length
+      ? 'TXT 복원 완료 — ' + restoredSurfs.join(', ')
+      : 'TXT에서 측정값을 찾지 못했습니다',
+    restoredSurfs.length ? 'ok' : 'warn');
+}
+
 document.getElementById('file-input').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
@@ -1068,7 +1389,7 @@ document.getElementById('file-input').addEventListener('change', e => {
       // Read SID from file
       if (json.SID !== undefined) {
         document.getElementById('sid-input-field').value = json.SID;
-        document.getElementById('svg-sid-label').textContent = `${getType()}-${String(json.SID).padStart(2,'0')}`;
+  var _sl = document.getElementById('svg-sid-label'); if(_sl)var _sl = _sl; if(_sl)_sl.textContent = `${getType()}-${String(json.SID).padStart(2,'0')}`;
       }
       updateDownloadPreview();
       showStatus('load-status', `JSON 로드 완료 — SID ${json.SID ?? '?'}`, 'ok');
@@ -1128,6 +1449,255 @@ function selectSurface(name) {
 }
 
 // ─── Table ──────────────────────────────────────────
+// ─── 뷰 모드 ─────────────────────────────────────
+const COMPACT_CMDS = [-30, -20, -10, 0, 10, 20, 30];
+const SURF_COLORS = {
+  ELV_LI:'#5856d6', ELV_LO:'#0a84ff',
+  ELV_RI:'#ff375f', ELV_RO:'#ff9f0a',
+  RUD_L:'#30d158',  RUD_R:'#40c8e0',
+  SFP_L:'#bf5af2',  SFP_R:'#ff6961'
+};
+// 전체 모드: 4컬럼 [ELV_LI, ELV_LO, ELV_RI, ELV_RO, RUD_L, RUD_R, SFP_L, SFP_R]
+// 컬럼당 2개씩 배분
+const ALL_GROUPS = [
+  ['ELV_LO', 'RUD_L'],  // 좌 아웃보드 (날개 끝)
+  ['ELV_LI', 'SFP_L'],  // 좌 인보드  (동체 근처)
+  ['ELV_RI', 'SFP_R'],  // 우 인보드  (동체 근처)
+  ['ELV_RO', 'RUD_R']   // 우 아웃보드 (날개 끝)
+];
+let currentViewMode = 'single';
+
+function setViewMode(mode) {
+  currentViewMode = mode;
+  ['single','all'].forEach(function(m) {
+    var btn = document.getElementById('mode-btn-' + m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+
+  var singleArea = document.getElementById('single-view-area');
+  var multiArea  = document.getElementById('multi-view-area');
+  var tabsWrap   = document.getElementById('surface-tabs-wrap');
+
+  if (mode === 'single') {
+    singleArea.style.display = '';
+    multiArea.style.display  = 'none';
+    tabsWrap.style.display   = '';
+  } else {
+    singleArea.style.display = 'none';
+    multiArea.style.display  = 'block';
+    tabsWrap.style.display   = 'none';
+    buildMultiView();
+  }
+}
+
+function buildMultiView() {
+  for (var c = 0; c < 4; c++) {
+    var col = document.getElementById('multi-col-' + c);
+    col.innerHTML = '';
+    ALL_GROUPS[c].forEach(function(s) {
+      col.appendChild(buildMiniCard(s));
+    });
+  }
+}
+
+function buildMiniCard(surfKey) {
+  var isSFP  = SFP_SET.has(surfKey);
+  var cmds   = isSFP ? [0, 90] : COMPACT_CMDS;
+  var color  = SURF_COLORS[surfKey] || '#888';
+
+  var card = document.createElement('div');
+  card.className = 'mini-tbl-card';
+
+  // 헤더
+  var hdr = document.createElement('div');
+  hdr.className = 'mini-tbl-hdr';
+  var dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = color;
+  var nm = document.createElement('span');
+  nm.textContent = surfKey;
+  hdr.appendChild(dot);
+  hdr.appendChild(nm);
+  card.appendChild(hdr);
+
+  // 테이블
+  var tbl = document.createElement('table');
+  tbl.className = 'mini-tbl';
+
+  // thead
+  var thead = document.createElement('thead');
+  var hr = document.createElement('tr');
+  ['cmd','실제','피드백'].forEach(function(h) {
+    var th = document.createElement('th');
+    th.textContent = h;
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  tbl.appendChild(thead);
+
+  // tbody
+  var tbody = document.createElement('tbody');
+  tbody.id = 'mini-tbody-' + surfKey;
+
+  var data = measureData[surfKey];
+  var storedCmds = surfCommands[surfKey];
+
+  cmds.forEach(function(cmd, rowIdx) {
+    // surfCommands에서 해당 cmd의 인덱스 찾기
+    var dataIdx = storedCmds ? storedCmds.indexOf(cmd) : -1;
+    var av = (dataIdx >= 0 && data[dataIdx] && data[dataIdx].actual !== null)
+      ? parseFloat(data[dataIdx].actual.toFixed(2)) : '';
+    var fv = (dataIdx >= 0 && data[dataIdx] && data[dataIdx].fb !== null)
+      ? parseFloat(data[dataIdx].fb.toFixed(2)) : '';
+
+    var tr = document.createElement('tr');
+
+    // cmd 셀
+    var tdCmd = document.createElement('td');
+    tdCmd.textContent = cmd + '°';
+    tr.appendChild(tdCmd);
+
+    // actual 입력
+    var tdAct = document.createElement('td');
+    var inpAct = document.createElement('input');
+    inpAct.type = 'number'; inpAct.step = '0.01';
+    inpAct.className = 'mini-input' + (av !== '' ? ' filled' : '');
+    inpAct.value = av;
+    (function(s, ci, ri) {
+      inpAct.oninput = function() { saveMiniVal(s, ci, 'actual', this); };
+      inpAct.onpaste = function(e) { handleMiniPaste(e, s, ri, 1); };
+    })(surfKey, dataIdx >= 0 ? dataIdx : rowIdx, rowIdx);
+    tdAct.appendChild(inpAct);
+    tr.appendChild(tdAct);
+
+    // fb 입력
+    var tdFb = document.createElement('td');
+    var inpFb = document.createElement('input');
+    inpFb.type = 'number'; inpFb.step = '0.01';
+    inpFb.className = 'mini-input' + (fv !== '' ? ' filled' : '');
+    inpFb.value = fv;
+    (function(s, ci, ri) {
+      inpFb.oninput = function() { saveMiniVal(s, ci, 'fb', this); };
+      inpFb.onpaste = function(e) { handleMiniPaste(e, s, ri, 2); };
+    })(surfKey, dataIdx >= 0 ? dataIdx : rowIdx, rowIdx);
+    tdFb.appendChild(inpFb);
+    tr.appendChild(tdFb);
+
+    tbody.appendChild(tr);
+  });
+
+  tbl.appendChild(tbody);
+  card.appendChild(tbl);
+  return card;
+}
+
+function handleMiniPaste(e, surfKey, startRow, startCol) {
+  var text = (e.clipboardData || window.clipboardData).getData('text');
+  if (!text.includes('\n') && !text.includes('\t')) return; // 단일값은 기본 처리
+
+  e.preventDefault();
+
+  var isSFP = SFP_SET.has(surfKey);
+  var cmds  = isSFP ? [0, 90] : COMPACT_CMDS;
+  var storedCmds = surfCommands[surfKey];
+  var data       = measureData[surfKey];
+
+  var rows = text.replace(/\r/g, '').split('\n');
+  while (rows.length && rows[rows.length - 1].trim() === '') rows.pop();
+
+  rows.forEach(function(rowStr, ri) {
+    var r = startRow + ri;
+    if (r >= cmds.length) return;
+
+    var cmd     = cmds[r];
+    var dataIdx = storedCmds ? storedCmds.indexOf(cmd) : -1;
+    if (dataIdx < 0) return;
+
+    var cols = rowStr.split('\t');
+    cols.forEach(function(val, ci) {
+      var col = startCol + ci;
+      var trimmed = val.trim().replace(',', '.');
+      var num = trimmed === '' ? null : parseFloat(trimmed);
+      if (col === 1) {
+        data[dataIdx].actual = (trimmed === '' || isNaN(num)) ? null : num;
+      } else if (col === 2) {
+        data[dataIdx].fb = (trimmed === '' || isNaN(num)) ? null : num;
+      }
+    });
+  });
+
+  // 미니 테이블 다시 렌더
+  var tbody = document.getElementById('mini-tbody-' + surfKey);
+  if (tbody) {
+    var newCard = buildMiniCard(surfKey);
+    var newTbody = newCard.querySelector('tbody');
+    if (newTbody) tbody.innerHTML = newTbody.innerHTML;
+    // 이벤트 재바인딩을 위해 카드 교체
+    var oldCard = tbody.closest('.mini-tbl-card');
+    if (oldCard && oldCard.parentNode) {
+      oldCard.parentNode.replaceChild(newCard, oldCard);
+    }
+  }
+}
+
+function saveMiniVal(surfKey, idx, field, input) {
+  var v = input.value.trim();
+  var num = v === '' ? null : parseFloat(v);
+  if (!measureData[surfKey][idx]) measureData[surfKey][idx] = { actual:null, fb:null };
+  measureData[surfKey][idx][field] = num;
+  input.className = 'mini-input' + (v !== '' ? ' filled' : '');
+}
+
+function computeMultiRegression() {
+  if (currentViewMode === 'single') { computeRegression(); return; }
+  // JSON 파일 순서와 동일: FCA_RIG_0~7
+  var allSurfs = ['ELV_LI','ELV_LO','ELV_RI','ELV_RO','RUD_L','RUD_R','SFP_L','SFP_R'];
+  var prev = currentSurface;
+  var results = [];
+  allSurfs.forEach(function(s) {
+    currentSurface = s;
+    computeRegression();
+    var rd = regressionData[s];
+    if (rd && rd.hasFwd) results.push(s + ' R²=' + (rd.r2fwd ? rd.r2fwd.toFixed(3) : '-'));
+  });
+  currentSurface = prev;
+  showStatus('rig-status', '전체 회귀 완료 — ' + (results.length ? results.join(' | ') : '데이터 없음'), results.length ? 'ok' : 'warn');
+}
+
+function copyMultiTableToClipboard() {
+  var lines = [];
+  // JSON 파일 순서와 동일: FCA_RIG_0~7
+  var allSurfs = ['ELV_LI','ELV_LO','ELV_RI','ELV_RO','RUD_L','RUD_R','SFP_L','SFP_R'];
+  // 헤더행
+  var headerCols = ['조종면', '명령각도(°)', '실제출력각도(°)', '피드백각도(°)'];
+  lines.push(headerCols.join('\t'));
+
+  allSurfs.forEach(function(s) {
+    var isSFP  = SFP_SET.has(s);
+    var cmds   = isSFP ? [0, 90] : COMPACT_CMDS;
+    var storedCmds = surfCommands[s];
+    var data = measureData[s];
+    cmds.forEach(function(cmd) {
+      var dataIdx = storedCmds ? storedCmds.indexOf(cmd) : -1;
+      var av = (dataIdx >= 0 && data[dataIdx] && data[dataIdx].actual !== null) ? data[dataIdx].actual : '';
+      var fv = (dataIdx >= 0 && data[dataIdx] && data[dataIdx].fb     !== null) ? data[dataIdx].fb     : '';
+      lines.push([s, cmd, av, fv].join('\t'));
+    });
+    lines.push(''); // 조종면 간 빈 줄
+  });
+
+  var text = lines.join('\n');
+  navigator.clipboard.writeText(text)
+    .then(function() { showPasteToast('전체 테이블 복사 완료'); })
+    .catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      showPasteToast('전체 테이블 복사 완료');
+    });
+}
+
 function buildTable() {
   const tbody = document.getElementById('angle-tbody');
   tbody.innerHTML = '';
@@ -1561,6 +2131,24 @@ function copyTableToClipboard() {
     });
 }
 
+function clearAllSurfaces() {
+  SURFACES.forEach(function(s) {
+    if (!s) return;
+    var defCmds = SFP_SET.has(s) ? [0, 90] : [...DEFAULT_COMMANDS];
+    surfCommands[s] = defCmds;
+    measureData[s]  = defCmds.map(function() { return { actual:null, fb:null }; });
+    offsets[s]       = { pos:0, neg:0 };
+    linearOffsets[s] = { pos:0, neg:0 };
+  });
+  buildMultiView();
+  // 오프셋 표시 초기화
+  ['offset-pos-val','offset-neg-val','linear-pos-val','linear-neg-val'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = '0.0°';
+  });
+  showPasteToast('전체 초기화 완료');
+}
+
 function autoFillDemo() {
   if (!currentSurface) return;
   const isSFP = SFP_SET.has(currentSurface);
@@ -1576,6 +2164,30 @@ function autoFillDemo() {
     };
   });
   buildTable();
+}
+
+function autoFillDemoAll() {
+  const prevSurface = currentSurface;
+  SURFACES.forEach(function(s) {
+    if (!s) return;
+    const isSFP = SFP_SET.has(s);
+    const n = function() { return (Math.random()-0.5)*0.25; };
+    measureData[s] = surfCommands[s].map(function(cmd) {
+      if (cmd === null) return { actual: null, fb: null };
+      if (isSFP) return {
+        actual: +((cmd*0.95 + 0.4 + n()).toFixed(2)),
+        fb:     +((cmd*0.98 + 0.2 + n()).toFixed(2))
+      };
+      return {
+        actual: +((cmd*0.96 + 0.4*Math.sin(cmd*0.1) + n()).toFixed(2)),
+        fb:     +((cmd*0.98 + 0.2*Math.sin(cmd*0.12)+ n()).toFixed(2))
+      };
+    });
+  });
+  // 미니 테이블 전체 갱신
+  buildMultiView();
+  // 단일 모드 테이블도 갱신
+  if (prevSurface) { currentSurface = prevSurface; buildTable(); }
 }
 
 // ─── Math: Linear Fit ───────────────────────────────
@@ -1797,14 +2409,32 @@ function buildOutput() {
       if (!out.hasOwnProperty(k)) out[k] = originalJSON[k];
     });
   } else {
-    // Default analogue / reserve blocks (all zeros)
+    // Default analogue / reserve blocks
+    const ANALONG_DEFAULTS = [
+      [0,0,1,0.19],  // 0: BATT_VOL
+      [0,0,1,-28],   // 1: BATT_TEMP
+      [0,0,1,0],     // 2: BATT_CURR
+      [0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]
+    ];
+    const RESERB_DEFAULTS = [
+      [0.251,1919,0.02,1.10], // 0: FF Unit/S/N/OIL Res/FF Factor
+      [0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0],
+      [0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]
+    ];
+    const ANALONG_NOTES = [
+      'BATT_VOL','BATT_TEMP','BATT_CURR','','','','','','',''
+    ];
+    const RESERB_NOTES = [
+      '[0]FF Unit (mL)/[1]FF S/N/[2]OIL Res/[3]FF Factor',
+      '','','','','','','','',''
+    ];
     for (let i=0;i<10;i++){
-      if (!out[`ANALONG_${i}`]) out[`ANALONG_${i}`]=[0,0,0,0];
-      if (!out[`Reserb_${i}`])  out[`Reserb_${i}`] =[0,0,0,0];
+      if (!out[`ANALONG_${i}`]) out[`ANALONG_${i}`]=[...ANALONG_DEFAULTS[i]];
+      if (!out[`Reserb_${i}`])  out[`Reserb_${i}`] =[...RESERB_DEFAULTS[i]];
     }
     for (let i=0;i<10;i++){
-      if (!out[`ANALONG_${i}_Note`]) out[`ANALONG_${i}_Note`]='';
-      if (!out[`Reserb_${i}_Note`])  out[`Reserb_${i}_Note`] ='';
+      if (!out[`ANALONG_${i}_Note`]) out[`ANALONG_${i}_Note`]=ANALONG_NOTES[i];
+      if (!out[`Reserb_${i}_Note`])  out[`Reserb_${i}_Note`] =RESERB_NOTES[i];
     }
   }
 
@@ -1822,11 +2452,32 @@ function startRigging() {
   const out = buildOutput();
   window._rigOutput = out;
   renderJSON(out);
+  // 항공기 카드 완전히 숨기기
+  const ac = document.getElementById('aircraft-card');
+  if (ac) { ac.style.display = 'none'; ac.style.visibility = 'hidden'; ac.style.height = '0'; ac.style.overflow = 'hidden'; ac.style.margin = '0'; ac.style.padding = '0'; }
+
+  // 설정파일 카드를 col-mid 최상단으로 이동 후 좌측 컬럼 숨기기
+  const loadCard = document.getElementById('load-json-card');
+  const colMid   = document.querySelector('.col-mid');
+  const colLeft  = document.querySelector('.col-left');
+  const threeCol = document.querySelector('.three-col');
+
+  if (loadCard && colMid && !document.getElementById('load-json-card-moved')) {
+    loadCard.id = 'load-json-card-moved';
+    colMid.insertBefore(loadCard, colMid.firstChild);
+  }
+  if (colLeft)  colLeft.style.display = 'none';
+  if (threeCol) {
+    threeCol.style.gridTemplateColumns = '2.2fr 1.4fr';
+    threeCol.style.alignItems = 'stretch';
+  }
+
   const filled = SURFACES.filter(s=>regressionData[s]).length;
   showStatus('rig-status',
     `리깅 완료 — ${filled}/8개 조종면 회귀식 적용 (SID: ${getSID()}, 저장명: ${buildFilename()})`,
     filled>0 ? 'ok' : 'warn');
   document.getElementById('json-out-wrap').style.display='block';
+  initRigOffsetPanel();
   updateDownloadPreview();
 }
 
@@ -1926,6 +2577,89 @@ function escH(s) {
 }
 
 // ── renderJSON: display + hidden textarea 동시 업데이트 ──
+// ─── FCA_RIG 상수항 오프셋 ──────────────────────────
+const rigBaseA0 = {};       // FCA_RIG 원본 a0
+const rigReversBaseA0 = {}; // FCA_RIG_REVERS 원본 a0
+const SURF_NAMES = ['ELV_LI','ELV_LO','ELV_RI','ELV_RO','RUD_L','RUD_R'];
+
+function makeOffsetRow(prefix, i, baseStore, color, containerId) {
+  var arr = window._rigOutput[prefix + i];
+  if (!arr || arr.length !== 4) return;
+  baseStore[i] = arr[3];
+
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
+  // compact: 이름만 표시, 입력칸 좁게, 결과는 tooltip으로
+  var lbl = document.createElement('span');
+  lbl.style.cssText = 'font-size:9.5px;color:var(--text-secondary);min-width:44px;font-weight:500;';
+  lbl.textContent = SURF_NAMES[i] || (prefix + i);
+
+  var inp = document.createElement('input');
+  inp.type  = 'number';
+  inp.id    = prefix.replace(/_/g,'') + 'off' + i;
+  inp.step  = '0.001';
+  inp.value = '0';
+  inp.placeholder = '0';
+  inp.style.cssText =
+    'width:72px;padding:2px 6px;border:1px solid var(--border2);border-radius:5px;' +
+    'font-size:11px;font-family:"SF Mono","Menlo",monospace;' +
+    'color:var(--text-primary);background:var(--card);outline:none;text-align:right;';
+  inp.onfocus = function(){ this.style.borderColor = 'var(--accent)'; };
+  inp.onblur  = function(){ this.style.borderColor = 'var(--border2)'; };
+  (function(p, idx, store){ inp.oninput = function(){ applyRigOffsetByKey(p, idx, store); }; })(prefix, i, baseStore);
+
+  var result = document.createElement('span');
+  result.id = prefix.replace(/_/g,'') + 'result' + i;
+  result.style.cssText = 'font-size:9.5px;font-family:"SF Mono","Menlo",monospace;color:#b5cea8;white-space:nowrap;flex:1;text-align:right;';
+  result.textContent = baseStore[i].toFixed(4);
+
+  row.appendChild(lbl);
+  row.appendChild(inp);
+  row.appendChild(result);
+  document.getElementById(containerId).appendChild(row);
+}
+
+function initRigOffsetPanel() {
+  if (!window._rigOutput) return;
+  document.getElementById('rig-offset-panel').style.display = 'block';
+
+  var rowsDiv = document.getElementById('rig-offset-rows');
+  rowsDiv.innerHTML = '';
+  var reversDiv = document.getElementById('rig-revers-offset-rows');
+  reversDiv.innerHTML = '';
+
+  for (var i = 0; i < 6; i++) {
+    makeOffsetRow('FCA_RIG_', i, rigBaseA0, '#9cdcfe', 'rig-offset-rows');
+    makeOffsetRow('FCA_RIG_REVERS_', i, rigReversBaseA0, '#ce9178', 'rig-revers-offset-rows');
+  }
+}
+
+function applyRigOffset(idx) {
+  applyRigOffsetByKey('FCA_RIG_', idx, rigBaseA0);
+}
+
+function applyRigOffsetByKey(prefix, idx, baseStore) {
+  if (!window._rigOutput) return;
+  var arr = window._rigOutput[prefix + idx];
+  if (!arr || arr.length !== 4) return;
+
+  var inputId = prefix.replace(/_/g,'') + 'off' + idx;
+  var resultId = prefix.replace(/_/g,'') + 'result' + idx;
+
+  var offsetVal = parseFloat(document.getElementById(inputId).value) || 0;
+  var base = (baseStore[idx] !== undefined) ? baseStore[idx] : arr[3];
+  arr[3] = Math.round((base + offsetVal) * 1e9) / 1e9;
+
+  var result = document.getElementById(resultId);
+  if (result) {
+    result.textContent = offsetVal !== 0
+      ? arr[3].toFixed(4) + ' (' + (offsetVal >= 0 ? '+' : '') + offsetVal.toFixed(4) + ')'
+      : arr[3].toFixed(4);
+  }
+  renderJSON(window._rigOutput);
+}
+
 function renderJSON(obj) {
   const text = buildJSONText(obj);
   // hidden textarea (복사/다운로드용 raw text)
@@ -1939,6 +2673,111 @@ function syncDisplayToTextarea() {
   const display = document.getElementById('json-display');
   // innerText로 plain text 추출
   document.getElementById('json-output').value = display.innerText;
+}
+
+// ─── JSON 비교 뷰 ──────────────────────────────────
+let _compareJSON = null;
+
+function loadCompareJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const raw  = e.target.result;
+      const lines = raw.split('\n').filter(l => !l.trim().startsWith('//'));
+      _compareJSON = JSON.parse(lines.join('\n'));
+      renderCompareView(file.name);
+    } catch(err) {
+      showStatus('rig-status', '비교 파일 파싱 오류: ' + err.message, 'err');
+    }
+    input.value = ''; // 같은 파일 재선택 가능하게
+  };
+  reader.readAsText(file);
+}
+
+function renderCompareView(filename) {
+  if (!_compareJSON) return;
+
+  // 비교 칸 표시
+  document.getElementById('json-compare-wrap').style.gridTemplateColumns = '1fr 1fr';
+  document.getElementById('compare-json-col').style.display = 'block';
+  document.getElementById('json-current-label').style.display = 'block';
+  document.getElementById('compare-file-label').textContent = filename || '비교 파일';
+  document.getElementById('compare-clear-btn').style.display = 'inline-flex';
+
+  // 비교 JSON 하이라이팅 렌더링
+  const compareText = buildCompareText(_compareJSON);
+  document.getElementById('compare-display').innerHTML = highlightJSONWithDiff(compareText, _compareJSON, window._rigOutput, true);
+
+  // 현재 JSON도 diff 하이라이팅 갱신
+  if (window._rigOutput) {
+    const currentText = buildJSONText(window._rigOutput);
+    document.getElementById('json-output').value = currentText;
+    document.getElementById('json-display').innerHTML = highlightJSONWithDiff(currentText, window._rigOutput, _compareJSON, false);
+  }
+}
+
+function buildCompareText(obj) {
+  // 비교 JSON을 FCA_RIG 한 줄 형식으로 직렬화
+  const rigPattern = /^FCA_RIG(_REVERS)?_[0-7]$/;
+  const lines = ['{'];
+  Object.entries(obj).forEach(([k, v], i, arr) => {
+    const comma = i < arr.length - 1 ? ',' : '';
+    if (Array.isArray(v) && rigPattern.test(k)) {
+      const vals = v.map(n => typeof n === 'number' ? n : JSON.stringify(n)).join(', ');
+      lines.push('\t"' + k + '": [' + vals + ']' + comma);
+    } else {
+      lines.push('\t"' + k + '": ' + JSON.stringify(v) + comma);
+    }
+  });
+  lines.push('}');
+  return lines.join('\n');
+}
+
+function highlightJSONWithDiff(text, thisObj, otherObj, isCompare) {
+  // 기본 하이라이팅 + 차이나는 FCA_RIG 라인 강조
+  const rigPattern = /^FCA_RIG(_REVERS)?_[0-7]$/;
+  const lines = text.split('\n');
+
+  return lines.map(line => {
+    // 키 추출
+    const keyMatch = line.match(/"(FCA_RIG(?:_REVERS)?_[0-7])"/);
+    let diffStyle = '';
+    if (keyMatch && otherObj && thisObj) {
+      const key = keyMatch[1];
+      const a = thisObj[key];
+      const b = otherObj[key];
+      if (a && b && JSON.stringify(a) !== JSON.stringify(b)) {
+        // 차이 있는 라인 강조
+        diffStyle = isCompare
+          ? 'background:rgba(255,159,10,0.12);display:block;'
+          : 'background:rgba(48,209,88,0.12);display:block;';
+      }
+    }
+
+    const highlighted = line
+      .replace(/"([^"]+)"(\s*:)/g, (_, k, col) =>
+        '<span class="jk">"' + escH(k) + '"</span><span class="jp">' + escH(col) + '</span>')
+      .replace(/:\s*"([^"]*)"/g, (m, s) =>
+        m.replace('"' + s + '"', '<span class="js">"' + escH(s) + '"</span>'))
+      .replace(/([:\[,]\s*)(-?[0-9]+\.?[0-9e+\-]*)/g, (m, pre, num) =>
+        escH(pre) + '<span class="jn">' + num + '</span>')
+      .replace(/[\[\]]/g, b => '<span class="jb">' + b + '</span>')
+      .replace(/[{},]/g, p => '<span class="jp">' + p + '</span>');
+
+    return diffStyle ? '<span style="' + diffStyle + '">' + highlighted + '</span>' : highlighted;
+  }).join('\n');
+}
+
+function clearCompareJSON() {
+  _compareJSON = null;
+  document.getElementById('json-compare-wrap').style.gridTemplateColumns = '1fr';
+  document.getElementById('compare-json-col').style.display = 'none';
+  document.getElementById('json-current-label').style.display = 'none';
+  document.getElementById('compare-clear-btn').style.display = 'none';
+  // 현재 JSON 일반 하이라이팅으로 복원
+  if (window._rigOutput) renderJSON(window._rigOutput);
 }
 
 function formatJSONEditor() {
@@ -2020,6 +2859,20 @@ function downloadFileQueue(files) {
     }, i * 1600);
   });
   showStatus('rig-status', 'JSON과 TXT 다운로드를 시작했습니다', 'ok');
+}
+
+function downloadTxt() {
+  const txtStr  = buildTxtContent();
+  if (!txtStr.trim()) {
+    showStatus('rig-status', '저장할 측정값이 없습니다', 'warn'); return;
+  }
+  const defaultName = buildFilename().replace(/\.json$/i, '');
+  showFilenameModal(defaultName, function(baseName) {
+    if (!baseName) return;
+    const blob = new Blob([txtStr], {type: 'application/octet-stream;charset=utf-8'});
+    triggerDownload(blob, baseName + '.txt');
+    showStatus('rig-status', 'TXT 다운로드 완료', 'ok');
+  });
 }
 
 function triggerDownload(blob, filename) {
