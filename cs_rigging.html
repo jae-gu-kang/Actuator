@@ -169,7 +169,18 @@
     gap:6px;
   }
   .multi-view-wrap.visible { display:grid; }
-  .multi-col { display:flex; flex-direction:column; gap:6px; }
+  #multi-view-area {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 4px;
+  }
+  #multi-grid {
+    grid-template-columns: repeat(4, minmax(190px, 1fr)) !important;
+    min-width: 796px;
+    width: 100%;
+  }
+  .multi-col { display:flex; flex-direction:column; gap:6px; min-width:0; }
 
   /* 멀티뷰 미니 테이블 */
   .mini-tbl-card {
@@ -574,12 +585,194 @@
 
   /* col label */
   .col-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     font-size: 9.5px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--text-tertiary);
     padding: 0 4px 8px;
+  }
+  .focus-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--border2);
+    background: white;
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .focus-view-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+  .focus-view-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .focus-exit-btn {
+    display: none;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: white;
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  body.focus-mid .focus-exit-btn,
+  body.focus-right .focus-exit-btn { display: inline-flex; }
+  body.focus-mid .three-col,
+  body.focus-right .three-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.focus-mid .col-left,
+  body.focus-mid .col-right,
+  body.focus-right .col-left,
+  body.focus-right .col-mid {
+    display: none !important;
+  }
+  body.focus-mid .col-mid,
+  body.focus-right .col-right {
+    border-right: none;
+    height: 100%;
+    overflow-y: auto;
+  }
+  body.focus-mid,
+  body.focus-right {
+    overflow: hidden;
+  }
+  body.focus-mid .page-wrapper,
+  body.focus-right .page-wrapper {
+    height: 100vh;
+    min-height: 100vh;
+  }
+  body.focus-mid .three-col,
+  body.focus-right .three-col {
+    height: calc(100vh - 70px);
+    min-height: 0;
+  }
+  body.focus-mid .col-mid,
+  body.focus-right .col-right {
+    height: calc(100vh - 70px);
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 16px;
+  }
+  body.focus-right #right-col-label,
+  body.focus-right #memo-card {
+    display: none !important;
+  }
+  body.focus-right .col-right {
+    padding: 12px 12px 16px;
+  }
+  body.focus-right #rig-output-card,
+  body.focus-mid #data-entry-card {
+    height: 100%;
+    min-height: 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  body.focus-right #rig-output-card > .card-body,
+  body.focus-mid #data-entry-card > .card-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  body.focus-right #rig-output-card .card-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
+  body.focus-right #rig-output-card .btn-row {
+    flex-wrap: wrap;
+  }
+  #json-out-wrap,
+  #json-main-grid,
+  #json-compare-wrap,
+  #json-display,
+  #compare-display {
+    min-width: 0;
+  }
+  #json-main-grid > div,
+  #json-compare-wrap > div {
+    min-width: 0;
+  }
+  body.focus-right #json-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  body.focus-right #json-compare-wrap {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  body.focus-right #rig-offset-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+  body.focus-right #json-display,
+  body.focus-right #compare-display {
+    max-width: 100%;
+  }
+  body.focus-right #json-display {
+    min-height: calc(100vh - 245px);
+  }
+  body.focus-mid #multi-grid {
+    grid-template-columns: repeat(4, minmax(190px, 1fr)) !important;
+  }
+  body.rigging-layout .col-mid,
+  body.rigging-layout .col-right {
+    overflow: hidden;
+  }
+  #load-json-card,
+  body.rigging-layout #load-json-card-moved,
+  body.rigging-layout #memo-card {
+    min-height: 138px;
+  }
+  body.rigging-layout #load-json-card-moved,
+  body.rigging-layout #memo-card {
+    flex: 0 0 138px;
+    height: 138px;
+    display: flex;
+    flex-direction: column;
+  }
+  #load-json-card .card-body,
+  body.rigging-layout #load-json-card-moved .card-body,
+  body.rigging-layout #memo-card .card-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  body.rigging-layout #memo-input {
+    height: 58px !important;
+  }
+  body.rigging-layout #data-entry-card,
+  body.rigging-layout #rig-output-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  body.rigging-layout #data-entry-card > .card-body,
+  body.rigging-layout #rig-output-card > .card-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  body.rigging-layout.focus-mid .col-mid,
+  body.rigging-layout.focus-right .col-right {
+    overflow: hidden;
   }
 
   /* Aircraft SVG — smaller in left column */
@@ -613,6 +806,9 @@
     .col:last-child { border-bottom: none; padding-bottom: 40px; }
     .page-header-inner { flex-wrap: wrap; gap: 8px; }
     .page-header h1 { font-size: 16px; }
+    body.focus-right #json-main-grid {
+      grid-template-columns: 1fr !important;
+    }
   }
   @media (max-width: 600px) {
     .page-header { padding: 14px 16px 12px; }
@@ -657,6 +853,7 @@
       <input type="number" id="rev-input-field" class="rev-input"
              min="0" max="99" value="0">
     </div>
+    <button id="focus-exit-btn" class="focus-exit-btn" onclick="setFocusPanel('')">전체 보기</button>
   </div>
 </header>
 
@@ -665,7 +862,9 @@
 
 <!-- ════ LEFT COL: 설정 파일 + 항공기 도면 ════ -->
 <div class="col col-left">
-  <div class="col-label">① 설정 파일 &amp; 배치도</div>
+  <div class="col-label">
+    <span>① 설정 파일 &amp; 배치도</span>
+  </div>
 
 <!-- ══════ LOAD JSON ══════ -->
 <div class="card" id="load-json-card">
@@ -855,16 +1054,27 @@
 
 <!-- ════ MID COL: 측정값 입력 ════ -->
 <div class="col col-mid">
-  <div class="col-label">② 측정값 입력</div>
+  <div class="col-label">
+    <span>② 측정값 입력</span>
+  </div>
 
 <!-- ══════ DATA ENTRY ══════ -->
-<div class="card">
+<div class="card" id="data-entry-card">
   <div class="card-header">
     <div>
       <div class="card-title" id="entry-title">조종면을 선택하세요</div>
       <div class="card-subtitle" id="entry-sub">항공기 도면 또는 탭 버튼으로 선택</div>
     </div>
     <div style="display:flex;gap:6px;align-items:center;">
+      <button class="focus-view-btn" onclick="setFocusPanel('mid')" title="측정값 입력 크게 보기" aria-label="측정값 입력 크게 보기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 3H3v5"/>
+          <path d="M16 3h5v5"/>
+          <path d="M21 16v5h-5"/>
+          <path d="M3 16v5h5"/>
+        </svg>
+        <span>크게 보기</span>
+      </button>
       <div class="mode-btn-group" style="margin-bottom:0;">
         <button class="mode-btn active" id="mode-btn-single" onclick="setViewMode('single')">단일</button>
         <button class="mode-btn" id="mode-btn-all" onclick="setViewMode('all')">전체</button>
@@ -1051,11 +1261,13 @@
 
 <!-- ════ RIGHT COL: 리깅 실행 & JSON ════ -->
 <div class="col col-right">
-  <div class="col-label" id="right-col-label">③ 리깅 실행 &amp; JSON 출력</div>
+  <div class="col-label" id="right-col-label">
+    <span>③ 리깅 실행 &amp; JSON 출력</span>
+  </div>
 
 
 <!-- ══════ MEMO ══════ -->
-<div class="card">
+<div class="card" id="memo-card">
   <div class="card-header">
     <div>
       <div class="card-title">메모</div>
@@ -1077,12 +1289,21 @@
 </div>
 
 <!-- ══════ RIGGING OUTPUT ══════ -->
-<div class="card">
+<div class="card" id="rig-output-card">
   <div class="card-header">
     <div>
       <div class="card-title">리깅 실행 및 JSON 출력</div>
       <div class="card-subtitle" id="download-preview">파일명: — </div>
     </div>
+    <button class="focus-view-btn" onclick="setFocusPanel('right')" title="JSON 크게 보기" aria-label="JSON 크게 보기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 3H3v5"/>
+        <path d="M16 3h5v5"/>
+        <path d="M21 16v5h-5"/>
+        <path d="M3 16v5h5"/>
+      </svg>
+      <span>JSON 크게 보기</span>
+    </button>
   </div>
   <div class="card-body">
     <div class="btn-row" style="margin-bottom:14px;">
@@ -1132,7 +1353,7 @@
       </div>
 
       <!-- 오프셋 + JSON 좌우 배치 -->
-      <div style="display:grid;grid-template-columns:200px 1fr;gap:10px;align-items:start;">
+      <div id="json-main-grid" style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:10px;align-items:start;">
 
         <!-- 좌: 상수항 오프셋 패널 (compact) -->
         <div id="rig-offset-panel" style="display:none;
@@ -2452,6 +2673,7 @@ function startRigging() {
   const out = buildOutput();
   window._rigOutput = out;
   renderJSON(out);
+  document.body.classList.add('rigging-layout');
   // 항공기 카드 완전히 숨기기
   const ac = document.getElementById('aircraft-card');
   if (ac) { ac.style.display = 'none'; ac.style.visibility = 'hidden'; ac.style.height = '0'; ac.style.overflow = 'hidden'; ac.style.margin = '0'; ac.style.padding = '0'; }
@@ -2464,7 +2686,8 @@ function startRigging() {
 
   if (loadCard && colMid && !document.getElementById('load-json-card-moved')) {
     loadCard.id = 'load-json-card-moved';
-    colMid.insertBefore(loadCard, colMid.firstChild);
+    const entryCard = document.getElementById('data-entry-card');
+    colMid.insertBefore(loadCard, entryCard || colMid.firstChild);
   }
   if (colLeft)  colLeft.style.display = 'none';
   if (threeCol) {
@@ -3023,6 +3246,13 @@ function showStatus(id,msg,type){
   const icons={ok:'✓',warn:'⚠',err:'✕'};
   document.getElementById(id).innerHTML=
     `<div class="status-bar status-${type}">${icons[type]} ${msg}</div>`;
+}
+
+function setFocusPanel(panel) {
+  document.body.classList.remove('focus-mid', 'focus-right');
+  if (panel === 'mid') document.body.classList.add('focus-mid');
+  if (panel === 'right') document.body.classList.add('focus-right');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ─── Init ────────────────────────────────────────────
