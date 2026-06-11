@@ -60,9 +60,6 @@
 
   .grid-wrap { border: 1px solid #e5e5ea; border-radius: 12px; overflow: hidden; }
   .grid-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .grid-table colgroup col:nth-child(1) { width: 52px; }
-  .grid-table colgroup col:nth-child(2) { width: 50%; }
-  .grid-table colgroup col:nth-child(3) { width: 50%; }
   .grid-table thead tr { background: #f2f2f7; border-bottom: 1px solid #e5e5ea; }
   .grid-table thead th { padding: 9px 12px; font-size: 12px; font-weight: 600; color: #8e8e93; text-align: center; user-select: none; }
   .grid-table thead th.col-num { color: #c7c7cc; font-weight: 500; font-size: 11px; }
@@ -76,7 +73,8 @@
   .cell-input { width: 100%; height: 36px; border: none; outline: none; background: transparent; font-family: 'SF Mono', 'Menlo', monospace; font-size: 13px; color: #1c1c1e; padding: 0 12px; text-align: right; }
   .cell-input.col-x:focus { background: #f0f6ff; box-shadow: inset 0 0 0 1.5px #007aff; }
   .cell-input.col-y:focus { background: #fff5f4; box-shadow: inset 0 0 0 1.5px #ff3b30; }
-  .cell-x-td { border-right: 0.5px solid #f2f2f7; }
+  .cell-data-td { border-right: 0.5px solid #f2f2f7; }
+  .cell-data-td:last-child { border-right: none; }
   .grid-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid #f2f2f7; background: #fafafa; border-radius: 0 0 12px 12px; flex-wrap: wrap; gap: 8px; }
   .grid-footer-left { font-size: 12px; color: #8e8e93; }
   .grid-footer-left strong { color: #1c1c1e; font-weight: 600; }
@@ -95,6 +93,7 @@
   .seg-control { display: flex; background: #f2f2f7; border-radius: 9px; padding: 2px; gap: 2px; flex-wrap: wrap; }
   .seg-control button { border: none; background: transparent; font-size: 13px; font-weight: 500; color: #8e8e93; padding: 6px 13px; border-radius: 7px; cursor: pointer; transition: all 0.15s; font-family: inherit; }
   .seg-control button.active { background: #fff; color: #1c1c1e; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .seg-control button:disabled { opacity: 0.35; cursor: not-allowed; }
   .controls-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-top: 16px; }
 
   .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
@@ -109,6 +108,19 @@
   .progress-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 
   .equation-box { background: #f2f2f7; border-radius: 12px; padding: 16px 20px; font-size: 18px; font-weight: 600; color: #1c1c1e; text-align: center; letter-spacing: -0.3px; font-family: 'SF Mono', monospace; word-break: break-all; }
+  .equation-list { display: grid; gap: 8px; text-align: left; font-size: 14px; line-height: 1.45; }
+  .equation-line { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: start; }
+  .equation-key { font-family: -apple-system, sans-serif; font-size: 12px; color: #8e8e93; font-weight: 700; }
+  .rigging-target-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 12px; }
+  .rigging-target-card { background: #fff; border: 1px solid #e5e5ea; border-radius: 10px; padding: 10px 12px; }
+  .rigging-target-label { font-size: 10px; font-weight: 700; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; }
+  .rigging-target-value { font-size: 18px; font-weight: 750; color: #1c1c1e; font-family: 'SF Mono', 'Menlo', monospace; }
+  .rigging-target-sub { font-size: 10px; color: #8e8e93; margin-top: 3px; }
+  .rigging-guide { display: grid; gap: 7px; margin-top: 12px; font-family: -apple-system, sans-serif; }
+  .rigging-guide-row { display: grid; grid-template-columns: 88px 1fr; gap: 10px; align-items: start; padding: 8px 10px; background: #fff; border: 1px solid #e5e5ea; border-radius: 9px; }
+  .rigging-guide-name { font-size: 11px; font-weight: 750; color: #1c1c1e; white-space: nowrap; }
+  .rigging-guide-desc { font-size: 11px; color: #636366; line-height: 1.45; }
+  .coeff-inline { display: block; margin-top: 3px; color: #636366; font-size: 11px; word-break: break-all; }
   .row-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .tag { display: inline-block; font-size: 12px; background: #e8f0fe; color: #0071e3; padding: 2px 9px; border-radius: 6px; font-weight: 500; }
   .chart-wrap { position: relative; width: 100%; height: 300px; }
@@ -175,13 +187,9 @@
 
     <div class="grid-wrap">
       <table class="grid-table" id="gridTable">
-        <colgroup><col><col><col></colgroup>
+        <colgroup id="gridColgroup"></colgroup>
         <thead>
-          <tr>
-            <th class="col-num">#</th>
-            <th class="col-x">X</th>
-            <th class="col-y">Y</th>
-          </tr>
+          <tr id="gridHeader"></tr>
         </thead>
         <tbody id="gridBody"></tbody>
       </table>
@@ -189,7 +197,7 @@
         <div class="grid-footer-left">
           데이터 <strong id="rowCountLabel">0</strong>개
           &nbsp;·&nbsp;
-          엑셀/시트에서 복사 후 X 셀에 붙여넣기
+          엑셀/시트에서 복사 후 첫 셀에 붙여넣기
         </div>
         <div class="grid-footer-right">
           <button class="apple-btn btn-secondary btn-sm" onclick="addRows(10)">+ 10행</button>
@@ -199,6 +207,14 @@
     </div>
 
     <div class="controls-row">
+      <div>
+        <div class="card-title" style="margin-bottom:8px;">분석 모드</div>
+        <div class="seg-control" id="analysisMode">
+          <button class="active" data-mode="multiY">X → Y1~Y4</button>
+          <button data-mode="multiX">X1~X4 → Y</button>
+          <button data-mode="rigging">조종면 리깅</button>
+        </div>
+      </div>
       <div>
         <div class="card-title" style="margin-bottom:8px;">회귀 유형</div>
         <div class="seg-control" id="regressionType">
@@ -265,28 +281,61 @@
 
 <script>
 const INIT_ROWS = 10;
-let chartInstance = null, residualChartInstance = null, currentType = 'linear';
+const COLORS = ['#007aff', '#ff3b30', '#30d158', '#af52de'];
+const MODE_COLUMNS = {
+  multiY: [
+    { key:'x', label:'X', role:'x' },
+    { key:'y1', label:'Y1', role:'y' },
+    { key:'y2', label:'Y2', role:'y' },
+    { key:'y3', label:'Y3', role:'y' },
+    { key:'y4', label:'Y4', role:'y' },
+  ],
+  multiX: [
+    { key:'x1', label:'X1', role:'x' },
+    { key:'x2', label:'X2', role:'x' },
+    { key:'x3', label:'X3', role:'x' },
+    { key:'x4', label:'X4', role:'x' },
+    { key:'y', label:'Y', role:'y' },
+  ],
+  rigging: [
+    { key:'cmd', label:'명령각도', role:'x' },
+    { key:'actual', label:'실제각도기', role:'y' },
+    { key:'feedback', label:'피드백각도', role:'y' },
+  ],
+};
+
+let chartInstance = null, residualChartInstance = null;
+let currentType = 'linear', analysisMode = 'multiY';
+
+function getColumns() {
+  return MODE_COLUMNS[analysisMode];
+}
 
 function buildGrid(n) {
+  const cols = getColumns();
+  document.getElementById('gridColgroup').innerHTML =
+    `<col style="width:52px">${cols.map(() => '<col>').join('')}`;
+  document.getElementById('gridHeader').innerHTML =
+    `<th class="col-num">#</th>` +
+    cols.map(col => `<th class="col-${col.role}">${col.label}</th>`).join('');
   document.getElementById('gridBody').innerHTML = '';
   for (let i = 0; i < n; i++) appendRow(i + 1);
 }
 
 function appendRow(num) {
+  const cols = getColumns();
   const tbody = document.getElementById('gridBody');
   const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><div class="row-num">${num}</div></td>
-    <td class="cell-x-td"><input class="cell-input col-x" type="text" inputmode="decimal"></td>
-    <td><input class="cell-input col-y" type="text" inputmode="decimal"></td>`;
+  tr.innerHTML = `<td><div class="row-num">${num}</div></td>` + cols.map((col, idx) => `
+    <td class="cell-data-td">
+      <input class="cell-input col-${col.role}" data-key="${col.key}" data-row="${num - 1}" data-col="${idx}" type="text" inputmode="decimal">
+    </td>`).join('');
   tbody.appendChild(tr);
-  const [xIn, yIn] = tr.querySelectorAll('.cell-input');
-  xIn.addEventListener('keydown', e => nav(e, xIn));
-  yIn.addEventListener('keydown', e => nav(e, yIn));
-  xIn.addEventListener('paste', e => handlePaste(e, xIn));
-  yIn.addEventListener('paste', e => handlePaste(e, yIn));
-  xIn.addEventListener('input', updateCount);
-  yIn.addEventListener('input', updateCount);
+  tr.querySelectorAll('.cell-input').forEach(inp => {
+    inp.addEventListener('keydown', e => nav(e, inp));
+    inp.addEventListener('paste', e => handlePaste(e, inp));
+    inp.addEventListener('input', updateCount);
+  });
 }
 
 function addRows(n) {
@@ -297,6 +346,10 @@ function addRows(n) {
 function clearGrid() {
   buildGrid(INIT_ROWS);
   updateCount();
+  hideResults();
+}
+
+function hideResults() {
   document.getElementById('resultsSection').style.display = 'none';
   document.getElementById('emptyState').style.display = 'block';
 }
@@ -307,20 +360,37 @@ function scheduleRun() {
   autoRunTimer = setTimeout(() => runRegression(), 600);
 }
 
+function parseNum(value) {
+  const s = String(value ?? '').trim().replace(/,/g, '');
+  if (!s) return NaN;
+  return parseFloat(s);
+}
+
+function getMatrixRows() {
+  return Array.from(document.querySelectorAll('#gridBody tr')).map((tr, rowIdx) => {
+    const values = {};
+    tr.querySelectorAll('.cell-input').forEach(inp => {
+      values[inp.dataset.key] = parseNum(inp.value);
+    });
+    return { rowIdx: rowIdx + 1, values };
+  });
+}
+
 function updateCount() {
-  document.getElementById('rowCountLabel').textContent = getRows().length;
+  document.getElementById('rowCountLabel').textContent = countUsableRows();
   scheduleRun();
 }
 
-function getRows() {
-  const out = [];
-  document.querySelectorAll('#gridBody tr').forEach(tr => {
-    const [xIn, yIn] = tr.querySelectorAll('.cell-input');
-    const x = parseFloat(xIn.value.replace(/,/g, ''));
-    const y = parseFloat(yIn.value.replace(/,/g, ''));
-    if (!isNaN(x) && !isNaN(y) && xIn.value.trim() && yIn.value.trim()) out.push({x, y});
-  });
-  return out;
+function countUsableRows() {
+  const rows = getMatrixRows();
+  if (analysisMode === 'multiY') {
+    return rows.filter(r => !isNaN(r.values.x) && ['y1','y2','y3','y4'].some(k => !isNaN(r.values[k]))).length;
+  }
+  if (analysisMode === 'rigging') {
+    return getRiggingRows().length;
+  }
+  const { rows: usable } = getMultiXRows();
+  return usable.length;
 }
 
 /* 키보드 내비게이션 */
@@ -334,78 +404,64 @@ function nav(e, inp) {
   }
   if (e.key === 'Enter' || e.key === 'ArrowDown') {
     e.preventDefault();
-    const isX = inp.classList.contains('col-x');
-    const col = all.filter(i => i.classList.contains(isX ? 'col-x' : 'col-y'));
-    const ci = col.indexOf(inp);
-    if (ci + 1 < col.length) col[ci + 1].focus();
+    focusCell(Number(inp.dataset.row) + 1, Number(inp.dataset.col));
   }
   if (e.key === 'ArrowUp') {
     e.preventDefault();
-    const isX = inp.classList.contains('col-x');
-    const col = all.filter(i => i.classList.contains(isX ? 'col-x' : 'col-y'));
-    const ci = col.indexOf(inp);
-    if (ci > 0) col[ci - 1].focus();
+    focusCell(Number(inp.dataset.row) - 1, Number(inp.dataset.col));
   }
 }
 
-/* 붙여넣기 처리 — 엑셀/스프레드시트 탭 구분 완벽 지원 */
+function focusCell(row, col) {
+  const target = document.querySelector(`.cell-input[data-row="${row}"][data-col="${col}"]`);
+  if (target) target.focus();
+}
+
+/* 붙여넣기 처리 — 엑셀/스프레드시트 탭 구분 지원 */
 function handlePaste(e, inp) {
   const raw = (e.clipboardData || window.clipboardData).getData('text');
   const lines = raw.split(/\r?\n/).filter(l => l.trim() !== '');
-
-  /* 단일 숫자값이면 기본 동작 유지 */
-  if (lines.length === 1 && !lines[0].includes('\t') && !/[,;]/.test(lines[0])) return;
+  if (lines.length === 1 && !lines[0].includes('\t') && !/[,;\s]/.test(lines[0].trim())) return;
 
   e.preventDefault();
+  const matrix = analysisMode === 'rigging' ? parseRiggingPaste(lines) : lines.map(line => {
+    if (line.includes('\t')) return line.split('\t').map(v => v.trim());
+    if (line.includes(',')) return line.split(',').map(v => v.trim());
+    if (line.includes(';')) return line.split(';').map(v => v.trim());
+    return line.trim().split(/\s+/);
+  });
 
-  /* 각 줄을 [x, y] 쌍으로 파싱 */
-  const pairs = [];
-  for (const line of lines) {
-    let parts;
-    if (line.includes('\t')) {
-      parts = line.split('\t');
-    } else if (line.includes(',')) {
-      parts = line.split(',');
-    } else if (line.includes(';')) {
-      parts = line.split(';');
-    } else {
-      parts = line.trim().split(/\s+/);
-    }
-    const a = parts[0] ? parts[0].trim().replace(/,/g, '') : '';
-    const b = parts[1] ? parts[1].trim().replace(/,/g, '') : '';
-    pairs.push([a, b]);
+  if (!matrix.length) {
+    showToast('붙여넣을 숫자 행이 없습니다', true);
+    return;
   }
 
-  /* 현재 포커스 행 찾기 */
-  const xInputs = Array.from(document.querySelectorAll('.cell-input.col-x'));
-  const yInputs = Array.from(document.querySelectorAll('.cell-input.col-y'));
-  const isX = inp.classList.contains('col-x');
-  const startRow = isX ? xInputs.indexOf(inp) : yInputs.indexOf(inp);
-
-  /* 행이 부족하면 추가 */
-  const needed = startRow + pairs.length;
+  const startRow = Number(inp.dataset.row);
+  const startCol = Number(inp.dataset.col);
+  const needed = startRow + matrix.length;
   const cur = document.getElementById('gridBody').rows.length;
   if (needed > cur) addRows(needed - cur);
 
-  /* 최신 입력 엘리먼트 재조회 후 값 입력 */
-  const freshX = Array.from(document.querySelectorAll('.cell-input.col-x'));
-  const freshY = Array.from(document.querySelectorAll('.cell-input.col-y'));
-
-  pairs.forEach(([a, b], i) => {
-    const ri = startRow + i;
-    if (isX) {
-      if (freshX[ri]) freshX[ri].value = a;
-      if (freshY[ri] && b !== '') freshY[ri].value = b;
-    } else {
-      /* Y 열에서 붙여넣기: 한 열만 있으면 Y에만 채움 */
-      if (freshY[ri]) freshY[ri].value = a;
-      if (b !== '' && freshX[ri] && !freshX[ri].value) freshX[ri].value = b;
-    }
+  matrix.forEach((row, r) => {
+    row.forEach((value, c) => {
+      const target = document.querySelector(`.cell-input[data-row="${startRow + r}"][data-col="${startCol + c}"]`);
+      if (target) target.value = value;
+    });
   });
 
   updateCount();
   runRegression();
-  showToast(`${pairs.length}개 행 붙여넣기 완료`);
+  showToast(`${matrix.length}개 행 붙여넣기 완료`);
+}
+
+function parseRiggingPaste(lines) {
+  return lines.map(line => {
+    if (line.includes('\t')) return line.split('\t').map(v => v.trim());
+    if (line.includes(',')) return line.split(',').map(v => v.trim());
+    if (line.includes(';')) return line.split(';').map(v => v.trim());
+    return line.trim().split(/\s+/);
+  }).filter(parts => parts.length >= 2 && !isNaN(parseNum(parts[0])) && !isNaN(parseNum(parts[1])))
+    .map(parts => [parts[0] ?? '', parts[1] ?? '', parts[2] ?? '']);
 }
 
 /* 샘플 데이터 — 유형별 3세트, 누를 때마다 순환 */
@@ -444,201 +500,694 @@ const SAMPLES = {
 const sampleIdx = { linear:0, polynomial2:0, polynomial3:0, exponential:0, logarithmic:0, power:0 };
 
 function loadSample() {
+  if (analysisMode === 'rigging') {
+    const data = buildRiggingSample();
+    buildGrid(Math.max(INIT_ROWS, data.length + 3));
+    data.forEach((row, i) => ['cmd','actual','feedback'].forEach((key, j) => {
+      const input = document.querySelector(`.cell-input[data-row="${i}"][data-col="${j}"]`);
+      if (input) input.value = row[key] ?? '';
+    }));
+    updateCount();
+    runRegression();
+    showToast('조종면 리깅 샘플 데이터 입력 완료');
+    return;
+  }
+
+  if (analysisMode === 'multiX') {
+    const data = buildMultiXSample();
+    buildGrid(Math.max(INIT_ROWS, data.length + 3));
+    data.forEach((row, i) => ['x1','x2','x3','x4','y'].forEach((key, j) => {
+      const input = document.querySelector(`.cell-input[data-row="${i}"][data-col="${j}"]`);
+      if (input) input.value = row[key];
+    }));
+    updateCount();
+    runRegression();
+    showToast('다중 X 샘플 데이터 입력 완료');
+    return;
+  }
+
   const sets = SAMPLES[currentType];
   const idx = sampleIdx[currentType] % sets.length;
   const { label, data } = sets[idx];
   sampleIdx[currentType]++;
 
   buildGrid(Math.max(INIT_ROWS, data.length + 3));
-  const xI = document.querySelectorAll('.cell-input.col-x');
-  const yI = document.querySelectorAll('.cell-input.col-y');
-  data.forEach(([x,y],i) => { xI[i].value = x; yI[i].value = y; });
+  data.forEach(([x, y], i) => {
+    const values = [x, y, y * 0.82 + i * 0.9, y * 1.12 - i * 0.7, y * 0.55 + Math.sin(i) * y * 0.04 + 8];
+    values.forEach((value, j) => {
+      const input = document.querySelector(`.cell-input[data-row="${i}"][data-col="${j}"]`);
+      if (input) input.value = f(value, 4);
+    });
+  });
   updateCount();
   runRegression();
-  const nextIdx = sampleIdx[currentType] % sets.length + 1;
-  document.getElementById('sampleBtn').textContent = `샘플 데이터 ${nextIdx}/${sets.length}`;
-  showToast(`📋 ${label} (${idx+1}/${sets.length})`);
+  updateSampleButton();
+  showToast(`${label} (${idx+1}/${sets.length})`);
+}
+
+function buildMultiXSample() {
+  return [
+    {x1:1.0,x2:120,x3:0.55,x4:8,y:42.7},
+    {x1:1.4,x2:135,x3:0.62,x4:10,y:49.4},
+    {x1:1.8,x2:150,x3:0.67,x4:13,y:56.3},
+    {x1:2.1,x2:168,x3:0.74,x4:15,y:64.2},
+    {x1:2.5,x2:182,x3:0.78,x4:17,y:70.1},
+    {x1:2.9,x2:195,x3:0.83,x4:20,y:77.5},
+    {x1:3.2,x2:210,x3:0.88,x4:22,y:83.1},
+    {x1:3.7,x2:228,x3:0.91,x4:24,y:90.9},
+    {x1:4.1,x2:244,x3:0.96,x4:27,y:98.2},
+    {x1:4.6,x2:260,x3:1.02,x4:30,y:106.4},
+  ];
+}
+
+function buildRiggingSample() {
+  return [
+    {cmd:-30, actual:-29.4, feedback:-29.74},
+    {cmd:-20, actual:-19.55, feedback:-19.71},
+    {cmd:-10, actual:-9.85, feedback:-9.86},
+    {cmd:0, actual:0, feedback:0},
+    {cmd:10, actual:9.75, feedback:9.86},
+    {cmd:20, actual:19.15, feedback:19.8},
+    {cmd:30, actual:28.3, feedback:29.74},
+  ];
 }
 
 /* 세그먼트 컨트롤 */
+document.getElementById('analysisMode').addEventListener('click', e => {
+  if (!e.target.dataset.mode || e.target.dataset.mode === analysisMode) return;
+  document.querySelectorAll('#analysisMode button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  analysisMode = e.target.dataset.mode;
+  syncRegressionButtons();
+  clearGrid();
+  updateSampleButton();
+  const labels = {multiY:'X → Y1~Y4 모드', multiX:'X1~X4 → Y 모드', rigging:'조종면 리깅 모드'};
+  showToast(labels[analysisMode]);
+});
+
 document.getElementById('regressionType').addEventListener('click', e => {
-  if (!e.target.dataset.type) return;
+  if (!e.target.dataset.type || e.target.disabled) return;
   document.querySelectorAll('#regressionType button').forEach(b => b.classList.remove('active'));
   e.target.classList.add('active');
   currentType = e.target.dataset.type;
-  const sets = SAMPLES[currentType];
-  const nextIdx = sampleIdx[currentType] % sets.length + 1;
-  document.getElementById('sampleBtn').textContent = `샘플 데이터 ${nextIdx}/${sets.length}`;
+  updateSampleButton();
   runRegression();
 });
 
-/* 분석 실행 */
-function runRegression() {
-  const data = getRows();
-  if (data.length < 3) {
-    document.getElementById('resultsSection').style.display = 'none';
-    document.getElementById('emptyState').style.display = 'block';
+function syncRegressionButtons() {
+  const buttons = document.querySelectorAll('#regressionType button');
+  if (analysisMode === 'rigging') currentType = 'polynomial3';
+  buttons.forEach(b => {
+    b.disabled =
+      (analysisMode === 'multiX' && b.dataset.type !== 'linear') ||
+      (analysisMode === 'rigging' && b.dataset.type !== 'polynomial3');
+    b.classList.toggle('active', b.dataset.type === currentType);
+  });
+  if (analysisMode === 'multiX' && currentType !== 'linear') {
+    currentType = 'linear';
+    buttons.forEach(b => b.classList.toggle('active', b.dataset.type === 'linear'));
+  }
+}
+
+function updateSampleButton() {
+  if (analysisMode === 'rigging') {
+    document.getElementById('sampleBtn').textContent = '리깅 샘플';
     return;
   }
+  if (analysisMode === 'multiX') {
+    document.getElementById('sampleBtn').textContent = '샘플 데이터';
+    return;
+  }
+  const sets = SAMPLES[currentType];
+  const nextIdx = sampleIdx[currentType] % sets.length + 1;
+  document.getElementById('sampleBtn').textContent = `샘플 데이터 ${nextIdx}/${sets.length}`;
+}
+
+/* 분석 실행 */
+function runRegression() {
   const wasHidden = document.getElementById('resultsSection').style.display === 'none';
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('resultsSection').style.display = 'flex';
-  const res = compute(data, currentType);
-  display(data, res);
+  if (analysisMode === 'multiY') {
+    const results = getMultiYSeries()
+      .map(series => ({...series, res: safeComputeSingle(series.data, currentType)}))
+      .filter(series => series.res);
+    if (!results.length) {
+      hideResults();
+      return;
+    }
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsSection').style.display = 'flex';
+    displayMultiY(results);
+  } else if (analysisMode === 'rigging') {
+    const rows = getRiggingRows();
+    if (rows.length < 4) {
+      hideResults();
+      return;
+    }
+    const res = safeComputeRigging(rows);
+    if (!res) {
+      hideResults();
+      return;
+    }
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsSection').style.display = 'flex';
+    displayRigging(rows, res);
+  } else {
+    const packet = getMultiXRows();
+    if (packet.activeX.length < 1 || packet.rows.length < packet.activeX.length + 2) {
+      hideResults();
+      return;
+    }
+    const res = safeComputeMultiX(packet.rows, packet.activeX);
+    if (!res) {
+      hideResults();
+      return;
+    }
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsSection').style.display = 'flex';
+    displayMultiX(packet.rows, packet.activeX, res);
+  }
   if (wasHidden) setTimeout(() => document.getElementById('resultsSection').scrollIntoView({behavior:'smooth', block:'start'}), 80);
 }
 
+function getMultiYSeries() {
+  const rows = getMatrixRows();
+  return ['y1','y2','y3','y4'].map((key, idx) => ({
+    key,
+    label: key.toUpperCase(),
+    color: COLORS[idx],
+    data: rows
+      .filter(r => !isNaN(r.values.x) && !isNaN(r.values[key]))
+      .map(r => ({x:r.values.x, y:r.values[key], rowIdx:r.rowIdx}))
+  })).filter(series => series.data.length >= 3);
+}
+
+function getMultiXRows() {
+  const raw = getMatrixRows();
+  const xKeys = ['x1','x2','x3','x4'];
+  const activeX = xKeys.filter(key => raw.some(r => !isNaN(r.values[key])));
+  const rows = raw
+    .filter(r => !isNaN(r.values.y) && activeX.every(key => !isNaN(r.values[key])))
+    .map(r => ({rowIdx:r.rowIdx, xs:activeX.map(key => r.values[key]), y:r.values.y}));
+  return {activeX, rows};
+}
+
+function getRiggingRows() {
+  return getMatrixRows()
+    .filter(r => !isNaN(r.values.cmd) && !isNaN(r.values.actual))
+    .map(r => ({
+      rowIdx: r.rowIdx,
+      cmd: r.values.cmd,
+      actual: r.values.actual,
+      feedback: r.values.feedback
+    }));
+}
+
+function safeComputeSingle(data, type) {
+  const filtered = filterForType(data, type);
+  const minN = type === 'polynomial3' ? 5 : type === 'polynomial2' ? 4 : 3;
+  if (filtered.length < minN) return null;
+  try {
+    return computeSingle(filtered, type);
+  } catch (e) {
+    return null;
+  }
+}
+
+function filterForType(data, type) {
+  if (type === 'exponential') return data.filter(d => d.y > 0);
+  if (type === 'logarithmic') return data.filter(d => d.x > 0);
+  if (type === 'power') return data.filter(d => d.x > 0 && d.y > 0);
+  return data;
+}
+
+function safeComputeMultiX(rows, activeX) {
+  try {
+    return computeMultiX(rows, activeX);
+  } catch (e) {
+    return null;
+  }
+}
+
+function safeComputeRigging(rows) {
+  try {
+    const commandData = rows.map(r => ({x:r.actual, y:r.cmd, rowIdx:r.rowIdx}));
+    const feedbackPredictData = rows
+      .filter(r => !isNaN(r.feedback))
+      .map(r => ({x:r.actual, y:r.feedback, rowIdx:r.rowIdx}));
+    const feedbackReverseData = rows
+      .filter(r => !isNaN(r.feedback))
+      .map(r => ({x:r.feedback, y:r.actual, rowIdx:r.rowIdx}));
+    const command = computeSingle(commandData, 'polynomial3');
+    const feedbackPredict = feedbackPredictData.length >= 4 ? computeSingle(feedbackPredictData, 'polynomial3') : null;
+    const feedbackReverse = feedbackReverseData.length >= 4 ? computeSingle(feedbackReverseData, 'polynomial3') : null;
+    return {command, feedbackPredict, feedbackReverse};
+  } catch (e) {
+    return null;
+  }
+}
+
 /* 회귀 계산 */
-function compute(data, type) {
+function computeSingle(data, type) {
   const xs = data.map(d=>d.x), ys = data.map(d=>d.y), n = data.length;
-  let predict, equation, coeff;
+  let predict, equation, coeffs, predictorCount = 1;
 
   if (type === 'linear') {
     const [sx,sy,sxy,sxx] = [sum(xs),sum(ys),dot(xs,ys),dot(xs,xs)];
-    const D=n*sxx-sx*sx, a=(n*sxy-sx*sy)/D, b=(sy-a*sx)/n;
-    predict=x=>a*x+b; equation=`ŷ = ${f(a)}x ${b>=0?'+':'-'} ${f(Math.abs(b))}`;
-    coeff=[{name:'a',value:a},{name:'b',value:b}];
+    const D=n*sxx-sx*sx;
+    if (Math.abs(D) < 1e-12) throw new Error('singular');
+    const a=(n*sxy-sx*sy)/D, b=(sy-a*sx)/n;
+    predict=x=>a*x+b;
+    equation=`ŷ = ${f(a)}x ${b>=0?'+':'-'} ${f(Math.abs(b))}`;
+    coeffs=[0,0,a,b];
   } else if (type==='polynomial2'||type==='polynomial3') {
     const deg=type==='polynomial2'?2:3, c=polyFit(xs,ys,deg);
+    predictorCount = deg;
     predict=x=>c.reduce((s,v,i)=>s+v*Math.pow(x,i),0);
     let eq=`ŷ = ${f(c[deg])}x^${deg}`;
     for(let i=deg-1;i>=0;i--){const s=c[i]>=0?'+':'-';eq+=` ${s} ${f(Math.abs(c[i]))}${i===0?'':i===1?'x':'x^'+i}`;}
-    equation=eq; coeff=c.map((v,i)=>({name:`x^${i}`,value:v}));
+    equation=eq;
+    coeffs=deg===3 ? [c[3],c[2],c[1],c[0]] : [0,c[2],c[1],c[0]];
   } else if (type==='exponential') {
     const ly=ys.map(Math.log), sx=sum(xs), sly=sum(ly), sxly=dot(xs,ly), sxx=dot(xs,xs), D=n*sxx-sx*sx;
+    if (Math.abs(D) < 1e-12) throw new Error('singular');
     const B=(n*sxly-sx*sly)/D, A=Math.exp((sly-B*sx)/n);
-    predict=x=>A*Math.exp(B*x); equation=`ŷ = ${f(A)} · e^(${f(B)}x)`;
-    coeff=[{name:'A',value:A},{name:'B',value:B}];
+    predict=x=>A*Math.exp(B*x);
+    equation=`ŷ = ${f(A)} · e^(${f(B)}x)`;
+    coeffs=[A,B];
   } else if (type==='logarithmic') {
     const lx=xs.map(Math.log), slx=sum(lx), sy=sum(ys), slxy=dot(lx,ys), slx2=dot(lx,lx), D=n*slx2-slx*slx;
+    if (Math.abs(D) < 1e-12) throw new Error('singular');
     const b=(n*slxy-slx*sy)/D, a=(sy-b*slx)/n;
-    predict=x=>a+b*Math.log(x); equation=`ŷ = ${f(b)} · ln(x) ${a>=0?'+':'-'} ${f(Math.abs(a))}`;
-    coeff=[{name:'b',value:b},{name:'a',value:a}];
+    predict=x=>a+b*Math.log(x);
+    equation=`ŷ = ${f(b)} · ln(x) ${a>=0?'+':'-'} ${f(Math.abs(a))}`;
+    coeffs=[b,a];
   } else {
     const lx=xs.map(Math.log), ly=ys.map(Math.log), slx=sum(lx), sly=sum(ly);
     const slxly=dot(lx,ly), slx2=dot(lx,lx), D=n*slx2-slx*slx;
+    if (Math.abs(D) < 1e-12) throw new Error('singular');
     const B=(n*slxly-slx*sly)/D, A=Math.exp((sly-B*slx)/n);
-    predict=x=>A*Math.pow(x,B); equation=`ŷ = ${f(A)} · x^${f(B)}`;
-    coeff=[{name:'A',value:A},{name:'B',value:B}];
+    predict=x=>A*Math.pow(x,B);
+    equation=`ŷ = ${f(A)} · x^${f(B)}`;
+    coeffs=[A,B];
   }
 
-  const yp=xs.map(predict), res=ys.map((y,i)=>y-yp[i]), ym=sum(ys)/n;
-  const ssTot=ys.reduce((s,y)=>s+(y-ym)**2,0), ssRes=res.reduce((s,r)=>s+r*r,0);
-  const r2=1-ssRes/ssTot, mse=ssRes/n;
-  return {predict,equation,coeff,r2,adjR2:1-(1-r2)*(n-1)/(n-coeff.length-1),
-          rmse:Math.sqrt(mse),mae:res.reduce((s,r)=>s+Math.abs(r),0)/n,mse,residuals:res,yPred:yp};
+  return {...buildStats(data, ys, xs.map(predict), predict, equation, predictorCount), coeffs};
+}
+
+function computeMultiX(rows, activeX) {
+  const p = activeX.length, m = p + 1;
+  const A = Array.from({length:m},()=>Array(m).fill(0));
+  const B = Array(m).fill(0);
+  rows.forEach(row => {
+    const v = [1, ...row.xs];
+    for (let i=0;i<m;i++) {
+      B[i] += v[i] * row.y;
+      for (let j=0;j<m;j++) A[i][j] += v[i] * v[j];
+    }
+  });
+  const beta = gauss(A, B);
+  const predict = xs => beta[0] + xs.reduce((s, x, i) => s + beta[i + 1] * x, 0);
+  const equation = beta.slice(1).reduce((eq, b, i) => {
+    const sign = b >= 0 ? '+' : '-';
+    return `${eq} ${sign} ${f(Math.abs(b))}${activeX[i].toUpperCase()}`;
+  }, `ŷ = ${f(beta[0])}`);
+  const yPred = rows.map(row => predict(row.xs));
+  return {...buildStats(rows, rows.map(r=>r.y), yPred, predict, equation, p), beta};
+}
+
+function buildStats(data, ys, yPred, predict, equation, predictorCount) {
+  const n = ys.length;
+  const residuals = ys.map((y,i)=>y-yPred[i]), ym=sum(ys)/n;
+  const ssTot=ys.reduce((s,y)=>s+(y-ym)**2,0), ssRes=residuals.reduce((s,r)=>s+r*r,0);
+  const r2=ssTot === 0 ? (ssRes === 0 ? 1 : 0) : 1-ssRes/ssTot;
+  const mse=ssRes/n, denom=n-predictorCount-1;
+  const adjR2=denom > 0 ? 1-(1-r2)*(n-1)/denom : r2;
+  return {predict,equation,r2,adjR2,rmse:Math.sqrt(mse),
+          mae:residuals.reduce((s,r)=>s+Math.abs(r),0)/n,mse,residuals,yPred,data,predictorCount};
 }
 
 const sum = a => a.reduce((s,v)=>s+v,0);
 const dot = (a,b) => a.reduce((s,v,i)=>s+v*b[i],0);
 
 function polyFit(xs,ys,deg){
-  const n=xs.length,m=deg+1,A=Array.from({length:m},()=>Array(m).fill(0)),B=Array(m).fill(0);
-  for(let i=0;i<m;i++){for(let j=0;j<m;j++)A[i][j]=xs.reduce((s,x)=>s+Math.pow(x,i+j),0);B[i]=xs.reduce((s,x,k)=>s+Math.pow(x,i)*ys[k],0);}
+  const m=deg+1,A=Array.from({length:m},()=>Array(m).fill(0)),B=Array(m).fill(0);
+  for(let i=0;i<m;i++){
+    for(let j=0;j<m;j++) A[i][j]=xs.reduce((s,x)=>s+Math.pow(x,i+j),0);
+    B[i]=xs.reduce((s,x,k)=>s+Math.pow(x,i)*ys[k],0);
+  }
   return gauss(A,B);
 }
+
 function gauss(A,b){
   const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
-  for(let c=0;c<n;c++){let mr=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[mr][c]))mr=r;[M[c],M[mr]]=[M[mr],M[c]];for(let r=c+1;r<n;r++){const fv=M[r][c]/M[c][c];for(let j=c;j<=n;j++)M[r][j]-=fv*M[c][j];}}
-  const x=Array(n).fill(0);for(let i=n-1;i>=0;i--){x[i]=M[i][n]/M[i][i];for(let j=i-1;j>=0;j--)M[j][n]-=M[j][i]*x[i];}return x;
+  for(let c=0;c<n;c++){
+    let mr=c;
+    for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[mr][c])) mr=r;
+    if (Math.abs(M[mr][c]) < 1e-12) throw new Error('singular');
+    [M[c],M[mr]]=[M[mr],M[c]];
+    for(let r=c+1;r<n;r++){const fv=M[r][c]/M[c][c];for(let j=c;j<=n;j++)M[r][j]-=fv*M[c][j];}
+  }
+  const x=Array(n).fill(0);
+  for(let i=n-1;i>=0;i--){x[i]=M[i][n]/M[i][i];for(let j=i-1;j>=0;j--)M[j][n]-=M[j][i]*x[i];}
+  return x;
 }
-function f(v,d=4){if(Math.abs(v)<0.001&&v!==0)return v.toExponential(2);return parseFloat(v.toFixed(d));}
+
+function f(v,d=4){if(!isFinite(v))return '-';if(Math.abs(v)<0.001&&v!==0)return v.toExponential(2);return parseFloat(v.toFixed(d));}
 function cls(r2){return r2>=0.9?'good':r2>=0.7?'medium':'poor';}
 function barClr(c){return c==='good'?'#30d158':c==='medium'?'#ff9f0a':'#ff3b30';}
+function pct(v,d=1){return `${(v*100).toFixed(d)}%`;}
+function metricWidth(v){return Math.max(0, Math.min(100, v*100));}
 
 /* 결과 표시 */
-function display(data, res) {
+function displayMultiY(results) {
   const names={linear:'선형 회귀',polynomial2:'2차 다항',polynomial3:'3차 다항',exponential:'지수 회귀',logarithmic:'로그 회귀',power:'거듭제곱 회귀'};
-  document.getElementById('regressionTypeLabel').textContent = names[currentType];
-  document.getElementById('equationBox').textContent = res.equation;
+  document.getElementById('regressionTypeLabel').textContent = `X → Y1~Y4 · ${names[currentType]}`;
+  document.getElementById('equationBox').innerHTML = `<div class="equation-list">` + results.map(series =>
+    `<div class="equation-line"><span class="equation-key" style="color:${series.color}">${series.label}</span><span>${series.res.equation}</span></div>`
+  ).join('') + `</div>`;
+  document.getElementById('metricsGrid').innerHTML = results.map(series => metricCard(series.label, series.res, series.color)).join('');
+  drawMainMultiY(results);
+  drawResidMultiY(results);
+  drawTableMultiY(results);
+}
 
-  const c=cls(res.r2), r2p=(res.r2*100).toFixed(1), ar2p=(res.adjR2*100).toFixed(2);
-  document.getElementById('metricsGrid').innerHTML=`
-    <div class="metric-card">
-      <div class="metric-label">R² 결정계수</div>
-      <div class="metric-value ${c}">${r2p}%</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${r2p}%;background:${barClr(c)}"></div></div>
-      <div class="metric-sub">모델 설명력</div>
+function displayMultiX(rows, activeX, res) {
+  document.getElementById('regressionTypeLabel').textContent = `${activeX.map(k=>k.toUpperCase()).join(', ')} → Y · 선형 다중회귀`;
+  document.getElementById('equationBox').textContent = res.equation;
+  document.getElementById('metricsGrid').innerHTML =
+    metricCard('Y', res, '#007aff') +
+    `<div class="metric-card">
+      <div class="metric-label">입력 변수</div>
+      <div class="metric-value" style="font-size:18px;color:#007aff">${activeX.map(k=>k.toUpperCase()).join(', ')}</div>
+      <div class="metric-sub">${activeX.length}개 변수 사용</div>
+    </div>`;
+  drawMainMultiX(rows, res);
+  drawResidMultiX(rows, res);
+  drawTableMultiX(rows, activeX, res);
+}
+
+function displayRigging(rows, res) {
+  const targets = [-30, 0, 30];
+  const feedbackPredictHtml = res.feedbackPredict
+    ? equationLine('FB', '#ff3b30', '피드백각도', res.feedbackPredict, 'x = 실제각도기')
+    : `<div class="equation-line"><span class="equation-key" style="color:#ff3b30">FB</span><span>피드백 예측 데이터 4개 이상 필요</span></div>`;
+  const feedbackReverseHtml = res.feedbackReverse
+    ? equationLine('REV', '#af52de', '실제각도기', res.feedbackReverse, 'x = 피드백각도')
+    : `<div class="equation-line"><span class="equation-key" style="color:#af52de">REV</span><span>피드백 환산 데이터 4개 이상 필요</span></div>`;
+
+  document.getElementById('regressionTypeLabel').textContent = '조종면 리깅 · 3차 회귀';
+  document.getElementById('equationBox').innerHTML =
+    `<div class="equation-list">
+      ${equationLine('CMD', '#007aff', '명령각도', res.command, 'x = 실제각도기')}
+      ${feedbackPredictHtml}
+      ${feedbackReverseHtml}
     </div>
-    <div class="metric-card">
-      <div class="metric-label">Adj. R²</div>
-      <div class="metric-value ${cls(res.adjR2)}">${ar2p}%</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${Math.max(0,ar2p)}%;background:#007aff"></div></div>
-      <div class="metric-sub">조정 결정계수</div>
+    <div class="rigging-target-grid">
+      ${targets.map(target => {
+        const cmd = res.command.predict(target);
+        const fbPredict = res.feedbackPredict ? res.feedbackPredict.predict(target) : NaN;
+        const fbReverse = res.feedbackReverse ? solveInputForTarget(res.feedbackReverse, target) : NaN;
+        return `<div class="rigging-target-card">
+          <div class="rigging-target-label">목표 실제각 ${f(target,1)}°</div>
+          <div class="rigging-target-value">${f(cmd,3)}°</div>
+          <div class="rigging-target-sub">보낼 명령각 · FB 예측 ${isNaN(fbPredict) ? '-' : f(fbPredict,3) + '°'} · REV 역산 ${isNaN(fbReverse) ? '-' : f(fbReverse,3) + '°'}</div>
+        </div>`;
+      }).join('')}
     </div>
-    <div class="metric-card">
-      <div class="metric-label">RMSE</div>
-      <div class="metric-value" style="font-size:18px">${f(res.rmse)}</div>
-      <div class="metric-sub">평균제곱근오차</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">MAE</div>
-      <div class="metric-value" style="font-size:18px">${f(res.mae)}</div>
-      <div class="metric-sub">평균절대오차</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">MSE</div>
-      <div class="metric-value" style="font-size:18px">${f(res.mse)}</div>
-      <div class="metric-sub">평균제곱오차</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">n</div>
-      <div class="metric-value" style="color:#007aff">${data.length}</div>
-      <div class="metric-sub">관측치</div>
+    <div class="rigging-guide">
+      <div class="rigging-guide-row"><div class="rigging-guide-name">CMD</div><div class="rigging-guide-desc">목표 실제각을 넣으면 보낼 명령각을 계산합니다. JSON에서는 FCA_RIG 후보입니다.</div></div>
+      <div class="rigging-guide-row"><div class="rigging-guide-name">FB 예측</div><div class="rigging-guide-desc">실제각도기 값에서 컴퓨터 피드백이 얼마로 보일지 예측합니다. 검사용으로 직관적입니다.</div></div>
+      <div class="rigging-guide-row"><div class="rigging-guide-name">REV 환산</div><div class="rigging-guide-desc">피드백값을 실제각도기로 환산합니다. 기존 cs_rigging의 FCA_RIG_REVERS 방식입니다.</div></div>
     </div>`;
 
-  drawMain(data, res);
-  drawResid(data, res);
-  drawTable(data, res);
+  document.getElementById('metricsGrid').innerHTML =
+    metricCard('명령 보정', res.command, '#007aff') +
+    (res.feedbackPredict ? metricCard('피드백 예측', res.feedbackPredict, '#ff3b30') : '') +
+    (res.feedbackReverse ? metricCard('REV 환산', res.feedbackReverse, '#af52de') : '') +
+    `<div class="metric-card">
+      <div class="metric-label">FCA_RIG 후보 [a3,a2,a1,a0]</div>
+      <div class="metric-value" style="font-size:13px;color:#007aff;word-break:break-all">${coeffText(res.command.coeffs)}</div>
+      <div class="metric-sub">x = 실제각도기, y = 명령각도</div>
+    </div>` +
+    (res.feedbackPredict ? `<div class="metric-card">
+      <div class="metric-label">FB 예측 계수 [a3,a2,a1,a0]</div>
+      <div class="metric-value" style="font-size:13px;color:#ff3b30;word-break:break-all">${coeffText(res.feedbackPredict.coeffs)}</div>
+      <div class="metric-sub">x = 실제각도기, y = 피드백각도</div>
+    </div>` : '') +
+    (res.feedbackReverse ? `<div class="metric-card">
+      <div class="metric-label">FCA_RIG_REVERS 후보 [a3,a2,a1,a0]</div>
+      <div class="metric-value" style="font-size:13px;color:#af52de;word-break:break-all">${coeffText(res.feedbackReverse.coeffs)}</div>
+      <div class="metric-sub">x = 피드백각도, y = 실제각도기</div>
+    </div>` : '');
+
+  drawMainRigging(rows, res);
+  drawResidRigging(res);
+  drawTableRigging(rows, res);
 }
 
-function drawMain(data, res) {
+function equationLine(key, color, yName, res, note) {
+  return `<div class="equation-line">
+    <span class="equation-key" style="color:${color}">${key}</span>
+    <span>${yName} = ${stripYHat(res.equation)}
+      <span class="coeff-inline">(${coeffText(res.coeffs)} · ${note})</span>
+    </span>
+  </div>`;
+}
+
+function metricCard(label, res, color) {
+  const c=cls(res.r2);
+  return `<div class="metric-card">
+    <div class="metric-label">${label} R²</div>
+    <div class="metric-value ${c}">${pct(res.r2)}</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:${metricWidth(res.r2)}%;background:${barClr(c)}"></div></div>
+    <div class="metric-sub">Adj. R² ${pct(res.adjR2,2)} · RMSE ${f(res.rmse)} · n ${res.data.length}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">${label} MAE / MSE</div>
+    <div class="metric-value" style="font-size:18px;color:${color}">${f(res.mae)}</div>
+    <div class="metric-sub">MSE ${f(res.mse)}</div>
+  </div>`;
+}
+
+function coeffText(coeffs) {
+  return `[${coeffs.map(v => Number(v).toExponential(6)).join(', ')}]`;
+}
+
+function stripYHat(eq) {
+  return eq.replace(/^ŷ\s*=\s*/, '');
+}
+
+function solveInputForTarget(res, target) {
+  const xs = res.data.map(d => d.x);
+  const mn = Math.min(...xs), mx = Math.max(...xs), span = Math.max(1, mx - mn);
+  const lo = mn - span * 0.15, hi = mx + span * 0.15;
+  let bestX = lo, bestErr = Infinity, prevX = lo, prevV = res.predict(lo) - target;
+  let bracket = null;
+
+  for (let i = 1; i <= 800; i++) {
+    const x = lo + (hi - lo) * i / 800;
+    const v = res.predict(x) - target;
+    const err = Math.abs(v);
+    if (err < bestErr) { bestErr = err; bestX = x; }
+    if (prevV === 0 || v === 0 || prevV * v < 0) {
+      bracket = [prevX, x];
+      break;
+    }
+    prevX = x;
+    prevV = v;
+  }
+
+  if (!bracket) return bestX;
+  let [a, b] = bracket;
+  let fa = res.predict(a) - target;
+  for (let i = 0; i < 60; i++) {
+    const m = (a + b) / 2;
+    const fm = res.predict(m) - target;
+    if (Math.abs(fm) < 1e-10) return m;
+    if (fa * fm <= 0) {
+      b = m;
+    } else {
+      a = m;
+      fa = fm;
+    }
+  }
+  return (a + b) / 2;
+}
+
+function linePoints(data, predict) {
+  const xs=data.map(d=>d.x), mn=Math.min(...xs), mx=Math.max(...xs);
+  const st=(mx-mn || 1)/120, line=[];
+  for(let x=mn;x<=mx+st/2;x+=st){try{const y=predict(x);if(isFinite(y))line.push({x:+x.toFixed(6),y:+y.toFixed(6)});}catch(e){}}
+  return line;
+}
+
+function drawMainMultiY(results) {
   if (chartInstance) chartInstance.destroy();
-  const xs=data.map(d=>d.x), mn=Math.min(...xs), mx=Math.max(...xs), st=(mx-mn)/120;
-  const line=[];
-  for(let x=mn;x<=mx+st/2;x+=st){try{const y=res.predict(x);if(isFinite(y))line.push({x:+x.toFixed(6),y:+y.toFixed(6)});}catch(e){}}
+  const datasets = [];
+  results.forEach(series => {
+    datasets.push({label:`${series.label} 실제`,data:series.res.data.map(d=>({x:d.x,y:d.y})),backgroundColor:series.color,pointRadius:5,pointHoverRadius:7});
+    datasets.push({label:`${series.label} 회귀`,data:linePoints(series.res.data, series.res.predict),type:'line',borderColor:series.color,borderWidth:2,pointRadius:0,tension:0.1,fill:false});
+  });
+  chartInstance=new Chart(document.getElementById('regressionChart'),{
+    type:'scatter',data:{datasets},
+    options:baseChartOptions('X','Y')
+  });
+}
+
+function drawResidMultiY(results) {
+  if (residualChartInstance) residualChartInstance.destroy();
+  const datasets = [];
+  const allX = [];
+  results.forEach(series => {
+    allX.push(...series.res.data.map(d=>d.x));
+    datasets.push({label:`${series.label} 잔차`,data:series.res.data.map((d,i)=>({x:d.x,y:series.res.residuals[i]})),backgroundColor:series.color,pointRadius:4});
+  });
+  datasets.push({label:'기준선',data:[{x:Math.min(...allX),y:0},{x:Math.max(...allX),y:0}],type:'line',borderColor:'rgba(142,142,147,0.5)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false});
+  residualChartInstance=new Chart(document.getElementById('residualChart'),{
+    type:'scatter',data:{datasets},
+    options:baseChartOptions('X','잔차',11)
+  });
+}
+
+function drawMainMultiX(rows, res) {
+  if (chartInstance) chartInstance.destroy();
+  const actual = rows.map(r=>r.y), pred = res.yPred;
+  const mn=Math.min(...actual,...pred), mx=Math.max(...actual,...pred);
   chartInstance=new Chart(document.getElementById('regressionChart'),{
     type:'scatter',data:{datasets:[
-      {label:'실제 데이터',data:data.map(d=>({x:d.x,y:d.y})),backgroundColor:'rgba(0,122,255,0.85)',pointRadius:6,pointHoverRadius:8},
-      {label:'회귀 곡선',data:line,type:'line',borderColor:'#ff3b30',backgroundColor:'rgba(255,59,48,0.07)',borderWidth:2.5,pointRadius:0,tension:0.1,fill:false}
+      {label:'실제값 vs 예측값',data:rows.map((r,i)=>({x:pred[i],y:r.y})),backgroundColor:'rgba(0,122,255,0.85)',pointRadius:6,pointHoverRadius:8},
+      {label:'일치선',data:[{x:mn,y:mn},{x:mx,y:mx}],type:'line',borderColor:'#ff3b30',borderWidth:2,pointRadius:0,fill:false}
     ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{font:{size:12,family:'-apple-system'},boxWidth:12,padding:16}},
-        tooltip:{callbacks:{label:ctx=>`(${f(ctx.parsed.x,3)}, ${f(ctx.parsed.y,3)})`}}},
-      scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}}}}});
+    options:baseChartOptions('예측값','실제값')
+  });
 }
 
-function drawResid(data, res) {
+function drawResidMultiX(rows, res) {
   if (residualChartInstance) residualChartInstance.destroy();
-  const xs=data.map(d=>d.x);
+  const pred = res.yPred, mn=Math.min(...pred), mx=Math.max(...pred);
   residualChartInstance=new Chart(document.getElementById('residualChart'),{
     type:'scatter',data:{datasets:[
-      {label:'잔차',data:data.map((d,i)=>({x:d.x,y:res.residuals[i]})),backgroundColor:'rgba(255,149,0,0.85)',pointRadius:5},
-      {label:'기준선',data:[{x:Math.min(...xs),y:0},{x:Math.max(...xs),y:0}],type:'line',borderColor:'rgba(142,142,147,0.5)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}
+      {label:'잔차',data:rows.map((r,i)=>({x:pred[i],y:res.residuals[i]})),backgroundColor:'rgba(255,149,0,0.85)',pointRadius:5},
+      {label:'기준선',data:[{x:mn,y:0},{x:mx,y:0}],type:'line',borderColor:'rgba(142,142,147,0.5)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}
     ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{font:{size:11,family:'-apple-system'},boxWidth:10,padding:12}}},
-      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:11}},title:{display:true,text:'X',font:{size:11}}},
-        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:11}},title:{display:true,text:'잔차',font:{size:11}}}}}});
+    options:baseChartOptions('예측값','잔차',11)
+  });
 }
 
-function drawTable(data, res) {
-  // 평가 기준: 잔차 / RMSE
-  // 1배 미만 → 우수, 1~2배 → 보통, 2배 초과 → 불량
-  const rmse = res.rmse;
+function drawMainRigging(rows, res) {
+  if (chartInstance) chartInstance.destroy();
+  const cmdData = res.command.data;
+  const datasets = [
+    {label:'명령각도 측정점',data:cmdData.map(d=>({x:d.x,y:d.y})),backgroundColor:'rgba(0,122,255,0.85)',pointRadius:5,pointHoverRadius:7},
+    {label:'명령 보정 3차식',data:linePoints(cmdData, res.command.predict),type:'line',borderColor:'#007aff',borderWidth:2.3,pointRadius:0,tension:0.1,fill:false}
+  ];
+  if (res.feedbackPredict) {
+    datasets.push(
+      {label:'FB 예측 측정점',data:res.feedbackPredict.data.map(d=>({x:d.x,y:d.y})),backgroundColor:'rgba(255,59,48,0.85)',pointRadius:5,pointHoverRadius:7},
+      {label:'FB 예측 3차식',data:linePoints(res.feedbackPredict.data, res.feedbackPredict.predict),type:'line',borderColor:'#ff3b30',borderWidth:2.3,pointRadius:0,tension:0.1,fill:false}
+    );
+  }
+  if (res.feedbackReverse) {
+    datasets.push(
+      {label:'REV 환산 측정점',data:res.feedbackReverse.data.map(d=>({x:d.x,y:d.y})),backgroundColor:'rgba(175,82,222,0.85)',pointRadius:5,pointHoverRadius:7},
+      {label:'REV 환산 3차식',data:linePoints(res.feedbackReverse.data, res.feedbackReverse.predict),type:'line',borderColor:'#af52de',borderWidth:2.3,pointRadius:0,tension:0.1,fill:false}
+    );
+  }
+  chartInstance=new Chart(document.getElementById('regressionChart'),{
+    type:'scatter',data:{datasets},
+    options:baseChartOptions('입력각 (실제각도기 또는 피드백, deg)','출력각 (명령/피드백/실제각도기, deg)')
+  });
+}
 
-  document.getElementById('dataTableBody').innerHTML = data.map((d,i)=>{
-    const r=res.residuals[i], r2=r*r;
-    const ratio = rmse > 0 ? Math.abs(r) / rmse : 0;
-    const q = ratio < 1.0 ? 'good' : ratio < 2.0 ? 'medium' : 'poor';
-    const ql = ratio < 1.0 ? '우수' : ratio < 2.0 ? '보통' : '불량';
+function drawResidRigging(res) {
+  if (residualChartInstance) residualChartInstance.destroy();
+  const datasets = [
+    {label:'명령 보정 잔차',data:res.command.data.map((d,i)=>({x:d.x,y:res.command.residuals[i]})),backgroundColor:'rgba(0,122,255,0.85)',pointRadius:5}
+  ];
+  const allX = res.command.data.map(d=>d.x);
+  if (res.feedbackPredict) {
+    allX.push(...res.feedbackPredict.data.map(d=>d.x));
+    datasets.push({label:'FB 예측 잔차',data:res.feedbackPredict.data.map((d,i)=>({x:d.x,y:res.feedbackPredict.residuals[i]})),backgroundColor:'rgba(255,59,48,0.85)',pointRadius:5});
+  }
+  if (res.feedbackReverse) {
+    allX.push(...res.feedbackReverse.data.map(d=>d.x));
+    datasets.push({label:'REV 환산 잔차',data:res.feedbackReverse.data.map((d,i)=>({x:d.x,y:res.feedbackReverse.residuals[i]})),backgroundColor:'rgba(175,82,222,0.85)',pointRadius:5});
+  }
+  datasets.push({label:'기준선',data:[{x:Math.min(...allX),y:0},{x:Math.max(...allX),y:0}],type:'line',borderColor:'rgba(142,142,147,0.5)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false});
+  residualChartInstance=new Chart(document.getElementById('residualChart'),{
+    type:'scatter',data:{datasets},
+    options:baseChartOptions('실제각도기 측정값 (deg)','잔차',11)
+  });
+}
+
+function baseChartOptions(xTitle, yTitle, fontSize=12) {
+  return {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:fontSize,family:'-apple-system'},boxWidth:12,padding:12}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: (${f(ctx.parsed.x,3)}, ${f(ctx.parsed.y,3)})`}}},
+    scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}},title:{display:true,text:xTitle,font:{size:11}}},
+      y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}},title:{display:true,text:yTitle,font:{size:11}}}}};
+}
+
+function quality(rmse, r) {
+  const ratio = rmse > 0 ? Math.abs(r) / rmse : 0;
+  const q = ratio < 1.0 ? 'good' : ratio < 2.0 ? 'medium' : 'poor';
+  const ql = ratio < 1.0 ? '우수' : ratio < 2.0 ? '보통' : '불량';
+  return {ratio, q, ql};
+}
+
+function drawTableMultiY(results) {
+  document.querySelector('.result-table thead tr').innerHTML =
+    '<th>#</th><th>X</th><th>계열</th><th>Y 실제</th><th>Ŷ 예측</th><th>잔차</th><th>잔차²</th><th>RMSE 배율</th><th>평가</th>';
+  document.getElementById('dataTableBody').innerHTML = results.flatMap(series =>
+    series.res.data.map((d,i) => tableRow(d.rowIdx, [f(d.x,4), series.label, f(d.y,4)], series.res, i, series.color))
+  ).join('');
+}
+
+function drawTableMultiX(rows, activeX, res) {
+  document.querySelector('.result-table thead tr').innerHTML =
+    '<th>#</th>' + activeX.map(k=>`<th>${k.toUpperCase()}</th>`).join('') + '<th>Y 실제</th><th>Ŷ 예측</th><th>잔차</th><th>잔차²</th><th>RMSE 배율</th><th>평가</th>';
+  document.getElementById('dataTableBody').innerHTML = rows.map((row,i) =>
+    tableRow(row.rowIdx, [...row.xs.map(v=>f(v,4)), f(row.y,4)], res, i, '#007aff')
+  ).join('');
+}
+
+function drawTableRigging(rows, res) {
+  document.querySelector('.result-table thead tr').innerHTML =
+    '<th>#</th><th>실제각도기</th><th>명령 실제</th><th>명령 예측</th><th>명령 잔차</th><th>피드백 실제</th><th>FB 예측</th><th>FB 잔차</th><th>REV 실제예측</th><th>REV 잔차</th>';
+
+  document.getElementById('dataTableBody').innerHTML = rows.map(row => {
+    const ci = res.command.data.findIndex(d => d.rowIdx === row.rowIdx);
+    const cmdPred = ci >= 0 ? res.command.yPred[ci] : NaN;
+    const cmdRes = ci >= 0 ? res.command.residuals[ci] : NaN;
+    const fi = res.feedbackPredict ? res.feedbackPredict.data.findIndex(d => d.rowIdx === row.rowIdx) : -1;
+    const fbPred = fi >= 0 ? res.feedbackPredict.yPred[fi] : NaN;
+    const fbRes = fi >= 0 ? res.feedbackPredict.residuals[fi] : NaN;
+    const ri = res.feedbackReverse ? res.feedbackReverse.data.findIndex(d => d.rowIdx === row.rowIdx) : -1;
+    const revPred = ri >= 0 ? res.feedbackReverse.yPred[ri] : NaN;
+    const revRes = ri >= 0 ? res.feedbackReverse.residuals[ri] : NaN;
     return `<tr>
-      <td>${i+1}</td><td>${f(d.x,4)}</td><td>${f(d.y,4)}</td>
-      <td>${f(res.yPred[i],4)}</td>
-      <td style="color:${r>=0?'#30d158':'#ff3b30'}">${f(r,4)}</td>
-      <td>${f(r2,4)}</td><td>${ratio.toFixed(2)}×</td>
-      <td><span class="badge ${q}">${ql}</span></td></tr>`;
+      <td>${row.rowIdx}</td>
+      <td>${f(row.actual,4)}</td>
+      <td>${f(row.cmd,4)}</td>
+      <td>${f(cmdPred,4)}</td>
+      <td style="color:${cmdRes>=0?'#30d158':'#ff3b30'}">${f(cmdRes,4)}</td>
+      <td>${isNaN(row.feedback) ? '-' : f(row.feedback,4)}</td>
+      <td>${f(fbPred,4)}</td>
+      <td style="color:${fbRes>=0?'#30d158':'#ff3b30'}">${f(fbRes,4)}</td>
+      <td>${f(revPred,4)}</td>
+      <td style="color:${revRes>=0?'#30d158':'#ff3b30'}">${f(revRes,4)}</td>
+    </tr>`;
   }).join('');
+}
+
+function tableRow(idx, leadingCells, res, i) {
+  const r=res.residuals[i], r2=r*r, q=quality(res.rmse, r);
+  return `<tr>
+    <td>${idx}</td>${leadingCells.map(v=>`<td>${v}</td>`).join('')}
+    <td>${f(res.yPred[i],4)}</td>
+    <td style="color:${r>=0?'#30d158':'#ff3b30'}">${f(r,4)}</td>
+    <td>${f(r2,4)}</td><td>${q.ratio.toFixed(2)}×</td>
+    <td><span class="badge ${q.q}">${q.ql}</span></td></tr>`;
 }
 
 let toastTimer;
@@ -649,6 +1198,8 @@ function showToast(msg, err=false) {
   toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
 }
 
+syncRegressionButtons();
+updateSampleButton();
 buildGrid(INIT_ROWS);
 </script>
 </body>
