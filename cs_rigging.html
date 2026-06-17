@@ -1617,11 +1617,11 @@ document.getElementById('file-input').addEventListener('change', e => {
         document.getElementById('sid-input-field').value = json.SID;
   var _sl = document.getElementById('svg-sid-label'); if(_sl)var _sl = _sl; if(_sl)_sl.textContent = `${getType()}-${String(json.SID).padStart(2,'0')}`;
       }
-      const filledFb = fillFeedbackFromLoadedJSON();
+      const fbResult = fillFeedbackFromLoadedJSON();
       updateDownloadPreview();
       showStatus('load-status',
-        `JSON 로드 완료 — SID ${json.SID ?? '?'}${filledFb ? ` · 피드백 ${filledFb}칸 역산 입력` : ''}`,
-        'ok');
+        `JSON 로드 완료 — SID ${json.SID ?? '?'}${fbResult.filled ? ` · 피드백 ${fbResult.filled}칸 역산 입력` : ''}${fbResult.skipped ? ` · ${fbResult.skipped}칸 근처해 없음` : ''}`,
+        fbResult.skipped ? 'warn' : 'ok');
     } catch { showStatus('load-status','JSON 파싱 오류','err'); }
   };
   r.readAsText(f);
@@ -1631,11 +1631,7 @@ function evalRigPoly(coeffs, x) {
   return coeffs[0]*x*x*x + coeffs[1]*x*x + coeffs[2]*x + coeffs[3];
 }
 
-function solveFeedbackFromActual(coeffs, actual, hint) {
-  if (!Array.isArray(coeffs) || coeffs.length < 4 || actual === null || actual === undefined) return null;
-  if (coeffs.some(v => typeof v !== 'number' || !isFinite(v))) return null;
-
-  const lo = -90, hi = 90, steps = 2400;
+function findRigRootsNear(coeffs, actual, lo, hi, steps) {
   let bestX = null, bestErr = Infinity;
   let prevX = lo, prevV = evalRigPoly(coeffs, lo) - actual;
   const roots = [];
@@ -1666,16 +1662,41 @@ function solveFeedbackFromActual(coeffs, actual, hint) {
     prevV = v;
   }
 
-  if (roots.length) {
-    const ref = typeof hint === 'number' && isFinite(hint) ? hint : actual;
-    return roots.reduce((best, x) => Math.abs(x - ref) < Math.abs(best - ref) ? x : best, roots[0]);
+  return { roots, bestX, bestErr };
+}
+
+function solveFeedbackFromActual(coeffs, actual, hint) {
+  if (!Array.isArray(coeffs) || coeffs.length < 4 || actual === null || actual === undefined) return null;
+  coeffs = coeffs.map(v => Number(v));
+  if (coeffs.some(v => !isFinite(v))) return null;
+
+  // JSON 상수항은 장착/작동기 0점 보정값이다.
+  // 빈 피드백 역산에서는 "피드백 0° = 실제각 0°" 기준으로 보고 기울기/곡률만 사용한다.
+  coeffs[3] = 0;
+
+  const ref = typeof hint === 'number' && isFinite(hint) ? hint : actual;
+  if (typeof ref !== 'number' || !isFinite(ref)) return null;
+
+  // 피드백각은 명령각/실제각 근처에 있어야 정상이다.
+  // 3차식이 멀리 떨어진 다른 해를 만들 수 있으므로 근처 해만 채택한다.
+  const nearRadius = 12;
+  const lo = Math.max(-90, ref - nearRadius);
+  const hi = Math.min(90, ref + nearRadius);
+  const local = findRigRootsNear(coeffs, actual, lo, hi, 640);
+
+  if (local.roots.length) {
+    return local.roots.reduce((best, x) =>
+      Math.abs(x - ref) < Math.abs(best - ref) ? x : best, local.roots[0]);
   }
-  return bestErr < 1 ? bestX : null;
+
+  // 접선처럼 부호가 바뀌지 않는 아주 예외적인 경우만 근처 최솟값을 허용한다.
+  return local.bestErr < 0.15 ? local.bestX : null;
 }
 
 function fillFeedbackFromLoadedJSON() {
-  if (!originalJSON) return 0;
+  if (!originalJSON) return { filled: 0, skipped: 0 };
   let filled = 0;
+  let skipped = 0;
 
   SURFACES.forEach((surface, i) => {
     const coeffs = originalJSON[`FCA_RIG_REVERS_${i}`];
@@ -1690,7 +1711,7 @@ function fillFeedbackFromLoadedJSON() {
       if (row.fb !== null && row.fb !== undefined && row.fb !== '') return;
 
       const solved = solveFeedbackFromActual(coeffs, row.actual, cmds[idx]);
-      if (solved === null || !isFinite(solved)) return;
+      if (solved === null || !isFinite(solved)) { skipped++; return; }
       row.fb = parseFloat(solved.toFixed(4));
       filled++;
     });
@@ -1701,7 +1722,7 @@ function fillFeedbackFromLoadedJSON() {
     showRegressionForCurrent();
   }
   if (currentViewMode !== 'single') buildMultiView();
-  return filled;
+  return { filled, skipped };
 }
 
 // ─── Surface Selection ──────────────────────────────
