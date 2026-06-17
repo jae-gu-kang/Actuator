@@ -3414,6 +3414,48 @@ function showAlert() {
     };
   }
 
+  function inputFromPoint(x, y) {
+    var el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    if (isCell(el)) return el;
+
+    var td = el.closest ? el.closest('td') : null;
+    if (td) {
+      var direct = td.querySelector('input.cell-input,input.mini-input');
+      if (direct) return direct;
+    }
+
+    var elements = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [el];
+    for (var i = 0; i < elements.length; i++) {
+      if (isCell(elements[i])) return elements[i];
+      var parentTd = elements[i].closest ? elements[i].closest('td') : null;
+      var input = parentTd ? parentTd.querySelector('input.cell-input,input.mini-input') : null;
+      if (input) return input;
+    }
+
+    if (!anchor) return null;
+    var info = cellInfo(anchor);
+    if (!info) return null;
+    var rows = Array.from(info.tbody.rows);
+    var nearest = null;
+    var nearestDist = Infinity;
+    rows.forEach(function(row) {
+      var cell = row.cells[info.col];
+      var input = cell ? cell.querySelector('input.cell-input,input.mini-input') : null;
+      if (!input) return;
+      var rect = cell.getBoundingClientRect();
+      var withinX = x >= rect.left - 8 && x <= rect.right + 8;
+      if (!withinX) return;
+      var cy = rect.top + rect.height / 2;
+      var dist = Math.abs(y - cy);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = input;
+      }
+    });
+    return nearest;
+  }
+
   function cellsInRect(a, b) {
     var ia = cellInfo(a), ib = cellInfo(b);
     if (!ia || !ib || ia.tbody !== ib.tbody) return [a];
@@ -3502,7 +3544,7 @@ function showAlert() {
 
   document.addEventListener('pointermove', function(e) {
     if (!dragging || !anchor) return;
-    var over = document.elementFromPoint(e.clientX, e.clientY);
+    var over = inputFromPoint(e.clientX, e.clientY);
     if (isCell(over) && over !== sel[sel.length-1]) {
       highlight(cellsInRect(anchor, over));
     }
@@ -3511,6 +3553,8 @@ function showAlert() {
 
   document.addEventListener('pointerup', function(e) {
     if (!dragging) return;
+    var over = inputFromPoint(e.clientX, e.clientY);
+    if (isCell(over)) highlight(cellsInRect(anchor, over));
     dragging = false;
     /* 셀이 1개면 일반 포커스 유지 */
     if (sel.length === 1) { clear(); }
