@@ -1617,12 +1617,92 @@ document.getElementById('file-input').addEventListener('change', e => {
         document.getElementById('sid-input-field').value = json.SID;
   var _sl = document.getElementById('svg-sid-label'); if(_sl)var _sl = _sl; if(_sl)_sl.textContent = `${getType()}-${String(json.SID).padStart(2,'0')}`;
       }
+      const filledFb = fillFeedbackFromLoadedJSON();
       updateDownloadPreview();
-      showStatus('load-status', `JSON 로드 완료 — SID ${json.SID ?? '?'}`, 'ok');
+      showStatus('load-status',
+        `JSON 로드 완료 — SID ${json.SID ?? '?'}${filledFb ? ` · 피드백 ${filledFb}칸 역산 입력` : ''}`,
+        'ok');
     } catch { showStatus('load-status','JSON 파싱 오류','err'); }
   };
   r.readAsText(f);
 });
+
+function evalRigPoly(coeffs, x) {
+  return coeffs[0]*x*x*x + coeffs[1]*x*x + coeffs[2]*x + coeffs[3];
+}
+
+function solveFeedbackFromActual(coeffs, actual, hint) {
+  if (!Array.isArray(coeffs) || coeffs.length < 4 || actual === null || actual === undefined) return null;
+  if (coeffs.some(v => typeof v !== 'number' || !isFinite(v))) return null;
+
+  const lo = -90, hi = 90, steps = 2400;
+  let bestX = null, bestErr = Infinity;
+  let prevX = lo, prevV = evalRigPoly(coeffs, lo) - actual;
+  const roots = [];
+
+  for (let i = 0; i <= steps; i++) {
+    const x = lo + (hi - lo) * i / steps;
+    const v = evalRigPoly(coeffs, x) - actual;
+    const err = Math.abs(v);
+    if (err < bestErr) { bestErr = err; bestX = x; }
+
+    if (i > 0 && (v === 0 || prevV === 0 || v * prevV < 0)) {
+      let a = prevX, b = x, fa = prevV;
+      for (let k = 0; k < 60; k++) {
+        const m = (a + b) / 2;
+        const fm = evalRigPoly(coeffs, m) - actual;
+        if (Math.abs(fm) < 1e-10) { a = b = m; break; }
+        if (fa * fm <= 0) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+      roots.push((a + b) / 2);
+    }
+
+    prevX = x;
+    prevV = v;
+  }
+
+  if (roots.length) {
+    const ref = typeof hint === 'number' && isFinite(hint) ? hint : actual;
+    return roots.reduce((best, x) => Math.abs(x - ref) < Math.abs(best - ref) ? x : best, roots[0]);
+  }
+  return bestErr < 1 ? bestX : null;
+}
+
+function fillFeedbackFromLoadedJSON() {
+  if (!originalJSON) return 0;
+  let filled = 0;
+
+  SURFACES.forEach((surface, i) => {
+    const coeffs = originalJSON[`FCA_RIG_REVERS_${i}`];
+    if (!Array.isArray(coeffs) || coeffs.length < 4) return;
+
+    const data = measureData[surface];
+    const cmds = surfCommands[surface];
+    if (!data || !cmds) return;
+
+    data.forEach((row, idx) => {
+      if (!row || row.actual === null || row.actual === undefined) return;
+      if (row.fb !== null && row.fb !== undefined && row.fb !== '') return;
+
+      const solved = solveFeedbackFromActual(coeffs, row.actual, cmds[idx]);
+      if (solved === null || !isFinite(solved)) return;
+      row.fb = parseFloat(solved.toFixed(4));
+      filled++;
+    });
+  });
+
+  if (currentSurface) {
+    buildTable();
+    showRegressionForCurrent();
+  }
+  if (currentViewMode !== 'single') buildMultiView();
+  return filled;
+}
 
 // ─── Surface Selection ──────────────────────────────
 function selectSurface(name) {
