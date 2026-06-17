@@ -206,6 +206,12 @@
     text-align:center; width:28px;
     background:var(--card2);
   }
+  /* 드래그 셀 선택 */
+  .cell-selected {
+    background: rgba(0, 113, 227, 0.18) !important;
+    border-color: #0071e3 !important;
+    outline: none;
+  }
   .mini-input {
     width:58px; padding:2px 4px; border:1px solid transparent;
     border-radius:4px; font-size:11px; text-align:right;
@@ -1443,10 +1449,9 @@ let originalJSON   = null;
 // 조종면별 명령 각도 (기본값 복사, 독립 편집 가능)
 const surfCommands = {};
 SURFACES.forEach(s => {
-  surfCommands[s] = SFP_SET.has(s) ? [0, 90] : [...DEFAULT_COMMANDS];
+  surfCommands[s] = SFP_SET.has(s) ? [null, null, null, null] : [...DEFAULT_COMMANDS];
 });
 
-const SFP_DEFAULT_COMMANDS = [0, 90];
 
 const measureData = {};
 SURFACES.forEach(s => {
@@ -1672,6 +1677,9 @@ function selectSurface(name) {
 // ─── Table ──────────────────────────────────────────
 // ─── 뷰 모드 ─────────────────────────────────────
 const COMPACT_CMDS = [-30, -20, -10, 0, 10, 20, 30];
+const COMPACT_INDEXES = COMPACT_CMDS.map(function(cmd) {
+  return DEFAULT_COMMANDS.indexOf(cmd);
+});
 const SURF_COLORS = {
   ELV_LI:'#5856d6', ELV_LO:'#0a84ff',
   ELV_RI:'#ff375f', ELV_RO:'#ff9f0a',
@@ -1722,8 +1730,6 @@ function buildMultiView() {
 }
 
 function buildMiniCard(surfKey) {
-  var isSFP  = SFP_SET.has(surfKey);
-  var cmds   = isSFP ? [0, 90] : COMPACT_CMDS;
   var color  = SURF_COLORS[surfKey] || '#888';
 
   var card = document.createElement('div');
@@ -1761,11 +1767,12 @@ function buildMiniCard(surfKey) {
   tbody.id = 'mini-tbody-' + surfKey;
 
   var data = measureData[surfKey];
+  var isSFP = SFP_SET.has(surfKey);
+  var cmds = isSFP ? surfCommands[surfKey] : COMPACT_INDEXES; // SFP는 행 번호, 나머지는 원본 슬롯 번호
   var storedCmds = surfCommands[surfKey];
 
-  cmds.forEach(function(cmd, rowIdx) {
-    // surfCommands에서 해당 cmd의 인덱스 찾기
-    var dataIdx = storedCmds ? storedCmds.indexOf(cmd) : -1;
+  cmds.forEach(function(cmdSlot, rowIdx) {
+    var dataIdx = isSFP ? rowIdx : cmdSlot;
     var av = (dataIdx >= 0 && data[dataIdx] && data[dataIdx].actual !== null)
       ? parseFloat(data[dataIdx].actual.toFixed(2)) : '';
     var fv = (dataIdx >= 0 && data[dataIdx] && data[dataIdx].fb !== null)
@@ -1773,9 +1780,40 @@ function buildMiniCard(surfKey) {
 
     var tr = document.createElement('tr');
 
-    // cmd 셀
+    // cmd 셀 — 모두 편집 가능한 input (기본값 채워진 상태)
     var tdCmd = document.createElement('td');
-    tdCmd.textContent = cmd + '°';
+    var inpCmd = document.createElement('input');
+    inpCmd.type = 'number'; inpCmd.step = '0.01';
+    // cmd 값: COMPACT_CMDS 기반(ELV/RUD) 또는 surfCommands(SFP)
+    var cmdVal = dataIdx >= 0 ? storedCmds[dataIdx] : null;
+    inpCmd.value = cmdVal !== null ? cmdVal : '';
+    inpCmd.placeholder = '각도';
+    inpCmd.style.cssText = 'width:48px;padding:2px 4px;border:1px solid transparent;' +
+      'border-radius:4px;font-size:11px;text-align:right;background:var(--card2);' +
+      'color:var(--text-secondary);outline:none;font-family:"SF Mono","Menlo",monospace;font-weight:600;';
+    inpCmd.className = 'mini-input mini-cmd-input' + (cmdVal !== null ? ' filled' : '');
+    inpCmd.dataset.row = rowIdx;
+    inpCmd.dataset.col = 0;
+    inpCmd.dataset.surface = surfKey;
+    inpCmd.onfocus = function(){ this.style.borderColor='var(--accent)'; this.style.background='var(--bg)'; };
+    inpCmd.onblur  = function(){ this.style.borderColor='transparent'; this.style.background='var(--card2)'; };
+    (function(ri, s_isSFP) {
+      inpCmd.oninput = function() {
+        var v = this.value.trim();
+        var num = v === '' ? null : parseFloat(v);
+        if (s_isSFP) {
+          // SFP: surfCommands 직접 업데이트
+          surfCommands[surfKey][ri] = num;
+        } else {
+          // ELV/RUD: 화면 행이 가리키는 원본 슬롯 업데이트
+          var slot = miniDataIndex(surfKey, ri);
+          surfCommands[surfKey][slot] = num;
+        }
+        this.className = 'mini-input mini-cmd-input' + (v !== '' ? ' filled' : '');
+      };
+      inpCmd.onpaste = function(e) { handleMiniPaste(e, surfKey, ri, 0); };
+    })(rowIdx, isSFP);
+    tdCmd.appendChild(inpCmd);
     tr.appendChild(tdCmd);
 
     // actual 입력
@@ -1783,6 +1821,9 @@ function buildMiniCard(surfKey) {
     var inpAct = document.createElement('input');
     inpAct.type = 'number'; inpAct.step = '0.01';
     inpAct.className = 'mini-input' + (av !== '' ? ' filled' : '');
+    inpAct.dataset.row = rowIdx;
+    inpAct.dataset.col = 1;
+    inpAct.dataset.surface = surfKey;
     inpAct.value = av;
     (function(s, ci, ri) {
       inpAct.oninput = function() { saveMiniVal(s, ci, 'actual', this); };
@@ -1796,6 +1837,9 @@ function buildMiniCard(surfKey) {
     var inpFb = document.createElement('input');
     inpFb.type = 'number'; inpFb.step = '0.01';
     inpFb.className = 'mini-input' + (fv !== '' ? ' filled' : '');
+    inpFb.dataset.row = rowIdx;
+    inpFb.dataset.col = 2;
+    inpFb.dataset.surface = surfKey;
     inpFb.value = fv;
     (function(s, ci, ri) {
       inpFb.oninput = function() { saveMiniVal(s, ci, 'fb', this); };
@@ -1814,54 +1858,99 @@ function buildMiniCard(surfKey) {
 
 function handleMiniPaste(e, surfKey, startRow, startCol) {
   var text = (e.clipboardData || window.clipboardData).getData('text');
-  if (!text.includes('\n') && !text.includes('\t')) return; // 단일값은 기본 처리
+  if (startCol !== 0 && !text.includes('\n') && !text.includes('\t')) return; // 측정값 단일값은 기본 처리
 
   e.preventDefault();
+  if (e.target) e.target.value = parsePastedGrid(text)[0]?.[0] ?? '';
+  applyMiniPasteText(surfKey, startRow, startCol, text);
+}
 
-  var isSFP = SFP_SET.has(surfKey);
-  var cmds  = isSFP ? [0, 90] : COMPACT_CMDS;
-  var storedCmds = surfCommands[surfKey];
-  var data       = measureData[surfKey];
+function miniDataIndex(surfKey, visibleRow) {
+  if (SFP_SET.has(surfKey)) return visibleRow;
+  return COMPACT_INDEXES[visibleRow] ?? -1;
+}
 
-  var rows = text.replace(/\r/g, '').split('\n');
+function parsePastedGrid(text) {
+  var rows = String(text || '').replace(/\r/g, '').split('\n');
   while (rows.length && rows[rows.length - 1].trim() === '') rows.pop();
+  return rows.map(function(row) { return row.split('\t'); });
+}
 
-  rows.forEach(function(rowStr, ri) {
+function applySinglePasteText(startRow, startCol, text) {
+  var rows = parsePastedGrid(text);
+  var cmds = surfCommands[currentSurface];
+  var data = measureData[currentSurface];
+  var changed = 0;
+
+  rows.forEach(function(rowVals, ri) {
     var r = startRow + ri;
-    if (r >= cmds.length) return;
+    if (r < 0 || r >= cmds.length) return;
 
-    var cmd     = cmds[r];
-    var dataIdx = storedCmds ? storedCmds.indexOf(cmd) : -1;
-    if (dataIdx < 0) return;
+    rowVals.forEach(function(val, ci) {
+      var c = startCol + ci;
+      if (c < 0 || c > 2) return;
+      var trimmed = String(val).trim();
+      var num = trimmed === '' ? null : parseNumeric(trimmed);
+      if (isNaN(num) && trimmed !== '') return;
 
-    var cols = rowStr.split('\t');
-    cols.forEach(function(val, ci) {
-      var col = startCol + ci;
-      var trimmed = val.trim().replace(',', '.');
-      var num = trimmed === '' ? null : parseFloat(trimmed);
-      if (col === 1) {
-        data[dataIdx].actual = (trimmed === '' || isNaN(num)) ? null : num;
-      } else if (col === 2) {
-        data[dataIdx].fb = (trimmed === '' || isNaN(num)) ? null : num;
+      if (c === 0) {
+        cmds[r] = (trimmed === '' || isNaN(num)) ? null : num;
+      } else if (c === 1) {
+        data[r].actual = (trimmed === '' || isNaN(num)) ? null : num;
+      } else if (c === 2) {
+        data[r].fb = (trimmed === '' || isNaN(num)) ? null : num;
       }
+      changed++;
     });
   });
 
-  // 미니 테이블 다시 렌더
-  var tbody = document.getElementById('mini-tbody-' + surfKey);
-  if (tbody) {
-    var newCard = buildMiniCard(surfKey);
-    var newTbody = newCard.querySelector('tbody');
-    if (newTbody) tbody.innerHTML = newTbody.innerHTML;
-    // 이벤트 재바인딩을 위해 카드 교체
-    var oldCard = tbody.closest('.mini-tbl-card');
-    if (oldCard && oldCard.parentNode) {
-      oldCard.parentNode.replaceChild(newCard, oldCard);
-    }
+  resetLinearState(currentSurface);
+  buildTable();
+  showPasteToast(changed ? rows.length : '붙여넣을 숫자값이 없습니다');
+}
+
+function applyMiniPasteText(surfKey, startRow, startCol, text) {
+  var rows = parsePastedGrid(text);
+  var isSFP = SFP_SET.has(surfKey);
+  var visibleLen = isSFP ? surfCommands[surfKey].length : COMPACT_INDEXES.length;
+  var storedCmds = surfCommands[surfKey];
+  var data = measureData[surfKey];
+  var changed = 0;
+
+  rows.forEach(function(rowVals, ri) {
+    var visibleRow = startRow + ri;
+    if (visibleRow < 0 || visibleRow >= visibleLen) return;
+
+    var dataIdx = miniDataIndex(surfKey, visibleRow);
+    if (dataIdx < 0) return;
+
+    rowVals.forEach(function(val, ci) {
+      var c = startCol + ci;
+      if (c < 0 || c > 2) return;
+      var trimmed = String(val).trim().replace(',', '.');
+      var num = trimmed === '' ? null : parseFloat(trimmed);
+      if (isNaN(num) && trimmed !== '') return;
+
+      if (c === 0) {
+        storedCmds[dataIdx] = (trimmed === '' || isNaN(num)) ? null : num;
+      } else if (c === 1) {
+        data[dataIdx].actual = (trimmed === '' || isNaN(num)) ? null : num;
+      } else if (c === 2) {
+        data[dataIdx].fb = (trimmed === '' || isNaN(num)) ? null : num;
+      }
+      changed++;
+    });
+  });
+
+  var oldCard = document.getElementById('mini-tbody-' + surfKey)?.closest('.mini-tbl-card');
+  if (oldCard && oldCard.parentNode) {
+    oldCard.parentNode.replaceChild(buildMiniCard(surfKey), oldCard);
   }
+  showPasteToast(changed ? rows.length : '붙여넣을 숫자값이 없습니다');
 }
 
 function saveMiniVal(surfKey, idx, field, input) {
+  if (input && !input.isConnected) return;
   var v = input.value.trim();
   var num = v === '' ? null : parseFloat(v);
   if (!measureData[surfKey][idx]) measureData[surfKey][idx] = { actual:null, fb:null };
@@ -1894,8 +1983,7 @@ function copyMultiTableToClipboard() {
   lines.push(headerCols.join('\t'));
 
   allSurfs.forEach(function(s) {
-    var isSFP  = SFP_SET.has(s);
-    var cmds   = isSFP ? [0, 90] : COMPACT_CMDS;
+    var cmds = surfCommands[s];
     var storedCmds = surfCommands[s];
     var data = measureData[s];
     cmds.forEach(function(cmd) {
@@ -1929,7 +2017,7 @@ function buildTable() {
   cmds.forEach((cmd, i) => {
     const av = data[i] ? (data[i].actual !== null ? data[i].actual : '') : '';
     const fv = data[i] ? (data[i].fb     !== null ? data[i].fb     : '') : '';
-    const defCmdArr = SFP_SET.has(currentSurface) ? [0, 90] : DEFAULT_COMMANDS;
+    const defCmdArr = DEFAULT_COMMANDS;
     const isDefault = (cmd === defCmdArr[i]) || (cmd === null && defCmdArr[i] === null);
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1970,12 +2058,13 @@ function parseNumeric(raw) {
 }
 
 function isDefaultCommand(surface, idx, value) {
-  const defArr = SFP_SET.has(surface) ? SFP_DEFAULT_COMMANDS : DEFAULT_COMMANDS;
+  const defArr = DEFAULT_COMMANDS;
   const def = defArr[idx];
   return (value === def) || (value === null && def === null);
 }
 
 function saveCmd(idx, input, commit) {
+  if (input && !input.isConnected) return;
   const v = input.value.trim();
   const intermediate = v === '' || v === '-' || v === '+' || v === '.' || v === '-.' || v === '+.';
 
@@ -2009,53 +2098,11 @@ function saveCmd(idx, input, commit) {
 function handlePaste(e, startRow, startCol) {
   const text = (e.clipboardData || window.clipboardData).getData('text');
   // 탭/개행 없으면 단순 붙여넣기로 처리
-  if (!text.includes('\n') && !text.includes('\t')) return;
+  if (startCol !== 0 && !text.includes('\n') && !text.includes('\t')) return;
 
   e.preventDefault();
-
-  // 줄 파싱 (\r\n / \n 모두 처리, 끝 빈줄 제거)
-  const rows = text.replace(/\r/g,'').split('\n');
-  while (rows.length && rows[rows.length-1].trim()==='') rows.pop();
-
-  const cmds   = surfCommands[currentSurface];
-  const data   = measureData[currentSurface];
-  const isSFP  = SFP_SET.has(currentSurface);
-  const maxRow = cmds.length;
-
-  rows.forEach((rowStr, ri) => {
-    const r = startRow + ri;
-    if (r >= maxRow) return;
-
-    const cols = rowStr.split('\t');
-    cols.forEach((val, ci) => {
-      const c = startCol + ci;
-      const trimmed = val.trim();
-      const num = trimmed === '' ? null : parseNumeric(trimmed);
-      if (isNaN(num) && trimmed !== '') return; // 숫자가 아니면 skip
-
-      if (c === 0) {
-        // 명령 각도
-        if (trimmed === '' || isNaN(num)) {
-          cmds[r] = null;
-        } else {
-          cmds[r] = num;
-        }
-      } else if (c === 1) {
-        // 실제 출력 각도
-        data[r].actual = (trimmed === '' || isNaN(num)) ? null : num;
-      } else if (c === 2) {
-        // 피드백 각도
-        data[r].fb = (trimmed === '' || isNaN(num)) ? null : num;
-      }
-    });
-  });
-
-  // 테이블 다시 렌더
-  resetLinearState(currentSurface);
-  buildTable();
-
-  // 붙여넣기 완료 토스트
-  showPasteToast(rows.length);
+  if (e.target) e.target.value = parsePastedGrid(text)[0]?.[0] ?? '';
+  applySinglePasteText(startRow, startCol, text);
 }
 
 function showPasteToast(msg) {
@@ -2081,6 +2128,7 @@ function showPasteToast(msg) {
 }
 
 function saveVal(idx, field, input) {
+  if (input && !input.isConnected) return;
   const v = input.value.trim();
   const num = v === '' ? null : parseNumeric(v);
   measureData[currentSurface][idx][field] = num;
@@ -2292,7 +2340,7 @@ function resetLinear(sign) {
 function clearCurrentSurface() {
   if (!currentSurface) return;
   // 명령 각도를 기본값으로 리셋
-  const defCmds = SFP_SET.has(currentSurface) ? [0, 90] : [...DEFAULT_COMMANDS];
+  const defCmds = SFP_SET.has(currentSurface) ? [null, null, null, null] : [...DEFAULT_COMMANDS];
   surfCommands[currentSurface] = defCmds;
   measureData[currentSurface]  = defCmds.map(() => ({ actual:null, fb:null }));
   offsets[currentSurface] = { pos:0, neg:0 };
@@ -2355,7 +2403,7 @@ function copyTableToClipboard() {
 function clearAllSurfaces() {
   SURFACES.forEach(function(s) {
     if (!s) return;
-    var defCmds = SFP_SET.has(s) ? [0, 90] : [...DEFAULT_COMMANDS];
+    var defCmds = SFP_SET.has(s) ? [null, null, null, null] : [...DEFAULT_COMMANDS];
     surfCommands[s] = defCmds;
     measureData[s]  = defCmds.map(function() { return { actual:null, fb:null }; });
     offsets[s]       = { pos:0, neg:0 };
@@ -2759,9 +2807,9 @@ function buildJSONText(obj) {
     const comma = i < orderedKeys.length - 1 ? ',' : '';
     if (Array.isArray(v) && rigPattern.test(k)) {
       const vals = v.map(n => typeof n === 'number' ? n : JSON.stringify(n)).join(', ');
-      lines.push('\t"' + k + '": [' + vals + ']' + comma);
+      lines.push('\t"' + k + '" : [' + vals + ']' + comma);
     } else {
-      lines.push('\t"' + k + '": ' + JSON.stringify(v) + comma);
+      lines.push('\t"' + k + '" : ' + JSON.stringify(v) + comma);
     }
   });
   lines.push('}');
@@ -3318,6 +3366,184 @@ function showAlert() {
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 }
+
+
+(function() {
+  var dragging = false;
+  var anchor = null;
+  var sel = [];
+  var suppressClick = false;
+
+  function isCell(el) {
+    return el && el.tagName === 'INPUT' &&
+      (el.classList.contains('cell-input') || el.classList.contains('mini-input'));
+  }
+
+  document.addEventListener('paste', function(e) {
+    if (!isCell(e.target)) return;
+    var text = (e.clipboardData || window.clipboardData).getData('text');
+    if (!text) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+    var row = parseInt(e.target.dataset.row, 10);
+    var col = parseInt(e.target.dataset.col, 10);
+    if (isNaN(row) || isNaN(col)) return;
+
+    e.target.value = parsePastedGrid(text)[0]?.[0] ?? '';
+    if (e.target.classList.contains('mini-input')) {
+      applyMiniPasteText(e.target.dataset.surface, row, col, text);
+    } else {
+      applySinglePasteText(row, col, text);
+    }
+  }, true);
+
+  function cellInfo(el) {
+    var td = el && el.closest ? el.closest('td') : null;
+    var tr = el && el.closest ? el.closest('tr') : null;
+    var tbody = el && el.closest ? el.closest('tbody') : null;
+    if (!td || !tr || !tbody) return null;
+    return {
+      td: td,
+      tr: tr,
+      tbody: tbody,
+      row: Array.prototype.indexOf.call(tbody.rows, tr),
+      col: td.cellIndex
+    };
+  }
+
+  function cellsInRect(a, b) {
+    var ia = cellInfo(a), ib = cellInfo(b);
+    if (!ia || !ib || ia.tbody !== ib.tbody) return [a];
+
+    var r1 = Math.min(ia.row, ib.row), r2 = Math.max(ia.row, ib.row);
+    var c1 = Math.min(ia.col, ib.col), c2 = Math.max(ia.col, ib.col);
+    var out = [];
+    for (var r = r1; r <= r2; r++) {
+      var row = ia.tbody.rows[r];
+      if (!row) continue;
+      for (var c = c1; c <= c2; c++) {
+        var input = row.cells[c] ? row.cells[c].querySelector('input.cell-input,input.mini-input') : null;
+        if (input) out.push(input);
+      }
+    }
+    return out;
+  }
+
+  function highlight(cells) {
+    sel.forEach(function(c) { c.classList.remove('cell-selected'); });
+    sel = cells;
+    sel.forEach(function(c) { c.classList.add('cell-selected'); });
+  }
+
+  function clear() {
+    sel.forEach(function(c) { c.classList.remove('cell-selected'); });
+    sel = []; anchor = null;
+  }
+
+  function selectedMatrix() {
+    if (!sel.length) return [];
+    var buckets = [];
+    sel.forEach(function(cell) {
+      var info = cellInfo(cell);
+      if (!info) return;
+      buckets.push({ row: info.row, col: info.col, cell: cell });
+    });
+    buckets.sort(function(a,b) { return a.row === b.row ? a.col - b.col : a.row - b.row; });
+
+    var rows = [], cur = null, row = [];
+    buckets.forEach(function(item) {
+      if (cur === null || item.row !== cur) {
+        if (row.length) rows.push(row);
+        cur = item.row;
+        row = [item.cell];
+      } else {
+        row.push(item.cell);
+      }
+    });
+    if (row.length) rows.push(row);
+    return rows;
+  }
+
+  function writeClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return Promise.reject();
+  }
+
+  /* Shift+Click: 범위 선택 */
+  document.addEventListener('click', function(e) {
+    if (suppressClick) {
+      suppressClick = false;
+      e.preventDefault();
+      return;
+    }
+    if (!isCell(e.target)) { clear(); return; }
+    if (e.shiftKey && anchor) {
+      highlight(cellsInRect(anchor, e.target));
+    } else {
+      anchor = e.target;
+      highlight([anchor]);
+    }
+  });
+
+  /* 드래그: pointerdown -> pointermove -> pointerup */
+  document.addEventListener('pointerdown', function(e) {
+    if (!isCell(e.target)) return;
+    dragging = true;
+    anchor = e.target;
+    highlight([anchor]);
+    e.target.focus();
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointermove', function(e) {
+    if (!dragging || !anchor) return;
+    var over = document.elementFromPoint(e.clientX, e.clientY);
+    if (isCell(over) && over !== sel[sel.length-1]) {
+      highlight(cellsInRect(anchor, over));
+    }
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointerup', function(e) {
+    if (!dragging) return;
+    dragging = false;
+    /* 셀이 1개면 일반 포커스 유지 */
+    if (sel.length === 1) { clear(); }
+    else { suppressClick = true; }
+  });
+
+  /* Ctrl+C */
+  document.addEventListener('keydown', function(e) {
+    if (sel.length < 2) return;
+
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+      var text = selectedMatrix().map(function(r) {
+        return r.map(function(c) { return c.value; }).join('\t');
+      }).join('\n');
+      writeClipboard(text).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+      });
+      showPasteToast(sel.length + '\uac1c \uc140 \ubcf5\uc0ac');
+      e.preventDefault();
+
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') && sel.length > 1) {
+      sel.forEach(function(cell) {
+        cell.value = '';
+        cell.dispatchEvent(new Event('input', { bubbles: true }));
+        cell.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      e.preventDefault();
+    }
+  });
+})();
 </script>
 </body>
 </html>

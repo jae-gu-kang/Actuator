@@ -75,6 +75,12 @@
   .cell-input.col-y:focus { background: #fff5f4; box-shadow: inset 0 0 0 1.5px #ff3b30; }
   .cell-data-td { border-right: 0.5px solid #f2f2f7; }
   .cell-data-td:last-child { border-right: none; }
+  .cell-input.selected { background: rgba(0,122,255,0.12) !important; box-shadow: none !important; }
+  .sel-toolbar { display:none; position:fixed; z-index:999; background:#1c1c1e; border-radius:10px; padding:4px 6px; gap:4px; box-shadow:0 4px 16px rgba(0,0,0,0.25); }
+  .sel-toolbar.visible { display:flex; }
+  .sel-toolbar button { border:none; background:transparent; color:#fff; font-size:12px; font-weight:600; padding:5px 10px; border-radius:7px; cursor:pointer; font-family:inherit; transition:background 0.1s; white-space:nowrap; }
+  .sel-toolbar button:hover { background:rgba(255,255,255,0.15); }
+  .sel-toolbar button.danger { color:#ff6b6b; }
   .grid-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid #f2f2f7; background: #fafafa; border-radius: 0 0 12px 12px; flex-wrap: wrap; gap: 8px; }
   .grid-footer-left { font-size: 12px; color: #8e8e93; }
   .grid-footer-left strong { color: #1c1c1e; font-weight: 600; }
@@ -121,6 +127,12 @@
   .rigging-guide-name { font-size: 11px; font-weight: 750; color: #1c1c1e; white-space: nowrap; }
   .rigging-guide-desc { font-size: 11px; color: #636366; line-height: 1.45; }
   .coeff-inline { display: block; margin-top: 3px; color: #636366; font-size: 11px; word-break: break-all; }
+  .copy-btn { display: inline-flex; align-items: center; gap: 4px; border: none; background: #e5e5ea; color: #007aff; font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-family: inherit; transition: background 0.15s; white-space: nowrap; }
+  .copy-btn:hover { background: #d1d1d6; }
+  .copy-btn.copied { background: #d1f7de; color: #1a7a3c; }
+  .coeff-card { background: #f2f2f7; border-radius: 12px; padding: 12px 16px; grid-column: 1 / -1; }
+  .coeff-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .coeff-card-value { font-family: 'SF Mono','Menlo',monospace; font-size: 12px; font-weight: 600; word-break: break-all; margin-bottom: 4px; }
   .row-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .tag { display: inline-block; font-size: 12px; background: #e8f0fe; color: #0071e3; padding: 2px 9px; border-radius: 6px; font-weight: 500; }
   .chart-wrap { position: relative; width: 100%; height: 300px; }
@@ -200,6 +212,7 @@
           엑셀/시트에서 복사 후 첫 셀에 붙여넣기
         </div>
         <div class="grid-footer-right">
+          <button class="apple-btn btn-secondary btn-sm" onclick="copyGridData()">데이터 복사</button>
           <button class="apple-btn btn-secondary btn-sm" onclick="addRows(10)">+ 10행</button>
           <button class="apple-btn btn-danger btn-sm" onclick="clearGrid()">초기화</button>
         </div>
@@ -278,6 +291,12 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="sel-toolbar" id="selToolbar">
+  <button onclick="copySelection()">복사</button>
+  <button onclick="cutSelection()">잘라내기</button>
+  <button class="danger" onclick="deleteSelection()">삭제</button>
+  <button onclick="clearSelection()">선택 해제</button>
+</div>
 
 <script>
 const INIT_ROWS = 10;
@@ -306,6 +325,29 @@ const MODE_COLUMNS = {
 
 let chartInstance = null, residualChartInstance = null;
 let currentType = 'linear', analysisMode = 'multiY';
+
+/* 모드별 데이터 저장소 */
+const modeDataStore = { multiY: [], multiX: [], rigging: [] };
+
+function saveGridData() {
+  const rows = Array.from(document.querySelectorAll('#gridBody tr')).map(tr =>
+    Array.from(tr.querySelectorAll('.cell-input')).map(inp => inp.value)
+  );
+  modeDataStore[analysisMode] = rows;
+}
+
+function restoreGridData(mode) {
+  const saved = modeDataStore[mode];
+  if (!saved || saved.length === 0) return;
+  const needed = Math.max(INIT_ROWS, saved.length + 3);
+  buildGrid(needed);
+  const rows = document.querySelectorAll('#gridBody tr');
+  saved.forEach((rowVals, i) => {
+    if (!rows[i]) return;
+    const inputs = rows[i].querySelectorAll('.cell-input');
+    rowVals.forEach((val, j) => { if (inputs[j]) inputs[j].value = val; });
+  });
+}
 
 function getColumns() {
   return MODE_COLUMNS[analysisMode];
@@ -378,6 +420,7 @@ function getMatrixRows() {
 
 function updateCount() {
   document.getElementById('rowCountLabel').textContent = countUsableRows();
+  saveGridData();
   scheduleRun();
 }
 
@@ -575,12 +618,17 @@ function buildRiggingSample() {
 /* 세그먼트 컨트롤 */
 document.getElementById('analysisMode').addEventListener('click', e => {
   if (!e.target.dataset.mode || e.target.dataset.mode === analysisMode) return;
+  saveGridData();
   document.querySelectorAll('#analysisMode button').forEach(b => b.classList.remove('active'));
   e.target.classList.add('active');
   analysisMode = e.target.dataset.mode;
   syncRegressionButtons();
-  clearGrid();
+  buildGrid(INIT_ROWS);
+  restoreGridData(analysisMode);
+  updateCount();
   updateSampleButton();
+  hideResults();
+  runRegression();
   const labels = {multiY:'X → Y1~Y4 모드', multiX:'X1~X4 → Y 모드', rigging:'조종면 리깅 모드'};
   showToast(labels[analysisMode]);
 });
@@ -923,22 +971,7 @@ function displayRigging(rows, res) {
   document.getElementById('metricsGrid').innerHTML =
     metricCard('명령 보정', res.command, '#007aff') +
     (res.feedbackPredict ? metricCard('피드백 예측', res.feedbackPredict, '#ff3b30') : '') +
-    (res.feedbackReverse ? metricCard('REV 환산', res.feedbackReverse, '#af52de') : '') +
-    `<div class="metric-card">
-      <div class="metric-label">FCA_RIG 후보 [a3,a2,a1,a0]</div>
-      <div class="metric-value" style="font-size:13px;color:#007aff;word-break:break-all">${coeffText(res.command.coeffs)}</div>
-      <div class="metric-sub">x = 실제각도기, y = 명령각도</div>
-    </div>` +
-    (res.feedbackPredict ? `<div class="metric-card">
-      <div class="metric-label">FB 예측 계수 [a3,a2,a1,a0]</div>
-      <div class="metric-value" style="font-size:13px;color:#ff3b30;word-break:break-all">${coeffText(res.feedbackPredict.coeffs)}</div>
-      <div class="metric-sub">x = 실제각도기, y = 피드백각도</div>
-    </div>` : '') +
-    (res.feedbackReverse ? `<div class="metric-card">
-      <div class="metric-label">FCA_RIG_REVERS 후보 [a3,a2,a1,a0]</div>
-      <div class="metric-value" style="font-size:13px;color:#af52de;word-break:break-all">${coeffText(res.feedbackReverse.coeffs)}</div>
-      <div class="metric-sub">x = 피드백각도, y = 실제각도기</div>
-    </div>` : '');
+    (res.feedbackReverse ? metricCard('REV 환산', res.feedbackReverse, '#af52de') : '');
 
   drawMainRigging(rows, res);
   drawResidRigging(res);
@@ -946,10 +979,14 @@ function displayRigging(rows, res) {
 }
 
 function equationLine(key, color, yName, res, note) {
+  const ct = coeffText(res.coeffs);
+  const escaped = ct.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   return `<div class="equation-line">
     <span class="equation-key" style="color:${color}">${key}</span>
     <span>${yName} = ${stripYHat(res.equation)}
-      <span class="coeff-inline">(${coeffText(res.coeffs)} · ${note})</span>
+      <span class="coeff-inline">${ct} · ${note}
+        <button class="copy-btn" style="margin-left:6px;vertical-align:middle;" onclick="copyCoeff(this,'${escaped}')">복사</button>
+      </span>
     </span>
   </div>`;
 }
@@ -970,7 +1007,20 @@ function metricCard(label, res, color) {
 }
 
 function coeffText(coeffs) {
-  return `[${coeffs.map(v => Number(v).toExponential(6)).join(', ')}]`;
+  return `[${coeffs.map(v => Number(v).toFixed(10)).join(', ')}],`;
+}
+
+function coeffCard(label, coeffs, color, sub) {
+  const text = coeffText(coeffs);
+  const escaped = text.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return `<div class="coeff-card" style="grid-column:1/-1;">
+    <div class="coeff-card-top">
+      <div class="metric-label" style="margin-bottom:0;">${label}</div>
+      <button class="copy-btn" onclick="copyCoeff(this,'${escaped}')">📋 복사</button>
+    </div>
+    <div class="coeff-card-value" style="color:${color};">${text}</div>
+    <div class="metric-sub">${sub}</div>
+  </div>`;
 }
 
 function stripYHat(eq) {
@@ -1188,6 +1238,160 @@ function tableRow(idx, leadingCells, res, i) {
     <td style="color:${r>=0?'#30d158':'#ff3b30'}">${f(r,4)}</td>
     <td>${f(r2,4)}</td><td>${q.ratio.toFixed(2)}×</td>
     <td><span class="badge ${q.q}">${q.ql}</span></td></tr>`;
+}
+
+function copyGridData() {
+  const cols = getColumns();
+  const header = cols.map(c => c.label).join('\t');
+  const rows = Array.from(document.querySelectorAll('#gridBody tr'))
+    .map(tr => Array.from(tr.querySelectorAll('.cell-input')).map(inp => inp.value))
+    .filter(vals => vals.some(v => v.trim() !== ''));
+  if (!rows.length) { showToast('복사할 데이터가 없습니다', true); return; }
+  const text = [header, ...rows.map(r => r.join('\t'))].join('\n');
+  navigator.clipboard.writeText(text).then(() => showToast('데이터 복사 완료'));
+}
+
+/* ── 드래그 선택 ── */
+let isDragging = false, dragStartCell = null, selectedCells = new Set();
+
+function getCellCoords(inp) {
+  return { row: parseInt(inp.dataset.row), col: parseInt(inp.dataset.col) };
+}
+
+function getAllInputs() {
+  return Array.from(document.querySelectorAll('#gridBody .cell-input'));
+}
+
+function getCellsInRange(a, b) {
+  const r1 = Math.min(a.row, b.row), r2 = Math.max(a.row, b.row);
+  const c1 = Math.min(a.col, b.col), c2 = Math.max(a.col, b.col);
+  return getAllInputs().filter(inp => {
+    const r = parseInt(inp.dataset.row), c = parseInt(inp.dataset.col);
+    return r >= r1 && r <= r2 && c >= c1 && c <= c2;
+  });
+}
+
+function applySelection(cells) {
+  getAllInputs().forEach(inp => inp.classList.remove('selected'));
+  selectedCells = new Set(cells);
+  cells.forEach(inp => inp.classList.add('selected'));
+}
+
+function clearSelection() {
+  applySelection([]);
+  hideToolbar();
+}
+
+function showToolbar(e) {
+  if (selectedCells.size === 0) return;
+  const tb = document.getElementById('selToolbar');
+  tb.classList.add('visible');
+  const x = Math.min(e.clientX + 8, window.innerWidth - 220);
+  const y = Math.min(e.clientY + 8, window.innerHeight - 60);
+  tb.style.left = x + 'px';
+  tb.style.top  = y + 'px';
+}
+
+function hideToolbar() {
+  document.getElementById('selToolbar').classList.remove('visible');
+}
+
+function selectionToTsv() {
+  if (!selectedCells.size) return '';
+  const cells = [...selectedCells];
+  const rows = [...new Set(cells.map(i => parseInt(i.dataset.row)))].sort((a,b)=>a-b);
+  const cols = [...new Set(cells.map(i => parseInt(i.dataset.col)))].sort((a,b)=>a-b);
+  return rows.map(r =>
+    cols.map(c => {
+      const inp = cells.find(i => parseInt(i.dataset.row)===r && parseInt(i.dataset.col)===c);
+      return inp ? inp.value : '';
+    }).join('\t')
+  ).join('\n');
+}
+
+function copySelection() {
+  const tsv = selectionToTsv();
+  if (!tsv) return;
+  navigator.clipboard.writeText(tsv).then(() => {
+    showToast(`${selectedCells.size}개 셀 복사 완료`);
+    hideToolbar();
+  });
+}
+
+function cutSelection() {
+  const tsv = selectionToTsv();
+  if (!tsv) return;
+  navigator.clipboard.writeText(tsv).then(() => {
+    [...selectedCells].forEach(inp => { inp.value = ''; });
+    showToast(`${selectedCells.size}개 셀 잘라내기 완료`);
+    clearSelection();
+    updateCount();
+  });
+}
+
+function deleteSelection() {
+  [...selectedCells].forEach(inp => { inp.value = ''; });
+  showToast(`${selectedCells.size}개 셀 삭제 완료`);
+  clearSelection();
+  updateCount();
+}
+
+// 마우스 이벤트 위임
+document.addEventListener('mousedown', e => {
+  const inp = e.target.closest('.cell-input');
+  if (!inp || !document.getElementById('gridBody').contains(inp)) {
+    if (!e.target.closest('#selToolbar')) clearSelection();
+    return;
+  }
+  if (e.button !== 0) return;
+  isDragging = true;
+  dragStartCell = getCellCoords(inp);
+  applySelection([inp]);
+  hideToolbar();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!isDragging || !dragStartCell) return;
+  const inp = e.target.closest('.cell-input');
+  if (!inp || !document.getElementById('gridBody').contains(inp)) return;
+  const end = getCellCoords(inp);
+  applySelection(getCellsInRange(dragStartCell, end));
+});
+
+document.addEventListener('mouseup', e => {
+  if (!isDragging) return;
+  isDragging = false;
+  if (selectedCells.size > 1) showToolbar(e);
+  dragStartCell = null;
+});
+
+document.addEventListener('contextmenu', e => {
+  const inp = e.target.closest('.cell-input');
+  if (!inp || !document.getElementById('gridBody').contains(inp)) return;
+  e.preventDefault();
+  if (!selectedCells.has(inp)) {
+    applySelection([inp]);
+    dragStartCell = getCellCoords(inp);
+  }
+  showToolbar(e);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') clearSelection();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedCells.size > 0) copySelection();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'x' && selectedCells.size > 0) cutSelection();
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedCells.size > 1) {
+    e.preventDefault();
+    deleteSelection();
+  }
+});
+
+function copyCoeff(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ 복사됨';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 복사'; btn.classList.remove('copied'); }, 2000);
+  });
 }
 
 let toastTimer;
