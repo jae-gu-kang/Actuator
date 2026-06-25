@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0050)https://jaegukang.com/hinge_moment_calculator.html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>힌지모멘트 계산기</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -326,9 +326,9 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 
 <!-- Titlebar -->
 <div class="titlebar">
-  <a class="t-home" href="index.html">
+  <a class="t-home" href="https://jaegukang.com/index.html">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"/>
+      <path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"></path>
     </svg>
     홈
   </a>
@@ -338,63 +338,62 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   <div class="t-icon" aria-hidden="true">
     <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <!-- upper streamlines (compressed) -->
-      <path d="M1 5.8 Q5 4.4 10 4.7 Q14 5.0 19 5.4" stroke="rgba(200,180,255,0.65)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
-      <path d="M1 7.2 Q5 5.6 10 6.0 Q14 6.3 19 6.8" stroke="rgba(200,180,255,0.80)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
+      <path d="M1 5.8 Q5 4.4 10 4.7 Q14 5.0 19 5.4" stroke="rgba(200,180,255,0.65)" stroke-width="0.75" fill="none" stroke-linecap="round"></path>
+      <path d="M1 7.2 Q5 5.6 10 6.0 Q14 6.3 19 6.8" stroke="rgba(200,180,255,0.80)" stroke-width="0.75" fill="none" stroke-linecap="round"></path>
       <!-- airfoil -->
-      <path d="M2 10 Q5 6.8 10 6.4 Q15 6.1 18 10 Q15 11.6 10 12.0 Q5 12.4 2 10 Z"
-            fill="rgba(255,255,255,0.92)" stroke="rgba(255,255,255,0.55)" stroke-width="0.7"/>
+      <path d="M2 10 Q5 6.8 10 6.4 Q15 6.1 18 10 Q15 11.6 10 12.0 Q5 12.4 2 10 Z" fill="rgba(255,255,255,0.92)" stroke="rgba(255,255,255,0.55)" stroke-width="0.7"></path>
       <!-- lower streamlines (expanded) -->
-      <path d="M1 13.2 Q5 14.0 10 13.8 Q14 13.6 19 14.0" stroke="rgba(200,180,255,0.65)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
-      <path d="M1 15.0 Q5 15.6 10 15.4 Q14 15.2 19 15.6" stroke="rgba(200,180,255,0.50)" stroke-width="0.75" fill="none" stroke-linecap="round"/>
+      <path d="M1 13.2 Q5 14.0 10 13.8 Q14 13.6 19 14.0" stroke="rgba(200,180,255,0.65)" stroke-width="0.75" fill="none" stroke-linecap="round"></path>
+      <path d="M1 15.0 Q5 15.6 10 15.4 Q14 15.2 19 15.6" stroke="rgba(200,180,255,0.50)" stroke-width="0.75" fill="none" stroke-linecap="round"></path>
       <!-- hinge pivot -->
-      <circle cx="14.8" cy="10" r="1.5" fill="rgba(220,180,255,1)" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"/>
-      <circle cx="14.8" cy="10" r="0.6" fill="rgba(255,255,255,0.9)"/>
+      <circle cx="14.8" cy="10" r="1.5" fill="rgba(220,180,255,1)" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"></circle>
+      <circle cx="14.8" cy="10" r="0.6" fill="rgba(255,255,255,0.9)"></circle>
     </svg>
   </div>
 
-  <span class="t-title">힌지모멘트 & 액추에이터 사이징</span>
+  <span class="t-title">힌지모멘트 &amp; 액추에이터 사이징</span>
 </div>
 
 <!-- Header -->
 <div class="page-header">
-  <div class="eyebrow">Control Surface · DATCOM · BLDC Servo Sizing</div>
+  <div class="eyebrow">Control Surface · DATCOM-style Estimate · BLDC Servo Sizing</div>
   <h1>힌지모멘트 계산기</h1>
-  <p>기체 타입별 조종면 힌지모멘트 · DATCOM 보정 · 서보 사이징 · 전력 산정</p>
+  <p>기체 타입별 조종면 힌지모멘트 · DATCOM 간이추정 · 서보 사이징 · 전력 산정</p>
 </div>
 
 <!-- AC type -->
 <div class="ac-bar">
   <span class="ac-label">기체 타입</span>
-  <button class="ac-btn on" data-ac="conv"  onclick="setAC('conv')">일반 고정익</button>
-  <button class="ac-btn"    data-ac="vtail" onclick="setAC('vtail')">V-tail 고정익</button>
-  <button class="ac-btn"    data-ac="allmv" onclick="setAC('allmv')">올무빙 테일</button>
-  <button class="ac-btn"    data-ac="drone" onclick="setAC('drone')">드론</button>
+  <button class="ac-btn on" data-ac="conv" onclick="setAC(&#39;conv&#39;)">일반 고정익</button>
+  <button class="ac-btn" data-ac="vtail" onclick="setAC(&#39;vtail&#39;)">V-tail 고정익</button>
+  <button class="ac-btn" data-ac="allmv" onclick="setAC(&#39;allmv&#39;)">올무빙 테일</button>
+  <button class="ac-btn" data-ac="drone" onclick="setAC(&#39;drone&#39;)">드론</button>
 </div>
 
 <!-- Surface tabs -->
-<div class="surf-bar" id="surf-bar"></div>
+<div class="surf-bar" id="surf-bar"><button class="surf-btn on peak" id="sb-flap"><span class="surf-peak-dot" id="spk-flap" style="display: block;"></span><span style="font-size:12px;font-weight:500">플랩</span><span class="surf-h" id="sh-flap">-3.14<span class="surf-h-unit">N·m</span></span></button><button class="surf-btn" id="sb-ail"><span class="surf-peak-dot" id="spk-ail" style="display: none;"></span><span style="font-size:12px;font-weight:500">에일러론</span><span class="surf-h" id="sh-ail">—<span class="surf-h-unit">N·m</span></span></button><button class="surf-btn" id="sb-elev"><span class="surf-peak-dot" id="spk-elev" style="display: none;"></span><span style="font-size:12px;font-weight:500">엘리베이터</span><span class="surf-h" id="sh-elev">—<span class="surf-h-unit">N·m</span></span></button><button class="surf-btn" id="sb-rud"><span class="surf-peak-dot" id="spk-rud" style="display: none;"></span><span style="font-size:12px;font-weight:500">러더</span><span class="surf-h" id="sh-rud">—<span class="surf-h-unit">N·m</span></span></button></div>
 
 <!-- KPI -->
 <div class="kpi-row">
   <div class="kpi accent">
     <div class="kpi-lbl">힌지모멘트 H</div>
-    <div class="kpi-val" id="k-hm">—<span class="u">N·m</span></div>
-    <div class="kpi-sub" id="k-regime">—</div>
+    <div class="kpi-val" id="k-hm">-3.14<span class="u">N·m</span></div>
+    <div class="kpi-sub" id="k-regime"><span class="badge b-low">저속 아음속</span> · 플랩</div>
   </div>
   <div class="kpi">
     <div class="kpi-lbl">설계 토크 (출력축)</div>
-    <div class="kpi-val" id="k-torque">—<span class="u">N·m</span></div>
-    <div class="kpi-sub" id="k-torque-sub">안전계수 적용</div>
+    <div class="kpi-val" id="k-torque">3.93<span class="u">N·m</span></div>
+    <div class="kpi-sub" id="k-torque-sub">모터 39.3 mN·m · 기어비 100</div>
   </div>
   <div class="kpi purple">
     <div class="kpi-lbl">필요 전력</div>
-    <div class="kpi-val" id="k-power">—<span class="u">W</span></div>
-    <div class="kpi-sub" id="k-power-sub">효율 반영</div>
+    <div class="kpi-val" id="k-power">5.48<span class="u">W</span></div>
+    <div class="kpi-sub" id="k-power-sub">기계 4.11 W · η=75%</div>
   </div>
   <div class="kpi">
     <div class="kpi-lbl">동압 q</div>
-    <div class="kpi-val" id="k-q">—<span class="u">Pa</span></div>
-    <div class="kpi-sub" id="k-mach">Mach —</div>
+    <div class="kpi-val" id="k-q">1531<span class="u">Pa</span></div>
+    <div class="kpi-sub" id="k-mach">Mach 0.147</div>
   </div>
 </div>
 
@@ -406,8 +405,8 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <div class="p-title-row">
       <span class="sec-name">비행 조건</span>
       <div class="mode-toggle">
-        <button class="mode-btn-basic on" id="mode-basic"  onclick="setMode('basic')">기본</button>
-        <button class="mode-btn-datcom"   id="mode-datcom" onclick="setMode('datcom')">DATCOM 보정</button>
+        <button class="mode-btn-basic on" id="mode-basic" onclick="setMode(&#39;basic&#39;)">기본</button>
+        <button class="mode-btn-datcom" id="mode-datcom" onclick="setMode(&#39;datcom&#39;)">DATCOM 간이추정</button>
       </div>
     </div>
 
@@ -418,14 +417,14 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
             <span class="slider-name">조종면 면적 S<sub>f</sub></span>
             <div class="inp-box"><input type="number" id="n-area" min="0.001" max="5" step="0.01" value="0.10"><span class="u">m²</span></div>
           </div>
-          <input type="range" id="s-area" min="0.001" max="5" step="0.01" value="0.10">
+          <input type="range" id="s-area" min="0.001" max="5" step="0.01" value="0.10" style="--pct: 2.0%;">
         </div>
         <div class="slider-row">
           <div class="slider-hd">
             <span class="slider-name">에어스피드 V</span>
             <div class="inp-box"><input type="number" id="n-spd" min="1" max="300" step="1" value="50"><span class="u">m/s</span></div>
           </div>
-          <input type="range" id="s-spd" min="1" max="300" step="1" value="50">
+          <input type="range" id="s-spd" min="1" max="300" step="1" value="50" style="--pct: 16.4%;">
         </div>
       </div>
       <div>
@@ -434,14 +433,14 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
             <span class="slider-name">편향각 δ</span>
             <div class="inp-box"><input type="number" id="n-def" min="-30" max="30" step="0.5" value="15"><span class="u">°</span></div>
           </div>
-          <input type="range" id="s-def" min="-30" max="30" step="0.5" value="15">
+          <input type="range" id="s-def" min="-30" max="30" step="0.5" value="15" style="--pct: 75.0%;">
         </div>
         <div class="slider-row">
           <div class="slider-hd">
-            <span class="slider-name">평균 시위 c̄</span>
+            <span class="slider-name">조종면 평균 시위 c<sub>f</sub></span>
             <div class="inp-box"><input type="number" id="n-mac" min="0.05" max="3" step="0.01" value="0.20"><span class="u">m</span></div>
           </div>
-          <input type="range" id="s-mac" min="0.05" max="3" step="0.01" value="0.20">
+          <input type="range" id="s-mac" min="0.05" max="3" step="0.01" value="0.20" style="--pct: 5.1%;">
         </div>
       </div>
     </div>
@@ -472,10 +471,10 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     </div>
     <div class="dt-presets">
       <button onclick="setDT(-15)" class="dt-btn" id="dtb--15">ISA−15</button>
-      <button onclick="setDT(0)"   class="dt-btn on" id="dtb-0">ISA</button>
-      <button onclick="setDT(15)"  class="dt-btn" id="dtb-15">ISA+15</button>
-      <button onclick="setDT(20)"  class="dt-btn" id="dtb-20">ISA+20</button>
-      <button onclick="setDT(30)"  class="dt-btn" id="dtb-30">ISA+30</button>
+      <button onclick="setDT(0)" class="dt-btn on" id="dtb-0">ISA</button>
+      <button onclick="setDT(15)" class="dt-btn" id="dtb-15">ISA+15</button>
+      <button onclick="setDT(20)" class="dt-btn" id="dtb-20">ISA+20</button>
+      <button onclick="setDT(30)" class="dt-btn" id="dtb-30">ISA+30</button>
     </div>
   </div>
 
@@ -485,16 +484,16 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       <div class="chart-header">
         <span class="chart-title">파라미터 감도</span>
         <div class="chart-tabs">
-          <button class="ct on" id="tb-spd"  onclick="setTab('spd')">속도 vs H</button>
-          <button class="ct"    id="tb-def"  onclick="setTab('def')">편향각 vs H</button>
-          <button class="ct"    id="tb-area" onclick="setTab('area')">면적 vs H</button>
+          <button class="ct on" id="tb-spd" onclick="setTab(&#39;spd&#39;)">속도 vs H</button>
+          <button class="ct" id="tb-def" onclick="setTab(&#39;def&#39;)">편향각 vs H</button>
+          <button class="ct" id="tb-area" onclick="setTab(&#39;area&#39;)">면적 vs H</button>
         </div>
       </div>
-      <div class="chart-wrap"><canvas id="hmChart"></canvas></div>
+      <div class="chart-wrap"><canvas id="hmChart" width="2389" height="448" style="display: block; box-sizing: border-box; height: 280px; width: 1493px;"></canvas></div>
       <!-- Formula footnote -->
       <div class="chart-footnote">
         <span class="fn-label">공식</span>
-        <span class="fn-eq"><var>H</var> = <var>C<sub>H</sub></var> · <var>q</var> · <var>S<sub>f</sub></var> · <var>c̄</var></span>
+        <span class="fn-eq"><var>H</var> = <var>C<sub>H</sub></var> · <var>q</var> · <var>S<sub>f</sub></var> · <var>c<sub>f</sub></var></span>
         <span class="fn-sep">·</span>
         <span class="fn-eq"><var>C<sub>H</sub></var> = <var>C<sub>H,0</sub></var> + <var>C<sub>H,δ</sub></var>δ + <var>C<sub>H,α</sub></var>α</span>
         <span class="fn-sep">·</span>
@@ -538,29 +537,29 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         </div>
       </div>
     </div>
-    <div class="note">표준 형상 가정으로 산출된 추정값입니다. 실제 항공기 형상에 맞춰 정밀 계산하려면 DATCOM 보정 모드를 사용하세요.</div>
+    <div class="note">표준 형상 가정으로 산출된 추정값입니다. 형상 영향을 보려면 DATCOM 간이추정 모드를 사용하세요.</div>
   </div>
   <!-- Col 2: intermediate calc -->
   <div class="panel">
     <div class="p-title">중간 계산값</div>
     <div class="dl">
-      <div class="dlr"><span class="dk">밀도 ρ</span><span class="dv" id="d-rho">—</span></div>
-      <div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q">—</span></div>
-      <div class="dlr"><span class="dk">CH,0</span><span class="dv" id="d-ch0">—</span></div>
-      <div class="dlr"><span class="dk">CH,δ · δ</span><span class="dv" id="d-chd">—</span></div>
-      <div class="dlr"><span class="dk">CH,α · α</span><span class="dv" id="d-cha">—</span></div>
-      <div class="dlr"><span class="dk">CH 합산</span><span class="dv" id="d-ch">—</span></div>
-      <div class="dlr"><span class="dk">q · Sf</span><span class="dv" id="d-load">—</span></div>
+      <div class="dlr"><span class="dk">밀도 ρ</span><span class="dv" id="d-rho">1.2250 kg/m³</span></div>
+      <div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q">1531.25 Pa</span></div>
+      <div class="dlr"><span class="dk">CH,0</span><span class="dv" id="d-ch0">0.000000</span></div>
+      <div class="dlr"><span class="dk">CH,δ · δ</span><span class="dv" id="d-chd">-0.091500</span></div>
+      <div class="dlr"><span class="dk">CH,α · α</span><span class="dv" id="d-cha">-0.011100</span></div>
+      <div class="dlr"><span class="dk">CH 합산</span><span class="dv" id="d-ch">-0.102600</span></div>
+      <div class="dlr"><span class="dk">q · Sf</span><span class="dv" id="d-load">153.1 N</span></div>
     </div>
   </div>
   <!-- Col 3: ISA atmosphere -->
   <div class="panel">
     <div class="p-title">ISA 대기</div>
     <div class="dl">
-      <div class="dlr"><span class="dk">ISA 밀도</span><span class="dv" id="d-rho-isa">—</span></div>
-      <div class="dlr"><span class="dk">온도 T</span><span class="dv" id="d-temp">—</span></div>
-      <div class="dlr"><span class="dk">음속 a</span><span class="dv" id="d-sos">—</span></div>
-      <div class="dlr"><span class="dk">Mach</span><span class="dv" id="d-mach2">—</span></div>
+      <div class="dlr"><span class="dk">ISA 밀도</span><span class="dv" id="d-rho-isa">1.2250 kg/m³</span></div>
+      <div class="dlr"><span class="dk">온도 T</span><span class="dv" id="d-temp">288.1 K  /  15.0 °C</span></div>
+      <div class="dlr"><span class="dk">음속 a</span><span class="dv" id="d-sos">340.3 m/s</span></div>
+      <div class="dlr"><span class="dk">Mach</span><span class="dv" id="d-mach2">0.1469</span></div>
     </div>
   </div>
 </div>
@@ -570,7 +569,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   <!-- Col 1: shape params -->
   <div class="panel">
     <div class="p-title-row">
-      <span class="sec-name">DATCOM 형상 파라미터</span>
+      <span class="sec-name">DATCOM 간이추정 형상 파라미터</span>
     </div>
     <div class="fgrid fg2">
       <div class="field">
@@ -613,12 +612,28 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         <label>xp/c · 피벗위치</label>
         <input type="number" id="dc-pivot" value="0.25" step="0.01" min="0.0" max="0.5">
       </div>
+      <div class="field">
+        <label>기준 CH,δ</label>
+        <input type="number" id="dc-ref-chd" value="" step="0.0001" placeholder="선택 입력">
+      </div>
+      <div class="field">
+        <label>기준 CH,α</label>
+        <input type="number" id="dc-ref-cha" value="" step="0.0001" placeholder="선택 입력">
+      </div>
+      <div class="field">
+        <label>Kδ · 보정</label>
+        <input type="number" id="dc-kd" value="1.000" step="0.001" min="0.2" max="3.0">
+      </div>
+      <div class="field">
+        <label>Kα · 보정</label>
+        <input type="number" id="dc-ka" value="1.000" step="0.001" min="0.2" max="3.0">
+      </div>
     </div>
     <div class="vtail-box vtail-only hide" id="vtail-box">
       <div class="vtail-row"><span class="vtail-k">피치 분배 (cos Γ)</span><span class="vtail-v" id="vt-pitch">—</span></div>
       <div class="vtail-row"><span class="vtail-k">요 분배 (sin Γ)</span><span class="vtail-v" id="vt-yaw">—</span></div>
     </div>
-    <div class="note">아음속(Mach ≤ 0.8) 적용. 필드 클릭 시 도식 강조됨.</div>
+    <div class="note">아음속(Mach ≤ 0.8) 적용. 기준 CH를 입력하면 Kδ/Kα가 자동 산출됩니다. K를 직접 수정하면 수동 보정으로 표시됩니다.</div>
   </div>
 
   <!-- Right: large diagrams + coeff/compare below -->
@@ -632,11 +647,89 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div class="diag-box">
           <div class="diag-lbl">단면도 — Section View</div>
-          <svg id="diag-section" viewBox="0 0 360 220" style="width:100%;height:160px"></svg>
+          <svg id="diag-section" viewBox="0 0 360 220" style="width:100%;height:160px"><defs><clippath id="cw"><rect x="69" y="0" width="178" height="220"></rect></clippath></defs>
+    <!-- 시위 기준선 — 힌지를 지나 끝까지 연장 (점선) -->
+    <line x1="70" y1="78" x2="327" y2="78" class="d-dim-dash"></line>
+    <!-- 날개 본체 -->
+    <path d="M70.00,78.00 L74.17,72.04 L78.33,69.81 L82.50,68.22 L86.67,66.98 L90.83,65.97 L95.00,65.12 L99.17,64.41 L103.33,63.81 L107.50,63.30 L111.67,62.87 L115.83,62.52 L120.00,62.22 L124.17,61.98 L128.33,61.80 L132.50,61.66 L136.67,61.57 L140.83,61.51 L145.00,61.50 L149.17,61.51 L153.33,61.56 L157.50,61.64 L161.67,61.75 L165.83,61.88 L170.00,62.04 L174.17,62.22 L178.33,62.43 L182.50,62.65 L186.67,62.90 L190.83,63.16 L195.00,63.44 L199.17,63.74 L203.33,64.05 L207.50,64.38 L211.67,64.72 L215.83,65.08 L220.00,65.45 L224.17,65.83 L228.33,66.23 L232.50,66.64 L236.67,67.05 L240.83,67.48 L245.00,67.92 L249.17,68.38 L253.33,68.84 L257.50,69.31 L261.67,69.79 L265.83,70.28 L270.00,70.79 L274.17,71.30 L278.33,71.82 L282.50,72.36 L286.67,72.90 L290.83,73.45 L295.00,74.02 L299.17,74.60 L303.33,75.18 L307.50,75.78 L311.67,76.39 L315.83,77.02 L320.00,77.65 L320.00,78.35 L315.83,78.98 L311.67,79.61 L307.50,80.22 L303.33,80.82 L299.17,81.40 L295.00,81.98 L290.83,82.55 L286.67,83.10 L282.50,83.64 L278.33,84.18 L274.17,84.70 L270.00,85.21 L265.83,85.72 L261.67,86.21 L257.50,86.69 L253.33,87.16 L249.17,87.62 L245.00,88.08 L240.83,88.52 L236.67,88.95 L232.50,89.36 L228.33,89.77 L224.17,90.17 L220.00,90.55 L215.83,90.92 L211.67,91.28 L207.50,91.62 L203.33,91.95 L199.17,92.26 L195.00,92.56 L190.83,92.84 L186.67,93.10 L182.50,93.35 L178.33,93.57 L174.17,93.78 L170.00,93.96 L165.83,94.12 L161.67,94.25 L157.50,94.36 L153.33,94.44 L149.17,94.49 L145.00,94.50 L140.83,94.49 L136.67,94.43 L132.50,94.34 L128.33,94.20 L124.17,94.02 L120.00,93.78 L115.83,93.48 L111.67,93.13 L107.50,92.70 L103.33,92.19 L99.17,91.59 L95.00,90.88 L90.83,90.03 L86.67,89.02 L82.50,87.78 L78.33,86.19 L74.17,83.96 L70.00,78.00 Z" class="d-wing" clip-path="url(#cw)"></path>
+    <!-- 조종면 -->
+    <path d="M 245,68.76 L 317.44443697168015,94.17742838268906 L 317.44443697168015,100.64542838268905 L 245,87.24 Z" class="d-ctrl" id="hl-cf"></path>
+    <!-- 조종면 중심선 (힌지~tip 방향) — 편향각 표시용 -->
+    
+      <line x1="245" y1="78" x2="324.2059177557036" y2="99.2231616984067" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="4,3"></line>
+    <!-- 힌지 피벗 -->
+    <circle cx="245" cy="78" r="5.5" class="d-hinge" id="hl-hinge"></circle>
+    <circle cx="245" cy="78" r="2" fill="white"></circle>
+    <!-- 힌지 라벨 — 에어포일 위, 리더선 연결 -->
+    <line x1="245" y1="43" x2="245" y2="61.760000000000005" stroke="#8b5cf6" stroke-width="0.8" stroke-dasharray="3,2"></line>
+    <text x="245" y="38" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#8b5cf6" font-weight="600">힌지</text>
+    <!-- 에어로 밸런스 -->
+    
+    <!-- t/c 치수 — 완전 좌측 외부 -->
+    <line x1="54" y1="45" x2="54" y2="111" class="d-dim" id="hl-tc-line"></line>
+    <line x1="50" y1="45" x2="58" y2="45" class="d-dim"></line>
+    <line x1="50" y1="111" x2="58" y2="111" class="d-dim"></line>
+    <text x="48" y="83" text-anchor="end" font-family="-apple-system,sans-serif" font-size="12" fill="#64748b" id="hl-tc-text">t/c=0.12</text>
+    <!-- c 치수 -->
+    <line x1="70" y1="133" x2="320" y2="133" class="d-dim"></line>
+          <polygon points="320,133 316,131 316,135" class="d-arrow"></polygon>
+    <text x="195" y="149" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#64748b" font-weight="600">c (시위)</text>
+    <!-- cf/c 치수 -->
+    <line x1="245" y1="151" x2="320" y2="151" class="d-dim"></line>
+          <polygon points="320,151 316,149 316,153" class="d-arrow"></polygon>
+    <text x="282.5" y="167" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#64748b" id="hl-cf-text">cf/c = 0.30</text>
+    <!-- 편향각 호 + 라벨 — 시위선과 조종면 중심선 사이 -->
+    
+      <path d="M 277,78 A 32,32 0 0,1 275.90962644125017,86.28220944328066" fill="none" stroke="#2563eb" stroke-width="1.8"></path>
+      <!-- 라벨: 호 중간 각도 방향으로 arcR+24px 지점에 배치 → 호 바깥쪽, 그림과 겹치지 않음 -->
+      <text x="302.503801959681" y="89.570519148763" text-anchor="start" font-family="-apple-system,sans-serif" font-size="14" fill="#2563eb" font-weight="700">δ=15°</text>
+  </svg>
         </div>
         <div class="diag-box">
           <div class="diag-lbl">평면도 — Planform View</div>
-          <svg id="diag-planform" viewBox="-5 0 375 280" style="width:100%;height:160px"></svg>
+          <svg id="diag-planform" viewBox="-5 0 375 280" style="width:100%;height:160px">
+    <!-- FLOW 화살표 — LE 위쪽 중앙에, 겹치지 않게 -->
+    <g opacity="0.7">
+      <line x1="182.5" y1="12" x2="182.5" y2="30" stroke="#94a3b8" stroke-width="1.4"></line>
+      <polygon points="182.5,30 177.5,22 187.5,22" fill="#94a3b8"></polygon>
+      <text x="182.5" y="9" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#94a3b8" font-weight="500">FLOW</text>
+    </g>
+    <!-- 루트/팁 경계 점선 (스팬 치수선까지만) -->
+    <line x1="55" y1="34" x2="55" y2="160" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3"></line>
+    <line x1="310" y1="34" x2="310" y2="160" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3"></line>
+    <!-- 날개 패널 -->
+    <path d="M 55,40 L 310,40 L 310,150 L 55,150 Z" class="d-wing"></path>
+    <!-- 조종면 -->
+    <path d="M 55,117 L 310,117 L 310,150 L 55,150 Z" class="d-ctrl"></path>
+    <!-- 힌지 라인 -->
+    <line x1="55" y1="117" x2="310" y2="117" stroke="#8b5cf6" stroke-width="1.6" stroke-dasharray="5,3"></line>
+    <!-- LE / TE 라벨 -->
+    <text x="182.5" y="33" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#94a3b8" font-weight="600">LE</text>
+    <text x="182.5" y="166" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#94a3b8" font-weight="600">TE</text>
+    <!-- c 치수 (루트 좌측) -->
+    <line x1="37" y1="40" x2="37" y2="150" class="d-dim"></line>
+    <line x1="33" y1="40" x2="41" y2="40" class="d-dim"></line>
+    <line x1="33" y1="150" x2="41" y2="150" class="d-dim"></line>
+    <text x="31" y="100" text-anchor="end" font-family="-apple-system,sans-serif" font-size="12" fill="#64748b">c</text>
+    <!-- cf 치수 (팁 우측) -->
+    <line x1="328" y1="117" x2="328" y2="150" class="d-dim"></line>
+    <line x1="324" y1="117" x2="332" y2="117" class="d-dim"></line>
+    <line x1="324" y1="150" x2="332" y2="150" class="d-dim"></line>
+    <text x="335" y="138.5" font-family="-apple-system,sans-serif" font-size="12" fill="#8b5cf6" font-weight="600" id="hl-cf-text">cf=30%</text>
+    <!-- 스팬 치수 + AR -->
+    <line x1="55" y1="166" x2="310" y2="166" class="d-dim"></line>
+    <line x1="55" y1="162" x2="55" y2="170" class="d-dim"></line>
+    <line x1="310" y1="162" x2="310" y2="170" class="d-dim"></line>
+    <text x="182.5" y="182" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#64748b" font-weight="600" id="hl-ar-text">AR = 6.0</text>
+    <!-- 루트 라벨 -->
+    <text x="55" y="200" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#64748b" font-weight="600">루트</text>
+    <text x="55" y="216" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#94a3b8">η<tspan font-size="9" baseline-shift="sub">i</tspan>=0.10</text>
+    <!-- 팁 라벨 -->
+    <text x="310" y="200" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#64748b" font-weight="600">팁</text>
+    <text x="310" y="216" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="#94a3b8">η<tspan font-size="9" baseline-shift="sub">o</tspan>=0.50</text>
+    <!-- 후퇴각 호 — LE 위쪽(rootLEy)에서 수평선과 LE기울기 사이 각도 표시 -->
+    
+  </svg>
         </div>
       </div>
       <!-- Extra diagram (V-tail / all-moving) full width -->
@@ -650,10 +743,14 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 
     <!-- CH coeff + intermediate in 2-col strip -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <!-- DATCOM coefficients + alpha -->
+      <!-- DATCOM-style coefficients + alpha -->
       <div class="panel">
-        <div class="p-title" style="margin-bottom:8px">C<sub>H</sub> 계수 <span style="font-weight:400;color:var(--accent);text-transform:none;letter-spacing:0;font-size:10px">자동</span></div>
+        <div class="p-title" style="margin-bottom:8px">C<sub>H</sub> 계수 <span style="font-weight:400;color:var(--accent);text-transform:none;letter-spacing:0;font-size:10px">raw × Kcal</span></div>
         <div class="dl">
+          <div class="dlr"><span class="dk">raw CH,δ</span><span class="dv" id="dc-raw-chd">—</span></div>
+          <div class="dlr"><span class="dk">raw CH,α</span><span class="dv" id="dc-raw-cha">—</span></div>
+          <div class="dlr"><span class="dk">Kδ / Kα</span><span class="dv" id="dc-out-k">—</span></div>
+          <div class="dlr"><span class="dk">보정 상태</span><span class="dv" id="dc-cal-status">raw</span></div>
           <div class="dlr"><span class="dk">CH,0</span><span class="dv" id="dc-out-ch0">—</span></div>
           <div class="dlr"><span class="dk">CH,δ</span><span class="dv" id="dc-out-chd">—</span></div>
           <div class="dlr"><span class="dk">CH,α</span><span class="dv" id="dc-out-cha">—</span></div>
@@ -663,17 +760,17 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
           <label>받음각 α</label>
           <div class="inp-pair"><input type="number" id="f-alpha-d" value="3" step="0.5" min="-20" max="20"><span class="u">°</span></div>
         </div>
-        <input type="number" id="f-ch0-d" style="display:none" readonly>
-        <input type="number" id="f-chd-d" style="display:none" readonly>
-        <input type="number" id="f-cha-d" style="display:none" readonly>
+        <input type="number" id="f-ch0-d" style="display:none" readonly="">
+        <input type="number" id="f-chd-d" style="display:none" readonly="">
+        <input type="number" id="f-cha-d" style="display:none" readonly="">
       </div>
       <!-- Intermediate calc -->
       <div class="panel">
         <div class="p-title" style="margin-bottom:8px">중간 계산값</div>
         <div class="dl">
-          <div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q-d">—</span></div>
-          <div class="dlr"><span class="dk">C<sub>H</sub> 합산</span><span class="dv" id="d-ch-d">—</span></div>
-          <div class="dlr"><span class="dk">q·S<sub>f</sub></span><span class="dv" id="d-load-d">—</span></div>
+          <div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q-d">1531.25 Pa</span></div>
+          <div class="dlr"><span class="dk">C<sub>H</sub> 합산</span><span class="dv" id="d-ch-d">-0.102600</span></div>
+          <div class="dlr"><span class="dk">q·S<sub>f</sub></span><span class="dv" id="d-load-d">153.1 N</span></div>
         </div>
       </div>
     </div>
@@ -695,15 +792,15 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <div class="divider"></div>
     <div class="p-title" style="margin-bottom:8px">결과</div>
     <div class="dl">
-      <div class="dlr"><span class="dk">설계 토크 (H × SF)</span><span class="dv" id="d-torque-design">—</span></div>
-      <div class="dlr"><span class="dk">모터 토크 (역산)</span><span class="dv" id="d-torque-motor">—</span></div>
-      <div class="dlr"><span class="dk">기계 출력 T·ω̇</span><span class="dv" id="d-power-mech">—</span></div>
+      <div class="dlr"><span class="dk">설계 토크 (H × SF)</span><span class="dv" id="d-torque-design">3.928 N·m</span></div>
+      <div class="dlr"><span class="dk">모터 토크 (역산)</span><span class="dv" id="d-torque-motor">39.277 mN·m</span></div>
+      <div class="dlr"><span class="dk">기계 출력 T·ω̇</span><span class="dv" id="d-power-mech">4.113 W</span></div>
     </div>
   </div>
 
   <div class="panel">
     <div class="p-title-row" style="margin-bottom:10px">
-      <span class="sec-name">전력 & 용량 산정</span>
+      <span class="sec-name">전력 &amp; 용량 산정</span>
     </div>
     <div class="fgrid fg4">
       <div class="field">
@@ -730,9 +827,9 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <div class="divider"></div>
     <div class="p-title" style="margin-bottom:8px">전력 산정</div>
     <div class="dl">
-      <div class="dlr"><span class="dk">전류</span><span class="dv" id="d-current">—</span></div>
-      <div class="dlr"><span class="dk">용량 (이 조종면)</span><span class="dv" id="d-cap">—</span></div>
-      <div class="dlr"><span class="dk">전체 조종면 합산</span><span class="dv" id="d-cap-total">—</span></div>
+      <div class="dlr"><span class="dk">전류</span><span class="dv" id="d-current">0.196 A</span></div>
+      <div class="dlr"><span class="dk">용량 (이 조종면)</span><span class="dv" id="d-cap">19.6 mAh</span></div>
+      <div class="dlr"><span class="dk">전체 조종면 합산</span><span class="dv" id="d-cap-total">19.6 mAh</span></div>
     </div>
   </div>
 </div>
@@ -742,8 +839,8 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 const AC_SURFACES={
   // CH 계수 단위: /deg  (calcOne에서 def·alpha를 도(°) 그대로 곱함)
   // 기본값 산출: 각 조종면 타입의 표준 형상(아래 주석 참조)을 가정하고
-  //              DATCOM 함수에 K_exp 보정 포함하여 산출.
-  //              DATCOM 모드에서 형상을 변경하면 이 기본값으로부터의 상대 변화를 보여줌.
+  //              DATCOM 간이추정 함수에 K_exp 보정 포함하여 산출.
+  //              DATCOM 간이추정 모드에서 형상을 변경하면 그 영향을 보여줌.
   //
   // 표준 형상 가정:
   //   플랩       : cf/c=0.30, t/c=0.12, AR=6.0, Λ=0°
@@ -777,23 +874,32 @@ function isaRho(alt,dT=0){
   return rho11*Math.exp(-g*(alt-11000)/(R*T11));
 }
 function isaT(alt,dT=0){return 288.15+dT-.0065*Math.min(alt,11000);}
+function speedOfSound(alt,dT=0){return Math.sqrt(1.4*287.05*isaT(alt,dT));}
+function clamp(v,min,max){return Math.min(max,Math.max(min,v));}
 
-// ── DATCOM ───────────────────────────────────────────────────────────────────
+// ── DATCOM-style estimate ────────────────────────────────────────────────────
 // 출력 CH 계수 단위: /deg  (calcOne 단위와 일치)
 //
-// 구조: thin-airfoil theory (/rad) → 3D 보정 → 실측 보정 → /deg 변환
+// 구조: thin-airfoil theory (/rad) → 압축성/3D/스팬 위치 보정 → /deg 변환
 //
 // 실측 보정 (K_exp): thin-airfoil이 무시하는 효과들
 //   - 점성/경계층 후연부 영향
 //   - 조종면 갭 누설 흐름
 //   - 유한 두께(특히 후연부 곡률) 영향
-// NACA TR1113·Roskam DATCOM 방법에서 1.4~1.8배 실측 보정이 일반적.
-// 두께비에 따라 1.4(얇음)~1.8(두꺼움) 사이로 가변 적용.
 //
-// 후연부 각도 보정 (K_te): 두께비로 대용 추정 (얇을수록 후연 예리 → 보정 1)
-// 편향각 비선형 감소 (K_def): |δ|가 커지면 흐름박리로 |CHd| 약간 감소
+// 이 함수는 Digital DATCOM 출력 파서가 아니라, DATCOM 경향을 따르는 간이추정식이다.
 function datcomCH(p, defAbs){
-  const cf=p.cf, tc=p.tc, ar=p.ar, sw=p.sweep*Math.PI/180;
+  const cf=clamp(+p.cf||0.25,0.05,1.0);
+  const tc=clamp(+p.tc||0.12,0.04,0.20);
+  const ar=clamp(+p.ar||4.0,0.5,20);
+  const sw=clamp(+p.sweep||0,0,60)*Math.PI/180;
+  const hinge=clamp(+p.hinge||0,-0.30,0.50);
+  const balance=clamp(+p.balance||0,0,0.40);
+  const etaI=clamp(Math.min(+p.spani||0,+p.spano||1),0,1);
+  const etaO=clamp(Math.max(+p.spani||0,+p.spano||1),0,1);
+  const mach=clamp(+p.mach||0,0,0.82);
+  const kd=clamp(+p.kd||1,0.2,3.0);
+  const ka=clamp(+p.ka||1,0.2,3.0);
   const D2R=Math.PI/180;
 
   // 2D 기저값 (/rad) — thin airfoil theory
@@ -801,38 +907,49 @@ function datcomCH(p, defAbs){
   const chd_2d  = -(2/Math.PI)*Math.sqrt(cf*(1-cf)) * tc_corr;
   const cha_2d  = -(1/Math.PI)*Math.sqrt(cf) * (1 - 0.25*(tc/0.12 - 1));
 
-  // 3D 보정: AR + 후퇴각 + 힌지위치 + 밸런스
-  const ar_f  = ar / (ar + 2);
-  const sw_f  = Math.cos(sw);
-  const hn_f  = 1 - 1.2 * p.hinge;
-  const bal_f = 1 - 1.5 * p.balance;
+  // 압축성 보정: 아음속 Prandtl-Glauert 경향을 완만하게 제한
+  const beta = Math.sqrt(Math.max(0.35,1-mach*mach));
+  const mach_f = clamp(1/beta,1,1.45);
+
+  // 3D 보정: 기존처럼 AR/(AR+2)를 직접 곱하면 과도하게 작아진다.
+  // 힌지모멘트 계수는 조종면 국부 단면 계수 성격이 강하므로 완만한 보정만 적용.
+  const ar_f  = clamp(0.88 + 0.12*(ar/(ar+2)),0.90,1.00);
+  const sw_f  = clamp(1 - 0.12*(1-Math.cos(sw)),0.90,1.00);
+  const hn_f  = clamp(1 - 0.70*hinge,0.60,1.25);
+  const bal_f = clamp(1 - 1.50*balance,0.35,1.00);
+
+  // ηi/ηo span 위치 효과: 조종면이 외측일수록 국부 하중/3D 효과 차이를 완만히 반영.
+  const span = Math.max(0.02,etaO-etaI);
+  const etaMid = 0.5*(etaI+etaO);
+  const eta2Mean = (Math.pow(etaO,3)-Math.pow(etaI,3))/(3*span);
+  const span_f = clamp(0.94 + 0.10*etaMid + 0.04*(eta2Mean-0.35) - 0.03*(1-span),0.88,1.08);
 
   // 실측 보정 K_exp: 두께비에 따라 1.4 (얇음) ~ 1.8 (두꺼움)
   // tc=0.06 → 1.40, tc=0.12 → 1.60, tc=0.18 → 1.80
-  const K_exp = 1.40 + (tc - 0.06) * (0.40 / 0.12);
+  const K_exp = clamp(1.40 + (tc - 0.06) * (0.40 / 0.12),1.30,1.90);
 
   // 편향각 비선형 감소 K_def: |δ|>10° 부터 점진 감소, 25°에서 약 0.85배
   const dabs = Math.abs(defAbs || 0);
   const K_def = dabs <= 10 ? 1.0 : Math.max(0.80, 1.0 - (dabs-10)*0.01);
 
-  let chd_rad = chd_2d * ar_f * sw_f * hn_f * bal_f * K_exp * K_def;
-  let cha_rad = cha_2d * ar_f * sw_f * hn_f * K_exp;
+  let chd_rad = chd_2d * K_exp * mach_f * ar_f * sw_f * span_f * hn_f * bal_f * K_def;
+  let cha_rad = cha_2d * K_exp * mach_f * ar_f * sw_f * span_f * hn_f;
 
   // 올무빙: 피벗-공력중심 오프셋 기반 (/rad), 동일 보정 적용
   if(p.type==='allmv'){
-    const off = Math.abs(p.pivot - 0.25);
-    chd_rad = -(2/Math.PI) * (0.25 + 2*off) * K_exp * K_def;
-    cha_rad = -(1/Math.PI) * (0.20 + 2*off) * K_exp;
+    const off = Math.abs(clamp(+p.pivot||0.25,0,0.5) - 0.25);
+    chd_rad = -(2/Math.PI) * (0.25 + 2*off) * K_exp * mach_f * span_f * K_def;
+    cha_rad = -(1/Math.PI) * (0.20 + 2*off) * K_exp * mach_f * span_f;
   }
 
   // /rad → /deg 변환
-  return { ch0: 0, chd: chd_rad * D2R, cha: cha_rad * D2R };
+  const raw = { ch0: 0, chd: chd_rad * D2R, cha: cha_rad * D2R };
+  return { ch0: raw.ch0, chd: raw.chd * kd, cha: raw.cha * ka, raw, kd, ka };
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-// AC_SURFACES 기본 CH값은 아래 dc 표준 형상 + DATCOM(K_exp 포함)으로 산출됨.
-// → DATCOM 모드 첫 전환 시 두 모드의 H가 거의 동일.
-// → 사용자가 dc 형상을 변경하면 그 차이만큼 DATCOM H가 변함.
+// AC_SURFACES 기본 CH값은 표준 형상 기준의 대표 입력값이다.
+// DATCOM 간이추정 모드는 형상, Mach, span 위치 변화가 CH에 미치는 영향을 보여준다.
 const STD_DC = {
   // 일반 고정익
   flap:   {cf:.30, tc:.12, ar:6.0, sweep:0,  spani:.10, spano:.50},
@@ -862,6 +979,11 @@ function initState(s){
       sweep: std.sweep,
       dihedral: 35,
       pivot: std.pivot ?? .25,
+      refChd: '',
+      refCha: '',
+      kd: 1.00,
+      ka: 1.00,
+      calMode: 'raw',
     },
     sf:1.25, gear:100, rate:60, eff:.75,
     powerW:0, volt:28, duty:30, dutyPct:20,
@@ -932,6 +1054,7 @@ document.getElementById('f-rho').addEventListener('input',()=>{rhoManual=true;se
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function gv(id){const el=document.getElementById(id);return el?el.value:'';}
 function gi(id){return+gv(id);}
+function gopt(id){const v=gv(id);return v===''?'':+v;}
 function sv(id,v){const el=document.getElementById(id);if(el)el.value=v;}
 function st(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 
@@ -950,7 +1073,8 @@ function getInputs(){
     powerW:gi('f-power-w'),volt:gi('f-volt'),duty:gi('f-duty'),dutyPct:gi('f-duty-pct'),
     dc:{cf:gi('dc-cf'),tc:gi('dc-tc'),hinge:gi('dc-hinge'),balance:gi('dc-balance'),
         spani:gi('dc-spani'),spano:gi('dc-spano'),ar:gi('dc-ar'),sweep:gi('dc-sweep'),
-        dihedral:gi('dc-dihedral'),pivot:gi('dc-pivot')}};
+        dihedral:gi('dc-dihedral'),pivot:gi('dc-pivot'),refChd:gopt('dc-ref-chd'),refCha:gopt('dc-ref-cha'),
+        kd:gi('dc-kd'),ka:gi('dc-ka'),calMode:getCurState().dc.calMode||'raw'}};
 }
 function saveCur(){const i=getInputs(),s=getCurState();Object.assign(s,{area:i.area,V:i.V,def:i.def,mac:i.mac,ch0:i.ch0,chd:i.chd,cha:i.cha,alpha:i.alpha,sf:i.sf,gear:i.gear,rate:i.rate,eff:i.eff,powerW:i.powerW,volt:i.volt,duty:i.duty,dutyPct:i.dutyPct,dc:{...i.dc},powerManual});}
 function loadCur(){
@@ -964,6 +1088,8 @@ function loadCur(){
   sv('dc-cf',s.dc.cf);sv('dc-tc',s.dc.tc);sv('dc-hinge',s.dc.hinge);sv('dc-balance',s.dc.balance);
   sv('dc-spani',s.dc.spani);sv('dc-spano',s.dc.spano);sv('dc-ar',s.dc.ar);sv('dc-sweep',s.dc.sweep);
   sv('dc-dihedral',s.dc.dihedral);sv('dc-pivot',s.dc.pivot);
+  sv('dc-ref-chd',s.dc.refChd ?? '');sv('dc-ref-cha',s.dc.refCha ?? '');
+  sv('dc-kd',s.dc.kd ?? 1.00);sv('dc-ka',s.dc.ka ?? 1.00);
   PAIRS.forEach(([sid])=>setPct(document.getElementById(sid)));
   powerManual=!!s.powerManual;setBadge('pw-badge',powerManual?'수동':'자동',powerManual?'mb-orange':'mb-blue');
 }
@@ -971,17 +1097,32 @@ function loadCur(){
 // ── Calc ──────────────────────────────────────────────────────────────────────
 function calcOne(p,ch0,chd,cha){
   const q=.5*p.rho*p.V*p.V;
+  const sos=p.sos||speedOfSound(p.alt||0,p.dT||0);
   // CH 계수 단위 /deg → 편향각·받음각을 도(°) 그대로 곱함
   const CH=ch0+chd*p.def+cha*p.alpha;
-  return{q,CH,H:CH*q*p.area*p.mac,load:q*p.area,mach:p.V/340.3,chd_t:chd*p.def,cha_t:cha*p.alpha};
+  return{q,CH,H:CH*q*p.area*p.mac,load:q*p.area,mach:p.V/sos,sos,chd_t:chd*p.def,cha_t:cha*p.alpha};
 }
 function regime(m){if(m<.3)return['저속 아음속','b-low'];if(m<.8)return['고속 아음속','b-mid'];if(m<1.2)return['천음속','b-mid'];return['초음속','b-hi'];}
 function getActiveCH(){
   const i=getInputs();
   if(mode==='datcom'){
-    const o=datcomCH({...i.dc,type:getCurSurf().id}, i.def);
-    // DATCOM 모드 전용 표시 필드만 업데이트 (기본모드 UI f-ch0/chd/cha는 건드리지 않음)
+    const o0=datcomCH({...i.dc,type:getCurSurf().id,mach:i.V/speedOfSound(i.alt,i.dT)}, i.def);
+    const s=getCurState();
+    let kd=o0.kd, ka=o0.ka, status='수동 보정';
+    if(i.dc.calMode!=='manual'){
+      const hasD=i.dc.refChd!=='' && Math.abs(o0.raw.chd)>1e-9;
+      const hasA=i.dc.refCha!=='' && Math.abs(o0.raw.cha)>1e-9;
+      kd=hasD ? clamp(i.dc.refChd/o0.raw.chd,0.2,3.0) : 1.0;
+      ka=hasA ? clamp(i.dc.refCha/o0.raw.cha,0.2,3.0) : 1.0;
+      status=(hasD||hasA)?'기준 CH 자동':'raw';
+      s.dc.kd=kd;s.dc.ka=ka;s.dc.calMode=(hasD||hasA)?'auto':'raw';
+      sv('dc-kd',kd.toFixed(3));sv('dc-ka',ka.toFixed(3));
+    }
+    const o={...o0,kd,ka,chd:o0.raw.chd*kd,cha:o0.raw.cha*ka};
+    // DATCOM 간이추정 모드 전용 표시 필드만 업데이트 (기본모드 UI f-ch0/chd/cha는 건드리지 않음)
     sv('f-ch0-d',o.ch0.toFixed(4));sv('f-chd-d',o.chd.toFixed(4));sv('f-cha-d',o.cha.toFixed(4));
+    st('dc-raw-chd',o.raw.chd.toFixed(5));st('dc-raw-cha',o.raw.cha.toFixed(5));st('dc-out-k',o.kd.toFixed(3)+' / '+o.ka.toFixed(3));
+    st('dc-cal-status',status);
     st('dc-out-ch0',o.ch0.toFixed(5));st('dc-out-chd',o.chd.toFixed(5));st('dc-out-cha',o.cha.toFixed(5));
     return o;
   }
@@ -1010,7 +1151,7 @@ function update(){
   st('d-current',Ia.toFixed(3)+' A');st('d-cap',(cap*1000).toFixed(1)+' mAh');
   st('d-torque-design',Td.toFixed(3)+' N·m');st('d-torque-motor',(Tm*1000).toFixed(3)+' mN·m');st('d-power-mech',Pm.toFixed(3)+' W');
   st('d-rho',i.rho.toFixed(4)+' kg/m³');
-  const Tisa=isaT(i.alt,i.dT),sos=Math.sqrt(1.4*287.05*Tisa);
+  const Tisa=isaT(i.alt,i.dT),sos=r.sos;
   st('d-rho-isa',isaRho(i.alt,i.dT).toFixed(4)+' kg/m³');
   st('d-temp',Tisa.toFixed(1)+' K  /  '+(Tisa-273.15).toFixed(1)+' °C');
   st('d-sos',sos.toFixed(1)+' m/s');st('d-mach2',r.mach.toFixed(4));
@@ -1071,19 +1212,24 @@ function setTab(t){tab=t;['spd','def','area'].forEach(x=>document.getElementById
 function drawChart(){
   const i=getInputs();
   const isDatcom = mode==='datcom';
+  const sos = speedOfSound(i.alt,i.dT);
   const dcParam = isDatcom ? {...i.dc, type:getCurSurf().id} : null;
-  // 현재 def 기준의 ch (속도/면적 차트는 def 고정)
-  const chFixed = isDatcom ? datcomCH(dcParam, i.def) : {ch0:i.ch0,chd:i.chd,cha:i.cha};
-  const base={area:i.area,V:i.V,def:i.def,mac:i.mac,rho:i.rho,alpha:i.alpha};
+  const chAt = (def,V=i.V) => isDatcom ? datcomCH({...dcParam,mach:V/sos}, def) : {ch0:i.ch0,chd:i.chd,cha:i.cha};
+  const chFixed = chAt(i.def,i.V);
+  const base={area:i.area,V:i.V,def:i.def,mac:i.mac,rho:i.rho,alpha:i.alpha,alt:i.alt,dT:i.dT,sos};
   let labels=[],data=[],xl='';
   if(tab==='spd'){
-    for(let v=0;v<=300;v+=5){labels.push(v);data.push(+calcOne({...base,V:v},chFixed.ch0,chFixed.chd,chFixed.cha).H.toFixed(3));}
+    for(let v=0;v<=300;v+=5){
+      labels.push(v);
+      const ch_v=chAt(i.def,v);
+      data.push(+calcOne({...base,V:v},ch_v.ch0,ch_v.chd,ch_v.cha).H.toFixed(3));
+    }
     xl='에어스피드 (m/s)';
   } else if(tab==='def'){
     // 편향각 스윕: K_def 보정이 def에 따라 달라지므로 매 점마다 재계산
     for(let d=-30;d<=30;d++){
       labels.push(d);
-      const ch_d = isDatcom ? datcomCH(dcParam, d) : chFixed;
+      const ch_d = chAt(d,i.V);
       data.push(+calcOne({...base,def:d},ch_d.ch0,ch_d.chd,ch_d.cha).H.toFixed(3));
     }
     xl='편향각 δ (°)';
@@ -1091,8 +1237,17 @@ function drawChart(){
     for(let a=.005;a<=1;a+=.01){labels.push(a.toFixed(3));data.push(+calcOne({...base,area:a},chFixed.ch0,chFixed.chd,chFixed.cha).H.toFixed(3));}
     xl='면적 (m²)';
   }
+  const canvas=document.getElementById('hmChart');
+  if(typeof Chart==='undefined'){
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#6e6e73';
+    ctx.font='13px -apple-system, sans-serif';
+    ctx.fillText('Chart.js 로드 실패 - 계산값은 정상 표시됩니다.',20,32);
+    return;
+  }
   if(chart)chart.destroy();
-  chart=new Chart(document.getElementById('hmChart').getContext('2d'),{
+  chart=new Chart(canvas.getContext('2d'),{
     type:'line',
     data:{labels,datasets:[{label:'H',data,borderColor:'#0071e3',backgroundColor:'rgba(0,113,227,.07)',borderWidth:1.5,pointRadius:0,tension:.35,fill:true}]},
     options:{responsive:true,maintainAspectRatio:false,
@@ -1440,6 +1595,8 @@ function hlDiag(key){
 ['f-ch0','f-chd','f-cha','f-alpha','f-sf','f-gear','f-rate','f-eff','f-volt','f-duty','f-duty-pct',
  'dc-cf','dc-tc','dc-hinge','dc-balance','dc-spani','dc-spano','dc-ar','dc-sweep','dc-dihedral','dc-pivot'
 ].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{saveCur();update();});});
+['dc-ref-chd','dc-ref-cha'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{getCurState().dc.calMode='auto';saveCur();update();});});
+['dc-kd','dc-ka'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{getCurState().dc.calMode='manual';saveCur();update();});});
 document.getElementById('f-alpha-d').addEventListener('input',()=>{sv('f-alpha',gv('f-alpha-d'));saveCur();update();});
 document.getElementById('f-power-w').addEventListener('input',()=>{powerManual=true;setBadge('pw-badge','수동','mb-orange');saveCur();update();});
 
@@ -1456,5 +1613,6 @@ window.addEventListener('resize', () => {
   });
 });
 </script>
-</body>
-</html>
+
+
+</body></html>
