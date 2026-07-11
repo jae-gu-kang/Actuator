@@ -38,7 +38,6 @@ body {
   color: var(--text);
   font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   height: 100vh;
-  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -572,33 +571,6 @@ canvas.hover { cursor: grab; }
   0%,100% { opacity: 0.6; transform: translateX(-50%) translateY(0); }
   50%      { opacity: 1;   transform: translateX(-50%) translateY(-1px); }
 }
-
-/* ── MOBILE ── */
-@media (max-width: 600px) {
-  body { height: auto; min-height: 100dvh; overflow: auto; }
-  .workspace { flex-direction: column; overflow: visible; height: auto; }
-  .sidebar {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    height: auto;
-    overflow-y: visible;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  .resizer { display: none; }
-  .canvas-area {
-    width: 100%;
-    height: 60vw;
-    min-height: 240px;
-    flex-shrink: 0;
-  }
-  .titlebar { padding: 0 12px; }
-  .titlebar-center { position: static; transform: none; }
-  .seg-btn { padding: 5px 10px; font-size: 11px; }
-  .s-sec { padding: 8px 12px 8px; }
-  canvas { width: 100% !important; height: 100% !important; }
-}
 </style>
 </head>
 <body>
@@ -846,6 +818,38 @@ canvas.hover { cursor: grab; }
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
           <div style="width:8px;height:8px;border-radius:50%;background:rgba(50,215,75,0.9)"></div> 최대
         </div>
+      </div>
+    </div>
+
+    <!-- 힌지모멘트 계산기 연동 -->
+    <div class="s-sec">
+      <div class="s-title" style="margin-bottom:6px">힌지모멘트 계산기 연동</div>
+      <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:12px;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">중립각 θ₄ <span style="color:var(--text3);font-weight:400">(타각 δ=0°)</span></div>
+          <div class="link-field" style="border-radius:7px;">
+            <input type="number" id="iT4Neutral" value="60" min="0" max="360" step="0.1"
+              style="width:56px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);">
+            <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+          </div>
+          <button onclick="useCurT4()"
+            style="background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">현재값</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 δ+ 방향</div>
+          <div class="seg-ctrl">
+            <button class="seg-btn" id="hmDirUp" onclick="setHMDir(1)" style="padding:4px 10px;font-size:11px;">θ₄ 증가</button>
+            <button class="seg-btn active" id="hmDirDn" onclick="setHMDir(-1)" style="padding:4px 10px;font-size:11px;">θ₄ 감소</button>
+          </div>
+        </div>
+        <button id="sendHM" onclick="sendToHM()"
+          style="width:100%;background:linear-gradient(135deg,#0071e3,#3b82f6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,113,227,.25);">
+          힌지모멘트 계산기로 보내기 →</button>
+        <div id="sendHMmsg" style="display:none;margin-top:8px;font-size:10.5px;color:#1a9c3e;font-weight:600;text-align:center;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);line-height:1.5;padding:0 2px;">
+        링크 치수 a·b·c·d, 해 유형, 입력토크 T₂, 중립각 θ₄₀·방향을 전달합니다.
+        힌지모멘트 계산기의 속도 × 타각 테이블에서 한계값이 타각별 가용 토크 |T₄(δ)| = |T₂ × MA(θ₄₀ ± δ)| 로 자동 계산됩니다.
       </div>
     </div>
 
@@ -1705,6 +1709,48 @@ function drawTorquePlot(){
   }catch(e){console.warn("drawTorquePlot:",e);}
 }
 
+// ── 힌지모멘트 계산기 연동 ──────────────────────────────────────────────────
+// 링키지 데이터를 hinge_moment_calculator.html 로 전달 (동일 오리진 localStorage + URL 해시 이중화)
+let hmDir = -1;   // 타각 δ+ 가 θ₄ 증가(+1) / 감소(-1) 방향인지 (기본: 감소)
+
+function setHMDir(v){
+  hmDir = v;
+  document.getElementById('hmDirUp').classList.toggle('active', v === 1);
+  document.getElementById('hmDirDn').classList.toggle('active', v === -1);
+}
+
+function useCurT4(){
+  document.getElementById('iT4Neutral').value = (+S.t4).toFixed(1);
+}
+
+function sendToHM(){
+  const T2  = parseFloat(document.getElementById('iTorque').value) || 0;
+  let  t4n  = parseFloat(document.getElementById('iT4Neutral').value);
+  if(isNaN(t4n)) t4n = S.t4;
+
+  const payload = {
+    v: 1,
+    a: S.a, b: S.b, c: S.c, d: S.d,      // 링크 길이 (MA는 c/a 비율만 사용 → 단위 무관)
+    sol: S.sol,                           // 'open' | 'cross'
+    T2: T2,                               // 크랭크 입력토크 (서보 출력) N·m
+    t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
+    dir: hmDir,                           // δ+ → θ₄ 증가(+1)/감소(-1)
+    ts: Date.now()
+  };
+  const json = JSON.stringify(payload);
+  try{ localStorage.setItem('hm_linkage_v1', json); }catch(e){}
+
+  // 같은 폴더의 힌지모멘트 계산기를 해시 파라미터와 함께 오픈
+  // (file:// 등 localStorage 오리진이 분리된 환경에서도 해시로 전달됨)
+  window.open('hinge_moment_calculator.html#linkage=' + encodeURIComponent(json), '_blank');
+
+  const msg = document.getElementById('sendHMmsg');
+  msg.style.display = 'block';
+  msg.textContent = '전송됨 ✓  (θ₄₀=' + t4n.toFixed(1) + '°, T₂=' + T2.toFixed(2) + ' N·m)';
+  clearTimeout(sendToHM._t);
+  sendToHM._t = setTimeout(()=>{ msg.style.display = 'none'; }, 4000);
+}
+
 // ── INIT ──
 function resize(){const a=cv.parentElement;cv.width=W=a.clientWidth;cv.height=H=a.clientHeight;setTransform();draw();}
 window.addEventListener('resize',resize);
@@ -1770,6 +1816,7 @@ window.addEventListener('load',()=>{
   cv.addEventListener('touchend',endDrag);
   initResizer();
   updateGrashof(); resize(); setT4(60);
+  useCurT4();  // 힌지모멘트 연동 중립각 초기값 = 현재 θ₄
 });
 </script>
 </body>

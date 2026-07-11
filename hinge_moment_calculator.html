@@ -298,6 +298,21 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .htable td{color:#334155;font-variant-numeric:tabular-nums}
 .htable td.over{background:#fee2e2;color:#b91c1c;font-weight:700}
 .htable td.warn{background:#fef3c7;color:#92400e}
+.htable td.unreach{background:#f1f5f9;color:#b0b7c3}
+.htable td.limcol{background:#f5f3ff;color:#5b21b6;font-weight:600;border-right:2px solid #ddd6fe}
+.htable thead th.limcol{background:#ede9fe;color:#5b21b6;border-right:2px solid #ddd6fe}
+
+/* ── 4바 링키지 연동 박스 ── */
+.ht-linkbox{display:none;margin:0 0 12px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.28);
+  border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--text2);line-height:1.6}
+.ht-linkbox.show{display:block}
+.ht-linkbox b{color:#6d28d9}
+.ht-linkbox .lk-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.ht-linkbox .lk-btn{background:#fff;border:1px solid rgba(139,92,246,.35);color:#6d28d9;border-radius:7px;
+  padding:3px 10px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.ht-linkbox .lk-btn:hover{background:#f5f3ff}
+.ht-linkbox .lk-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:600;color:#6d28d9;font-size:11px;white-space:nowrap}
+.ht-linkbox .lk-toggle input{accent-color:#7c3aed;cursor:pointer}
 .htable-legend{display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--text2)}
 .htable-legend span{display:inline-flex;align-items:center;gap:5px}
 .htable-legend i{display:inline-block;width:12px;height:12px;border-radius:3px}
@@ -811,7 +826,20 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     </div>
     <button class="htable-btn" id="ht-gen">테이블 생성 (팝업)</button>
   </div>
-  <div class="note">현재 선택된 조종면과 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 계산됩니다. 속도 상한은 비행조건 속도 + 10%로 자동 설정됩니다. DATCOM 모드에서는 타각별 K_def 비선형 보정이 반영됩니다. |H| 기준으로 판정합니다.</div>
+  <div class="ht-linkbox" id="ht-linkbox">
+    <div class="lk-row">
+      <span><b>⛓ 4바 링키지 연동</b> <span id="lk-summary" style="font-variant-numeric:tabular-nums"></span></span>
+      <span style="display:flex;gap:8px;align-items:center">
+        <label class="lk-toggle"><input type="checkbox" id="lk-enable" checked> 링키지 한계 사용</label>
+        <button class="lk-btn" id="lk-clear">연동 해제</button>
+      </span>
+    </div>
+    <div style="font-size:10.5px;color:var(--text3)">
+      타각별 한계 |H|(δ) = |T₂ × MA(θ₄₀ ± δ)| — 링키지 기하에 따른 가용 토크가 행별 한계값으로 적용됩니다.
+      연동이 켜져 있으면 위의 고정 "기준 H" 입력은 무시됩니다. 도달 불가 θ₄ 구간은 회색으로 표시됩니다.
+    </div>
+  </div>
+  <div class="note">현재 선택된 조종면과 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 계산됩니다. 속도 상한은 비행조건 속도 + 10%로 자동 설정됩니다. DATCOM 모드에서는 타각별 K_def 비선형 보정이 반영됩니다. |H| 기준으로 판정합니다. 4바 링키지 해석기에서 "힌지모멘트 계산기로 보내기"를 실행하면 타각별 가변 한계값이 자동 연동됩니다.</div>
 </div>
 
 <!-- ── 테이블 팝업 모달 ── -->
@@ -1554,6 +1582,97 @@ function hlDiag(key){
 document.getElementById('f-alpha-d').addEventListener('input',()=>{sv('f-alpha',gv('f-alpha-d'));saveCur();update();});
 document.getElementById('f-power-w').addEventListener('input',()=>{powerManual=true;setBadge('pw-badge','수동','mb-orange');saveCur();update();});
 
+// ── 4바 링키지 연동 ──────────────────────────────────────────────────────────
+// 4-bar-linkage-torque.html 이 localStorage('hm_linkage_v1') 또는 URL 해시(#linkage=...)로
+// {a,b,c,d,sol,T2,t4n,dir} 를 전달. 테이블의 한계값이 타각별 가용 토크 |T₄(δ)|로 대체됨.
+let linkage=null;
+const LK_KEY='hm_linkage_v1';
+
+// 4바 링키지 해석기의 calcMAatT4 와 동일한 수학 (θ₄ → θ₂,θ₃ → MA = T₄/T₂)
+// MA는 (c/a)·sin(θ₃−θ₂)·sin(θ₃−θ₄) — 길이 비율만 사용하므로 단위 무관
+function lkMA(a,b,c,d,t4d,solType){
+  const RAD=Math.PI/180, DEG=180/Math.PI;
+  const norm=x=>{x=x%360;return x<0?x+360:x;};
+  const t4=t4d*RAD;
+  const K1=d/a,K2=d/c,K3=(a*a-b*b+c*c+d*d)/(2*a*c);
+  const A=-K2-Math.cos(t4),B=-Math.sin(t4),C2=K1*Math.cos(t4)+K3;
+  const aa=C2-A,bb=2*B,cc=A+C2;
+  const disc=bb*bb-4*aa*cc;
+  if(disc<-1e-8) return null;
+  const sq=Math.sqrt(Math.max(0,disc));
+  const u=solType==='open'
+    ?(Math.abs(aa)<1e-10?-cc/(bb||1e-10):(-bb+sq)/(2*aa))
+    :(Math.abs(aa)<1e-10?-cc/(bb||1e-10):(-bb-sq)/(2*aa));
+  const t2=norm(2*Math.atan(u)*DEG)*RAD;
+  const Ax=a*Math.cos(t2),Ay=a*Math.sin(t2);
+  const Bx=d+c*Math.cos(t4),By=c*Math.sin(t4);
+  if(Math.abs(Math.hypot(Bx-Ax,By-Ay)-b)>1.5) return null;   // 조립 불가 (도달 불가 θ₄)
+  const t3=Math.atan2(By-Ay,Bx-Ax);
+  return (c/a)*Math.sin(t3-t2)*Math.sin(t3-t4);
+}
+
+// 타각 δ(°) → 해당 θ₄에서의 가용 힌지모멘트 한계 |T₄| (N·m). 도달 불가면 null.
+function lkLimit(dDeg){
+  if(!linkage) return null;
+  const t4=(+linkage.t4n)+(+linkage.dir)*dDeg;
+  const ma=lkMA(+linkage.a,+linkage.b,+linkage.c,+linkage.d,t4,linkage.sol);
+  if(ma===null||!isFinite(ma)) return null;
+  return Math.abs((+linkage.T2)*ma);
+}
+
+function lkActive(){
+  return !!linkage && document.getElementById('lk-enable').checked;
+}
+function lkUpdateLimitInput(){
+  const el=document.getElementById('ht-limit');
+  const on=lkActive();
+  el.disabled=on;
+  el.style.opacity=on?'.45':'1';
+}
+function lkApply(obj){
+  if(!obj||!isFinite(+obj.a)||!isFinite(+obj.T2)) return;
+  linkage=obj;
+  document.getElementById('ht-linkbox').classList.add('show');
+  document.getElementById('lk-summary').textContent=
+    ' a='+obj.a+' b='+obj.b+' c='+obj.c+' d='+obj.d+
+    ' · '+(obj.sol==='cross'?'교차형':'개방형')+
+    ' · T₂='+(+obj.T2).toFixed(2)+' N·m · θ₄₀='+(+obj.t4n).toFixed(1)+
+    '° · δ+ → θ₄ '+(+obj.dir>0?'증가':'감소');
+  lkUpdateLimitInput();
+}
+function lkInit(){
+  // 1) URL 해시 우선 (4바 페이지에서 새 탭으로 열린 직후)
+  const m=location.hash.match(/linkage=([^&]+)/);
+  if(m){
+    try{
+      const obj=JSON.parse(decodeURIComponent(m[1]));
+      try{localStorage.setItem(LK_KEY,JSON.stringify(obj));}catch(e){}
+      lkApply(obj);
+      history.replaceState(null,'',location.pathname+location.search);
+      return;
+    }catch(e){console.warn('linkage hash parse:',e);}
+  }
+  // 2) localStorage (이전 전송분 유지)
+  try{
+    const raw=localStorage.getItem(LK_KEY);
+    if(raw) lkApply(JSON.parse(raw));
+  }catch(e){}
+}
+document.getElementById('lk-enable').addEventListener('change',lkUpdateLimitInput);
+document.getElementById('lk-clear').addEventListener('click',()=>{
+  linkage=null;
+  try{localStorage.removeItem(LK_KEY);}catch(e){}
+  document.getElementById('ht-linkbox').classList.remove('show');
+  lkUpdateLimitInput();
+});
+// 4바 페이지가 다른 탭에서 재전송하면 실시간 갱신
+window.addEventListener('storage',e=>{
+  if(e.key===LK_KEY&&e.newValue){
+    try{lkApply(JSON.parse(e.newValue));}catch(err){}
+  }
+});
+lkInit();
+
 // ── 속도 × 타각 힌지모멘트 테이블 (팝업) ─────────────────────────────────────
 function genHTable(){
   const i=getInputs();
@@ -1567,35 +1686,58 @@ function genHTable(){
   const surf=getCurSurf();
   const dcParam=isDatcom?{...i.dc,type:surf.id}:null;
   const chBasic={ch0:i.ch0,chd:i.chd,cha:i.cha};
+  const useLk=lkActive();   // 4바 링키지 연동 시 타각별 가변 한계
 
   const speeds=[]; for(let v=v0;v<=v1+1e-9;v+=vstep) speeds.push(v);
   const defs=[];   for(let d=0;d<=dmax+1e-9;d+=dstep) defs.push(d);
 
   // 메타 정보
+  const limDesc=useLk
+    ?'한계 |H|(δ) = <b>|T₂ × MA(θ₄₀ '+(+linkage.dir>0?'+':'−')+' δ)|</b> — 4바 링키지 연동'+
+     ' (a='+linkage.a+' b='+linkage.b+' c='+linkage.c+' d='+linkage.d+
+     ', '+(linkage.sol==='cross'?'교차형':'개방형')+
+     ', T₂='+(+linkage.T2).toFixed(2)+' N·m, θ₄₀='+(+linkage.t4n).toFixed(1)+'°)'
+    :'한계 |H| = <b>'+limit+' N·m</b>';
   document.getElementById('ht-meta').innerHTML=
     '<b>'+surf.name+'</b> · '+(isDatcom?'DATCOM 보정 모드':'기본 모드')+
-    ' · 한계 |H| = <b>'+limit+' N·m</b>'+
+    ' · '+limDesc+
     ' · 속도 범위: '+v0+' ~ '+v1+' m/s (비행속도 '+i.V+' m/s + 10%)'+
     ' · S<sub>f</sub>='+i.area+'m² · c̄='+i.mac+'m · α='+i.alpha+'° · ρ='+i.rho.toFixed(4)+'kg/m³';
 
   let html='<table class="htable"><thead><tr><th>δ \\ V</th>';
+  if(useLk) html+='<th class="limcol">한계 |H|</th>';
   speeds.forEach(v=>html+='<th>'+v+'</th>');
   html+='</tr></thead><tbody>';
 
   defs.forEach(d=>{
     html+='<tr><th>'+d.toFixed(0)+'°</th>';
+    const rowLim=useLk?lkLimit(d):limit;   // 링키지 연동: 이 타각에서의 가용 |T₄|, 도달불가면 null
+    if(useLk){
+      html+='<td class="limcol">'+(rowLim===null?'도달불가':rowLim.toFixed(2))+'</td>';
+    }
     const ch=isDatcom?datcomCH(dcParam,d):chBasic;
     speeds.forEach(v=>{
       const r=calcOne({area:i.area,V:v,def:d,mac:i.mac,rho:i.rho,alpha:i.alpha},ch.ch0,ch.chd,ch.cha);
       const absH=Math.abs(r.H);
       let cls='';
-      if(absH>=limit) cls='over';
-      else if(absH>=limit*0.8) cls='warn';
+      if(rowLim===null) cls='unreach';           // 링키지가 해당 θ₄에 도달 불가 → 판정 불능
+      else if(absH>=rowLim) cls='over';
+      else if(absH>=rowLim*0.8) cls='warn';
       html+='<td class="'+cls+'">'+r.H.toFixed(2)+'</td>';
     });
     html+='</tr>';
   });
   html+='</tbody></table>';
+
+  // 범례 (연동 여부에 따라 갱신)
+  document.getElementById('ht-legend').innerHTML=
+    '<span><i style="background:#fee2e2;border:1px solid #fca5a5"></i>한계 초과 (사용 불가)</span>'+
+    '<span><i style="background:#fef3c7;border:1px solid #fcd34d"></i>한계의 80~100% (주의)</span>'+
+    '<span><i style="background:#fff;border:1px solid #e2e8f0"></i>정상 범위</span>'+
+    (useLk
+      ?'<span><i style="background:#f5f3ff;border:1px solid #ddd6fe"></i>한계 |H| = 타각별 링키지 가용 토크</span>'+
+       '<span><i style="background:#f1f5f9;border:1px solid #cbd5e1"></i>링키지 도달 불가 각도</span>'
+      :'');
 
   document.getElementById('ht-out').innerHTML=html;
   document.getElementById('ht-modal-title').textContent=
