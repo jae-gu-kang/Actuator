@@ -302,7 +302,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .htable td.limcol{background:#f5f3ff;color:#5b21b6;font-weight:600;border-right:2px solid #ddd6fe}
 .htable thead th.limcol{background:#ede9fe;color:#5b21b6;border-right:2px solid #ddd6fe}
 
-/* ── 4바 링키지 연동 박스 ── */
+/* ── 4바 링키지 연동 ── */
 .ht-linkbox{display:none;margin:0 0 12px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.28);
   border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--text2);line-height:1.6}
 .ht-linkbox.show{display:block}
@@ -815,13 +815,18 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       <div class="sub">m/s</div>
     </div>
     <div class="field">
+      <label>타각 최소</label>
+      <input type="number" id="ht-dmin" value="0" step="1" min="-30" max="30">
+      <div class="sub">°</div>
+    </div>
+    <div class="field">
       <label>타각 최대</label>
-      <input type="number" id="ht-dmax" value="25" step="1" min="1" max="30">
-      <div class="sub">° (0부터)</div>
+      <input type="number" id="ht-dmax" value="25" step="1" min="-30" max="30">
+      <div class="sub">°</div>
     </div>
     <div class="field">
       <label>타각 간격</label>
-      <input type="number" id="ht-dstep" value="1" step="0.5" min="0.5" max="10">
+      <input type="number" id="ht-dstep" value="1" step="0.1" min="0.1" max="10">
       <div class="sub">°</div>
     </div>
     <button class="htable-btn" id="ht-gen">테이블 생성 (팝업)</button>
@@ -839,7 +844,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       연동이 켜져 있으면 위의 고정 "기준 H" 입력은 무시됩니다. 도달 불가 θ₄ 구간은 회색으로 표시됩니다.
     </div>
   </div>
-  <div class="note">현재 선택된 조종면과 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 계산됩니다. 속도 상한은 비행조건 속도 + 10%로 자동 설정됩니다. DATCOM 모드에서는 타각별 K_def 비선형 보정이 반영됩니다. |H| 기준으로 판정합니다. 4바 링키지 해석기에서 "힌지모멘트 계산기로 보내기"를 실행하면 타각별 가변 한계값이 자동 연동됩니다.</div>
+  <div class="note">현재 선택된 조종면과 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 계산됩니다. 속도 상한은 비행조건 속도 + 10%로 자동 설정됩니다. 타각은 최소~최대 범위(음수 포함)로 설정할 수 있습니다. DATCOM 모드에서는 타각별 K_def 비선형 보정이 반영됩니다. |H| 기준으로 판정합니다. 4바 링키지 해석기에서 "힌지모멘트 계산기로 보내기"를 실행하면 타각별 가변 한계값이 자동 연동됩니다.</div>
 </div>
 
 <!-- ── 테이블 팝업 모달 ── -->
@@ -1611,7 +1616,7 @@ function lkMA(a,b,c,d,t4d,solType){
   return (c/a)*Math.sin(t3-t2)*Math.sin(t3-t4);
 }
 
-// 타각 δ(°) → 해당 θ₄에서의 가용 힌지모멘트 한계 |T₄| (N·m). 도달 불가면 null.
+// 타각 δ(°, 음수 가능) → 해당 θ₄에서의 가용 힌지모멘트 한계 |T₄| (N·m). 도달 불가면 null.
 function lkLimit(dDeg){
   if(!linkage) return null;
   const t4=(+linkage.t4n)+(+linkage.dir)*dDeg;
@@ -1680,7 +1685,11 @@ function genHTable(){
   const v0=+gv('ht-v0')||50, vstep=Math.max(1,+gv('ht-vstep')||5);
   // 속도 끝 = 현재 비행조건 속도 × 1.1 (10% 마진)
   const v1=Math.ceil(i.V*1.1);
-  const dmax=+gv('ht-dmax')||25, dstep=Math.max(0.5,+gv('ht-dstep')||1);
+  let dmin=+gv('ht-dmin'); if(isNaN(dmin))dmin=0;
+  let dmax=+gv('ht-dmax'); if(isNaN(dmax))dmax=25;
+  if(dmin>dmax){const t=dmin;dmin=dmax;dmax=t;} // 안전: 최소>최대면 자동 교환
+  const dstep=Math.max(0.1,+gv('ht-dstep')||1);
+  const dRange=dmax-dmin;
 
   const isDatcom=mode==='datcom';
   const surf=getCurSurf();
@@ -1689,7 +1698,12 @@ function genHTable(){
   const useLk=lkActive();   // 4바 링키지 연동 시 타각별 가변 한계
 
   const speeds=[]; for(let v=v0;v<=v1+1e-9;v+=vstep) speeds.push(v);
-  const defs=[];   for(let d=0;d<=dmax+1e-9;d+=dstep) defs.push(d);
+  const defs=[];
+  const nRows=Math.round(dRange/dstep);
+  const maxRows=400; // 과도한 행 생성 방지
+  const rowStep=nRows>maxRows ? dRange/maxRows : dstep;
+  const nRowsFinal=Math.max(0,Math.round(dRange/rowStep));
+  for(let k=0;k<=nRowsFinal;k++) defs.push(+(dmin+k*rowStep).toFixed(2));
 
   // 메타 정보
   const limDesc=useLk
@@ -1710,7 +1724,8 @@ function genHTable(){
   html+='</tr></thead><tbody>';
 
   defs.forEach(d=>{
-    html+='<tr><th>'+d.toFixed(0)+'°</th>';
+    const dLabel = dstep<1 ? d.toFixed(1) : d.toFixed(0);
+    html+='<tr><th>'+dLabel+'°</th>';
     const rowLim=useLk?lkLimit(d):limit;   // 링키지 연동: 이 타각에서의 가용 |T₄|, 도달불가면 null
     if(useLk){
       html+='<td class="limcol">'+(rowLim===null?'도달불가':rowLim.toFixed(2))+'</td>';
