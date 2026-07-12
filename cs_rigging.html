@@ -355,6 +355,22 @@
     word-break: break-all;
   }
   .coeff-eq .cv { color: var(--accent); font-weight: 600; }
+  .coeff-copy-btn {
+    margin-left: auto;
+    border: 1px solid var(--border2);
+    background: white;
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .coeff-copy-btn:hover { border-color: var(--accent); color: var(--accent); }
   .r2-badge {
     display: inline-block; margin-top: 7px;
     font-size: 10px; font-weight: 600;
@@ -625,21 +641,16 @@
     flex-shrink: 0;
   }
   .focus-view-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .focus-exit-btn {
-    display: none;
-    border: 1px solid var(--accent);
+  .focus-view-btn.active {
+    border-color: var(--accent);
     background: var(--accent);
     color: white;
-    border-radius: 999px;
-    padding: 6px 13px;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: var(--font);
-    cursor: pointer;
-    white-space: nowrap;
   }
-  body.focus-mid .focus-exit-btn,
-  body.focus-right .focus-exit-btn { display: inline-flex; }
+  .focus-view-btn.active:hover {
+    border-color: #0062c4;
+    background: #0062c4;
+    color: white;
+  }
   body.focus-mid .three-col,
   body.focus-right .three-col {
     grid-template-columns: minmax(0, 1fr);
@@ -823,13 +834,20 @@
   }
 
   /* ── 이론 검증 탭 ── */
+  /* 기본(3열 레이아웃): 가운데 컬럼 폭이 좁아 잘리지 않도록 세로 스택 */
   .theory-wrap {
     display: grid;
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 1fr;
     gap: 14px;
     align-items: start;
+    min-width: 0;
   }
-  @media (max-width: 860px) { .theory-wrap { grid-template-columns: 1fr; } }
+  .theory-wrap > .theory-panel { min-width: 0; }
+  /* 크게 보기(포커스) 모드: 공간이 넓으므로 2단 배치 */
+  body.focus-mid .theory-wrap { grid-template-columns: 280px minmax(0, 1fr); }
+  @media (max-width: 860px) {
+    body.focus-mid .theory-wrap { grid-template-columns: 1fr; }
+  }
   .theory-panel {
     background: var(--card2);
     border: 1px solid var(--border);
@@ -936,7 +954,6 @@
       <input type="number" id="rev-input-field" class="rev-input"
              min="0" max="99" value="0">
     </div>
-    <button id="focus-exit-btn" class="focus-exit-btn" onclick="setFocusPanel('')">전체 보기</button>
   </div>
 </header>
 
@@ -1149,7 +1166,7 @@
       <div class="card-subtitle" id="entry-sub">항공기 도면 또는 탭 버튼으로 선택</div>
     </div>
     <div style="display:flex;gap:6px;align-items:center;">
-      <button class="focus-view-btn" onclick="setFocusPanel('mid')" title="측정값 입력 크게 보기" aria-label="측정값 입력 크게 보기">
+      <button id="focus-btn-mid" class="focus-view-btn" onclick="toggleFocusPanel('mid')" title="측정값 입력 크게 보기" aria-label="측정값 입력 크게 보기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M8 3H3v5"/>
           <path d="M16 3h5v5"/>
@@ -1473,7 +1490,7 @@
       <div class="card-title">리깅 실행 및 JSON 출력</div>
       <div class="card-subtitle" id="download-preview">파일명: — </div>
     </div>
-    <button class="focus-view-btn" onclick="setFocusPanel('right')" title="JSON 크게 보기" aria-label="JSON 크게 보기">
+    <button id="focus-btn-right" class="focus-view-btn" onclick="toggleFocusPanel('right')" title="JSON 크게 보기" aria-label="JSON 크게 보기">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M8 3H3v5"/>
         <path d="M16 3h5v5"/>
@@ -3579,76 +3596,58 @@ function showStatus(id,msg,type){
     `<div class="status-bar status-${type}">${icons[type]} ${msg}</div>`;
 }
 
+function toggleFocusPanel(panel) {
+  const isActive = document.body.classList.contains('focus-' + panel);
+  setFocusPanel(isActive ? '' : panel);
+}
+
 function setFocusPanel(panel) {
   document.body.classList.remove('focus-mid', 'focus-right');
   if (panel === 'mid') document.body.classList.add('focus-mid');
   if (panel === 'right') document.body.classList.add('focus-right');
+  updateFocusButtons();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 크게 보기 ↔ 전체 보기 버튼 라벨/아이콘 전환
+const FOCUS_ICON_EXPAND =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"' +
+  ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M8 3H3v5"/><path d="M16 3h5v5"/><path d="M21 16v5h-5"/><path d="M3 16v5h5"/></svg>';
+const FOCUS_ICON_COLLAPSE =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"' +
+  ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M3 8h5V3"/><path d="M21 8h-5V3"/><path d="M16 21v-5h5"/><path d="M3 16h5v5"/></svg>';
+
+function updateFocusButtons() {
+  const midBtn   = document.getElementById('focus-btn-mid');
+  const rightBtn = document.getElementById('focus-btn-right');
+  const midOn    = document.body.classList.contains('focus-mid');
+  const rightOn  = document.body.classList.contains('focus-right');
+
+  if (midBtn) {
+    midBtn.innerHTML = (midOn ? FOCUS_ICON_COLLAPSE : FOCUS_ICON_EXPAND) +
+      '<span>' + (midOn ? '전체 보기' : '크게 보기') + '</span>';
+    midBtn.classList.toggle('active', midOn);
+    const midLbl = midOn ? '전체 보기로 돌아가기' : '측정값 입력 크게 보기';
+    midBtn.title = midLbl;
+    midBtn.setAttribute('aria-label', midLbl);
+  }
+  if (rightBtn) {
+    rightBtn.innerHTML = (rightOn ? FOCUS_ICON_COLLAPSE : FOCUS_ICON_EXPAND) +
+      '<span>' + (rightOn ? '전체 보기' : 'JSON 크게 보기') + '</span>';
+    rightBtn.classList.toggle('active', rightOn);
+    const rightLbl = rightOn ? '전체 보기로 돌아가기' : 'JSON 크게 보기';
+    rightBtn.title = rightLbl;
+    rightBtn.setAttribute('aria-label', rightLbl);
+  }
 }
 
 // ─── Init ────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', ()=>{
   updateDownloadPreview();
   selectSurface('ELV_LI');
-
-  // ── 시작 알림 ──
-  setTimeout(() => {
-    showAlert();
-  }, 300);
 });
-
-function showAlert() {
-  const overlay = document.createElement('div');
-  overlay.id = 'startup-overlay';
-  overlay.style.cssText =
-    'position:fixed;inset:0;background:rgba(0,0,0,0.45);' +
-    'display:flex;align-items:center;justify-content:center;' +
-    'z-index:9999;backdrop-filter:blur(4px);';
-
-  const box = document.createElement('div');
-  box.style.cssText =
-    'background:white;border-radius:18px;padding:32px 36px;' +
-    'max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);' +
-    'text-align:center;font-family:var(--font);';
-
-  const icon = document.createElement('div');
-  icon.style.cssText =
-    'width:48px;height:48px;background:#e3f0fd;border-radius:14px;' +
-    'display:flex;align-items:center;justify-content:center;margin:0 auto 18px;';
-  icon.innerHTML =
-    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"' +
-    ' stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-    '<circle cx="12" cy="12" r="10"/>' +
-    '<line x1="12" y1="8" x2="12" y2="12"/>' +
-    '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-
-  const p1 = document.createElement('p');
-  p1.style.cssText = 'font-size:15px;font-weight:600;color:#1c1c1e;line-height:1.6;margin-bottom:10px;';
-  p1.innerHTML = '해당 프로그램은 단순 각도변환을 위한<br>계산기의 역할을 수행하며,<br>비닉사업 관련 내용이 없습니다.';
-
-  const p2 = document.createElement('p');
-  p2.style.cssText = 'font-size:13px;font-weight:400;color:#636366;line-height:1.6;margin-bottom:24px;';
-  p2.innerHTML =
-    'This program serves solely as an angle conversion calculator<br>' +
-    'and contains no classified or confidential project information.';
-
-  const btn = document.createElement('button');
-  btn.textContent = '확인';
-  btn.style.cssText =
-    'background:#0071e3;color:white;border:none;' +
-    'padding:10px 32px;border-radius:980px;' +
-    'font-size:14px;font-weight:500;font-family:var(--font);cursor:pointer;';
-  btn.onmouseover = function(){ this.style.background = '#0077ed'; };
-  btn.onmouseout  = function(){ this.style.background = '#0071e3'; };
-  btn.onclick = function(){ overlay.remove(); };
-
-  box.appendChild(icon);
-  box.appendChild(p1);
-  box.appendChild(p2);
-  box.appendChild(btn);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-}
 
 
 (function() {
@@ -4036,6 +4035,42 @@ function theoryFmt(v, digits) {
   return v.toFixed(d).replace(/\.?0+$/, function(m){ return m.includes('.') ? '' : m; });
 }
 
+// 계수 전용: 소수점 10자리 고정, 지수(e) 표기 없음
+function theoryFmt10(v) {
+  if (v === null || v === undefined || !isFinite(v)) return '—';
+  return v.toFixed(10);
+}
+
+// 마지막 계산된 이론 계수 [a3, a2, a1, a0]
+let thLastCoeffs = null;
+
+function copyTheoryCoeffs(btn) {
+  if (!thLastCoeffs) return;
+  const text = '[' + thLastCoeffs.map(function(v){ return v.toFixed(10); }).join(', ') + '],';
+  function done() {
+    if (!btn) return;
+    const orig = btn.textContent;
+    btn.textContent = '복사됨 ✓';
+    btn.disabled = true;
+    setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1400);
+  }
+  function legacy() {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+    done();
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(legacy);
+  } else {
+    legacy();
+  }
+}
+
 function theoryCompute() {
   const a     = parseFloat(document.getElementById('th-a').value);
   const b     = parseFloat(document.getElementById('th-b').value);
@@ -4051,6 +4086,7 @@ function theoryCompute() {
 
   badge.className = 'theory-badge';
   summary.innerHTML = ''; grid.innerHTML = ''; note.textContent = '';
+  thLastCoeffs = null;
 
   function fail(txt, hint) {
     badge.className = 'theory-badge err';
@@ -4172,18 +4208,22 @@ function theoryCompute() {
   }).join('');
 
   // ── 계수 카드 (기존 coeff-card 스타일 재사용) ──
-  function coeffCard(title, cc, extra) {
-    return '<div class="coeff-card"><div class="coeff-name">' + title + '</div>' +
-      '<div class="coeff-eq">y = <span class="cv">' + theoryFmt(cc[0]) + '</span>·x³ ' +
-      (cc[1] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt(Math.abs(cc[1])) + '</span>·x² ' +
-      (cc[2] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt(Math.abs(cc[2])) + '</span>·x ' +
-      (cc[3] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt(Math.abs(cc[3])) + '</span></div>' +
+  thLastCoeffs = cf.slice();
+  function coeffCard(title, cc, extra, withCopy) {
+    return '<div class="coeff-card"><div class="coeff-name">' + title +
+      (withCopy ? '<button type="button" class="coeff-copy-btn" onclick="copyTheoryCoeffs(this)">계수 복사</button>' : '') +
+      '</div>' +
+      '<div class="coeff-eq">y = <span class="cv">' + theoryFmt10(cc[0]) + '</span>·x³ ' +
+      (cc[1] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt10(Math.abs(cc[1])) + '</span>·x² ' +
+      (cc[2] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt10(Math.abs(cc[2])) + '</span>·x ' +
+      (cc[3] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt10(Math.abs(cc[3])) + '</span></div>' +
       (extra || '') + '</div>';
   }
   let gridHtml = coeffCard('이론 계수 (FCA_RIG 축 규약, deg)', cf,
-    dp ? '<div class="coeff-eq" style="margin-top:6px;">= <span class="cv">' + theoryFmt(dp.a) +
-         '</span>·(x−h)³ + <span class="cv">' + theoryFmt(dp.p) + '</span>·(x−h) + <span class="cv">' +
-         theoryFmt(dp.q) + '</span>,&nbsp; h = <span class="cv">' + theoryFmt(dp.h, 3) + '°</span></div>' : '');
+    dp ? '<div class="coeff-eq" style="margin-top:6px;">= <span class="cv">' + theoryFmt10(dp.a) +
+         '</span>·(x−h)³ + <span class="cv">' + theoryFmt10(dp.p) + '</span>·(x−h) + <span class="cv">' +
+         theoryFmt10(dp.q) + '</span>,&nbsp; h = <span class="cv">' + theoryFmt(dp.h, 3) + '°</span></div>' : '',
+    true);
 
   // ── 실측 비교 ──
   const cmpSurf = document.getElementById('th-compare').value;
