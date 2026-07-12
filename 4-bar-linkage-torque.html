@@ -962,10 +962,15 @@ canvas.hover { cursor: grab; }
           style="width:100%;background:linear-gradient(135deg,#0071e3,#3b82f6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,113,227,.25);">
           힌지모멘트 계산기로 보내기 →</button>
         <div id="sendHMmsg" style="display:none;margin-top:8px;font-size:10.5px;color:#1a9c3e;font-weight:600;text-align:center;"></div>
+        <button id="sendRig" onclick="sendToRig()"
+          style="width:100%;margin-top:8px;background:linear-gradient(135deg,#30d158,#28a745);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(48,209,88,.25);">
+          조종면 리깅 계산기로 보내기 →</button>
+        <div id="sendRigmsg" style="display:none;margin-top:8px;font-size:10.5px;color:#1a9c3e;font-weight:600;text-align:center;"></div>
       </div>
       <div style="font-size:10px;color:var(--text3);line-height:1.5;padding:0 2px;">
         링크 치수 a·b·c·d, 해 유형, 입력토크 T₂, 중립각 θ₄₀·방향을 전달합니다.
         힌지모멘트 계산기의 속도 × 타각 테이블에서 한계값이 타각별 가용 토크 |T₄(δ)| = |T₂ × MA(θ₄₀ ± δ)| 로 자동 계산됩니다.
+        리깅 계산기로 보내면 이론 검증 탭에서 동일 기하로 이론 3차식과 단조성 판정이 자동 계산됩니다.
       </div>
     </div>
 
@@ -2349,6 +2354,34 @@ function sendToHM(){
   msg.textContent = '전송됨 ✓  (θ₄₀=' + t4n.toFixed(1) + '°, T₂=' + T2.toFixed(2) + ' N·m)';
   clearTimeout(sendToHM._t);
   sendToHM._t = setTimeout(()=>{ msg.style.display = 'none'; }, 4000);
+}
+
+// ── 조종면 리깅 계산기 연동 ─────────────────────────────────────────────────
+// 링키지 기하를 cs_rigging.html 의 '이론 검증' 탭으로 전달
+// (동일 오리진 localStorage + URL 해시 이중화 — sendToHM 과 동일 패턴)
+function sendToRig(){
+  let t4n = parseFloat(document.getElementById('iT4Neutral').value);
+  if(isNaN(t4n)) t4n = S.t4;
+
+  const payload = {
+    v: 1,
+    a: S.a, b: S.b, c: S.c, d: S.d,      // 링크 길이: 입력 크랭크, 커플러, 출력 혼, 고정
+    sol: S.sol,                           // 'open' | 'cross'
+    t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
+    dir: hmDir,                           // δ+ → θ₄ 증가(+1)/감소(-1)
+    ts: Date.now()
+  };
+  const json = JSON.stringify(payload);
+  try{ localStorage.setItem('rig_linkage_v1', json); }catch(e){}
+
+  window.open('cs_rigging.html#linkage=' + encodeURIComponent(json), '_blank');
+
+  const msg = document.getElementById('sendRigmsg');
+  msg.style.display = 'block';
+  msg.textContent = '전송됨 ✓  (a=' + S.a + ', b=' + S.b + ', c=' + S.c + ', d=' + S.d +
+                    ', θ₄₀=' + t4n.toFixed(1) + '°, ' + (S.sol==='open'?'개방형':'교차형') + ')';
+  clearTimeout(sendToRig._t);
+  sendToRig._t = setTimeout(()=>{ msg.style.display = 'none'; }, 4000);
 }
 
 // ── 플롯 이미지 복사 ────────────────────────────────────────────────────────

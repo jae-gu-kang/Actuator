@@ -821,6 +821,83 @@
     .col { padding: 12px 10px 4px; }
     input[type="number"].cell-input { width: 60px; font-size: 11px; }
   }
+
+  /* ── 이론 검증 탭 ── */
+  .theory-wrap {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { .theory-wrap { grid-template-columns: 1fr; } }
+  .theory-panel {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+  }
+  .theory-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .theory-sub { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5; }
+  .theory-field { margin-bottom: 12px; }
+  .theory-field label {
+    display: block; font-size: 11.5px; font-weight: 600;
+    color: var(--text-secondary); margin-bottom: 5px;
+  }
+  .theory-input-unit { display: flex; align-items: center; gap: 8px; }
+  .theory-input-unit input {
+    flex: 1; min-width: 0;
+    font-family: var(--font); font-size: 13px;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border2); border-radius: var(--radius-xs);
+    background: var(--card); color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .theory-input-unit input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+  }
+  .theory-input-unit span { font-size: 12px; color: var(--text-tertiary); width: 28px; }
+  .theory-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .theory-select {
+    width: 100%; font-family: var(--font); font-size: 13px;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border2); border-radius: var(--radius-xs);
+    background: var(--card); color: var(--text-primary);
+  }
+  .theory-select:focus { outline: none; border-color: var(--accent); }
+  .theory-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 5px; line-height: 1.5; }
+  .theory-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 980px;
+    display: none;
+  }
+  .theory-badge.ok   { display: inline-block; background: rgba(52,199,89,0.14);  color: #248a3d; }
+  .theory-badge.warn { display: inline-block; background: rgba(255,159,10,0.16); color: #b25000; }
+  .theory-badge.err  { display: inline-block; background: rgba(255,59,48,0.13);  color: #d70015; }
+  .theory-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px; margin: 12px 0 14px;
+  }
+  .theory-stat {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-xs); padding: 9px 11px;
+  }
+  .theory-stat .k { font-size: 10.5px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 2px; }
+  .theory-stat .v { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .theory-canvas {
+    width: 100%; height: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+  }
+  .theory-legend {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-top: 8px; font-size: 11.5px; color: var(--text-secondary);
+  }
+  .theory-legend .li { display: flex; align-items: center; gap: 6px; }
+  .theory-legend .sw { width: 18px; height: 0; border-top-width: 2.5px; border-top-color: currentColor; }
 </style>
 </head>
 <body>
@@ -1084,6 +1161,7 @@
       <div class="mode-btn-group" style="margin-bottom:0;">
         <button class="mode-btn active" id="mode-btn-single" onclick="setViewMode('single')">단일</button>
         <button class="mode-btn" id="mode-btn-all" onclick="setViewMode('all')">전체</button>
+        <button class="mode-btn" id="mode-btn-theory" onclick="setViewMode('theory')">이론 검증</button>
       </div>
       <button class="btn btn-secondary btn-sm"
               onclick="currentViewMode === 'all' ? clearAllSurfaces() : clearCurrentSurface()">초기화</button>
@@ -1147,6 +1225,100 @@
           </svg>
           테이블 복사
         </button>
+      </div>
+    </div>
+
+    <!-- 이론 검증 -->
+    <div id="theory-view-area" style="display:none;">
+      <div class="theory-wrap">
+
+        <!-- 좌: 입력 -->
+        <div class="theory-panel">
+          <div class="theory-title">링키지 기하 입력</div>
+          <div class="theory-sub">일반 4절 링크 · 4절 링크 토크 계산기에서 "리깅 계산기로 보내기"로 자동 입력되며, 여기서 직접 수정할 수도 있습니다</div>
+
+          <div class="theory-field">
+            <label>입력 크랭크 a (액추에이터 혼)</label>
+            <div class="theory-input-unit">
+              <input type="text" inputmode="decimal" id="th-a" value="30" onchange="theoryCompute()">
+              <span>mm</span>
+            </div>
+          </div>
+          <div class="theory-field">
+            <label>커플러 b (푸시로드)</label>
+            <div class="theory-input-unit">
+              <input type="text" inputmode="decimal" id="th-b" value="120" onchange="theoryCompute()">
+              <span>mm</span>
+            </div>
+          </div>
+          <div class="theory-field">
+            <label>출력 혼 c (조종면 측)</label>
+            <div class="theory-input-unit">
+              <input type="text" inputmode="decimal" id="th-c" value="40" onchange="theoryCompute()">
+              <span>mm</span>
+            </div>
+          </div>
+          <div class="theory-field">
+            <label>고정 링크 d (피벗 간 거리)</label>
+            <div class="theory-input-unit">
+              <input type="text" inputmode="decimal" id="th-d" value="100" onchange="theoryCompute()">
+              <span>mm</span>
+            </div>
+          </div>
+          <div class="theory-field">
+            <label>중립각 θ₄₀ (타각 δ=0°일 때 출력 혼 각도)</label>
+            <div class="theory-input-unit">
+              <input type="text" inputmode="decimal" id="th-t4n" value="60" onchange="theoryCompute()">
+              <span>°</span>
+            </div>
+          </div>
+          <div class="theory-field">
+            <label>해 유형</label>
+            <div class="mode-btn-group" style="margin-bottom:0;">
+              <button class="mode-btn active" id="th-sol-open"  onclick="theorySetSol('open')">개방형</button>
+              <button class="mode-btn"        id="th-sol-cross" onclick="theorySetSol('cross')">교차형</button>
+            </div>
+          </div>
+          <div class="theory-field">
+            <label>타각 δ+ 방향</label>
+            <div class="mode-btn-group" style="margin-bottom:0;">
+              <button class="mode-btn"        id="th-dir-up" onclick="theorySetDir(1)">θ₄ 증가</button>
+              <button class="mode-btn active" id="th-dir-dn" onclick="theorySetDir(-1)">θ₄ 감소</button>
+            </div>
+          </div>
+          <div class="theory-field">
+            <label>운용 범위 (타각 δ)</label>
+            <div class="theory-input-unit">
+              <input type="text" inputmode="decimal" id="th-range" value="30" onchange="theoryCompute()">
+              <span>±°</span>
+            </div>
+          </div>
+
+          <div class="divider" style="margin:14px 0;"></div>
+          <div class="theory-field">
+            <label>실측 회귀와 비교 (FCA_RIG)</label>
+            <select id="th-compare" class="theory-select" onchange="theoryCompute()">
+              <option value="">— 비교 안 함 —</option>
+            </select>
+            <div class="theory-hint">단일/전체 모드에서 회귀식을 계산한 조종면만 표시됩니다.</div>
+          </div>
+        </div>
+
+        <!-- 우: 결과 -->
+        <div class="theory-panel theory-panel-wide">
+          <div class="theory-title" style="display:flex;align-items:center;gap:8px;">
+            이론 3차식
+            <span id="th-badge" class="theory-badge"></span>
+          </div>
+          <div id="th-summary" class="theory-summary"></div>
+
+          <canvas id="th-canvas" class="theory-canvas" width="640" height="380"></canvas>
+          <div class="theory-legend" id="th-legend"></div>
+
+          <div class="coeff-grid" id="th-coeff-grid" style="margin-top:14px;"></div>
+          <div id="th-note" class="theory-hint" style="margin-top:10px;"></div>
+        </div>
+
       </div>
     </div>
 
@@ -1799,24 +1971,34 @@ let currentViewMode = 'single';
 
 function setViewMode(mode) {
   currentViewMode = mode;
-  ['single','all'].forEach(function(m) {
+  ['single','all','theory'].forEach(function(m) {
     var btn = document.getElementById('mode-btn-' + m);
     if (btn) btn.classList.toggle('active', m === mode);
   });
 
-  var singleArea = document.getElementById('single-view-area');
-  var multiArea  = document.getElementById('multi-view-area');
-  var tabsWrap   = document.getElementById('surface-tabs-wrap');
+  var singleArea  = document.getElementById('single-view-area');
+  var multiArea   = document.getElementById('multi-view-area');
+  var theoryArea  = document.getElementById('theory-view-area');
+  var tabsWrap    = document.getElementById('surface-tabs-wrap');
 
   if (mode === 'single') {
     singleArea.style.display = '';
     multiArea.style.display  = 'none';
+    theoryArea.style.display = 'none';
     tabsWrap.style.display   = '';
-  } else {
+  } else if (mode === 'all') {
     singleArea.style.display = 'none';
     multiArea.style.display  = 'block';
+    theoryArea.style.display = 'none';
     tabsWrap.style.display   = 'none';
     buildMultiView();
+  } else {
+    singleArea.style.display = 'none';
+    multiArea.style.display  = 'none';
+    theoryArea.style.display = 'block';
+    tabsWrap.style.display   = 'none';
+    theoryRefreshCompareList();
+    theoryCompute();
   }
 }
 
@@ -3689,6 +3871,466 @@ function showAlert() {
     }
   });
 })();
+
+// ═══════════════════════════════════════════════════════
+// 이론 검증 탭 (Theory Verification) — 일반 4절 링크
+//
+// 4절 링크 토크 계산기(4-bar-linkage-torque.html)와 동일한
+// 링크 규약을 사용한다:
+//   a = 입력 크랭크(액추에이터 혼), b = 커플러(푸시로드),
+//   c = 출력 혼(조종면), d = 고정 링크(피벗 간 거리)
+//   θ₂ = 크랭크 각, θ₄ = 출력 혼 각, 해 유형 open/cross
+//
+// 타각 δ(조종면 각)와 커맨드 α(크랭크 각 변화)의 관계:
+//   θ₄ = θ₄₀ + dir·δ  →  θ₂(θ₄) 역기구학  →  α = ±(θ₂ − θ₂₀)
+//   (α 부호는 중립에서 dα/dδ > 0 이 되도록 자동 선택)
+// 축 규약은 FCA_RIG와 동일: x = 조종면 각(δ), y = 커맨드(α)
+//
+// 기하 정보는 토크 계산기의 "리깅 계산기로 보내기"를 통해
+// URL 해시(#linkage=...) 또는 localStorage('rig_linkage_v1')로
+// 자동 수신되며, 이 탭에서 직접 수정할 수도 있다.
+// ═══════════════════════════════════════════════════════
+
+const TH_RAD = Math.PI / 180, TH_DEG = 180 / Math.PI;
+let thSol = 'open';   // 해 유형
+let thDir = -1;       // δ+ → θ₄ 증가(+1) / 감소(-1)
+
+function thNorm(d) { d = d % 360; return d < 0 ? d + 360 : d; }
+// 두 각(deg)의 차를 (−180, 180]로 정규화
+function thAngDiff(x, y) {
+  let v = thNorm(x) - thNorm(y);
+  if (v > 180) v -= 360;
+  if (v <= -180) v += 360;
+  return v;
+}
+
+// Freudenstein 역기구학: θ₄가 주어졌을 때 θ₂ (토크 계산기 solve()와 동일)
+// 반환: { open: θ₂ | null, cross: θ₂ | null } 또는 null(도달 불가)
+function th4barTheta2(a, b, c, d, t4d) {
+  const t4 = t4d * TH_RAD;
+  const K1 = d / a, K2 = d / c, K3 = (a*a - b*b + c*c + d*d) / (2*a*c);
+  const A = -K2 - Math.cos(t4), B = -Math.sin(t4), C2 = K1 * Math.cos(t4) + K3;
+  const aa = C2 - A, bb = 2 * B, cc = A + C2;
+  const disc = bb*bb - 4*aa*cc;
+  if (disc < -1e-8) return null;
+  const sq = Math.sqrt(Math.max(0, disc));
+  const us = Math.abs(aa) < 1e-10 ? [-cc / (bb || 1e-10)]
+                                  : [(-bb + sq) / (2*aa), (-bb - sq) / (2*aa)];
+  const out = { open: null, cross: null };
+  us.forEach(function(u, i) {
+    const t2 = thNorm(2 * Math.atan(u) * TH_DEG);
+    const t2r = t2 * TH_RAD;
+    const Ax = a * Math.cos(t2r), Ay = a * Math.sin(t2r);
+    const Bx = d + c * Math.cos(t4), By = c * Math.sin(t4);
+    if (Math.abs(Math.hypot(Bx - Ax, By - Ay) - b) > 1.5) return; // 커플러 길이 검증
+    out[i === 0 ? 'open' : 'cross'] = t2;
+  });
+  if (out.open === null && out.cross === null) return null;
+  return out;
+}
+
+// [a3,a2,a1,a0] → 변곡점 형식 f(x) = a(x−h)³ + p(x−h) + q
+function theoryDepressed(c) {
+  const a3 = c[0], a2 = c[1], a1 = c[2], a0 = c[3];
+  if (Math.abs(a3) < 1e-12) return null;
+  const h = -a2 / (3 * a3);
+  const p = a1 - (a2 * a2) / (3 * a3);
+  const q = ((a3 * h + a2) * h + a1) * h + a0;   // f(h)
+  return { a: a3, h: h, p: p, q: q };
+}
+
+// 중립각 기준 도달 가능 타각 범위 [δ⁻, δ⁺] 스캔 (스윙 한계 = 크랭크·커플러 일직선)
+function theoryReachLimits(a, b, c, d, t4n, dir, sol, maxDeg) {
+  function ok(del) {
+    const s = th4barTheta2(a, b, c, d, t4n + dir * del);
+    return s && s[sol] !== null;
+  }
+  const step = 0.1;
+  let hi = 0, lo = 0;
+  while (hi < maxDeg - 1e-9 && ok(hi + step)) hi += step;
+  while (lo > -maxDeg + 1e-9 && ok(lo - step)) lo -= step;
+  return { lo: lo, hi: hi, loOpen: lo <= -maxDeg + step, hiOpen: hi >= maxDeg - step };
+}
+
+function theorySetSol(s) {
+  thSol = s;
+  document.getElementById('th-sol-open').classList.toggle('active',  s === 'open');
+  document.getElementById('th-sol-cross').classList.toggle('active', s === 'cross');
+  theoryCompute();
+}
+
+function theorySetDir(v) {
+  thDir = v;
+  document.getElementById('th-dir-up').classList.toggle('active', v === 1);
+  document.getElementById('th-dir-dn').classList.toggle('active', v === -1);
+  theoryCompute();
+}
+
+// 토크 계산기에서 수신한 기하를 입력란에 적용
+function theoryApplyLinkage(p) {
+  if (!p || typeof p !== 'object') return false;
+  const num = function(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; };
+  if (num(p.a) === null || num(p.b) === null || num(p.c) === null || num(p.d) === null) return false;
+  document.getElementById('th-a').value   = p.a;
+  document.getElementById('th-b').value   = p.b;
+  document.getElementById('th-c').value   = p.c;
+  document.getElementById('th-d').value   = p.d;
+  if (num(p.t4n) !== null) document.getElementById('th-t4n').value = p.t4n;
+  if (p.sol === 'open' || p.sol === 'cross') {
+    thSol = p.sol;
+    document.getElementById('th-sol-open').classList.toggle('active',  thSol === 'open');
+    document.getElementById('th-sol-cross').classList.toggle('active', thSol === 'cross');
+  }
+  if (p.dir === 1 || p.dir === -1) {
+    thDir = p.dir;
+    document.getElementById('th-dir-up').classList.toggle('active', thDir === 1);
+    document.getElementById('th-dir-dn').classList.toggle('active', thDir === -1);
+  }
+  return true;
+}
+
+// 시작 시 URL 해시 / localStorage 에서 링키지 기하 수신
+function theoryBootstrapFromLink() {
+  // 1) URL 해시 (#linkage=...) — 토크 계산기에서 열었을 때. 수신 시 이론 탭으로 전환.
+  const m = location.hash.match(/[#&]linkage=([^&]+)/);
+  if (m) {
+    try {
+      const p = JSON.parse(decodeURIComponent(m[1]));
+      if (theoryApplyLinkage(p)) {
+        history.replaceState(null, '', location.pathname + location.search); // 해시 소비
+        setViewMode('theory');
+        return;
+      }
+    } catch (e) {}
+  }
+  // 2) localStorage 폴백 (최근 10분 이내 전송분만) — 값만 채우고 탭 전환은 하지 않음
+  try {
+    const raw = localStorage.getItem('rig_linkage_v1');
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && p.ts && Date.now() - p.ts < 10 * 60 * 1000) theoryApplyLinkage(p);
+    }
+  } catch (e) {}
+}
+window.addEventListener('DOMContentLoaded', theoryBootstrapFromLink);
+
+function theoryRefreshCompareList() {
+  const sel = document.getElementById('th-compare');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— 비교 안 함 —</option>';
+  SURFACES.forEach(function(s) {
+    const rd = regressionData[s];
+    if (rd && rd.hasFwd) {
+      const op = document.createElement('option');
+      op.value = s; op.textContent = s;
+      sel.appendChild(op);
+    }
+  });
+  if (prev && regressionData[prev] && regressionData[prev].hasFwd) sel.value = prev;
+}
+
+function theoryFmt(v, digits) {
+  if (v === null || v === undefined || !isFinite(v)) return '—';
+  const d = digits === undefined ? 4 : digits;
+  if (v !== 0 && (Math.abs(v) < 1e-3 || Math.abs(v) >= 1e5)) return v.toExponential(3);
+  return v.toFixed(d).replace(/\.?0+$/, function(m){ return m.includes('.') ? '' : m; });
+}
+
+function theoryCompute() {
+  const a     = parseFloat(document.getElementById('th-a').value);
+  const b     = parseFloat(document.getElementById('th-b').value);
+  const c     = parseFloat(document.getElementById('th-c').value);
+  const d     = parseFloat(document.getElementById('th-d').value);
+  const t4n   = parseFloat(document.getElementById('th-t4n').value);
+  const range = Math.abs(parseFloat(document.getElementById('th-range').value)) || 30;
+
+  const badge   = document.getElementById('th-badge');
+  const summary = document.getElementById('th-summary');
+  const note    = document.getElementById('th-note');
+  const grid    = document.getElementById('th-coeff-grid');
+
+  badge.className = 'theory-badge';
+  summary.innerHTML = ''; grid.innerHTML = ''; note.textContent = '';
+
+  function fail(txt, hint) {
+    badge.className = 'theory-badge err';
+    badge.textContent = txt;
+    if (hint) note.textContent = hint;
+    theoryDrawChart(null);
+  }
+
+  if (!(a > 0) || !(b > 0) || !(c > 0) || !(d > 0)) {
+    return fail('입력 오류', '링크 길이 a, b, c, d는 0보다 큰 값이어야 합니다.');
+  }
+  if (isNaN(t4n)) {
+    return fail('입력 오류', '중립각 θ₄₀를 입력하세요.');
+  }
+
+  // ── 중립 크랭크 각 θ₂₀ ──
+  const nSol = th4barTheta2(a, b, c, d, t4n);
+  if (!nSol || nSol[thSol] === null) {
+    return fail('중립각 도달 불가',
+      '이 기하와 해 유형으로는 θ₄₀=' + t4n + '°에 도달할 수 없습니다. 해 유형을 바꾸거나 중립각을 조정하세요.');
+  }
+  const t20 = nSol[thSol];
+
+  // ── 도달 가능 타각 범위 (스윙 한계) ──
+  const reach = theoryReachLimits(a, b, c, d, t4n, thDir, thSol, 90);
+  const reachTxt = (reach.loOpen ? '−90°↓' : theoryFmt(reach.lo, 1) + '°') + ' ~ ' +
+                   (reach.hiOpen ? '+90°↑' : '+' + theoryFmt(reach.hi, 1) + '°');
+
+  // ── 정확해 샘플링: δ ∈ [−range, +range], 0.25° 간격 ──
+  // α_raw = θ₂ − θ₂₀ (정규화). 부호는 중립 게인이 양수가 되도록 자동 결정.
+  const stepDeg = 0.25;
+  const rawXs = [], rawYs = [];
+  let singular = false;
+  for (let del = -range; del <= range + 1e-9; del += stepDeg) {
+    const t4 = t4n + thDir * del;
+    const s = th4barTheta2(a, b, c, d, t4);
+    if (!s || s[thSol] === null) { singular = true; continue; }
+    const al = thAngDiff(s[thSol], t20);
+    rawXs.push(+del.toFixed(4));
+    rawYs.push(al);
+  }
+  if (rawXs.length < 8) {
+    return fail('해 없음 (도달 불가 / 토글)',
+      '이 기하의 도달 가능 타각 범위는 ' + reachTxt + ' 입니다. 스윙 한계(크랭크·커플러 일직선)를 넘어서는 요청입니다. ' +
+      '링크 길이(특히 a, b)를 조정하거나 중립각 θ₄₀를 스윙 중앙 쪽으로 옮기세요.');
+  }
+
+  // 부호 자동 선택: 중립 근처 기울기가 양수가 되도록
+  let s2 = 1;
+  for (let i = 1; i < rawXs.length; i++) {
+    if (rawXs[i - 1] < 0 && rawXs[i] >= 0 || i === rawXs.length - 1) {
+      const k = Math.min(i + 4, rawXs.length - 1);
+      const slope = (rawYs[k] - rawYs[i - 1]) / (rawXs[k] - rawXs[i - 1]);
+      if (slope < 0) s2 = -1;
+      break;
+    }
+  }
+  const xs = rawXs, ys = rawYs.map(function(v){ return s2 * v; });
+
+  // ── 3차 최소제곱 (기존 cubicFit 재사용, deg 단위) ──
+  const fit = cubicFit(xs, ys);
+  if (!fit) return fail('피팅 실패');
+  const cf = fit.coeffs;                      // [a3,a2,a1,a0]
+  const dp = theoryDepressed(cf);             // {a,h,p,q}
+
+  // 극점 위치: x = h ± √(−p / 3a)
+  let ext = null;
+  if (dp && dp.a * dp.p < 0) {
+    const t = Math.sqrt(-dp.p / (3 * dp.a));
+    ext = [dp.h - t, dp.h + t];
+  }
+  const extInRange = ext ? ext.some(function(x){ return Math.abs(x) <= range; }) : false;
+
+  // 근사 오차 / 선형(중립 게인) 대비 편차
+  let maxErr = 0;
+  for (let i = 0; i < xs.length; i++) {
+    const p = ((cf[0]*xs[i] + cf[1])*xs[i] + cf[2])*xs[i] + cf[3];
+    maxErr = Math.max(maxErr, Math.abs(p - ys[i]));
+  }
+  const linSlope = cf[2];   // δ=0 에서의 게인 (dα/dδ)
+  const devLin = ys[ys.length - 1] - linSlope * xs[xs.length - 1];
+
+  // ── 배지 ──
+  if (extInRange) {
+    badge.className = 'theory-badge err';
+    badge.textContent = '운용구간 내 비단조 — REVERS 오수렴 위험';
+  } else if (singular) {
+    badge.className = 'theory-badge warn';
+    badge.textContent = '도달 가능 ' + reachTxt + ' — 범위 일부 계산 불가';
+    // 스윙 중앙 = 양방향이 대칭이 되는 최적 중립각
+    const dMid = (reach.lo + reach.hi) / 2;
+    const t4mid = t4n + thDir * dMid;
+    const half  = (reach.hi - reach.lo) / 2;
+    note.textContent = '요청한 ±' + range + '° 중 일부가 출력 혼의 스윙 한계(크랭크·커플러가 일직선이 되는 지점) 밖입니다. ' +
+      '중립각 θ₄₀를 스윙 중앙 ' + theoryFmt(t4mid, 1) + '° 로 옮기면 약 ±' + theoryFmt(half, 1) + '° 가 확보됩니다. ' +
+      '그래도 부족하면 입력 크랭크 a를 키워 스윙 범위 자체를 넓히세요.';
+  } else if (ext) {
+    badge.className = 'theory-badge ok';
+    badge.textContent = '운용구간 내 단조 (극점 ' + theoryFmt(ext[0],1) + '° / ' + theoryFmt(ext[1],1) + '°)';
+  } else {
+    badge.className = 'theory-badge ok';
+    badge.textContent = '전역 단조';
+  }
+
+  // ── 요약 카드 ──
+  const stats = [
+    ['도달 가능 타각 δ',    reachTxt],
+    ['중립 크랭크 각 θ₂₀', theoryFmt(t20, 2) + '°'],
+    ['중립 게인 dα/dδ',    theoryFmt(linSlope, 4)],
+    ['변곡점 h',            dp ? theoryFmt(dp.h, 2) + '°' : '— (3차항 ≈ 0)'],
+    ['극점 위치',            ext ? theoryFmt(ext[0],1) + '° / ' + theoryFmt(ext[1],1) + '°' : '없음 (단조)'],
+    ['±' + range + '° 선형 대비 편차', theoryFmt(devLin, 3) + '°'],
+    ['3차 근사 최대오차',    theoryFmt(maxErr, 4) + '°'],
+    ['피팅 R²',              fit.r2 !== null ? fit.r2.toFixed(6) : '—'],
+    ['커맨드 범위 (α)',      theoryFmt(Math.min.apply(null, ys), 1) + '° ~ ' + theoryFmt(Math.max.apply(null, ys), 1) + '°']
+  ];
+  summary.innerHTML = stats.map(function(s) {
+    return '<div class="theory-stat"><div class="k">' + s[0] + '</div><div class="v">' + s[1] + '</div></div>';
+  }).join('');
+
+  // ── 계수 카드 (기존 coeff-card 스타일 재사용) ──
+  function coeffCard(title, cc, extra) {
+    return '<div class="coeff-card"><div class="coeff-name">' + title + '</div>' +
+      '<div class="coeff-eq">y = <span class="cv">' + theoryFmt(cc[0]) + '</span>·x³ ' +
+      (cc[1] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt(Math.abs(cc[1])) + '</span>·x² ' +
+      (cc[2] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt(Math.abs(cc[2])) + '</span>·x ' +
+      (cc[3] >= 0 ? '+ ' : '− ') + '<span class="cv">' + theoryFmt(Math.abs(cc[3])) + '</span></div>' +
+      (extra || '') + '</div>';
+  }
+  let gridHtml = coeffCard('이론 계수 (FCA_RIG 축 규약, deg)', cf,
+    dp ? '<div class="coeff-eq" style="margin-top:6px;">= <span class="cv">' + theoryFmt(dp.a) +
+         '</span>·(x−h)³ + <span class="cv">' + theoryFmt(dp.p) + '</span>·(x−h) + <span class="cv">' +
+         theoryFmt(dp.q) + '</span>,&nbsp; h = <span class="cv">' + theoryFmt(dp.h, 3) + '°</span></div>' : '');
+
+  // ── 실측 비교 ──
+  const cmpSurf = document.getElementById('th-compare').value;
+  let cmp = null;
+  if (cmpSurf && regressionData[cmpSurf] && regressionData[cmpSurf].hasFwd) {
+    const mc  = regressionData[cmpSurf].fwd.map(Number);
+    const mdp = theoryDepressed(mc);
+    cmp = { surf: cmpSurf, coeffs: mc, dp: mdp, color: SURF_COLORS[cmpSurf] || '#888' };
+    gridHtml += coeffCard('실측 회귀 — ' + cmpSurf + ' (FCA_RIG)', mc,
+      mdp ? '<div class="coeff-eq" style="margin-top:6px;">h = <span class="cv">' + theoryFmt(mdp.h, 3) +
+            '°</span>,&nbsp; p = <span class="cv">' + theoryFmt(mdp.p, 4) +
+            '</span>,&nbsp; a = <span class="cv">' + theoryFmt(mdp.a) + '</span></div>'
+          : '<div class="coeff-eq" style="margin-top:6px;">1차 회귀 (변곡점 형식 없음)</div>');
+    if (dp && mdp) {
+      const cmpTxt = '이론 대비 실측: Δh = ' + theoryFmt(mdp.h - dp.h, 3) + '° (리그 오프셋 지표), ' +
+        'Δp = ' + theoryFmt(mdp.p - dp.p, 4) + ' (게인 차), ' +
+        'Δa = ' + theoryFmt(mdp.a - dp.a) + ' (비선형성 차)';
+      note.textContent = note.textContent ? note.textContent + '  |  ' + cmpTxt : cmpTxt;
+    }
+  }
+  grid.innerHTML = gridHtml;
+
+  // ── 그래프 ──
+  theoryDrawChart({
+    xs: xs, ys: ys, coeffs: cf, linSlope: linSlope, range: range,
+    ext: ext, extInRange: extInRange, cmp: cmp
+  });
+}
+
+function theoryDrawChart(m) {
+  const cv  = document.getElementById('th-canvas');
+  const leg = document.getElementById('th-legend');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  leg.innerHTML = '';
+  if (!m) return;
+
+  const pad = { l: 52, r: 16, t: 14, b: 34 };
+  const xMin = -m.range, xMax = m.range;
+  let yMin = Infinity, yMax = -Infinity;
+  m.ys.forEach(function(v){ yMin = Math.min(yMin, v); yMax = Math.max(yMax, v); });
+  if (m.cmp) {
+    for (let x = xMin; x <= xMax; x += 1) {
+      const c = m.cmp.coeffs;
+      const v = ((c[0]*x + c[1])*x + c[2])*x + c[3];
+      yMin = Math.min(yMin, v); yMax = Math.max(yMax, v);
+    }
+  }
+  const yPadding = Math.max((yMax - yMin) * 0.08, 0.5);
+  yMin -= yPadding; yMax += yPadding;
+
+  const sx = function(x){ return pad.l + (x - xMin) / (xMax - xMin) * (W - pad.l - pad.r); };
+  const sy = function(y){ return H - pad.b - (y - yMin) / (yMax - yMin) * (H - pad.t - pad.b); };
+
+  // 그리드 + 축 눈금
+  ctx.font = '10.5px -apple-system, sans-serif';
+  ctx.fillStyle = '#aeaeb2';
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 1;
+  const xTicks = 6, yTicks = 5;
+  for (let i = 0; i <= xTicks; i++) {
+    const x = xMin + (xMax - xMin) * i / xTicks;
+    ctx.beginPath(); ctx.moveTo(sx(x), pad.t); ctx.lineTo(sx(x), H - pad.b); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillText(x.toFixed(0) + '°', sx(x), H - pad.b + 16);
+  }
+  for (let i = 0; i <= yTicks; i++) {
+    const y = yMin + (yMax - yMin) * i / yTicks;
+    ctx.beginPath(); ctx.moveTo(pad.l, sy(y)); ctx.lineTo(W - pad.r, sy(y)); ctx.stroke();
+    ctx.textAlign = 'right';
+    ctx.fillText(y.toFixed(1) + '°', pad.l - 7, sy(y) + 3.5);
+  }
+  // 0축 강조
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+  if (yMin < 0 && yMax > 0) { ctx.beginPath(); ctx.moveTo(pad.l, sy(0)); ctx.lineTo(W - pad.r, sy(0)); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(sx(0), pad.t); ctx.lineTo(sx(0), H - pad.b); ctx.stroke();
+
+  // 축 라벨
+  ctx.fillStyle = '#636366'; ctx.textAlign = 'center';
+  ctx.fillText('조종면 타각 δ (실제출력각도)', pad.l + (W - pad.l - pad.r) / 2, H - 6);
+  ctx.save(); ctx.translate(13, pad.t + (H - pad.t - pad.b) / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('커맨드 α (크랭크 각 변화, 명령값)', 0, 0); ctx.restore();
+
+  function plotFn(fn, color, width, dash) {
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    let first = true;
+    for (let px = pad.l; px <= W - pad.r; px += 2) {
+      const x = xMin + (px - pad.l) / (W - pad.l - pad.r) * (xMax - xMin);
+      const y = fn(x);
+      if (y === null || !isFinite(y)) { first = true; continue; }
+      const py = sy(y);
+      if (py < pad.t - 20 || py > H - pad.b + 20) { first = true; continue; }
+      if (first) { ctx.moveTo(px, py); first = false; } else ctx.lineTo(px, py);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // 선형 기준 (중립 게인)
+  plotFn(function(x){ return m.linSlope * x; }, 'rgba(0,0,0,0.18)', 1.5, [3, 4]);
+  // 3차 근사
+  const c = m.coeffs;
+  plotFn(function(x){ return ((c[0]*x + c[1])*x + c[2])*x + c[3]; }, '#ff9f0a', 2.5, [7, 5]);
+  // 정확해
+  ctx.strokeStyle = '#0071e3'; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+  ctx.beginPath();
+  let started = false;
+  let prevX = null;
+  m.xs.forEach(function(x, i) {
+    const px = sx(x), py = sy(m.ys[i]);
+    // 도달 불가 구간(샘플 간격 벌어짐)에서는 선을 끊는다
+    if (!started || (prevX !== null && x - prevX > 0.26)) { ctx.moveTo(px, py); started = true; }
+    else ctx.lineTo(px, py);
+    prevX = x;
+  });
+  ctx.stroke();
+  // 실측 비교
+  if (m.cmp) {
+    const mc = m.cmp.coeffs;
+    plotFn(function(x){ return ((mc[0]*x + mc[1])*x + mc[2])*x + mc[3]; }, m.cmp.color, 2, [2, 3]);
+  }
+  // 극점 마커
+  if (m.ext) {
+    m.ext.forEach(function(x) {
+      if (x < xMin || x > xMax) return;
+      ctx.strokeStyle = m.extInRange ? '#ff3b30' : '#34c759';
+      ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(sx(x), pad.t); ctx.lineTo(sx(x), H - pad.b); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+
+  // 범례
+  const items = [
+    ['#0071e3', 'solid',  '정확해 (4절 링크 역기구학)'],
+    ['#ff9f0a', 'dashed', '3차 최소제곱'],
+    ['rgba(0,0,0,0.35)', 'dotted', '선형 기준 (중립 게인)']
+  ];
+  if (m.cmp) items.push([m.cmp.color, 'dotted', '실측 회귀 (' + m.cmp.surf + ')']);
+  if (m.ext) items.push([m.extInRange ? '#ff3b30' : '#34c759', 'dashed', '극점 (dα/dδ = 0)']);
+  leg.innerHTML = items.map(function(it) {
+    return '<div class="li" style="color:' + it[0] + '"><span class="sw" style="border-top-style:' + it[1] + '"></span>' +
+           '<span style="color:var(--text-secondary)">' + it[2] + '</span></div>';
+  }).join('');
+}
 </script>
 </body>
 </html>
