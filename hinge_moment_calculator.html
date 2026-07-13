@@ -302,6 +302,22 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .htable td.limcol{background:#f5f3ff;color:#5b21b6;font-weight:600;border-right:2px solid #ddd6fe}
 .htable thead th.limcol{background:#ede9fe;color:#5b21b6;border-right:2px solid #ddd6fe}
 
+/* ── 받음각 α(V) 근사 ── */
+.ht-aoabox{margin:0 0 12px;background:rgba(13,148,136,.05);border:1px solid rgba(13,148,136,.28);
+  border-radius:12px;padding:10px 12px;font-size:11.5px}
+.ht-aoabox b{color:#0f766e}
+.ht-aoabox .aoa-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.ht-aoabox .aoa-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:600;color:#0f766e;font-size:11px;white-space:nowrap}
+.ht-aoabox .aoa-toggle input{accent-color:#0d9488;cursor:pointer}
+.ht-aoabox #aoa-fit-info{font-variant-numeric:tabular-nums;color:#0f766e;font-weight:600}
+.aoa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;margin:4px 0 6px}
+.aoa-field{display:flex;flex-direction:column;gap:3px}
+.aoa-field label{font-size:10.5px;color:var(--text2);font-weight:600}
+.aoa-field>div{display:flex;align-items:center;gap:4px}
+.aoa-field input{width:100%;border:1px solid var(--line);border-radius:7px;padding:4px 6px;font-size:11.5px;
+  font-variant-numeric:tabular-nums;background:#fff}
+.aoa-field .aoa-u{font-size:10px;color:var(--text3)}
+.aoa-note{font-size:10.5px;color:var(--text3)}
 /* ── 4바 링키지 연동 ── */
 .ht-linkbox{display:none;margin:0 0 12px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.28);
   border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--text2);line-height:1.6}
@@ -847,6 +863,28 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       <div class="sub">°</div>
     </div>
     <button class="htable-btn" id="ht-gen">테이블 생성 (팝업)</button>
+  </div>
+  <div class="ht-aoabox" id="ht-aoabox">
+    <div class="aoa-row">
+      <span><b>📐 받음각 α(V) 근사식</b></span>
+      <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span id="aoa-fit-info"></span>
+        <label class="aoa-toggle"><input type="checkbox" id="aoa-enable"> 테이블에 α(V) 적용</label>
+      </span>
+    </div>
+    <div class="aoa-grid">
+      <div class="aoa-field"><label>실속속도 V<sub>s</sub></label><div><input type="number" id="aoa-vs" step="1" min="1" placeholder="예: 55"><span class="aoa-u">m/s</span></div></div>
+      <div class="aoa-field"><label>α @ V<sub>s</sub></label><div><input type="number" id="aoa-a1" step="0.1" placeholder="—"><span class="aoa-u">°</span></div></div>
+      <div class="aoa-field"><label>α @ 1.15V<sub>s</sub></label><div><input type="number" id="aoa-a2" step="0.1" placeholder="—"><span class="aoa-u">°</span></div></div>
+      <div class="aoa-field"><label>α @ M0.3 <span id="aoa-v3" style="font-weight:400;color:var(--text3)"></span></label><div><input type="number" id="aoa-a3" step="0.1" placeholder="—"><span class="aoa-u">°</span></div></div>
+      <div class="aoa-field"><label>α @ M0.5 <span id="aoa-v4" style="font-weight:400;color:var(--text3)"></span></label><div><input type="number" id="aoa-a4" step="0.1" placeholder="—"><span class="aoa-u">°</span></div></div>
+      <div class="aoa-field"><label>α @ M0.6 <span id="aoa-v5" style="font-weight:400;color:var(--text3)"></span></label><div><input type="number" id="aoa-a5" step="0.1" placeholder="—"><span class="aoa-u">°</span></div></div>
+    </div>
+    <div class="aoa-note">
+      수평비행 양력평형(C<sub>L</sub> ∝ 1/V²) 기반 <b>α(V) = α<sub>∞</sub> + K/V²</b> 최소제곱 피팅.
+      AoA가 입력된 지점(2개 이상)만 사용하며, 적용 시 테이블의 각 속도 열에 해당 α(V)가 반영됩니다
+      (비활성 시 기존처럼 비행조건의 고정 α 사용). M 지점 속도는 현재 고도/ΔT의 음속 기준으로 자동 계산됩니다.
+    </div>
   </div>
   <div class="ht-linkbox" id="ht-linkbox">
     <div class="lk-row">
@@ -1821,6 +1859,48 @@ document.getElementById('ht-v1').addEventListener('input',()=>{
 ['n-spd','s-spd'].forEach(id=>document.getElementById(id).addEventListener('input',syncHtV1));
 syncHtV1();
 
+// ── 받음각 α(V) 근사식 ────────────────────────────────────────────────────────
+// 수평비행 양력평형: CL = 2W/(ρV²S) → α(V) = α∞ + K/V² (x=1/V² 최소제곱 직선 피팅)
+function aoaSOS(){
+  return Math.sqrt(1.4*287.05*isaT(+gv('f-alt')||0,+gv('f-dT')||0));
+}
+function aoaFit(){
+  const vs=+gv('aoa-vs');
+  if(!isFinite(vs)||vs<=0) return null;
+  const sos=aoaSOS();
+  const pts=[];
+  const push=(V,id)=>{const raw=gv(id);if(raw!==''&&isFinite(+raw))pts.push({V,al:+raw});};
+  push(vs,'aoa-a1');push(1.15*vs,'aoa-a2');
+  push(0.3*sos,'aoa-a3');push(0.5*sos,'aoa-a4');push(0.6*sos,'aoa-a5');
+  if(pts.length<2) return null;
+  let sx=0,sy=0,sxx=0,sxy=0;const n=pts.length;
+  pts.forEach(p=>{const x=1/(p.V*p.V);sx+=x;sy+=p.al;sxx+=x*x;sxy+=x*p.al;});
+  const den=n*sxx-sx*sx;
+  if(Math.abs(den)<1e-18) return null;   // 지점들이 사실상 같은 속도 → 피팅 불가
+  const K=(n*sxy-sx*sy)/den, A=(sy-K*sx)/n;
+  const ym=sy/n;let ssr=0,sst=0;
+  pts.forEach(p=>{const f=A+K/(p.V*p.V);ssr+=(p.al-f)*(p.al-f);sst+=(p.al-ym)*(p.al-ym);});
+  const r2=sst>1e-12?1-ssr/sst:1;
+  return {A,K,r2,n,fn:v=>A+K/(v*v)};
+}
+function aoaActive(){return document.getElementById('aoa-enable').checked;}
+function aoaFmtK(K){const a=Math.abs(K);return a>=10000?K.toFixed(0):a>=100?K.toFixed(1):K.toFixed(3);}
+function aoaRefresh(){
+  const sos=aoaSOS();
+  document.getElementById('aoa-v3').textContent='('+(0.3*sos).toFixed(0)+' m/s)';
+  document.getElementById('aoa-v4').textContent='('+(0.5*sos).toFixed(0)+' m/s)';
+  document.getElementById('aoa-v5').textContent='('+(0.6*sos).toFixed(0)+' m/s)';
+  const info=document.getElementById('aoa-fit-info');
+  const f=aoaFit();
+  if(!f){info.textContent=aoaActive()?'⚠ Vs와 AoA 지점 2개 이상 입력 필요':'';return;}
+  info.innerHTML='α(V) ≈ '+f.A.toFixed(3)+' '+(f.K>=0?'+':'−')+' '+aoaFmtK(Math.abs(f.K))+
+    '/V² &nbsp;·&nbsp; R²='+f.r2.toFixed(4)+' ('+f.n+'점)';
+}
+['aoa-enable','aoa-vs','aoa-a1','aoa-a2','aoa-a3','aoa-a4','aoa-a5']
+  .forEach(id=>document.getElementById(id).addEventListener('input',aoaRefresh));
+['f-alt','f-dT'].forEach(id=>document.getElementById(id).addEventListener('input',aoaRefresh));
+aoaRefresh();
+
 // ── 속도 × 타각 힌지모멘트 테이블 (팝업) ─────────────────────────────────────
 function genHTable(){
   const i=getInputs();
@@ -1841,6 +1921,8 @@ function genHTable(){
   const dcParam=isDatcom?{...i.dc,type:surf.id}:null;
   const chBasic={ch0:i.ch0,chd:i.chd,cha:i.cha};
   const useLk=lkActive();   // 4바 링키지 연동 시 타각별 가변 한계
+  const aoaF=aoaActive()?aoaFit():null;   // α(V) 근사식 (활성 + 피팅 유효 시)
+  const alphaOf=v=>aoaF?aoaF.fn(v):i.alpha;
 
   const speeds=[]; for(let v=v0;v<=v1+1e-9;v+=vstep) speeds.push(v);
   const defs=[];
@@ -1861,12 +1943,23 @@ function genHTable(){
     '<b>'+surf.name+'</b> · '+(isDatcom?'DATCOM 보정 모드':'기본 모드')+
     ' · '+limDesc+
     ' · 속도 범위: '+v0+' ~ '+v1+' m/s'+(htV1Manual?'':' (자동: 비행속도 '+i.V+' m/s + 10%)')+
-    ' · S<sub>f</sub>='+i.area+'m² · c̄='+i.mac+'m · α='+i.alpha+'° · ρ='+i.rho.toFixed(4)+'kg/m³';
+    ' · S<sub>f</sub>='+i.area+'m² · c̄='+i.mac+'m · '+
+    (aoaF
+      ?'α(V)='+aoaF.A.toFixed(3)+(aoaF.K>=0?'+':'−')+aoaFmtK(Math.abs(aoaF.K))+'/V²° (근사식, R²='+aoaF.r2.toFixed(4)+')'
+      :'α='+i.alpha+'°')+
+    ' · ρ='+i.rho.toFixed(4)+'kg/m³';
 
   let html='<table class="htable"><thead><tr><th>δ \\ V</th>';
   if(useLk) html+='<th class="limcol">한계 |H|</th>';
   speeds.forEach(v=>html+='<th>'+v+'</th>');
-  html+='</tr></thead><tbody>';
+  html+='</tr>';
+  if(aoaF){
+    html+='<tr><th style="background:rgba(13,148,136,.10);color:#0f766e">α(V)°</th>';
+    if(useLk) html+='<th class="limcol"></th>';
+    speeds.forEach(v=>html+='<th style="background:rgba(13,148,136,.06);color:#0f766e;font-weight:600">'+alphaOf(v).toFixed(2)+'</th>');
+    html+='</tr>';
+  }
+  html+='</thead><tbody>';
 
   defs.forEach(d=>{
     const dLabel = dstep<1 ? d.toFixed(1) : d.toFixed(0);
@@ -1877,7 +1970,7 @@ function genHTable(){
     }
     const ch=isDatcom?datcomCH(dcParam,d):chBasic;
     speeds.forEach(v=>{
-      const r=calcOne({area:i.area,V:v,def:d,mac:i.mac,rho:i.rho,alpha:i.alpha},ch.ch0,ch.chd,ch.cha);
+      const r=calcOne({area:i.area,V:v,def:d,mac:i.mac,rho:i.rho,alpha:alphaOf(v)},ch.ch0,ch.chd,ch.cha);
       const absH=Math.abs(r.H);
       let cls='';
       if(rowLim===null) cls='unreach';           // 링키지가 해당 θ₄에 도달 불가 → 판정 불능
