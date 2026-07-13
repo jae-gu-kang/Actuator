@@ -849,12 +849,12 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     </div>
     <div class="field">
       <label>타각 최소</label>
-      <input type="number" id="ht-dmin" value="0" step="1" min="-30" max="30">
+      <input type="number" id="ht-dmin" value="-20" step="1" min="-30" max="30">
       <div class="sub">°</div>
     </div>
     <div class="field">
       <label>타각 최대</label>
-      <input type="number" id="ht-dmax" value="25" step="1" min="-30" max="30">
+      <input type="number" id="ht-dmax" value="20" step="1" min="-30" max="30">
       <div class="sub">°</div>
     </div>
     <div class="field">
@@ -1918,8 +1918,8 @@ function genHTable(){
   let v1=+gv('ht-v1');
   if(!isFinite(v1)||v1<=0) v1=Math.ceil(+(i.V*1.1).toFixed(6));
   if(v1<v0){const t=v0;v0=v1;v1=t;} // 안전: 상한<시작이면 자동 교환
-  let dmin=+gv('ht-dmin'); if(isNaN(dmin))dmin=0;
-  let dmax=+gv('ht-dmax'); if(isNaN(dmax))dmax=25;
+  let dmin=+gv('ht-dmin'); if(isNaN(dmin))dmin=-20;
+  let dmax=+gv('ht-dmax'); if(isNaN(dmax))dmax=20;
   if(dmin>dmax){const t=dmin;dmin=dmax;dmax=t;} // 안전: 최소>최대면 자동 교환
   const dstep=Math.max(0.1,+gv('ht-dstep')||1);
   const dRange=dmax-dmin;
@@ -2020,6 +2020,15 @@ document.getElementById('ht-modal-bg').addEventListener('click',(e)=>{
 document.getElementById('ht-capture').addEventListener('click',async()=>{
   const btn=document.getElementById('ht-capture');
   btn.textContent='캡처 중...';btn.disabled=true;
+  const area=document.getElementById('ht-capture-area');
+  const wrap=area.querySelector('.htable-wrap');
+  const modal=document.querySelector('.ht-modal');
+  const modalBody=document.getElementById('ht-modal-body');
+  // 가로 스크롤(overflow-x:auto)로 잘리는 부분 없이 전체 폭을 캡처하기 위해 임시로 폭 제한 해제
+  const prevWrap=wrap?wrap.style.cssText:null;
+  const prevArea=area.style.cssText;
+  const prevModal=modal?modal.style.cssText:null;
+  const prevBody=modalBody?modalBody.style.cssText:null;
   try{
     if(typeof html2canvas==='undefined'){
       await new Promise((res,rej)=>{
@@ -2029,8 +2038,12 @@ document.getElementById('ht-capture').addEventListener('click',async()=>{
         document.head.appendChild(s);
       });
     }
-    const area=document.getElementById('ht-capture-area');
-    const canvas=await html2canvas(area,{scale:2,backgroundColor:'#ffffff'});
+    if(wrap){wrap.style.overflow='visible';wrap.style.width='max-content';wrap.style.maxWidth='none';}
+    area.style.width='max-content';area.style.maxWidth='none';
+    if(modal){modal.style.maxWidth='none';modal.style.overflow='visible';}
+    if(modalBody){modalBody.style.overflow='visible';}
+    void area.offsetWidth; // 강제 리플로우
+    const canvas=await html2canvas(area,{scale:2,backgroundColor:'#ffffff',width:area.scrollWidth,windowWidth:area.scrollWidth});
     const link=document.createElement('a');
     const surf=getCurSurf();
     link.download='hinge_moment_table_'+surf.id+'_'+new Date().toISOString().slice(0,10)+'.png';
@@ -2039,6 +2052,10 @@ document.getElementById('ht-capture').addEventListener('click',async()=>{
   }catch(err){
     alert('캡처 실패: '+err.message+'\n인터넷 연결을 확인해주세요 (html2canvas CDN 필요)');
   }finally{
+    if(wrap)wrap.style.cssText=prevWrap;
+    area.style.cssText=prevArea;
+    if(modal)modal.style.cssText=prevModal;
+    if(modalBody)modalBody.style.cssText=prevBody;
     btn.textContent='📷 이미지 저장';btn.disabled=false;
   }
 });
