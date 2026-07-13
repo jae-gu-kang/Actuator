@@ -726,7 +726,7 @@ canvas.hover { cursor: grab; }
             <div class="link-sub">Crank</div>
           </div>
           <div class="link-field">
-            <input type="number" id="ia" value="30" min="5" max="400" oninput="onLink()">
+            <input type="number" id="ia" value="20" min="5" max="400" oninput="onLink()">
             <span class="u">mm</span>
           </div>
         </div>
@@ -738,7 +738,7 @@ canvas.hover { cursor: grab; }
             <div class="link-sub">Coupler</div>
           </div>
           <div class="link-field">
-            <input type="number" id="ib" value="120" min="5" max="400" oninput="onLink()">
+            <input type="number" id="ib" value="100" min="5" max="400" oninput="onLink()">
             <span class="u">mm</span>
           </div>
         </div>
@@ -769,12 +769,12 @@ canvas.hover { cursor: grab; }
           <div class="angle-label">
             <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력각
           </div>
-          <div class="angle-readout" style="color:var(--follower)" id="lT4">60.0°</div>
+          <div class="angle-readout" style="color:var(--follower)" id="lT4">100.0°</div>
         </div>
-        <input type="range" class="sl-t4" id="slT4" min="0" max="360" step="0.5" value="60" oninput="onT4(this.value)">
+        <input type="range" class="sl-t4" id="slT4" min="0" max="360" step="0.5" value="100" oninput="onT4(this.value)">
         <div class="angle-num-row">
           <div class="angle-num-field">
-            <input type="number" id="nT4" value="60" min="0" max="360" step="0.1" oninput="onT4num(this.value)" onblur="fmtOnBlur(this,S.t4)">
+            <input type="number" id="nT4" value="100" min="0" max="360" step="0.1" oninput="onT4num(this.value)" onblur="fmtOnBlur(this,S.t4)">
             <span class="deg-tag">°</span>
           </div>
         </div>
@@ -840,7 +840,7 @@ canvas.hover { cursor: grab; }
               <div class="link-sub">Crank Input</div>
             </div>
             <div class="link-field">
-              <input type="number" id="iTorque" value="10" min="-9999" max="9999" step="0.1" oninput="onTorque()">
+              <input type="number" id="iTorque" value="3" min="-9999" max="9999" step="0.1" oninput="onTorque()">
               <span class="u">N·m</span>
             </div>
           </div>
@@ -870,22 +870,36 @@ canvas.hover { cursor: grab; }
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <div class="s-title" data-plot style="margin-bottom:0">출력토크 변화</div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <button class="copy-btn" onclick="copyPlotImage('torquePlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
           <div style="font-size:10px;color:var(--text2);font-weight:500;">토크 요구도</div>
           <div class="link-field" style="border-radius:7px;">
-            <input type="number" id="iMotorTorque" value="8.5" placeholder="—" min="-9999" max="9999" step="0.1"
+            <input type="number" id="iMotorTorque" value="3" placeholder="—" min="-9999" max="9999" step="0.1"
               style="width:56px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);"
               oninput="drawTorquePlot();scheduleCouplerPlot()">
             <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">N·m</span>
           </div>
+          <div style="font-size:10px;color:var(--text2);font-weight:500;">끝단 마진</div>
+          <div class="link-field" style="border-radius:7px;">
+            <input type="number" id="iMarginAngle" value="5" placeholder="0" min="0" max="90" step="0.5"
+              style="width:44px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);"
+              oninput="drawTorquePlot();scheduleCouplerPlot()">
+            <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+          </div>
         </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <button class="copy-btn" onclick="copyPlotImage('torquePlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
+        <button class="copy-btn" onclick="downloadPlotImage('torquePlot',this)" title="그래프를 이미지로 저장"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M4.5 6.5 8 10l3.5-3.5"/><path d="M3 13h10"/></svg>그래프 저장</button>
       </div>
       <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:10px 10px 6px;margin-bottom:6px;">
         <canvas id="torquePlot" height="300" style="width:100%;display:block;border-radius:6px;"></canvas>
 
       </div>
+      <div id="physRangeBox" style="display:none;background:rgba(90,200,250,0.09);border:1px solid rgba(90,200,250,0.28);border-radius:8px;padding:6px 12px;margin-bottom:6px;font-size:11px;color:var(--text2);">
+        <span style="font-weight:600;color:rgba(0,122,180,0.95)">물리 가용 각도</span>
+        <span id="physRangeText" style="margin-left:6px;font-variant-numeric:tabular-nums;"></span>
+      </div>
       <div id="usableRangeBox" style="display:none;background:rgba(191,90,242,0.07);border:1px solid rgba(191,90,242,0.2);border-radius:8px;padding:6px 12px;margin-bottom:6px;font-size:11px;color:var(--text2);">
-        <span style="font-weight:600;color:rgba(130,30,200,0.9)">가용 각도</span>
+        <span style="font-weight:600;color:rgba(130,30,200,0.9)">토크 가용 각도</span>
         <span id="usableRangeText" style="margin-left:6px;font-variant-numeric:tabular-nums;"></span>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;padding:2px 2px 4px;align-items:center;">
@@ -912,6 +926,7 @@ canvas.hover { cursor: grab; }
         <div class="s-title" style="margin-bottom:0">커플러 길이 영향</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="copy-btn" onclick="copyPlotImage('couplerPlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
+          <button class="copy-btn" onclick="downloadPlotImage('couplerPlot',this)" title="그래프를 이미지로 저장"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M4.5 6.5 8 10l3.5-3.5"/><path d="M3 13h10"/></svg>그래프 저장</button>
           <div style="font-size:10px;color:var(--text3);font-weight:500;">b 스윕 해석</div>
         </div>
       </div>
@@ -923,13 +938,13 @@ canvas.hover { cursor: grab; }
           <div style="width:18px;height:2px;background:#ff453a;border-radius:1px"></div> 최대 T₄
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:2px;background:#bf5af2;border-radius:1px"></div> 가용 각도
+          <div style="width:18px;height:2px;background:#0077b6;border-radius:1px"></div> 물리 가용 각도
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
           <div style="width:8px;height:8px;border-radius:50%;background:rgba(50,215,75,0.9)"></div> 토크 최대
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:8px;height:8px;border-radius:50%;background:#bf5af2"></div> 가용 최대
+          <div style="width:8px;height:8px;border-radius:50%;background:#0077b6"></div> 가용 최대
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
           <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재 b
@@ -944,7 +959,7 @@ canvas.hover { cursor: grab; }
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">중립각 θ₄ <span style="color:var(--text3);font-weight:400">(타각 δ=0°)</span></div>
           <div class="link-field" style="border-radius:7px;">
-            <input type="number" id="iT4Neutral" value="60" min="0" max="360" step="0.1"
+            <input type="number" id="iT4Neutral" value="100" min="0" max="360" step="0.1"
               style="width:56px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);">
             <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">°</span>
           </div>
@@ -1026,7 +1041,7 @@ canvas.hover { cursor: grab; }
 
 <script>
 // ── STATE ──
-const S = { a:30, b:120, c:40, d:100, t4:60, sol:'open', solutions:null };
+const S = { a:20, b:100, c:40, d:100, t4:100, sol:'open', solutions:null };
 let cv, ctx, W, H, scale=1, ox=0, oy=0;
 let userZoom=1, panX=0, panY=0;   // 사용자 확대/이동 (setTransform 에 합성)
 let drag=null, hov=null, hintHidden=false;
@@ -1652,7 +1667,26 @@ function drawTorquePlot(){
       autoMax=deg;
     }
   }
-  if(autoMin===null) return;
+  const _pb=document.getElementById('physRangeBox');
+  const _pt=document.getElementById('physRangeText');
+  if(autoMin===null){ if(_pb) _pb.style.display='none'; return; }
+
+  // ── 물리 가용 각도: 유효 해 범위(autoMin~autoMax) − 양끝단 마진 ──
+  const marginVal=Math.max(0, parseFloat(document.getElementById("iMarginAngle")?.value)||0);
+  const physLo=autoMin+marginVal, physHi=autoMax-marginVal;
+  const physSpan=Math.max(0, physHi-physLo);
+  if(_pb){
+    _pb.style.display='block';
+    if(_pt){
+      if(physSpan>0){
+        _pt.textContent='범위 '+physSpan.toFixed(1)+'° ('+physLo.toFixed(1)+'° ~ '+physHi.toFixed(1)+'°), 중간 값 '+((physLo+physHi)/2).toFixed(1)+'°'
+          +(marginVal>0?'  · 마진 ±'+marginVal.toFixed(1)+'°':'');
+      } else {
+        _pt.textContent='범위 0°  (마진 '+marginVal.toFixed(1)+'°가 물리 범위 '+(autoMax-autoMin).toFixed(1)+'°를 초과)';
+      }
+    }
+  }
+
   // 여백 5° 추가 후 10° 단위로 정렬
   const T4_MIN=Math.max(0,  Math.floor((autoMin-5)/10)*10);
   const T4_MAX=Math.min(180, Math.ceil( (autoMax+5)/10)*10);
@@ -1720,6 +1754,28 @@ function drawTorquePlot(){
     c2.beginPath(); c2.moveTo(PAD.l,y); c2.lineTo(PAD.l+IW,y); c2.stroke();
     c2.setLineDash([]);
   });
+
+  // ── 끝단 마진 제외 구간 음영 + 물리 가용 범위 경계선 (청록) ──
+  if(marginVal>0){
+    const degX=deg=>PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
+    c2.save();
+    c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,6); c2.clip();
+    c2.fillStyle="rgba(120,120,128,0.10)";
+    // 좌측 마진 구간 [autoMin, physLo], 우측 마진 구간 [physHi, autoMax]
+    const lx0=degX(autoMin), lx1=degX(Math.min(physLo,autoMax));
+    const rx0=degX(Math.max(physHi,autoMin)), rx1=degX(autoMax);
+    if(lx1>lx0) c2.fillRect(lx0,PAD.t,lx1-lx0,IH);
+    if(rx1>rx0) c2.fillRect(rx0,PAD.t,rx1-rx0,IH);
+    if(physSpan>0){
+      c2.strokeStyle="rgba(0,140,200,0.55)"; c2.lineWidth=1.2; c2.setLineDash([5,3]);
+      [physLo,physHi].forEach(dg=>{
+        const x=degX(dg);
+        c2.beginPath(); c2.moveTo(x,PAD.t); c2.lineTo(x,PAD.t+IH); c2.stroke();
+      });
+      c2.setLineDash([]);
+    }
+    c2.restore();
+  }
 
   // ── X축 라벨: 범위에 따라 자동 간격 (10° or 20°) ──
   c2.font="500 9px -apple-system,sans-serif";
@@ -1983,32 +2039,22 @@ function drawTorquePlot(){
 // ── COUPLER SWEEP PLOT ──
 // 커플러 길이 b를 스윕하며 각 b에 대해:
 //   maxAbs = θ₄ 전 범위(0~180°)에서의 최대 |T₄|
-//   span   = |T₄| ≥ 토크 요구도인 θ₄ 구간의 총 각도 (가용 각도)
-function couplerMetrics(bVal, T2, motorVal){
+//   span   = 물리 가용 각도 = (유효 해가 존재하는 θ₄ 범위) − 양끝단 마진×2
+function couplerMetrics(bVal, T2, marginVal){
   const{a,c,d,sol}=S;
   const vals=[];
+  let firstV=null, lastV=null;
   for(let deg=0; deg<=180; deg++){
     const r=calcMAatT4(a,bVal,c,d,deg,sol);
-    vals.push((r!==null&&isFinite(r.ma))?Math.abs(T2*r.ma):null);
+    const ok=(r!==null&&isFinite(r.ma));
+    vals.push(ok?Math.abs(T2*r.ma):null);
+    if(ok){ if(firstV===null) firstV=deg; lastV=deg; }
   }
-  const valid=vals.filter(v=>v!==null);
-  if(!valid.length) return null;
-  const maxAbs=Math.max(...valid);
+  if(firstV===null) return null;
+  const maxAbs=Math.max(...vals.filter(v=>v!==null));
 
-  let span=NaN;
-  if(!isNaN(motorVal)){
-    span=0;
-    for(let i=0;i<180;i++){
-      const v0=vals[i], v1=vals[i+1];
-      if(v0===null||v1===null) continue;
-      const a0=v0>=motorVal, a1=v1>=motorVal;
-      if(a0&&a1) span+=1;
-      else if(a0!==a1){
-        const frac=Math.abs(v1-v0)<1e-9?0.5:(motorVal-v0)/(v1-v0);
-        span+= a0?frac:(1-frac);
-      }
-    }
-  }
+  const m=(isNaN(marginVal)||marginVal<0)?0:marginVal;
+  const span=Math.max(0, (lastV-firstV)-2*m);
   return{maxAbs, span};
 }
 
@@ -2025,9 +2071,7 @@ function drawCouplerPlot(){
 
   const{a,b:curB,c,d}=S;
   const T2=parseFloat(document.getElementById("iTorque")?.value)||0;
-  const motorEl=document.getElementById("iMotorTorque");
-  const motorVal=parseFloat(motorEl?.value);
-  const hasMotor=!isNaN(motorVal)&&motorEl.value.trim()!=="";
+  const marginVal=Math.max(0, parseFloat(document.getElementById("iMarginAngle")?.value)||0);
 
   const PW=W2, PH=PH_CANVAS;
   const PAD={t:48, b:66, l:52, r:52};
@@ -2053,10 +2097,10 @@ function drawCouplerPlot(){
 
   const Bs=[], maxArr=[], spanArr=[];
   for(let bv=B_MIN; bv<=B_MAX; bv+=STEP){
-    const m=couplerMetrics(bv, T2, hasMotor?motorVal:NaN);
+    const m=couplerMetrics(bv, T2, marginVal);
     Bs.push(bv);
     maxArr.push(m?m.maxAbs:null);
-    spanArr.push(m&&hasMotor?m.span:null);
+    spanArr.push(m?m.span:null);
   }
   const validMax=maxArr.filter(v=>v!==null);
   if(!validMax.length){ c2.clearRect(0,0,PW,PH); return; }
@@ -2129,7 +2173,7 @@ function drawCouplerPlot(){
     for(let v=yR.lo; v<=yR.hi+1e-9; v+=yR.step){
       const y=ypR(v);
       if(y<PAD.t-1||y>PAD.t+IH+1) continue;
-      c2.fillStyle="rgba(130,30,200,0.8)";
+      c2.fillStyle="rgba(0,119,182,0.85)";
       c2.fillText(v.toFixed(0)+"°", PAD.l+IW+6, y+3);
     }
   }
@@ -2138,8 +2182,8 @@ function drawCouplerPlot(){
   c2.fillStyle="rgba(255,69,58,0.75)"; c2.textAlign="left";
   c2.fillText("최대 T₄ (N·m)", PAD.l, 11);
   if(yR){
-    c2.fillStyle="rgba(130,30,200,0.65)"; c2.textAlign="right";
-    c2.fillText("가용 각도 (°)", PAD.l+IW, 11);
+    c2.fillStyle="rgba(0,119,182,0.7)"; c2.textAlign="right";
+    c2.fillText("물리 가용 각도 (°)", PAD.l+IW, 11);
   }
 
   // ── 곡선 그리기 헬퍼 ──
@@ -2187,7 +2231,7 @@ function drawCouplerPlot(){
       const nb=(spanArr[i-1]!==null&&spanArr[i-1]>1e-6)||(spanArr[i+1]!==null&&spanArr[i+1]>1e-6);
       return nb?0:null;
     });
-    strokeSeries(spanDraw, ypR, "#bf5af2", "rgba(191,90,242,0.25)");
+    strokeSeries(spanDraw, ypR, "#0077b6", "rgba(0,119,182,0.28)");
   }
 
   // ── 마커 헬퍼 ──
@@ -2214,7 +2258,7 @@ function drawCouplerPlot(){
     xAxisLabels.push({x:tx,label:bestTorqueB+" mm",color:"rgba(20,130,40,0.95)",bg:"rgba(50,215,75,0.16)"});
   }
 
-  // ── 가용 각도 관점 최적 b (보라) ──
+  // ── 가용 각도 관점 최적 b (파랑) ──
   let bestSpanB=null, bestSpanV=null;
   if(yR&&validSpan.length){
     bestSpanV=Math.max(...validSpan);
@@ -2222,12 +2266,12 @@ function drawCouplerPlot(){
     if(si>=0&&bestSpanV>0){
       bestSpanB=Bs[si];
       const sx2=xp(bestSpanB), sy2=ypR(bestSpanV);
-      c2.strokeStyle="rgba(191,90,242,0.4)"; c2.lineWidth=1; c2.setLineDash([3,2]);
+      c2.strokeStyle="rgba(0,119,182,0.4)"; c2.lineWidth=1; c2.setLineDash([3,2]);
       c2.beginPath(); c2.moveTo(sx2,PAD.t); c2.lineTo(sx2,PAD.t+IH); c2.stroke();
       c2.setLineDash([]);
-      dot(sx2,sy2,"rgba(191,90,242,0.95)");
-      topLabels.push({x:sx2,label:"max "+bestSpanV.toFixed(1)+"°",color:"rgba(130,30,200,0.95)",bg:"rgba(191,90,242,0.15)"});
-      xAxisLabels.push({x:sx2,label:bestSpanB+" mm",color:"rgba(130,30,200,0.95)",bg:"rgba(191,90,242,0.15)"});
+      dot(sx2,sy2,"rgba(0,119,182,0.95)");
+      topLabels.push({x:sx2,label:"max "+bestSpanV.toFixed(1)+"°",color:"rgba(0,105,165,0.95)",bg:"rgba(90,200,250,0.2)"});
+      xAxisLabels.push({x:sx2,label:bestSpanB+" mm",color:"rgba(0,105,165,0.95)",bg:"rgba(90,200,250,0.2)"});
     }
   }
 
@@ -2238,10 +2282,10 @@ function drawCouplerPlot(){
     c2.strokeStyle="rgba(255,159,10,0.5)"; c2.lineWidth=1.2; c2.setLineDash([4,3]);
     c2.beginPath(); c2.moveTo(cx,PAD.t); c2.lineTo(cx,PAD.t+IH); c2.stroke();
     c2.setLineDash([]);
-    curMetrics=couplerMetrics(curB, T2, hasMotor?motorVal:NaN);
+    curMetrics=couplerMetrics(curB, T2, marginVal);
     if(curMetrics){
       dot(cx,ypL(curMetrics.maxAbs),"#ff9f0a",5);
-      if(hasMotor&&yR&&isFinite(curMetrics.span)&&curMetrics.span>1e-6) dot(cx,ypR(curMetrics.span),"#ff9f0a",4);
+      if(yR&&isFinite(curMetrics.span)&&curMetrics.span>1e-6) dot(cx,ypR(curMetrics.span),"#ff9f0a",4);
     }
     // 길이값은 정의역 마커 아래(축 밑)에 표시
     xAxisLabels.push({x:cx,label:curB+" mm",color:"#b06000",bg:"rgba(255,159,10,0.18)"});
@@ -2422,6 +2466,34 @@ async function copyPlotImage(id, btn){
   }
 }
 
+// ── 플롯 이미지 저장(다운로드) ── copyPlotImage 와 동일한 흰 배경 합성, 클립보드 없이 바로 다운로드
+async function downloadPlotImage(id, btn){
+  const src=document.getElementById(id);
+  if(!src) return;
+  const off=document.createElement('canvas');
+  off.width=src.width; off.height=src.height;
+  const octx=off.getContext('2d');
+  octx.fillStyle='#ffffff';
+  octx.fillRect(0,0,off.width,off.height);
+  octx.drawImage(src,0,0);
+  const blob=await new Promise(res=>off.toBlob(res,'image/png'));
+  if(!blob) return;
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(id==='torquePlot'?'output-torque':'coupler-sweep')+'.png';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+
+  if(btn){
+    const orig=btn.innerHTML;
+    btn.classList.add('copied');
+    btn.innerHTML='저장됨 ✓';
+    clearTimeout(btn._t);
+    btn._t=setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=orig;},1800);
+  }
+}
+
 // ── 플롯 키보드 컨트롤 ──────────────────────────────────────────────────────
 // 그래프 클릭 → 포커스 → ←/→(또는 ↓/↑)로 정의역 값 ±1
 //   출력토크 변화 그래프 : θ₄ ±1°
@@ -2565,7 +2637,7 @@ window.addEventListener('load',()=>{
   });
   initResizer();
   initPlotKeyboard();
-  updateGrashof(); resize(); setT4(60);
+  updateGrashof(); resize(); setT4(100);
   useCurT4();  // 힌지모멘트 연동 중립각 초기값 = 현재 θ₄
 });
 </script>
