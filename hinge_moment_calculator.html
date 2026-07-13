@@ -881,9 +881,10 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       <div class="aoa-field"><label>α @ M0.6 <span id="aoa-v5" style="font-weight:400;color:var(--text3)"></span></label><div><input type="number" id="aoa-a5" step="0.1" placeholder="—"><span class="aoa-u">°</span></div></div>
     </div>
     <div class="aoa-note">
-      수평비행 양력평형(C<sub>L</sub> ∝ 1/V²) 기반 <b>α(V) = α<sub>∞</sub> + K/V²</b> 최소제곱 피팅.
-      AoA가 입력된 지점(2개 이상)만 사용하며, 적용 시 테이블의 각 속도 열에 해당 α(V)가 반영됩니다
-      (비활성 시 기존처럼 비행조건의 고정 α 사용). M 지점 속도는 현재 고도/ΔT의 음속 기준으로 자동 계산됩니다.
+      입력한 지점을 <b>모두 정확히 통과</b>하는 구간별 1/V² 보간 (구간마다 α = a + k/V², 양력평형 형태).
+      AoA가 입력된 지점(2개 이상)만 사용하며, 최고속 지점 이상에서는 해당 α 값으로 수렴(유지)됩니다.
+      적용 시 테이블의 각 속도 열에 α(V)가 반영되고, 비활성 시 기존처럼 비행조건의 고정 α를 사용합니다.
+      M 지점 속도는 현재 고도/ΔT의 음속 기준으로 자동 계산됩니다.
     </div>
   </div>
   <div class="ht-linkbox" id="ht-linkbox">
@@ -1860,7 +1861,8 @@ document.getElementById('ht-v1').addEventListener('input',()=>{
 syncHtV1();
 
 // ── 받음각 α(V) 근사식 ────────────────────────────────────────────────────────
-// 수평비행 양력평형: CL = 2W/(ρV²S) → α(V) = α∞ + K/V² (x=1/V² 최소제곱 직선 피팅)
+// 입력한 모든 지점을 정확히 통과하는 구간별 보간 (x=1/V² 공간에서 선형 → 구간별 α=a+k/V²).
+// 최고속 지점 이상에서는 해당 α로 유지(수렴), 최저속 지점 이하는 첫 구간 기울기로 외삽.
 function aoaSOS(){
   return Math.sqrt(1.4*287.05*isaT(+gv('f-alt')||0,+gv('f-dT')||0));
 }
@@ -1873,18 +1875,24 @@ function aoaFit(){
   push(vs,'aoa-a1');push(1.15*vs,'aoa-a2');
   push(0.3*sos,'aoa-a3');push(0.5*sos,'aoa-a4');push(0.6*sos,'aoa-a5');
   if(pts.length<2) return null;
-  let sx=0,sy=0,sxx=0,sxy=0;const n=pts.length;
-  pts.forEach(p=>{const x=1/(p.V*p.V);sx+=x;sy+=p.al;sxx+=x*x;sxy+=x*p.al;});
-  const den=n*sxx-sx*sx;
-  if(Math.abs(den)<1e-18) return null;   // 지점들이 사실상 같은 속도 → 피팅 불가
-  const K=(n*sxy-sx*sy)/den, A=(sy-K*sx)/n;
-  const ym=sy/n;let ssr=0,sst=0;
-  pts.forEach(p=>{const f=A+K/(p.V*p.V);ssr+=(p.al-f)*(p.al-f);sst+=(p.al-ym)*(p.al-ym);});
-  const r2=sst>1e-12?1-ssr/sst:1;
-  return {A,K,r2,n,fn:v=>A+K/(v*v)};
+  pts.sort((p,q)=>p.V-q.V);
+  // 같은 속도에 중복 지점이 있으면 피팅 불가 방지 위해 뒤 지점 제거
+  for(let k=pts.length-1;k>0;k--) if(Math.abs(pts[k].V-pts[k-1].V)<1e-9) pts.splice(k,1);
+  if(pts.length<2) return null;
+  const xs=pts.map(p=>1/(p.V*p.V));   // V 오름차순 → x 내림차순
+  const fn=v=>{
+    const Vmin=pts[0].V, Vmax=pts[pts.length-1].V;
+    if(v>=Vmax) return pts[pts.length-1].al;            // 최고속 이상: 마지막 값으로 수렴
+    let j=0;                                            // v가 속한 구간 [j, j+1]
+    if(v<=Vmin) j=0;                                    // 최저속 이하: 첫 구간으로 외삽
+    else { while(j<pts.length-2 && v>pts[j+1].V) j++; }
+    const x=1/(v*v), x0=xs[j], x1=xs[j+1];
+    const t=(x-x0)/(x1-x0);
+    return pts[j].al+t*(pts[j+1].al-pts[j].al);
+  };
+  return {pts,n:pts.length,aMax:pts[pts.length-1].al,vMax:pts[pts.length-1].V,fn};
 }
 function aoaActive(){return document.getElementById('aoa-enable').checked;}
-function aoaFmtK(K){const a=Math.abs(K);return a>=10000?K.toFixed(0):a>=100?K.toFixed(1):K.toFixed(3);}
 function aoaRefresh(){
   const sos=aoaSOS();
   document.getElementById('aoa-v3').textContent='('+(0.3*sos).toFixed(0)+' m/s)';
@@ -1893,8 +1901,8 @@ function aoaRefresh(){
   const info=document.getElementById('aoa-fit-info');
   const f=aoaFit();
   if(!f){info.textContent=aoaActive()?'⚠ Vs와 AoA 지점 2개 이상 입력 필요':'';return;}
-  info.innerHTML='α(V) ≈ '+f.A.toFixed(3)+' '+(f.K>=0?'+':'−')+' '+aoaFmtK(Math.abs(f.K))+
-    '/V² &nbsp;·&nbsp; R²='+f.r2.toFixed(4)+' ('+f.n+'점)';
+  info.innerHTML='구간별 1/V² 보간 · '+f.n+'점 (입력점 정확 통과) · V ≥ '+f.vMax.toFixed(0)+
+    ' m/s에서 α = '+f.aMax.toFixed(2)+'°로 수렴';
 }
 ['aoa-enable','aoa-vs','aoa-a1','aoa-a2','aoa-a3','aoa-a4','aoa-a5']
   .forEach(id=>document.getElementById(id).addEventListener('input',aoaRefresh));
@@ -1945,7 +1953,7 @@ function genHTable(){
     ' · 속도 범위: '+v0+' ~ '+v1+' m/s'+(htV1Manual?'':' (자동: 비행속도 '+i.V+' m/s + 10%)')+
     ' · S<sub>f</sub>='+i.area+'m² · c̄='+i.mac+'m · '+
     (aoaF
-      ?'α(V)='+aoaF.A.toFixed(3)+(aoaF.K>=0?'+':'−')+aoaFmtK(Math.abs(aoaF.K))+'/V²° (근사식, R²='+aoaF.r2.toFixed(4)+')'
+      ?'α(V)=구간별 1/V² 보간 ('+aoaF.n+'점, V≥'+aoaF.vMax.toFixed(0)+'m/s에서 α='+aoaF.aMax.toFixed(2)+'° 수렴)'
       :'α='+i.alpha+'°')+
     ' · ρ='+i.rho.toFixed(4)+'kg/m³';
 
