@@ -938,13 +938,13 @@ canvas.hover { cursor: grab; }
           <div style="width:18px;height:2px;background:#ff453a;border-radius:1px"></div> 최대 T₄
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:2px;background:#0077b6;border-radius:1px"></div> 물리 가용 각도
+          <div style="width:18px;height:2px;background:#38b6ff;border-radius:1px"></div> 물리 가용 각도
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
           <div style="width:8px;height:8px;border-radius:50%;background:rgba(50,215,75,0.9)"></div> 토크 최대
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:8px;height:8px;border-radius:50%;background:#0077b6"></div> 가용 최대
+          <div style="width:8px;height:8px;border-radius:50%;background:#38b6ff"></div> 가용 최대
         </div>
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
           <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재 b
@@ -2040,21 +2040,41 @@ function drawTorquePlot(){
 // 커플러 길이 b를 스윕하며 각 b에 대해:
 //   maxAbs = θ₄ 전 범위(0~180°)에서의 최대 |T₄|
 //   span   = 물리 가용 각도 = (유효 해가 존재하는 θ₄ 범위) − 양끝단 마진×2
+// 주어진 θ₄(deg)에서 해가 존재하는지 + MA 반환 (없으면 null)
+function feasibleAt(a,b,c,d,deg,sol){
+  const r=calcMAatT4(a,b,c,d,deg,sol);
+  return (r!==null&&isFinite(r.ma))?r:null;
+}
+// infeasDeg(불가)와 feasDeg(가능) 사이의 정확한 경계각을 이분법으로 탐색 (1° 격자의 계단식 노이즈 제거)
+function bisectBoundary(a,b,c,d,sol,infeasDeg,feasDeg){
+  let lo=infeasDeg, hi=feasDeg;
+  for(let i=0;i<14;i++){
+    const mid=(lo+hi)/2;
+    if(feasibleAt(a,b,c,d,mid,sol)) hi=mid; else lo=mid;
+  }
+  return hi;
+}
 function couplerMetrics(bVal, T2, marginVal){
   const{a,c,d,sol}=S;
-  const vals=[];
-  let firstV=null, lastV=null;
+  let firstIdx=null, lastIdx=null, maxAbs=0;
   for(let deg=0; deg<=180; deg++){
-    const r=calcMAatT4(a,bVal,c,d,deg,sol);
-    const ok=(r!==null&&isFinite(r.ma));
-    vals.push(ok?Math.abs(T2*r.ma):null);
-    if(ok){ if(firstV===null) firstV=deg; lastV=deg; }
+    const r=feasibleAt(a,bVal,c,d,deg,sol);
+    if(r){
+      if(firstIdx===null) firstIdx=deg;
+      lastIdx=deg;
+      const val=Math.abs(T2*r.ma);
+      if(val>maxAbs) maxAbs=val;
+    }
   }
-  if(firstV===null) return null;
-  const maxAbs=Math.max(...vals.filter(v=>v!==null));
+  if(firstIdx===null) return null;
+
+  // 경계를 서브디그리 정밀도로 정제 (b 변화에 따라 매끄럽게 이동)
+  let firstDeg=firstIdx, lastDeg=lastIdx;
+  if(firstIdx>0) firstDeg=bisectBoundary(a,bVal,c,d,sol, firstIdx-1, firstIdx);
+  if(lastIdx<180)  lastDeg=bisectBoundary(a,bVal,c,d,sol, lastIdx+1, lastIdx);
 
   const m=(isNaN(marginVal)||marginVal<0)?0:marginVal;
-  const span=Math.max(0, (lastV-firstV)-2*m);
+  const span=Math.max(0, (lastDeg-firstDeg)-2*m);
   return{maxAbs, span};
 }
 
@@ -2173,7 +2193,7 @@ function drawCouplerPlot(){
     for(let v=yR.lo; v<=yR.hi+1e-9; v+=yR.step){
       const y=ypR(v);
       if(y<PAD.t-1||y>PAD.t+IH+1) continue;
-      c2.fillStyle="rgba(0,119,182,0.85)";
+      c2.fillStyle="rgba(28,163,236,0.95)";
       c2.fillText(v.toFixed(0)+"°", PAD.l+IW+6, y+3);
     }
   }
@@ -2182,7 +2202,7 @@ function drawCouplerPlot(){
   c2.fillStyle="rgba(255,69,58,0.75)"; c2.textAlign="left";
   c2.fillText("최대 T₄ (N·m)", PAD.l, 11);
   if(yR){
-    c2.fillStyle="rgba(0,119,182,0.7)"; c2.textAlign="right";
+    c2.fillStyle="rgba(28,163,236,0.85)"; c2.textAlign="right";
     c2.fillText("물리 가용 각도 (°)", PAD.l+IW, 11);
   }
 
@@ -2231,7 +2251,7 @@ function drawCouplerPlot(){
       const nb=(spanArr[i-1]!==null&&spanArr[i-1]>1e-6)||(spanArr[i+1]!==null&&spanArr[i+1]>1e-6);
       return nb?0:null;
     });
-    strokeSeries(spanDraw, ypR, "#0077b6", "rgba(0,119,182,0.28)");
+    strokeSeries(spanDraw, ypR, "#38b6ff", "rgba(56,182,255,0.35)");
   }
 
   // ── 마커 헬퍼 ──
@@ -2266,12 +2286,12 @@ function drawCouplerPlot(){
     if(si>=0&&bestSpanV>0){
       bestSpanB=Bs[si];
       const sx2=xp(bestSpanB), sy2=ypR(bestSpanV);
-      c2.strokeStyle="rgba(0,119,182,0.4)"; c2.lineWidth=1; c2.setLineDash([3,2]);
+      c2.strokeStyle="rgba(56,182,255,0.45)"; c2.lineWidth=1; c2.setLineDash([3,2]);
       c2.beginPath(); c2.moveTo(sx2,PAD.t); c2.lineTo(sx2,PAD.t+IH); c2.stroke();
       c2.setLineDash([]);
-      dot(sx2,sy2,"rgba(0,119,182,0.95)");
-      topLabels.push({x:sx2,label:"max "+bestSpanV.toFixed(1)+"°",color:"rgba(0,105,165,0.95)",bg:"rgba(90,200,250,0.2)"});
-      xAxisLabels.push({x:sx2,label:bestSpanB+" mm",color:"rgba(0,105,165,0.95)",bg:"rgba(90,200,250,0.2)"});
+      dot(sx2,sy2,"rgba(56,182,255,0.95)");
+      topLabels.push({x:sx2,label:"max "+bestSpanV.toFixed(1)+"°",color:"rgba(20,150,220,0.95)",bg:"rgba(90,200,250,0.25)"});
+      xAxisLabels.push({x:sx2,label:bestSpanB+" mm",color:"rgba(20,150,220,0.95)",bg:"rgba(90,200,250,0.25)"});
     }
   }
 
