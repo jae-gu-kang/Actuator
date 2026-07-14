@@ -1706,7 +1706,7 @@ function drawTorquePlot(){
 
   const DPR=plotDPR||window.devicePixelRatio||1;
   pc.width=W2*DPR; pc.height=PH_CANVAS*DPR;
-  pc.style.width=W2+"px"; pc.style.height=PH_CANVAS+"px";
+  pc.style.width="100%"; pc.style.height=PH_CANVAS+"px";   // 고정 px 대신 100% → 사이드바 폭 변화를 따라감
   const c2=pc.getContext("2d");
   c2.scale(DPR,DPR);
 
@@ -2185,7 +2185,7 @@ function drawCouplerPlot(){
 
   const DPR=plotDPR||window.devicePixelRatio||1;
   pc.width=W2*DPR; pc.height=PH_CANVAS*DPR;
-  pc.style.width=W2+"px"; pc.style.height=PH_CANVAS+"px";
+  pc.style.width="100%"; pc.style.height=PH_CANVAS+"px";   // 고정 px 대신 100% → 사이드바 폭 변화를 따라감
   const c2=pc.getContext("2d");
   c2.scale(DPR,DPR);
 
@@ -2677,7 +2677,7 @@ function initPlotKeyboard(){
 }
 
 // ── INIT ──
-function resize(){const a=cv.parentElement;cv.width=W=a.clientWidth;cv.height=H=a.clientHeight;setTransform();draw();scheduleCouplerPlot();}
+function resize(){const a=cv.parentElement;cv.width=W=a.clientWidth;cv.height=H=a.clientHeight;setTransform();draw();drawTorquePlot();scheduleCouplerPlot();}
 window.addEventListener('resize',resize);
 
 // ── SIDEBAR RESIZE ──
@@ -2698,8 +2698,7 @@ function initResizer(){
     if(!isResizing) return;
     const newW=Math.min(1100,Math.max(280,startW+(e.clientX-startX)));
     sidebar.style.width=newW+'px';
-    resize();
-    drawTorquePlot();
+    resize();               // 캔버스 + 토크 플롯 즉시, 커플러 플롯은 디바운스 후 재렌더
   });
 
   document.addEventListener('mouseup',()=>{
@@ -2721,8 +2720,7 @@ function initResizer(){
     if(!isResizing) return;
     const newW=Math.min(1100,Math.max(280,startW+(e.touches[0].clientX-startX)));
     sidebar.style.width=newW+'px';
-    resize();
-    drawTorquePlot();
+    resize();               // 캔버스 + 토크 플롯 즉시, 커플러 플롯은 디바운스 후 재렌더
   },{passive:true});
 
   document.addEventListener('touchend',()=>{
