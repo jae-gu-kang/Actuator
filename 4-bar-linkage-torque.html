@@ -150,9 +150,9 @@ body {
 
 /* ── SIDEBAR ── */
 .sidebar {
-  width: 410px;
+  width: 483px;
   min-width: 280px;
-  max-width: 900px;
+  max-width: 1100px;
   flex-shrink: 0;
   background: var(--sidebar-bg);
   backdrop-filter: blur(40px) saturate(180%);
@@ -162,6 +162,17 @@ body {
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* 데스크탑 대화면: 좌측 패널을 더 넓게 (사용자가 리사이저로 드래그하면 인라인 스타일이 우선) */
+@media (min-width: 1280px) {
+  .sidebar { width: 560px; }
+}
+@media (min-width: 1600px) {
+  .sidebar { width: 640px; }
+}
+@media (min-width: 1920px) {
+  .sidebar { width: 720px; }
 }
 
 /* Resizer */
@@ -902,22 +913,6 @@ canvas.hover { cursor: grab; }
         <span style="font-weight:600;color:rgba(130,30,200,0.9)">토크 가용 각도</span>
         <span id="usableRangeText" style="margin-left:6px;font-variant-numeric:tabular-nums;"></span>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:2px 2px 4px;align-items:center;">
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:2px;background:#ff453a;border-radius:1px"></div> T₄ 출력토크
-        </div>
-
-
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:1.5px;border-top:1.5px dashed rgba(191,90,242,0.8);"></div> 토크 요구도
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:8px;height:8px;border-radius:50%;background:rgba(50,215,75,0.9)"></div> 최대
-        </div>
-      </div>
     </div>
 
     <!-- Coupler Sweep Plot -->
@@ -944,29 +939,6 @@ canvas.hover { cursor: grab; }
       </div>
       <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:10px 10px 6px;margin-bottom:6px;">
         <canvas id="couplerPlot" height="276" style="width:100%;display:block;border-radius:6px;"></canvas>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:2px 2px 4px;align-items:center;">
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:2px;background:#ff453a;border-radius:1px"></div> 최대 T₄
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:2px;background:#38b6ff;border-radius:1px"></div> 물리 가용 각도
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:18px;height:2px;background:#bf5af2;border-radius:1px"></div> 토크 가용 각도
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);margin-left:auto">
-          <div style="width:8px;height:8px;border-radius:50%;background:rgba(50,215,75,0.9)"></div> 토크 최대
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:8px;height:8px;border-radius:50%;background:#38b6ff"></div> 물리 최대
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:8px;height:8px;border-radius:50%;background:#bf5af2"></div> 토크각 최대
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--orange)"></div> 현재 b
-        </div>
       </div>
     </div>
 
@@ -1062,6 +1034,7 @@ canvas.hover { cursor: grab; }
 const S = { a:20, b:100, c:40, d:100, t4:100, sol:'open', solutions:null };
 let cv, ctx, W, H, scale=1, ox=0, oy=0;
 let userZoom=1, panX=0, panY=0;   // 사용자 확대/이동 (setTransform 에 합성)
+let plotDPR=null;                 // 그래프 내보내기용 렌더 스케일 override (null = 화면 DPR)
 let drag=null, hov=null, hintHidden=false;
 
 const C = { ground:'#8e8e93', crank:'#0071e3', coupler:'#bf5af2', follower:'#ff453a', joint:'#32d74b' };
@@ -1658,22 +1631,87 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   return{ma, t2, mu};
 }
 
+// ── 캔버스 내부 범례 ──
+// HTML 이 아니라 캔버스에 직접 그리므로 복사/저장 시 그래프와 함께 캡처된다.
+const LEGEND_FONT="500 10px -apple-system,'SF Pro Text',sans-serif";
+const LEG_ROW_H=15, LEG_MARK=18, LEG_MGAP=5, LEG_GAP=14;
+
+// items: [{type:'line'|'dash'|'dot', color, label}]  → 폭 maxW 안에서 줄바꿈 레이아웃
+function layoutLegend(items, maxW){
+  const tmp=document.createElement('canvas').getContext('2d');
+  tmp.font=LEGEND_FONT;
+  const rows=[[]];
+  let cur=0, x=0;
+  items.forEach(it=>{
+    const w=LEG_MARK+LEG_MGAP+tmp.measureText(it.label).width;
+    let need=w+(rows[cur].length?LEG_GAP:0);
+    if(x+need>maxW && rows[cur].length){ rows.push([]); cur++; x=0; need=w; }
+    rows[cur].push({it,w});
+    x+=need;
+  });
+  return rows;
+}
+function legendHeight(rows){ return rows.length*LEG_ROW_H+12; }
+
+function drawLegendOnCanvas(c2, rows, left, top){
+  c2.save();
+  c2.font=LEGEND_FONT; c2.textAlign="left";
+  rows.forEach((row,ri)=>{
+    let x=left;
+    const cy=top+ri*LEG_ROW_H+7;
+    row.forEach(({it,w},i)=>{
+      if(i>0) x+=LEG_GAP;
+      if(it.type==='dot'){
+        c2.beginPath(); c2.arc(x+LEG_MARK/2,cy,4,0,Math.PI*2);
+        c2.fillStyle=it.color; c2.fill();
+        c2.strokeStyle="#fff"; c2.lineWidth=1.2; c2.stroke();
+      } else {
+        c2.strokeStyle=it.color; c2.lineWidth=2.2; c2.lineCap="round";
+        c2.setLineDash(it.type==='dash'?[4,2.5]:[]);
+        c2.beginPath(); c2.moveTo(x,cy); c2.lineTo(x+LEG_MARK,cy); c2.stroke();
+        c2.setLineDash([]);
+      }
+      c2.fillStyle="rgba(90,90,95,0.95)";
+      c2.fillText(it.label, x+LEG_MARK+LEG_MGAP, cy+3.5);
+      x+=w;
+    });
+  });
+  c2.restore();
+}
+
 function drawTorquePlot(){
   try{
   const pc=document.getElementById("torquePlot");
   if(!pc) return;
   const W2=pc.offsetWidth||220;
-  const PH_CANVAS=300;
-  pc.width=W2*devicePixelRatio; pc.height=PH_CANVAS*devicePixelRatio;
-  pc.style.width=W2+"px"; pc.style.height=PH_CANVAS+"px";
-  const c2=pc.getContext("2d");
-  c2.scale(devicePixelRatio,devicePixelRatio);
 
   const{a,b,c,d,sol,solutions,t4:curT4deg}=S;
   const T2=parseFloat(document.getElementById("iTorque")?.value)||0;
+  const marginVal=Math.max(0, parseFloat(document.getElementById("iMarginAngle")?.value)||0);
+  const _legMotorEl=document.getElementById("iMotorTorque");
+  const _legMotorV=parseFloat(_legMotorEl?.value);
+  const _legHasMotor=!isNaN(_legMotorV)&&_legMotorEl.value.trim()!=="";
+
+  // ── 범례 구성 (캔버스 안에 그림 → 복사/저장에 포함) ──
+  const PAD={t:22, b:86, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
+  const IW=W2-PAD.l-PAD.r;
+  const legItems=[{type:'line',color:'#ff453a',label:'T₄ 출력토크'}];
+  if(_legHasMotor) legItems.push({type:'dash',color:'rgba(191,90,242,0.85)',label:'토크 요구도'});
+  if(marginVal>0) legItems.push({type:'dash',color:'rgba(0,140,200,0.75)',label:'물리 가용 범위 경계'});
+  const legRows=layoutLegend(legItems, IW);
+  const LEG_H=legendHeight(legRows);
+
+  const PH_CANVAS=308+LEG_H;
+  PAD.b+=LEG_H;                       // 범례 공간만큼 하단 패딩 확대 → 플롯 영역(IH)은 그대로 200px
+
+  const DPR=plotDPR||window.devicePixelRatio||1;
+  pc.width=W2*DPR; pc.height=PH_CANVAS*DPR;
+  pc.style.width=W2+"px"; pc.style.height=PH_CANVAS+"px";
+  const c2=pc.getContext("2d");
+  c2.scale(DPR,DPR);
+
   const PW=W2, PH=PH_CANVAS;
-  const PAD={t:22, b:78, l:56, r:56};
-  const IW=PW-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
+  const IH=PH-PAD.t-PAD.b;
 
   // ── 정의역 자동 탐색: 유효 해가 존재하는 θ₄ 범위를 0~180° 전체에서 찾음 ──
   const SCAN_MIN=0, SCAN_MAX=180;
@@ -1690,7 +1728,6 @@ function drawTorquePlot(){
   if(autoMin===null){ if(_pb) _pb.style.display='none'; return; }
 
   // ── 물리 가용 각도: 유효 해 범위(autoMin~autoMax) − 양끝단 마진 ──
-  const marginVal=Math.max(0, parseFloat(document.getElementById("iMarginAngle")?.value)||0);
   const physLo=autoMin+marginVal, physHi=autoMax-marginVal;
   const physSpan=Math.max(0, physHi-physLo);
   if(_pb){
@@ -1807,19 +1844,19 @@ function drawTorquePlot(){
   c2.fillStyle="rgba(200,60,50,0.6)"; c2.textAlign="right";
   c2.fillText("θ₄ →", PAD.l+IW, PAD.t+IH+26); c2.textAlign="center";
 
-  // ── 우측 Y축 라벨 (T4) ──
-  c2.textAlign="left";
+  // ── 좌측 Y축 라벨 (T4) ──
+  c2.textAlign="right";
   c2.fillStyle="rgba(255,69,58,0.85)";
   yTicks.forEach(v=>{
     const y=yp(v);
     if(y<PAD.t-2||y>PAD.t+IH+2) return;
     const label=Math.abs(v)<0.001?"0":v.toFixed(Math.abs(v)<10?2:1);
-    c2.fillText(label, PAD.l+IW+6, y+3);
+    c2.fillText(label, PAD.l-6, y+3);
   });
   c2.save();
   c2.fillStyle="rgba(255,69,58,0.8)"; c2.textAlign="center";
   c2.font="600 9px -apple-system,'SF Pro Text',sans-serif";
-  c2.fillText("T₄ (N·m)", PW-PAD.r/2, PAD.t-6);
+  c2.fillText("T₄ (N·m)", PAD.l/2, PAD.t-6);
   c2.restore();
 
 
@@ -1980,17 +2017,18 @@ function drawTorquePlot(){
 
     }  // end if(my in range)
 
-    // ── 교점 Y값 + 마커: 플롯 범위와 무관하게 교점 있을 때 표시 ──
+    // ── 토크 요구도 Y값 라벨: 우측 여백에 표시 ──
     if(intersections.length>0){
       const my2=yp(motorVal);
       c2.save();
       const ylbl=motorVal.toFixed(2);
       c2.font="700 9px -apple-system,sans-serif";
       const ylw=c2.measureText(ylbl).width;
+      const bx=PAD.l+IW+4;
       c2.fillStyle="rgba(191,90,242,0.15)";
-      c2.beginPath(); c2.roundRect(2, my2-10, ylw+8, 13, 4); c2.fill();
+      c2.beginPath(); c2.roundRect(bx, my2-10, ylw+8, 13, 4); c2.fill();
       c2.fillStyle="rgba(130,30,200,0.95)"; c2.textAlign="left";
-      c2.fillText(ylbl, 4, my2);
+      c2.fillText(ylbl, bx+4, my2);
       c2.restore();
     }
 
@@ -2051,6 +2089,9 @@ function drawTorquePlot(){
   // ── 테두리 ──
   c2.strokeStyle="rgba(0,0,0,0.09)"; c2.lineWidth=1;
   c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,6); c2.stroke();
+
+  // ── 범례 (캔버스 하단) ──
+  drawLegendOnCanvas(c2, legRows, PAD.l, PH-LEG_H+2);
   }catch(e){console.warn("drawTorquePlot:",e);}
 }
 
@@ -2120,11 +2161,6 @@ function drawCouplerPlot(){
   const pc=document.getElementById("couplerPlot");
   if(!pc) return;
   const W2=pc.offsetWidth||220;
-  const PH_CANVAS=276;
-  pc.width=W2*devicePixelRatio; pc.height=PH_CANVAS*devicePixelRatio;
-  pc.style.width=W2+"px"; pc.style.height=PH_CANVAS+"px";
-  const c2=pc.getContext("2d");
-  c2.scale(devicePixelRatio,devicePixelRatio);
 
   const{a,b:curB,c,d}=S;
   const T2=parseFloat(document.getElementById("iTorque")?.value)||0;
@@ -2135,9 +2171,26 @@ function drawCouplerPlot(){
   const showPhys=document.getElementById("cbPhysSpan")?.checked!==false;
   const showTorque=(document.getElementById("cbTorqueSpan")?.checked!==false)&&hasMotor;
 
+  // ── 범례 구성 (캔버스 안에 그림 → 복사/저장에 포함) ──
+  const PAD={t:54, b:84, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
+  const IW=W2-PAD.l-PAD.r;
+  const legItems=[{type:'line',color:'#ff453a',label:'최대 T₄'}];
+  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'물리 가용 각도'});
+  if(showTorque) legItems.push({type:'line',color:'#bf5af2',label:'토크 가용 각도'});
+  const legRows=layoutLegend(legItems, IW);
+  const LEG_H=legendHeight(legRows);
+
+  const PH_CANVAS=294+LEG_H;
+  PAD.b+=LEG_H;                       // 범례 공간만큼 하단 패딩 확대 → 플롯 영역(IH)은 그대로 156px
+
+  const DPR=plotDPR||window.devicePixelRatio||1;
+  pc.width=W2*DPR; pc.height=PH_CANVAS*DPR;
+  pc.style.width=W2+"px"; pc.style.height=PH_CANVAS+"px";
+  const c2=pc.getContext("2d");
+  c2.scale(DPR,DPR);
+
   const PW=W2, PH=PH_CANVAS;
-  const PAD={t:54, b:66, l:56, r:56};
-  const IW=PW-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
+  const IH=PH-PAD.t-PAD.b;
 
   // ── 조립 가능한 b 정의역 탐색 (5~400mm) ──
   const B_LO=5, B_HI=400;
@@ -2429,6 +2482,9 @@ function drawCouplerPlot(){
   // ── 테두리 ──
   c2.strokeStyle="rgba(0,0,0,0.09)"; c2.lineWidth=1;
   c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,6); c2.stroke();
+
+  // ── 범례 (캔버스 하단) ──
+  drawLegendOnCanvas(c2, legRows, PAD.l, PH-LEG_H+2);
   }catch(e){console.warn("drawCouplerPlot:",e);}
 }
 
@@ -2511,68 +2567,73 @@ function sendToRig(){
 
 // ── 플롯 이미지 복사 ────────────────────────────────────────────────────────
 // 캔버스를 흰 배경에 합성해 PNG 로 클립보드 복사 (미지원/실패 시 다운로드 폴백)
-async function copyPlotImage(id, btn){
+// ── 그래프를 고해상도로 다시 렌더링해서 PNG Blob 생성 ──
+// 화면 표시는 devicePixelRatio 로 그리지만, 내보낼 때는 EXPORT_SCALE 로 재렌더 → 선/글자가 또렷하게 유지됨
+async function renderPlotBlob(id){
   const src=document.getElementById(id);
-  if(!src) return;
-  const off=document.createElement('canvas');
-  off.width=src.width; off.height=src.height;
-  const octx=off.getContext('2d');
-  octx.fillStyle='#ffffff';
-  octx.fillRect(0,0,off.width,off.height);
-  octx.drawImage(src,0,0);
-  const blob=await new Promise(res=>off.toBlob(res,'image/png'));
-  if(!blob) return;
+  if(!src) return null;
+  const EXPORT_SCALE=Math.max(3, (window.devicePixelRatio||1)*2);
 
-  function feedback(text){
-    if(!btn) return;
-    const orig=btn.innerHTML;
-    btn.classList.add('copied');
-    btn.innerHTML=text;
-    clearTimeout(btn._t);
-    btn._t=setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=orig;},1800);
+  let blob=null;
+  try{
+    plotDPR=EXPORT_SCALE;
+    if(id==='torquePlot') drawTorquePlot(); else drawCouplerPlot();
+
+    const off=document.createElement('canvas');
+    off.width=src.width; off.height=src.height;
+    const octx=off.getContext('2d');
+    octx.fillStyle='#ffffff';
+    octx.fillRect(0,0,off.width,off.height);
+    octx.drawImage(src,0,0);
+    blob=await new Promise(res=>off.toBlob(res,'image/png'));
+  } finally {
+    // 항상 화면용 해상도로 복구
+    plotDPR=null;
+    if(id==='torquePlot') drawTorquePlot(); else drawCouplerPlot();
   }
+  return blob;
+}
 
+function plotBtnFeedback(btn, text){
+  if(!btn) return;
+  if(!btn._orig) btn._orig=btn.innerHTML;
+  btn.classList.add('copied');
+  btn.innerHTML=text;
+  clearTimeout(btn._t);
+  btn._t=setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=btn._orig;},1800);
+}
+
+const plotFileName=id=>(id==='torquePlot'?'output-torque':'coupler-sweep')+'.png';
+
+// ── 플롯 이미지 복사 (클립보드) ──
+async function copyPlotImage(id, btn){
+  const blob=await renderPlotBlob(id);
+  if(!blob) return;
   try{
     if(!navigator.clipboard||!window.ClipboardItem) throw new Error('unsupported');
     await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-    feedback('복사됨 ✓');
+    plotBtnFeedback(btn,'복사됨 ✓');
   }catch(e){
     // 클립보드 미지원 (http, 구형 브라우저 등) → PNG 다운로드로 폴백
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download=(id==='torquePlot'?'output-torque':'coupler-sweep')+'.png';
+    a.download=plotFileName(id);
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-    feedback('다운로드됨 ↓');
+    plotBtnFeedback(btn,'다운로드됨 ↓');
   }
 }
 
-// ── 플롯 이미지 저장(다운로드) ── copyPlotImage 와 동일한 흰 배경 합성, 클립보드 없이 바로 다운로드
+// ── 플롯 이미지 저장(다운로드) ──
 async function downloadPlotImage(id, btn){
-  const src=document.getElementById(id);
-  if(!src) return;
-  const off=document.createElement('canvas');
-  off.width=src.width; off.height=src.height;
-  const octx=off.getContext('2d');
-  octx.fillStyle='#ffffff';
-  octx.fillRect(0,0,off.width,off.height);
-  octx.drawImage(src,0,0);
-  const blob=await new Promise(res=>off.toBlob(res,'image/png'));
+  const blob=await renderPlotBlob(id);
   if(!blob) return;
-
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=(id==='torquePlot'?'output-torque':'coupler-sweep')+'.png';
+  a.download=plotFileName(id);
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-
-  if(btn){
-    const orig=btn.innerHTML;
-    btn.classList.add('copied');
-    btn.innerHTML='저장됨 ✓';
-    clearTimeout(btn._t);
-    btn._t=setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=orig;},1800);
-  }
+  plotBtnFeedback(btn,'저장됨 ✓');
 }
 
 // ── 플롯 키보드 컨트롤 ──────────────────────────────────────────────────────
@@ -2635,7 +2696,7 @@ function initResizer(){
 
   document.addEventListener('mousemove',e=>{
     if(!isResizing) return;
-    const newW=Math.min(900,Math.max(280,startW+(e.clientX-startX)));
+    const newW=Math.min(1100,Math.max(280,startW+(e.clientX-startX)));
     sidebar.style.width=newW+'px';
     resize();
     drawTorquePlot();
@@ -2658,7 +2719,7 @@ function initResizer(){
 
   document.addEventListener('touchmove',e=>{
     if(!isResizing) return;
-    const newW=Math.min(900,Math.max(280,startW+(e.touches[0].clientX-startX)));
+    const newW=Math.min(1100,Math.max(280,startW+(e.touches[0].clientX-startX)));
     sidebar.style.width=newW+'px';
     resize();
     drawTorquePlot();
@@ -2675,11 +2736,18 @@ window.addEventListener('load',()=>{
   cv.addEventListener('mousemove',e=>onMove(gp(e)));
   cv.addEventListener('mouseup',endDrag);
   cv.addEventListener('mouseleave',()=>{endDrag();hov=null;cv.classList.remove('hover');draw();});
-  // 마우스 휠 줌 (커서 기준)
+  // 마우스 휠 줌 (커서 기준) — 델타에 비례하되 감도를 낮춰 조금씩만 확대/축소
   cv.addEventListener('wheel',e=>{
     e.preventDefault();
     const r=cv.getBoundingClientRect();
-    zoomAt(e.clientX-r.left, e.clientY-r.top, e.deltaY<0?1.12:1/1.12);
+    // deltaMode 정규화: 0=픽셀, 1=줄, 2=페이지
+    let d=e.deltaY;
+    if(e.deltaMode===1) d*=16;
+    else if(e.deltaMode===2) d*=100;
+    // 이벤트당 변화량 제한 (휠 한 칸이 크게 튀지 않도록)
+    d=Math.max(-40, Math.min(40, d));
+    const factor=Math.exp(-d*0.0008);   // 휠 한 칸 ≈ 3%, 트랙패드는 훨씬 미세하게
+    zoomAt(e.clientX-r.left, e.clientY-r.top, factor);
   },{passive:false});
   // 터치: 한 손가락 = 기존 드래그/팬, 두 손가락 = 핀치 줌 + 이동
   let pinch=null;
