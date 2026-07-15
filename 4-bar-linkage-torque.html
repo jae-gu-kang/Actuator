@@ -876,6 +876,31 @@ canvas.hover { cursor: grab; }
       </div>
     </div>
 
+    <!-- AI 최적 설계 추천 -->
+    <div class="s-sec">
+      <div class="s-title" style="margin-bottom:6px">AI 최적 설계 추천</div>
+      <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:12px;margin-bottom:6px;">
+        <div style="font-size:10.5px;color:var(--text2);line-height:1.55;margin-bottom:10px;">
+          현재 <b>고정 d · 입력 a · 출력 c</b> 를 고정한 채, 입력한 <b>타각 범위 ±δ</b> 를
+          물리 가용범위(양끝단 마진 제외) 안에 수용하면서 <b>타각 양끝단 토크의 최솟값이
+          최대</b>가 되도록 커플러 길이 b 와 중립 출력각 θ₄₀ 를 탐색합니다.
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 범위 <span style="color:var(--text3);font-weight:400">(θ₄₀ ± δ)</span></div>
+          <div class="link-field" style="border-radius:7px;">
+            <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
+            <input type="number" id="iDeflect" value="25" min="0.5" max="89" step="0.5"
+              style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+            <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+          </div>
+        </div>
+        <button id="btnOptimize" onclick="runOptimizer()"
+          style="width:100%;background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(94,92,230,.25);">
+          ✦ 최적값 계산</button>
+        <div id="optResult" style="display:none;margin-top:10px;"></div>
+      </div>
+    </div>
+
     <!-- Torque Plot -->
     <div class="s-sec">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -939,31 +964,6 @@ canvas.hover { cursor: grab; }
       </div>
       <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:10px 10px 6px;margin-bottom:6px;">
         <canvas id="couplerPlot" height="276" style="width:100%;display:block;border-radius:6px;"></canvas>
-      </div>
-    </div>
-
-    <!-- AI 최적 설계 추천 -->
-    <div class="s-sec">
-      <div class="s-title" style="margin-bottom:6px">AI 최적 설계 추천</div>
-      <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:12px;margin-bottom:6px;">
-        <div style="font-size:10.5px;color:var(--text2);line-height:1.55;margin-bottom:10px;">
-          현재 <b>고정 d · 입력 a · 출력 c</b> 를 고정한 채, 입력한 <b>타각 범위 ±δ</b> 를
-          물리 가용범위(양끝단 마진 제외) 안에 수용하면서 <b>타각 양끝단 토크의 최솟값이
-          최대</b>가 되도록 커플러 길이 b 와 중립 출력각 θ₄₀ 를 탐색합니다.
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 범위 <span style="color:var(--text3);font-weight:400">(θ₄₀ ± δ)</span></div>
-          <div class="link-field" style="border-radius:7px;">
-            <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
-            <input type="number" id="iDeflect" value="25" min="0.5" max="89" step="0.5"
-              style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
-            <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
-          </div>
-        </div>
-        <button id="btnOptimize" onclick="runOptimizer()"
-          style="width:100%;background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(94,92,230,.25);">
-          ✦ 최적값 계산</button>
-        <div id="optResult" style="display:none;margin-top:10px;"></div>
       </div>
     </div>
 
