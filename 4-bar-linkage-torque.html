@@ -942,6 +942,31 @@ canvas.hover { cursor: grab; }
       </div>
     </div>
 
+    <!-- AI 최적 설계 추천 -->
+    <div class="s-sec">
+      <div class="s-title" style="margin-bottom:6px">AI 최적 설계 추천</div>
+      <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:12px;margin-bottom:6px;">
+        <div style="font-size:10.5px;color:var(--text2);line-height:1.55;margin-bottom:10px;">
+          현재 <b>고정 d · 입력 a · 출력 c</b> 를 고정한 채, 입력한 <b>타각 범위 ±δ</b> 를
+          물리 가용범위(양끝단 마진 제외) 안에 수용하면서 <b>타각 양끝단 토크의 최솟값이
+          최대</b>가 되도록 커플러 길이 b 와 중립 출력각 θ₄₀ 를 탐색합니다.
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 범위 <span style="color:var(--text3);font-weight:400">(θ₄₀ ± δ)</span></div>
+          <div class="link-field" style="border-radius:7px;">
+            <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
+            <input type="number" id="iDeflect" value="25" min="0.5" max="89" step="0.5"
+              style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+            <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+          </div>
+        </div>
+        <button id="btnOptimize" onclick="runOptimizer()"
+          style="width:100%;background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(94,92,230,.25);">
+          ✦ 최적값 계산</button>
+        <div id="optResult" style="display:none;margin-top:10px;"></div>
+      </div>
+    </div>
+
     <!-- 힌지모멘트 계산기 연동 -->
     <div class="s-sec">
       <div class="s-title" style="margin-bottom:6px">힌지모멘트 계산기 연동</div>
@@ -2493,6 +2518,169 @@ let _couplerTimer=null;
 function scheduleCouplerPlot(){
   clearTimeout(_couplerTimer);
   _couplerTimer=setTimeout(drawCouplerPlot, 120);
+}
+
+// ── AI 최적 설계 추천 ──────────────────────────────────────────────────────
+// 로직 정의: optimal-linkage-logic.md
+//   입력: 타각 범위 ±δ (필수), 끝단 마진 m (기본 5°), T₂, (선택) 토크 요구도
+//   제약: 작동 범위 [θ₄₀−δ, θ₄₀+δ] ⊆ 물리 가용범위 [θ_min+m, θ_max−m]
+//         (가용범위는 타각범위를 수용하기만 하면 됨 — 제약이지 목적이 아님)
+//   목적: 타각은 ± 양방향으로 발생하므로 한쪽 끝단이 약하면 안 됨 →
+//         maximize min(|T₄(θ₄₀−δ)|, |T₄(θ₄₀+δ)|)  (worst 끝단 토크 최대화 = 양끝 균형)
+
+// 주어진 b 에서 유효 해가 존재하는 θ₄ 경계 (이분법 sub-degree 정밀)
+function feasibleRangeOf(bVal){
+  const{a,c,d,sol}=S;
+  let first=null,last=null;
+  for(let deg=0;deg<=180;deg++){
+    if(feasibleAt(a,bVal,c,d,deg,sol)){ if(first===null) first=deg; last=deg; }
+  }
+  if(first===null) return null;
+  let lo=first, hi=last;
+  if(first>0)  lo=bisectBoundary(a,bVal,c,d,sol,first-1,first);
+  if(last<180) hi=bisectBoundary(a,bVal,c,d,sol,last+1,last);
+  return{lo,hi};
+}
+
+// 주어진 b, θ₄(deg) 에서의 |T₄| (해 없으면 null)
+function absT4At(bVal,deg,T2){
+  const r=feasibleAt(S.a,bVal,S.c,S.d,deg,S.sol);
+  return r?Math.abs(T2*r.ma):null;
+}
+
+// 주어진 b 에서: 중립각 θ₄₀ 를 [physLo+δ, physHi−δ] 에서 탐색하여
+// 양끝단 토크의 최솟값(worst-case)이 최대가 되는 θ₄₀ 를 찾음
+function bestNeutralForB(bVal,T2,delta,margin){
+  const fr=feasibleRangeOf(bVal);
+  if(!fr) return null;
+  const physLo=fr.lo+margin, physHi=fr.hi-margin;
+  if(physHi-physLo<2*delta-1e-9) return null;   // 타각범위 미수용 → 제약 위반, 탈락
+  const lo=physLo+delta, hi=physHi-delta;
+  const evalAt=t0=>{
+    const tm=absT4At(bVal,t0-delta,T2), tp=absT4At(bVal,t0+delta,T2);
+    if(tm===null||tp===null) return null;
+    return{t0,tm,tp,worst:Math.min(tm,tp)};
+  };
+  let best=null;
+  const step=Math.min(0.5,Math.max((hi-lo)/240,0.02));
+  for(let t0=lo;t0<=hi+1e-9;t0+=step){
+    const r=evalAt(Math.min(t0,hi));
+    if(r&&(!best||r.worst>best.worst)) best=r;
+  }
+  if(!best) best=evalAt((lo+hi)/2);
+  if(!best) return null;
+  // 0.05° 정밀 재탐색
+  for(let t0=Math.max(lo,best.t0-step);t0<=Math.min(hi,best.t0+step)+1e-9;t0+=0.05){
+    const r=evalAt(t0);
+    if(r&&r.worst>best.worst) best=r;
+  }
+  return{t0:best.t0,tm:best.tm,tp:best.tp,worst:best.worst,physLo,physHi};
+}
+
+function runOptimizer(){
+  const btn=document.getElementById('btnOptimize');
+  if(!btn||btn._busy) return;
+  btn._busy=true;
+  const orig=btn.innerHTML;
+  btn.innerHTML='계산 중…'; btn.style.opacity='0.6';
+  // 렌더 한 프레임 양보 후 계산 (버튼 상태가 화면에 먼저 반영되도록)
+  setTimeout(()=>{
+    try{ doOptimize(); }
+    catch(e){ console.warn('optimize:',e); }
+    btn.innerHTML=orig; btn.style.opacity='';
+    btn._busy=false;
+  },30);
+}
+
+function doOptimize(){
+  const T2=parseFloat(document.getElementById('iTorque')?.value)||0;
+  const marginVal=Math.max(0,parseFloat(document.getElementById('iMarginAngle')?.value)||0);
+  const motorEl=document.getElementById('iMotorTorque');
+  const motorVal=parseFloat(motorEl?.value);
+  const hasMotor=!isNaN(motorVal)&&motorEl.value.trim()!=='';
+  const delta=parseFloat(document.getElementById('iDeflect')?.value);
+  const box=document.getElementById('optResult');
+  const showMsg=t=>{box.style.display='block';
+    box.innerHTML='<div style="font-size:11px;color:#a05800;font-weight:500;line-height:1.5;">'+t+'</div>';};
+
+  // 타각 범위는 필수 입력 (optimal-linkage-logic.md §1)
+  if(isNaN(delta)||delta<=0){
+    showMsg('⚠︎ 타각 범위 ±δ 를 먼저 입력하세요. (예: ±25°)');
+    return;
+  }
+
+  // 1) 정수 b 전수 스윕 — 각 b 에서 타각범위 수용 여부(제약) 확인 후
+  //    worst 끝단 토크를 최대화하는 중립각 θ₄₀ 탐색 (목적)
+  let best=null, feasibleAny=false;
+  for(let bv=5;bv<=400;bv++){
+    if(!feasibleRangeOf(bv)) continue;
+    feasibleAny=true;
+    const r=bestNeutralForB(bv,T2,delta,marginVal);
+    if(r&&(!best||r.worst>best.worst)) best={b:bv,...r};
+  }
+  if(!feasibleAny){
+    showMsg('⚠︎ 현재 a·c·d 조합으로 조립 가능한 커플러 길이가 없습니다.');
+    return;
+  }
+  if(!best){
+    showMsg('⚠︎ 타각 범위 ±'+delta.toFixed(1)+'° (총 '+(2*delta).toFixed(1)
+      +'°)를 수용하는 커플러 길이가 없습니다.<br>타각 범위를 줄이거나 끝단 마진('
+      +marginVal.toFixed(1)+'°)·링크 길이를 조정하세요.');
+    return;
+  }
+
+  // 2) 최적 b 주변 ±1mm 를 0.25mm 간격으로 정밀 재탐색
+  for(let db=-1;db<=1.0001;db+=0.25){
+    if(Math.abs(db)<1e-9) continue;
+    const bv=best.b+db;
+    if(bv<5||bv>400) continue;
+    const r=bestNeutralForB(bv,T2,delta,marginVal);
+    if(r&&r.worst>best.worst) best={b:bv,...r};
+  }
+
+  const{b:bBest,t0,tm,tp,worst,physLo,physHi}=best;
+  const bDisp=+bBest.toFixed(2);
+  const imbal=Math.max(tm,tp)>1e-9?Math.abs(tm-tp)/Math.max(tm,tp)*100:0;
+  const tNeutral=absT4At(bBest,t0,T2);
+  const reqOk=hasMotor?(worst>=motorVal):null;
+
+  const row=(k,v,col)=>'<div class="result-row"><span class="result-key" style="font-size:11.5px">'+k
+    +'</span><span class="result-val" style="font-size:13px;'+(col?'color:'+col:'')+'">'+v+'</span></div>';
+  let rows='';
+  rows+=row('추천 커플러 b','<b>'+bDisp+' mm</b>','var(--coupler)');
+  rows+=row('추천 중립각 θ₄₀','<b>'+t0.toFixed(1)+'°</b>','var(--follower)');
+  rows+=row('작동 범위',(t0-delta).toFixed(1)+'° ~ '+(t0+delta).toFixed(1)+'° (±'+delta.toFixed(1)+'°)','var(--text)');
+  rows+='<div class="result-divider"></div>';
+  rows+=row('|T₄| @ −δ 끝단',tm.toFixed(2)+' N·m','var(--follower)');
+  rows+=row('|T₄| @ +δ 끝단',tp.toFixed(2)+' N·m','var(--follower)');
+  rows+=row('끝단 불균형',imbal.toFixed(1)+' %',imbal<5?'#1a9c3e':'var(--orange)');
+  if(tNeutral!==null) rows+=row('|T₄| @ 중립각',tNeutral.toFixed(2)+' N·m','var(--text2)');
+  rows+='<div class="result-divider"></div>';
+  rows+=row('물리 가용범위',physLo.toFixed(1)+'° ~ '+physHi.toFixed(1)+'° (마진 '+marginVal.toFixed(1)+'° 제외)','#1ca3ec');
+  if(reqOk!==null)
+    rows+=row('토크 요구도 '+motorVal.toFixed(2)+' N·m',
+      reqOk?'충족 ✓ (worst '+worst.toFixed(2)+')':'미달 ✗ (worst '+worst.toFixed(2)+')',
+      reqOk?'#1a9c3e':'var(--red)');
+
+  box.style.display='block';
+  box.innerHTML=
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5;">a='+S.a+', c='+S.c+', d='+S.d
+    +' mm 고정 · 목적: 타각 양끝단 토크 최솟값 최대화 (양방향 균형)</div>'
+    +'<div class="result-card" style="margin-bottom:8px;">'+rows+'</div>'
+    +'<button onclick="applyOpt('+bDisp+','+t0.toFixed(2)+')"'
+    +' style="width:100%;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;'
+    +'font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">이 값 적용 (b · θ₄₀ · 중립각)</button>';
+}
+
+function applyOpt(bVal,t4Val){
+  S.b=bVal;
+  document.getElementById('ib').value=bVal;
+  setTransform(); updateGrashof();
+  setT4(t4Val);
+  // 최적화의 θ₄₀ 는 중립각이므로 힌지모멘트 연동 중립각에도 반영
+  const nEl=document.getElementById('iT4Neutral');
+  if(nEl) nEl.value=(+t4Val).toFixed(1);
+  draw(); scheduleCouplerPlot();
 }
 
 // ── 힌지모멘트 계산기 연동 ──────────────────────────────────────────────────
