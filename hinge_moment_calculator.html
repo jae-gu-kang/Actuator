@@ -118,14 +118,16 @@ body{
 .surf-btn.on.peak .surf-h{color:var(--accent)}
 
 /* ── KPI ── */
-.kpi-row{display:grid;grid-template-columns:400px repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
-.kpi{background:var(--surface);border-radius:var(--rl);padding:11px 14px;box-shadow:var(--sh);text-align:center}
+.kpi-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.kpi{background:var(--surface);border-radius:var(--rl);padding:11px 14px;box-shadow:var(--sh);text-align:center;display:flex;flex-direction:column;justify-content:center}
 .kpi-lbl{font-size:10.5px;font-weight:500;color:var(--text2);margin-bottom:6px;text-align:center}
 .kpi-val{font-size:22px;font-weight:600;color:var(--text);line-height:1;letter-spacing:-.02em;margin-bottom:5px;text-align:center}
 .kpi-val .u{font-size:11px;font-weight:500;color:var(--text3);margin-left:3px}
 .kpi-sub{font-size:10.5px;color:var(--text2);line-height:1.3;text-align:center}
 .kpi.accent .kpi-val{color:var(--accent)}
 .kpi.purple .kpi-val{color:var(--accent2)}
+.kpi.trim1 .kpi-val{color:#2563eb}
+.kpi.trim2 .kpi-val{color:#ea580c}
 .badge{display:inline-block;font-size:9.5px;font-weight:500;padding:1px 6px;border-radius:20px}
 .b-low{background:rgba(52,199,89,.12);color:#1a7a33}
 .b-mid{background:rgba(255,159,10,.12);color:#9a5d00}
@@ -155,7 +157,7 @@ body{
 /* ── Panel ── */
 .panel{background:var(--surface);border-radius:var(--rx);padding:14px;box-shadow:var(--sh)}
 .p-title{font-size:10.5px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
-.p-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.p-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;min-height:27px}
 .p-title-row .p-title{margin-bottom:0}
 .sec-name{font-size:12px;font-weight:600;color:var(--text)}
 
@@ -247,7 +249,6 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 
 /* ── DATCOM diagram ── */
 .diag-wrap{background:linear-gradient(170deg,#fafafa,#f0f0f5);border:1px solid var(--border);border-radius:var(--rl);padding:8px;margin-bottom:10px}
-.diag-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .diag-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px}
 .diag-lbl{font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;text-align:center}
 .diag-box svg{width:100%;height:auto;display:block}
@@ -277,18 +278,67 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .hide{display:none!important}
 
 /* ── Layout ── */
-.row-a{display:grid;grid-template-columns:400px minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
-.row-b-basic{display:grid;grid-template-columns:400px minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
-.row-b-datcom{display:grid;grid-template-columns:400px minmax(0,1fr);gap:10px;margin-bottom:10px;align-items:stretch}
-.row-c{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.row-main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px;align-items:stretch}
+.row-main > .panel{display:flex;flex-direction:column;min-width:0}
+.row-main > .panel > .note:last-child{margin-top:auto}
+.trim-panel .trim-grid{margin-bottom:12px}
+.trim-panel .chart-footnote{margin-top:auto}
+.fg3{grid-template-columns:1fr 1fr 1fr}
+.diag-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Section dots */
+.sec-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.dot-blue  {background:#0071e3;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.dot-purple{background:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.12)}
+.dot-indigo{background:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.dot-teal  {background:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.12)}
+.dot-orange{background:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+
+/* DATCOM auto CH chips */
+.dc-out-row{display:flex;gap:5px;flex-wrap:wrap}
+.dc-chip{font-size:10px;color:#6d28d9;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.22);
+  border-radius:20px;padding:2px 9px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dc-chip b{font-weight:600;margin-left:2px}
+
+/* ── 트림 타각 계산 ── */
+.trim-grid{display:flex;flex-direction:column;gap:12px}
+.tr-unit-sel{font-size:10.5px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--text2);font-family:inherit;outline:none;cursor:pointer;transition:border-color .15s}
+.tr-unit-sel:focus{border-color:var(--accent)}
+.u-sel{font-size:10.5px;color:var(--text2);font-family:inherit;outline:none;cursor:pointer}
+/* 필드 내부 단위 셀렉터: 전역 select{width:100%}를 무효화하고 콤팩트 칩 형태로 */
+.inp-pair select.u-sel{width:auto;flex:0 0 auto;background:var(--surface3);border:1px solid var(--border2);
+  border-radius:6px;padding:3px 4px;color:var(--text2)}
+.inp-pair select.u-sel:focus{border-color:var(--accent)}
+.inp-pair input{min-width:0}
+/* 슬라이더 inp-box 내부: 테두리 없는 콤팩트형 */
+.inp-box select.u-sel{width:auto;flex:0 0 auto;background:transparent;border:none;padding:0;color:var(--text3)}
+.tr-ok  {color:#1a7a33!important}
+.tr-over{color:#c0150a!important}
+
+/* ── 하단 행 ── */
+.row-bottom{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px;align-items:stretch}
+.row-bottom > .panel{display:flex;flex-direction:column;min-width:0}
+.row-bottom .dl{flex:1;display:flex;flex-direction:column}
+.row-bottom .dlr{flex:1;display:flex;align-items:center;justify-content:space-between}
+
+/* ── 풍동 시뮬레이션 ── */
+.wt-wrap{flex:1;min-height:170px;border-radius:10px;overflow:hidden;position:relative;
+  background:linear-gradient(175deg,#f8fafc,#eef2f8);border:1px solid var(--border)}
+.wt-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.wt-stats{display:flex;justify-content:space-between;gap:6px;margin-top:8px;
+  font-size:10.5px;color:var(--text2);flex-wrap:wrap}
+.wt-stats b{font-weight:600;color:#0f766e;font-variant-numeric:tabular-nums;margin-left:2px}
 
 /* ── H 테이블 ── */
-.htable-panel{margin-top:10px}
-.htable-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
-.htable-controls .field{min-width:100px}
-.htable-btn{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;border:none;border-radius:10px;
-  padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
-  box-shadow:0 2px 8px rgba(37,99,235,.3);transition:all .15s}
+.htable-controls{display:flex;flex-direction:column;gap:11px;margin-bottom:12px}
+.htc-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.htc-bottom{display:grid;grid-template-columns:1fr 1.3fr;gap:10px}
+.htc-bottom input{height:29px}
+.htc-bottom .htable-btn{width:100%;height:29px;padding:0 10px;border-radius:7px;display:block}
+.htable-btn{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;border:none;border-radius:8px;
+  padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
+  box-shadow:0 2px 8px rgba(37,99,235,.3);transition:all .15s;white-space:nowrap}
 .htable-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.4)}
 .htable-wrap{overflow-x:auto;margin-top:6px}
 .htable{border-collapse:collapse;font-size:11.5px;width:100%;min-width:560px}
@@ -365,27 +415,24 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 #ht-capture-area{background:#fff;padding:4px}
 .ht-meta{font-size:12px;color:#64748b;margin-bottom:10px;line-height:1.6}
 .ht-meta b{color:#0f172a}
-.kpi-row{display:grid;grid-template-columns:400px repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
-.chart-col{display:flex;flex-direction:column;gap:10px}
-.chart-col > .panel{display:flex;flex-direction:column;overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
 .chart-wrap{position:relative;height:280px}
 
-/* ── 1100px 이하: 좌측 고정 400px → 비율 축소 시작 ── */
-@media(max-width:1100px){
-  .row-a{grid-template-columns:360px minmax(0,1fr)}
-  .row-b-basic{grid-template-columns:360px minmax(0,1fr) minmax(0,1fr)}
-  .row-b-datcom{grid-template-columns:360px minmax(0,1fr)}
-  .kpi-row{grid-template-columns:360px repeat(3,minmax(0,1fr))}
+/* ── 1200px 이하: 3열 → 2열 (트림·차트 전체폭) ── */
+@media(max-width:1200px){
+  .row-main{grid-template-columns:1fr 1fr}
+  .row-main > .panel:nth-child(3){grid-column:1/-1}
+  .row-bottom{grid-template-columns:1fr 1fr}
+  .row-bottom > .panel:first-child{grid-column:1/-1}
   .chart-wrap{height:240px}
 }
 
-/* ── 960px 이하: 2열 → 1열 스택 ── */
+/* ── 960px 이하: 1열 스택 ── */
 @media(max-width:960px){
-  .row-a{grid-template-columns:1fr}
-  .row-b-basic{grid-template-columns:1fr 1fr}
-  .row-b-datcom{grid-template-columns:1fr}
-  .row-c{grid-template-columns:1fr}
+  .row-main{grid-template-columns:1fr}
+  .row-main > .panel:nth-child(3){grid-column:auto}
   .kpi-row{grid-template-columns:1fr 1fr}
+  .kpi-row > .kpi:first-child{grid-column:1/-1}
   .chart-wrap{height:220px}
 }
 
@@ -393,15 +440,14 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 @media(max-width:600px){
   body{padding:0 12px 24px}
   .titlebar{padding:0 10px;margin:0 -12px 16px}
-  .row-b-basic{grid-template-columns:1fr}
-  .row-c{grid-template-columns:1fr}
-  .kpi-row{grid-template-columns:1fr 1fr}
+  .row-bottom{grid-template-columns:1fr}
   .chart-wrap{height:180px}
   .ac-bar{padding:8px 10px}
   .surf-bar{flex-wrap:wrap}
   .surf-btn{min-width:60px}
   .fgrid.fg4{grid-template-columns:1fr 1fr}
-  .diag-grid{grid-template-columns:1fr}
+  .fgrid.fg3{grid-template-columns:1fr 1fr}
+  .diag-2col{grid-template-columns:1fr}
   .mode-toggle{flex-wrap:wrap}
 }
 </style>
@@ -436,14 +482,14 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     </svg>
   </div>
 
-  <span class="t-title">힌지모멘트 & 액추에이터 사이징</span>
+  <span class="t-title">힌지모멘트 계산기</span>
 </div>
 
 <!-- Header -->
 <div class="page-header">
-  <div class="eyebrow">Control Surface · DATCOM · BLDC Servo Sizing</div>
+  <div class="eyebrow">Control Surface · DATCOM</div>
   <h1>힌지모멘트 계산기</h1>
-  <p>기체 타입별 조종면 힌지모멘트 · DATCOM 보정 · 서보 사이징 · 전력 산정</p>
+  <p>기체 타입별 조종면 힌지모멘트 · DATCOM 보정</p>
 </div>
 
 <!-- AC type -->
@@ -464,31 +510,29 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <div class="kpi-lbl">힌지모멘트 H</div>
     <div class="kpi-val" id="k-hm">—<span class="u">N·m</span></div>
     <div class="kpi-sub" id="k-regime">—</div>
+    <div class="kpi-sub" id="k-regime2">—</div>
   </div>
-  <div class="kpi">
-    <div class="kpi-lbl">설계 토크 (출력축)</div>
-    <div class="kpi-val" id="k-torque">—<span class="u">N·m</span></div>
-    <div class="kpi-sub" id="k-torque-sub">안전계수 적용</div>
+  <div class="kpi trim1">
+    <div class="kpi-lbl">최대속도 트림 타각 δ</div>
+    <div class="kpi-val" id="k-tr1">—<span class="u">°</span></div>
+    <div class="kpi-sub" id="k-tr1-sub">n = 1</div>
+    <div class="kpi-sub" id="k-tr1-sub2"></div>
   </div>
-  <div class="kpi purple">
-    <div class="kpi-lbl">필요 전력</div>
-    <div class="kpi-val" id="k-power">—<span class="u">W</span></div>
-    <div class="kpi-sub" id="k-power-sub">효율 반영</div>
-  </div>
-  <div class="kpi">
-    <div class="kpi-lbl">동압 q</div>
-    <div class="kpi-val" id="k-q">—<span class="u">Pa</span></div>
-    <div class="kpi-sub" id="k-mach">Mach —</div>
+  <div class="kpi trim2">
+    <div class="kpi-lbl">최대속도 · 최대하중배수 타각 δ</div>
+    <div class="kpi-val" id="k-tr2">—<span class="u">°</span></div>
+    <div class="kpi-sub" id="k-tr2-sub">—</div>
+    <div class="kpi-sub" id="k-tr2-sub2"></div>
   </div>
 </div>
 
-<!-- ── ROW A ── -->
-<div class="row-a">
+<!-- ── 메인 3파트: 비행조건·CH / 속도×타각 테이블 / 트림 타각 ── -->
+<div class="row-main">
 
   <!-- LEFT: flight params + atmosphere -->
   <div class="panel">
     <div class="p-title-row">
-      <span class="sec-name">비행 조건</span>
+      <span class="sec-name"><i class="sec-dot dot-blue"></i>비행 조건</span>
       <div class="mode-toggle">
         <button class="mode-btn-basic on" id="mode-basic"  onclick="setMode('basic')">기본</button>
         <button class="mode-btn-datcom"   id="mode-datcom" onclick="setMode('datcom')">DATCOM 보정</button>
@@ -507,7 +551,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         <div class="slider-row">
           <div class="slider-hd">
             <span class="slider-name">에어스피드 V</span>
-            <div class="inp-box"><input type="number" id="n-spd" min="1" max="300" step="1" value="50"><span class="u">m/s</span></div>
+            <div class="inp-box"><input type="number" id="n-spd" step="1" value="50"><select id="spd-unit" class="u-sel"><option value="ms">m/s</option><option value="kmh">km/h</option><option value="M">M</option></select></div>
           </div>
           <input type="range" id="s-spd" min="1" max="300" step="1" value="50">
         </div>
@@ -530,6 +574,103 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       </div>
     </div>
 
+
+    <div class="divider"></div>
+    <!-- C_H 계수 (기본 모드) -->
+    <div id="panel-ch-basic">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="p-title" style="margin-bottom:0"><i class="sec-dot dot-purple"></i>C<sub>H</sub> 계수</span>
+        <select class="ch-unit-sel tr-unit-sel"><option value="deg">/° 단위</option><option value="rad">/rad 단위</option></select>
+      </div>
+      <div class="fgrid fg2">
+        <div class="field">
+          <label>CH,0</label>
+          <input type="number" id="f-ch0" value="0" step="0.00001">
+          <div class="sub">영위 계수</div>
+        </div>
+        <div class="field">
+          <label>CH,δ</label>
+          <input type="number" id="f-chd" value="-0.00600" step="0.00001">
+          <div class="sub" id="sub-chd">편향각 계수 (/°)</div>
+        </div>
+        <div class="field">
+          <label>CH,α</label>
+          <input type="number" id="f-cha" value="-0.00350" step="0.00001">
+          <div class="sub" id="sub-cha">받음각 계수 (/°)</div>
+        </div>
+        <div class="field">
+          <label>받음각 α</label>
+          <div class="inp-pair">
+            <input type="number" id="f-alpha" value="3" step="0.5" min="-20" max="20">
+            <span class="u">°</span>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:8px">표준 형상 가정으로 산출된 추정값입니다. 실제 항공기 형상에 맞춰 정밀 계산하려면 DATCOM 보정 모드를 사용하세요.</div>
+    </div>
+    <!-- DATCOM 형상 (DATCOM 모드) -->
+    <div id="panel-ch-datcom" class="hide">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="p-title" style="margin-bottom:0"><i class="sec-dot dot-purple"></i>DATCOM 형상 파라미터</span>
+        <div class="dc-out-row">
+          <span class="dc-chip">C<sub>H,0</sub> <b id="dc-out-ch0">—</b></span>
+          <span class="dc-chip">C<sub>H,δ</sub> <b id="dc-out-chd">—</b></span>
+          <span class="dc-chip">C<sub>H,α</sub> <b id="dc-out-cha">—</b></span>
+          <select class="ch-unit-sel tr-unit-sel"><option value="deg">/° 단위</option><option value="rad">/rad 단위</option></select>
+        </div>
+      </div>
+      <div class="fgrid fg2">
+        <div class="field">
+          <label>cf/c · 시위비</label>
+          <input type="number" id="dc-cf" value="0.25" step="0.01" min="0.05" max="0.5">
+        </div>
+        <div class="field">
+          <label>t/c · 두께비</label>
+          <input type="number" id="dc-tc" value="0.12" step="0.01" min="0.04" max="0.20">
+        </div>
+        <div class="field">
+          <label>xh/cf · 힌지위치</label>
+          <input type="number" id="dc-hinge" value="0.0" step="0.05" min="-0.3" max="0.5">
+        </div>
+        <div class="field">
+          <label>밸런스</label>
+          <input type="number" id="dc-balance" value="0.0" step="0.05" min="0.0" max="0.4">
+        </div>
+        <div class="field">
+          <label>ηi · 내측 위치</label>
+          <input type="number" id="dc-spani" value="0.6" step="0.05" min="0" max="1">
+        </div>
+        <div class="field">
+          <label>ηo · 외측 위치</label>
+          <input type="number" id="dc-spano" value="0.95" step="0.05" min="0" max="1">
+        </div>
+        <div class="field">
+          <label>AR · 종횡비</label>
+          <input type="number" id="dc-ar" value="6.0" step="0.5" min="2" max="15">
+        </div>
+        <div class="field">
+          <label>Λ · 후퇴각 (°)</label>
+          <input type="number" id="dc-sweep" value="0" step="1" min="0" max="45">
+        </div>
+        <div class="field">
+          <label>받음각 α</label>
+          <div class="inp-pair"><input type="number" id="f-alpha-d" value="3" step="0.5" min="-20" max="20"><span class="u">°</span></div>
+        </div>
+        <div class="field vtail-only hide">
+          <label>Γ · V-tail 경사각 (°)</label>
+          <input type="number" id="dc-dihedral" value="35" step="1" min="20" max="55">
+        </div>
+        <div class="field allmv-only hide">
+          <label>xp/c · 피벗위치</label>
+          <input type="number" id="dc-pivot" value="0.25" step="0.01" min="0.0" max="0.5">
+        </div>
+      </div>
+      <div class="vtail-box vtail-only hide" id="vtail-box">
+        <div class="vtail-row"><span class="vtail-k">피치 분배 (cos Γ)</span><span class="vtail-v" id="vt-pitch">—</span></div>
+        <div class="vtail-row"><span class="vtail-k">요 분배 (sin Γ)</span><span class="vtail-v" id="vt-yaw">—</span></div>
+      </div>
+      <div class="note" style="margin-top:8px">아음속(Mach ≤ 0.8) 적용. C<sub>H</sub> 계수는 형상으로부터 자동 산출됩니다. 필드 클릭 시 아래 도식이 강조됩니다.</div>
+    </div>
     <div class="divider"></div>
     <div style="margin-bottom:7px">
       <span class="p-title" style="display:inline-block;margin-bottom:0;margin-right:6px">대기 조건 (ISA)</span>
@@ -563,310 +704,62 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     </div>
   </div>
 
-  <!-- RIGHT: chart stacked with compare cards -->
-  <div class="chart-col">
-    <div class="panel">
-      <div class="chart-header">
-        <span class="chart-title">파라미터 감도</span>
-        <div class="chart-tabs">
-          <button class="ct on" id="tb-spd"  onclick="setTab('spd')">속도 vs H</button>
-          <button class="ct"    id="tb-def"  onclick="setTab('def')">편향각 vs H</button>
-          <button class="ct"    id="tb-area" onclick="setTab('area')">면적 vs H</button>
-        </div>
-      </div>
-      <div class="chart-wrap"><canvas id="hmChart"></canvas></div>
-      <!-- Formula footnote -->
-      <div class="chart-footnote">
-        <span class="fn-label">공식</span>
-        <span class="fn-eq"><var>H</var> = <var>C<sub>H</sub></var> · <var>q</var> · <var>S<sub>f</sub></var> · <var>c̄</var></span>
-        <span class="fn-sep">·</span>
-        <span class="fn-eq"><var>C<sub>H</sub></var> = <var>C<sub>H,0</sub></var> + <var>C<sub>H,δ</sub></var>δ + <var>C<sub>H,α</sub></var>α</span>
-        <span class="fn-sep">·</span>
-        <span class="fn-eq"><var>q</var> = ½<var>ρV</var>²</span>
-        <span class="fn-sep">·</span>
-        <span class="fn-eq"><var>P</var> = <var>T</var> · <var>ω̇</var> / <var>η</var></span>
-      </div>
-    </div>
 
-  </div>
-</div>
-
-<!-- ── ROW B basic ── -->
-<div class="row-b-basic" id="row-b-basic">
-  <!-- Col 1: CH coefficients -->
-  <div class="panel">
-    <div class="p-title-row">
-      <span class="sec-name">C<sub>H</sub> 계수</span>
-    </div>
-    <div class="fgrid fg2">
-      <div class="field">
-        <label>CH,0</label>
-        <input type="number" id="f-ch0" value="0" step="0.00001">
-        <div class="sub">영위 계수</div>
-      </div>
-      <div class="field">
-        <label>CH,δ</label>
-        <input type="number" id="f-chd" value="-0.00600" step="0.00001">
-        <div class="sub">편향각 계수 (/°)</div>
-      </div>
-      <div class="field">
-        <label>CH,α</label>
-        <input type="number" id="f-cha" value="-0.00350" step="0.00001">
-        <div class="sub">받음각 계수 (/°)</div>
-      </div>
-      <div class="field">
-        <label>받음각 α</label>
-        <div class="inp-pair">
-          <input type="number" id="f-alpha" value="3" step="0.5" min="-20" max="20">
-          <span class="u">°</span>
-        </div>
-      </div>
-    </div>
-    <div class="note">표준 형상 가정으로 산출된 추정값입니다. 실제 항공기 형상에 맞춰 정밀 계산하려면 DATCOM 보정 모드를 사용하세요.</div>
-  </div>
-  <!-- Col 2: intermediate calc -->
-  <div class="panel">
-    <div class="p-title">중간 계산값</div>
-    <div class="dl">
-      <div class="dlr"><span class="dk">밀도 ρ</span><span class="dv" id="d-rho">—</span></div>
-      <div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q">—</span></div>
-      <div class="dlr"><span class="dk">CH,0</span><span class="dv" id="d-ch0">—</span></div>
-      <div class="dlr"><span class="dk">CH,δ · δ</span><span class="dv" id="d-chd">—</span></div>
-      <div class="dlr"><span class="dk">CH,α · α</span><span class="dv" id="d-cha">—</span></div>
-      <div class="dlr"><span class="dk">CH 합산</span><span class="dv" id="d-ch">—</span></div>
-      <div class="dlr"><span class="dk">q · Sf</span><span class="dv" id="d-load">—</span></div>
-    </div>
-  </div>
-  <!-- Col 3: ISA atmosphere -->
-  <div class="panel">
-    <div class="p-title">ISA 대기</div>
-    <div class="dl">
-      <div class="dlr"><span class="dk">ISA 밀도</span><span class="dv" id="d-rho-isa">—</span></div>
-      <div class="dlr"><span class="dk">온도 T</span><span class="dv" id="d-temp">—</span></div>
-      <div class="dlr"><span class="dk">음속 a</span><span class="dv" id="d-sos">—</span></div>
-      <div class="dlr"><span class="dk">Mach</span><span class="dv" id="d-mach2">—</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── ROW B datcom ── -->
-<div class="row-b-datcom hide" id="row-b-datcom">
-  <!-- Col 1: shape params -->
-  <div class="panel">
-    <div class="p-title-row">
-      <span class="sec-name">DATCOM 형상 파라미터</span>
-    </div>
-    <div class="fgrid fg2">
-      <div class="field">
-        <label>cf/c · 시위비</label>
-        <input type="number" id="dc-cf" value="0.25" step="0.01" min="0.05" max="0.5">
-      </div>
-      <div class="field">
-        <label>t/c · 두께비</label>
-        <input type="number" id="dc-tc" value="0.12" step="0.01" min="0.04" max="0.20">
-      </div>
-      <div class="field">
-        <label>xh/cf · 힌지위치</label>
-        <input type="number" id="dc-hinge" value="0.0" step="0.05" min="-0.3" max="0.5">
-      </div>
-      <div class="field">
-        <label>밸런스</label>
-        <input type="number" id="dc-balance" value="0.0" step="0.05" min="0.0" max="0.4">
-      </div>
-      <div class="field">
-        <label>ηi · 내측 위치</label>
-        <input type="number" id="dc-spani" value="0.6" step="0.05" min="0" max="1">
-      </div>
-      <div class="field">
-        <label>ηo · 외측 위치</label>
-        <input type="number" id="dc-spano" value="0.95" step="0.05" min="0" max="1">
-      </div>
-      <div class="field">
-        <label>AR · 종횡비</label>
-        <input type="number" id="dc-ar" value="6.0" step="0.5" min="2" max="15">
-      </div>
-      <div class="field">
-        <label>Λ · 후퇴각 (°)</label>
-        <input type="number" id="dc-sweep" value="0" step="1" min="0" max="45">
-      </div>
-      <div class="field vtail-only hide">
-        <label>Γ · V-tail 경사각 (°)</label>
-        <input type="number" id="dc-dihedral" value="35" step="1" min="20" max="55">
-      </div>
-      <div class="field allmv-only hide">
-        <label>xp/c · 피벗위치</label>
-        <input type="number" id="dc-pivot" value="0.25" step="0.01" min="0.0" max="0.5">
-      </div>
-    </div>
-    <div class="vtail-box vtail-only hide" id="vtail-box">
-      <div class="vtail-row"><span class="vtail-k">피치 분배 (cos Γ)</span><span class="vtail-v" id="vt-pitch">—</span></div>
-      <div class="vtail-row"><span class="vtail-k">요 분배 (sin Γ)</span><span class="vtail-v" id="vt-yaw">—</span></div>
-    </div>
-    <div class="note">아음속(Mach ≤ 0.8) 적용. 필드 클릭 시 도식 강조됨.</div>
-  </div>
-
-  <!-- Right: large diagrams + coeff/compare below -->
-  <div>
-    <div class="panel" style="margin-bottom:10px">
-      <div class="p-title-row" style="margin-bottom:12px">
-        <span class="sec-name">형상 도식</span>
-        <span style="font-size:10px;color:var(--text3)">필드 클릭 시 해당 파라미터 강조</span>
-      </div>
-      <!-- Two large diagrams side-by-side -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <div class="diag-box">
-          <div class="diag-lbl">단면도 — Section View</div>
-          <svg id="diag-section" viewBox="0 0 360 220" style="width:100%;height:160px"></svg>
-        </div>
-        <div class="diag-box">
-          <div class="diag-lbl">평면도 — Planform View</div>
-          <svg id="diag-planform" viewBox="-5 0 375 280" style="width:100%;height:160px"></svg>
-        </div>
-      </div>
-      <!-- Extra diagram (V-tail / all-moving) full width -->
-      <div id="diag-extra-wrap" class="hide">
-        <div class="diag-box">
-          <div class="diag-lbl" id="diag-extra-lbl">추가 도식</div>
-          <svg id="diag-extra" viewBox="0 0 720 150" style="width:100%;height:auto"></svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- CH coeff + intermediate in 2-col strip -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <!-- DATCOM coefficients + alpha -->
-      <div class="panel">
-        <div class="p-title" style="margin-bottom:8px">C<sub>H</sub> 계수 <span style="font-weight:400;color:var(--accent);text-transform:none;letter-spacing:0;font-size:10px">자동</span></div>
-        <div class="dl">
-          <div class="dlr"><span class="dk">CH,0</span><span class="dv" id="dc-out-ch0">—</span></div>
-          <div class="dlr"><span class="dk">CH,δ</span><span class="dv" id="dc-out-chd">—</span></div>
-          <div class="dlr"><span class="dk">CH,α</span><span class="dv" id="dc-out-cha">—</span></div>
-        </div>
-        <div class="divider"></div>
-        <div class="field">
-          <label>받음각 α</label>
-          <div class="inp-pair"><input type="number" id="f-alpha-d" value="3" step="0.5" min="-20" max="20"><span class="u">°</span></div>
-        </div>
-        <input type="number" id="f-ch0-d" style="display:none" readonly>
-        <input type="number" id="f-chd-d" style="display:none" readonly>
-        <input type="number" id="f-cha-d" style="display:none" readonly>
-      </div>
-      <!-- Intermediate calc -->
-      <div class="panel">
-        <div class="p-title" style="margin-bottom:8px">중간 계산값</div>
-        <div class="dl">
-          <div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q-d">—</span></div>
-          <div class="dlr"><span class="dk">C<sub>H</sub> 합산</span><span class="dv" id="d-ch-d">—</span></div>
-          <div class="dlr"><span class="dk">q·S<sub>f</sub></span><span class="dv" id="d-load-d">—</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── ROW C: Servo + Battery ── -->
-<div class="row-c">
-  <div class="panel">
-    <div class="p-title-row" style="margin-bottom:10px">
-      <span class="sec-name">BLDC 서보 사이징</span>
-    </div>
-    <div class="fgrid fg4">
-      <div class="field"><label>SF</label><input type="number" id="f-sf" value="1.25" step="0.05" min="1.0" max="3.0"><div class="sub">안전계수</div></div>
-      <div class="field"><label>기어비 N</label><input type="number" id="f-gear" value="100" step="1" min="1" max="1000"></div>
-      <div class="field"><label>속도 ω̇</label><input type="number" id="f-rate" value="60" step="5" min="1" max="500"><div class="sub">°/s</div></div>
-      <div class="field"><label>효율 η</label><input type="number" id="f-eff" value="0.75" step="0.05" min="0.3" max="1.0"></div>
-    </div>
-    <div class="divider"></div>
-    <div class="p-title" style="margin-bottom:8px">결과</div>
-    <div class="dl">
-      <div class="dlr"><span class="dk">설계 토크 (H × SF)</span><span class="dv" id="d-torque-design">—</span></div>
-      <div class="dlr"><span class="dk">모터 토크 (역산)</span><span class="dv" id="d-torque-motor">—</span></div>
-      <div class="dlr"><span class="dk">기계 출력 T·ω̇</span><span class="dv" id="d-power-mech">—</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="p-title-row" style="margin-bottom:10px">
-      <span class="sec-name">전력 & 용량 산정</span>
-    </div>
-    <div class="fgrid fg4">
-      <div class="field">
-        <label>전력 소비<span id="pw-badge" class="mini-badge mb-blue">자동</span></label>
-        <input type="number" id="f-power-w" value="0" step="0.1" min="0">
-        <div class="sub">W</div>
-      </div>
-      <div class="field">
-        <label>공급 전압</label>
-        <input type="number" id="f-volt" value="28" step="0.1" min="3" max="100">
-        <div class="sub">V</div>
-      </div>
-      <div class="field">
-        <label>비행 시간</label>
-        <input type="number" id="f-duty" value="30" step="1" min="1" max="600">
-        <div class="sub">분</div>
-      </div>
-      <div class="field">
-        <label>듀티 사이클</label>
-        <input type="number" id="f-duty-pct" value="20" step="5" min="1" max="100">
-        <div class="sub">%</div>
-      </div>
-    </div>
-    <div class="divider"></div>
-    <div class="p-title" style="margin-bottom:8px">전력 산정</div>
-    <div class="dl">
-      <div class="dlr"><span class="dk">전류</span><span class="dv" id="d-current">—</span></div>
-      <div class="dlr"><span class="dk">용량 (이 조종면)</span><span class="dv" id="d-cap">—</span></div>
-      <div class="dlr"><span class="dk">전체 조종면 합산</span><span class="dv" id="d-cap-total">—</span></div>
-    </div>
-  </div>
-</div>
 
 <!-- ── 속도 × 타각 힌지모멘트 테이블 (팝업 런처) ── -->
 <div class="panel htable-panel">
-  <div class="p-title-row" style="margin-bottom:10px">
-    <span class="sec-name">속도 × 타각 힌지모멘트 테이블</span>
+  <div class="p-title-row">
+    <span class="sec-name"><i class="sec-dot dot-indigo"></i>속도 × 타각 힌지모멘트 테이블</span>
   </div>
   <div class="htable-controls">
-    <div class="field">
-      <label>기준 H (한계값)</label>
-      <input type="number" id="ht-limit" value="10" step="0.5" min="0.1">
-      <div class="sub">N·m — 초과 시 음영</div>
+    <div>
+      <div class="htc-lbl">속도 범위 (m/s)</div>
+      <div class="fgrid fg3">
+        <div class="field">
+          <label>시작</label>
+          <input type="number" id="ht-v0" value="50" step="5" min="1" max="300">
+        </div>
+        <div class="field">
+          <label>상한<span id="ht-v1-badge" style="color:#2563eb;font-weight:600;font-size:9.5px">자동</span></label>
+          <input type="number" id="ht-v1" value="55" step="5" min="1" max="400">
+        </div>
+        <div class="field">
+          <label>간격</label>
+          <input type="number" id="ht-vstep" value="5" step="5" min="1" max="100">
+        </div>
+      </div>
     </div>
-    <div class="field">
-      <label>속도 시작</label>
-      <input type="number" id="ht-v0" value="50" step="5" min="1" max="300">
-      <div class="sub">m/s</div>
+    <div>
+      <div class="htc-lbl">타각 범위 (°)</div>
+      <div class="fgrid fg3">
+        <div class="field">
+          <label>최소</label>
+          <input type="number" id="ht-dmin" value="-20" step="1" min="-30" max="30">
+        </div>
+        <div class="field">
+          <label>최대</label>
+          <input type="number" id="ht-dmax" value="20" step="1" min="-30" max="30">
+        </div>
+        <div class="field">
+          <label>간격</label>
+          <input type="number" id="ht-dstep" value="1" step="0.1" min="0.1" max="10">
+        </div>
+      </div>
     </div>
-    <div class="field">
-      <label>속도 상한</label>
-      <input type="number" id="ht-v1" value="55" step="5" min="1" max="400">
-      <div class="sub">m/s <span id="ht-v1-badge" style="color:#2563eb;font-weight:600">자동</span></div>
+    <div class="htc-bottom">
+      <div class="field">
+        <label>기준 |H| 한계 (N·m)</label>
+        <input type="number" id="ht-limit" value="10" step="0.5" min="0.1">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="htable-btn" id="ht-gen">테이블 생성 (팝업)</button>
+      </div>
     </div>
-    <div class="field">
-      <label>속도 간격</label>
-      <input type="number" id="ht-vstep" value="5" step="5" min="1" max="100">
-      <div class="sub">m/s</div>
-    </div>
-    <div class="field">
-      <label>타각 최소</label>
-      <input type="number" id="ht-dmin" value="-20" step="1" min="-30" max="30">
-      <div class="sub">°</div>
-    </div>
-    <div class="field">
-      <label>타각 최대</label>
-      <input type="number" id="ht-dmax" value="20" step="1" min="-30" max="30">
-      <div class="sub">°</div>
-    </div>
-    <div class="field">
-      <label>타각 간격</label>
-      <input type="number" id="ht-dstep" value="1" step="0.1" min="0.1" max="10">
-      <div class="sub">°</div>
-    </div>
-    <button class="htable-btn" id="ht-gen">테이블 생성 (팝업)</button>
   </div>
   <div class="ht-aoabox" id="ht-aoabox">
     <div class="aoa-row">
-      <span><b>📐 받음각 α(V) 근사식</b></span>
+      <span><b>받음각 α(V) 근사식</b></span>
       <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <span id="aoa-fit-info"></span>
         <label class="aoa-toggle"><input type="checkbox" id="aoa-enable"> 테이블에 α(V) 적용</label>
@@ -889,7 +782,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   </div>
   <div class="ht-linkbox" id="ht-linkbox">
     <div class="lk-row">
-      <span><b>⛓ 4바 링키지 연동</b> <span id="lk-summary" style="font-variant-numeric:tabular-nums"></span></span>
+      <span><b>4바 링키지 연동</b> <span id="lk-summary" style="font-variant-numeric:tabular-nums"></span></span>
       <span style="display:flex;gap:8px;align-items:center">
         <label class="lk-toggle"><input type="checkbox" id="lk-enable" checked> 링키지 한계 사용</label>
         <button class="lk-btn" id="lk-clear">연동 해제</button>
@@ -897,7 +790,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       </span>
     </div>
     <div class="lk-edit" id="lk-edit">
-      <div class="lk-edit-note">🔓 연동 해제됨 — 4바 링키지 값을 직접 수정할 수 있습니다. (기본값은 연동으로 전달된 값)</div>
+      <div class="lk-edit-note">연동 해제됨 — 4바 링키지 값을 직접 수정할 수 있습니다. (기본값은 연동으로 전달된 값)</div>
       <div class="lk-edit-grid">
         <div class="lk-field"><label>a (크랭크)</label><input type="number" id="lke-a" step="0.5" min="0.1"><span class="lk-u">mm</span></div>
         <div class="lk-field"><label>b (커플러)</label><input type="number" id="lke-b" step="0.5" min="0.1"><span class="lk-u">mm</span></div>
@@ -915,6 +808,146 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     </div>
   </div>
   <div class="note">현재 선택된 조종면과 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 계산됩니다. 속도 상한은 기본값으로 비행조건 속도 + 10%가 자동 입력되며, 직접 수정할 수 있습니다 (수정 후에는 자동 추적이 해제됩니다). 타각은 최소~최대 범위(음수 포함)로 설정할 수 있습니다. DATCOM 모드에서는 타각별 K_def 비선형 보정이 반영됩니다. |H| 기준으로 판정합니다. 4바 링키지 해석기에서 "힌지모멘트 계산기로 보내기"를 실행하면 타각별 가변 한계값이 자동 연동됩니다. "연동 해제"를 누르면 전달받은 링키지 값이 채워진 입력칸이 열려 직접 수정할 수 있고, "재연동"으로 원래 전송값으로 복귀할 수 있습니다.</div>
+</div>
+
+<!-- ── 트림 타각 계산 ── -->
+<div class="panel trim-panel">
+  <div class="p-title-row">
+    <span class="sec-name"><i class="sec-dot dot-orange"></i>트림 타각 계산</span>
+    <span style="font-size:10px;color:var(--text3)">종방향 공력 미분계수 기반 — C<sub>L</sub> · C<sub>m</sub> 동시 평형</span>
+  </div>
+  <div class="trim-grid">
+    <!-- 좌: 입력 -->
+    <div>
+      <div class="p-title" style="margin-bottom:8px">기체 & 조건</div>
+      <div class="fgrid fg2">
+        <div class="field">
+          <label>기체 질량 m</label>
+          <input type="number" id="tr-mass" value="100" step="0.5" min="0.1">
+          <div class="sub">kg</div>
+        </div>
+        <div class="field">
+          <label>기준 면적 S<sub>ref</sub></label>
+          <input type="number" id="tr-sref" value="1.20" step="0.01" min="0.01">
+          <div class="sub">m²</div>
+        </div>
+        <div class="field">
+          <label>최대속도 V<sub>max</sub></label>
+          <div class="inp-pair">
+            <input type="number" id="tr-vmax" value="220" step="1" min="0">
+            <select id="trv-unit" class="u-sel"><option value="ms">m/s</option><option value="kmh">km/h</option><option value="M">M</option></select>
+          </div>
+          <div class="sub"><span id="tr-vmax-badge" style="color:#2563eb;font-weight:600">자동</span> 비행속도 +10%</div>
+        </div>
+        <div class="field">
+          <label>최대 하중배수 n<sub>max</sub></label>
+          <input type="number" id="tr-nmax" value="3.5" step="0.5" min="1">
+          <div class="sub">g</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="p-title" style="margin-bottom:0">종방향 공력 미분계수</span>
+        <select id="tr-unit" class="tr-unit-sel">
+          <option value="rad">/rad 단위</option>
+          <option value="deg">/° 단위</option>
+        </select>
+      </div>
+      <div class="fgrid fg2">
+        <div class="field"><label>영받음각 양력계수</label><input type="number" id="tr-cl0" value="0.00" step="0.01"><div class="sub">C<sub>L,0</sub></div></div>
+        <div class="field"><label>양력곡선 기울기</label><input type="number" id="tr-cla" value="2.80" step="0.01"><div class="sub">C<sub>L,α</sub></div></div>
+        <div class="field"><label>타각 양력 미분계수</label><input type="number" id="tr-cld" value="0.60" step="0.01"><div class="sub">C<sub>L,δ</sub></div></div>
+        <div class="field"><label>영받음각 피칭모멘트 계수</label><input type="number" id="tr-cm0" value="0.00" step="0.001"><div class="sub">C<sub>m,0</sub></div></div>
+        <div class="field"><label>정적 종안정 미분계수</label><input type="number" id="tr-cma" value="-0.40" step="0.01"><div class="sub">C<sub>m,α</sub></div></div>
+        <div class="field"><label>조종력 미분계수</label><input type="number" id="tr-cmd" value="-0.50" step="0.01"><div class="sub">C<sub>m,δ</sub></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="chart-footnote">
+    <span class="fn-label">평형식</span>
+    <span class="fn-eq"><var>C<sub>L,req</sub></var> = <var>n·m·g</var> / (<var>q·S<sub>ref</sub></var>)</span>
+    <span class="fn-sep">·</span>
+    <span class="fn-eq"><var>C<sub>L,0</sub></var> + <var>C<sub>L,α</sub></var>α + <var>C<sub>L,δ</sub></var>δ = <var>C<sub>L,req</sub></var></span>
+    <span class="fn-sep">·</span>
+    <span class="fn-eq"><var>C<sub>m,0</sub></var> + <var>C<sub>m,α</sub></var>α + <var>C<sub>m,δ</sub></var>δ = 0</span>
+    <span class="fn-sep">·</span>
+    <span class="fn-eq"><var>H</var> = <var>C<sub>H</sub></var>(δ,α) · <var>q</var> · <var>S<sub>f</sub></var> · <var>c̄</var></span>
+  </div>
+  <div class="note">2×2 선형계(양력·모멘트 평형)를 풀어 α와 δ를 동시에 구합니다. H는 현재 선택된 조종면의 S<sub>f</sub>, c̄와 현재 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 산출되며, V<sub>max</sub>는 기본적으로 비행조건 속도 + 10%를 자동 추적합니다. 4바 링키지가 연동되어 있으면 해당 타각에서의 가용 토크 한계와 비교 판정합니다. |δ| &gt; 30° 또는 |α| &gt; 20°는 선형 미분계수의 유효 범위를 벗어날 수 있습니다.</div>
+</div>
+
+</div>
+
+<!-- ── DATCOM 형상 도식 (DATCOM 모드 전용) ── -->
+<div class="panel hide" id="panel-diag" style="margin-bottom:10px">
+  <div class="p-title-row" style="margin-bottom:12px">
+    <span class="sec-name"><i class="sec-dot dot-purple"></i>형상 도식</span>
+    <span style="font-size:10px;color:var(--text3)">필드 클릭 시 해당 파라미터 강조</span>
+  </div>
+  <div class="diag-2col">
+    <div class="diag-box">
+      <div class="diag-lbl">단면도 — Section View</div>
+      <svg id="diag-section" viewBox="0 0 360 220" style="width:100%;height:160px"></svg>
+    </div>
+    <div class="diag-box">
+      <div class="diag-lbl">평면도 — Planform View</div>
+      <svg id="diag-planform" viewBox="-5 0 375 280" style="width:100%;height:160px"></svg>
+    </div>
+  </div>
+  <div id="diag-extra-wrap" class="hide" style="margin-top:10px">
+    <div class="diag-box">
+      <div class="diag-lbl" id="diag-extra-lbl">추가 도식</div>
+      <svg id="diag-extra" viewBox="0 0 720 150" style="width:100%;height:auto"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ── 하단: 파라미터 감도 & 중간 계산값 ── -->
+<div class="row-bottom">
+  <div class="panel">
+    <div class="chart-header">
+      <span class="chart-title"><i class="sec-dot dot-blue"></i>파라미터 감도</span>
+      <div class="chart-tabs">
+        <button class="ct on" id="tb-spd"  onclick="setTab('spd')">속도 vs H</button>
+        <button class="ct"    id="tb-def"  onclick="setTab('def')">편향각 vs H</button>
+        <button class="ct"    id="tb-area" onclick="setTab('area')">면적 vs H</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="hmChart"></canvas></div>
+    <div class="chart-footnote">
+      <span class="fn-label">공식</span>
+      <span class="fn-eq"><var>H</var> = <var>C<sub>H</sub></var> · <var>q</var> · <var>S<sub>f</sub></var> · <var>c̄</var></span>
+      <span class="fn-sep">·</span>
+      <span class="fn-eq"><var>C<sub>H</sub></var> = <var>C<sub>H,0</sub></var> + <var>C<sub>H,δ</sub></var>δ + <var>C<sub>H,α</sub></var>α</span>
+      <span class="fn-sep">·</span>
+      <span class="fn-eq"><var>q</var> = ½<var>ρV</var>²</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="p-title">중간 계산값</div>
+    <div class="dl">
+      <div class="dlr"><span class="dk">밀도 ρ</span><span class="dv" id="d-rho">—</span></div>
+      <div class="dlr"><span class="dk">q = ½ρV²</span><span class="dv" id="d-q">—</span></div>
+      <div class="dlr"><span class="dk">CH,0</span><span class="dv" id="d-ch0">—</span></div>
+      <div class="dlr"><span class="dk">CH,δ · δ</span><span class="dv" id="d-chd">—</span></div>
+      <div class="dlr"><span class="dk">CH,α · α</span><span class="dv" id="d-cha">—</span></div>
+      <div class="dlr"><span class="dk">CH 합산</span><span class="dv" id="d-ch">—</span></div>
+      <div class="dlr"><span class="dk">q · Sf</span><span class="dv" id="d-load">—</span></div>
+    </div>
+  </div>
+  <div class="panel" id="wt-panel">
+    <div class="p-title-row">
+      <span class="chart-title"><i class="sec-dot dot-teal"></i>풍동 시뮬레이션</span>
+      <span style="font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums" id="wt-cond">—</span>
+    </div>
+    <div class="wt-wrap"><canvas id="wtCanvas"></canvas></div>
+    <div class="wt-stats">
+      <span>온도 <b id="wt-temp">—</b></span>
+      <span>음속 <b id="wt-sos">—</b></span>
+      <span>Mach <b id="wt-mach">—</b></span>
+      <span>Re <b id="wt-re">—</b></span>
+    </div>
+  </div>
 </div>
 
 <!-- ── 테이블 팝업 모달 ── -->
@@ -972,7 +1005,7 @@ const AC_SURFACES={
          {id:'rud',      name:'러더',       ch0:0,chd:-.00373,cha:-.00223}],
 };
 let curAC='drone',curSurfId='elvon_out',surfStates={},mode='basic',tab='spd',chart=null;
-let rhoManual=false,powerManual=false;
+let rhoManual=false;
 
 // ── ISA ──────────────────────────────────────────────────────────────────────
 function isaRho(alt,dT=0){
@@ -1076,9 +1109,6 @@ function initState(s){
       dihedral: 35,
       pivot: std.pivot ?? .25,
     },
-    sf:1.25, gear:100, rate:60, eff:.75,
-    powerW:0, volt:28, duty:30, dutyPct:20,
-    powerManual:false,
   };
 }
 function getCurSurf(){return AC_SURFACES[curAC].find(s=>s.id===curSurfId);}
@@ -1118,13 +1148,50 @@ function setMode(m){
   mode=m;
   document.getElementById('mode-basic').classList.toggle('on',m==='basic');
   document.getElementById('mode-datcom').classList.toggle('on',m==='datcom');
-  document.getElementById('row-b-basic').classList.toggle('hide',m==='datcom');
-  document.getElementById('row-b-datcom').classList.toggle('hide',m==='basic');
+  document.getElementById('panel-ch-basic').classList.toggle('hide',m==='datcom');
+  document.getElementById('panel-ch-datcom').classList.toggle('hide',m==='basic');
+  document.getElementById('panel-diag').classList.toggle('hide',m==='basic');
   toggleACUI();if(m==='datcom')drawDiags();update();
 }
 
 // ── Sliders ───────────────────────────────────────────────────────────────────
-const PAIRS=[['s-area','n-area'],['s-spd','n-spd'],['s-def','n-def'],['s-mac','n-mac']];
+const PAIRS=[['s-area','n-area'],['s-def','n-def'],['s-mac','n-mac']];
+
+// ── 단위 시스템: 속도 (m/s · km/h · Mach), CH 계수 (/° · /rad) ────────────────
+// 내부 계산은 항상 m/s 및 /° 기준(canonical). 표시만 선택 단위로 변환.
+let Vcur=200, spdUnit='ms', trvUnit='ms', trVms=220, chUnit='deg';
+const SPD_LBL={ms:'m/s',kmh:'km/h',M:'M'};
+const R2D=180/Math.PI;
+function sosNow(){return Math.sqrt(1.4*287.05*isaT(+gv('f-alt')||0,+gv('f-dT')||0));}
+function spdTo(v,u){return u==='kmh'?v*3.6:u==='M'?v/sosNow():v;}
+function spdFrom(v,u){return u==='kmh'?v/3.6:u==='M'?v*sosNow():v;}
+function spdFmt(v,u){return u==='M'?(+v).toFixed(3):u==='kmh'?String(Math.round(v)):String(+(+v).toFixed(1));}
+function getVms(){return Vcur;}
+function chTo(v){return chUnit==='rad'?v*R2D:v;}      // canonical(/°) → 표시
+function chFrom(v){return chUnit==='rad'?v/R2D:v;}    // 표시 → canonical(/°)
+function refreshSpd(){
+  const sl=document.getElementById('s-spd'),ni=document.getElementById('n-spd');
+  sl.value=Math.min(+sl.max,Math.max(+sl.min,Vcur));
+  ni.value=spdFmt(spdTo(Vcur,spdUnit),spdUnit);
+  ni.step=spdUnit==='M'?0.001:spdUnit==='kmh'?5:1;
+  setPct(sl);
+}
+function refreshTrV(){
+  const el=document.getElementById('tr-vmax');if(!el)return;
+  el.value=spdFmt(spdTo(trVms,trvUnit),trvUnit);
+  el.step=trvUnit==='M'?0.001:trvUnit==='kmh'?5:1;
+}
+function setChUnit(u){
+  if(u===chUnit)return;
+  const chd=chFrom(gi('f-chd')), cha=chFrom(gi('f-cha'));   // 이전 단위 기준으로 canonical 복원
+  chUnit=u;
+  sv('f-chd',chTo(chd).toFixed(5));sv('f-cha',chTo(cha).toFixed(5));
+  const lbl=u==='rad'?'/rad':'/°', stp=u==='rad'?'0.001':'0.00001';
+  st('sub-chd','편향각 계수 ('+lbl+')');st('sub-cha','받음각 계수 ('+lbl+')');
+  document.getElementById('f-chd').step=stp;document.getElementById('f-cha').step=stp;
+  document.querySelectorAll('.ch-unit-sel').forEach(el=>el.value=u);
+  update();
+}
 function setPct(el){el.style.setProperty('--pct',((+el.value-+el.min)/(+el.max-+el.min)*100).toFixed(1)+'%');}
 PAIRS.forEach(([sid,nid])=>{
   const sl=document.getElementById(sid),ni=document.getElementById(nid);
@@ -1142,14 +1209,24 @@ PAIRS.forEach(([sid,nid])=>{
   });
   setPct(sl);
 });
+// 에어스피드: canonical(m/s)은 Vcur, 표시값은 선택 단위
+document.getElementById('s-spd').addEventListener('input',function(){Vcur=+this.value;refreshSpd();saveCur();update();});
+document.getElementById('n-spd').addEventListener('input',function(){
+  const v=+this.value;if(isNaN(v))return;
+  Vcur=Math.min(300,Math.max(1,spdFrom(v,spdUnit)));
+  const sl=document.getElementById('s-spd');sl.value=Vcur;setPct(sl);
+  saveCur();update();
+});
+document.getElementById('spd-unit').addEventListener('change',function(){spdUnit=this.value;refreshSpd();});
+document.querySelectorAll('.ch-unit-sel').forEach(el=>el.addEventListener('change',function(){setChUnit(this.value);}));
 
 // ── ISA / density ─────────────────────────────────────────────────────────────
 function recalcRho(){if(rhoManual)return;const alt=+gv('f-alt'),dT=+gv('f-dT');sv('f-rho',isaRho(alt,dT).toFixed(4));setBadge('rho-badge','자동','mb-blue');}
 function setDT(v){sv('f-dT',v);rhoManual=false;recalcRho();updateDTBadge(v);[-15,0,15,20,30].forEach(x=>{const b=document.getElementById('dtb-'+x);if(b)b.classList.toggle('on',x===v);});update();}
 function updateDTBadge(v){const b=document.getElementById('dT-badge');if(v===0){b.textContent='ISA';b.className='mini-badge mb-green';}else if(v>0){b.textContent='ISA+'+v;b.className='mini-badge mb-red';}else{b.textContent='ISA'+v;b.className='mini-badge mb-blue';}}
 function setBadge(id,text,cls){const el=document.getElementById(id);if(el){el.textContent=text;el.className='mini-badge '+cls;}}
-document.getElementById('f-alt').addEventListener('input',()=>{rhoManual=false;recalcRho();saveCur();update();});
-document.getElementById('f-dT').addEventListener('input',()=>{rhoManual=false;recalcRho();updateDTBadge(+gv('f-dT'));saveCur();update();});
+document.getElementById('f-alt').addEventListener('input',()=>{rhoManual=false;recalcRho();if(spdUnit==='M')refreshSpd();if(trvUnit==='M')refreshTrV();saveCur();update();});
+document.getElementById('f-dT').addEventListener('input',()=>{rhoManual=false;recalcRho();updateDTBadge(+gv('f-dT'));if(spdUnit==='M')refreshSpd();if(trvUnit==='M')refreshTrV();saveCur();update();});
 document.getElementById('f-rho').addEventListener('input',()=>{rhoManual=true;setBadge('rho-badge','수동','mb-orange');saveCur();update();});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1164,32 +1241,29 @@ function rnd(v, step){return Math.round(v/step)*step;}
 function getInputs(){
   return{
     area: rnd(gi('n-area'), 0.00001),
-    V:    rnd(gi('n-spd'),  0.1),
+    V:    rnd(getVms(),     0.1),
     def:  rnd(gi('n-def'),  0.01),
     mac:  rnd(gi('n-mac'),  0.001),
-    ch0:gi('f-ch0'),chd:gi('f-chd'),cha:gi('f-cha'),alpha:gi('f-alpha'),
+    ch0:gi('f-ch0'),chd:chFrom(gi('f-chd')),cha:chFrom(gi('f-cha')),alpha:gi('f-alpha'),
     rho:gi('f-rho'),alt:gi('f-alt'),dT:gi('f-dT'),
-    sf:gi('f-sf'),gear:gi('f-gear'),rate:gi('f-rate'),eff:gi('f-eff'),
-    powerW:gi('f-power-w'),volt:gi('f-volt'),duty:gi('f-duty'),dutyPct:gi('f-duty-pct'),
     dc:{cf:gi('dc-cf'),tc:gi('dc-tc'),hinge:gi('dc-hinge'),balance:gi('dc-balance'),
         spani:gi('dc-spani'),spano:gi('dc-spano'),ar:gi('dc-ar'),sweep:gi('dc-sweep'),
         dihedral:gi('dc-dihedral'),pivot:gi('dc-pivot')}};
 }
-function saveCur(){const i=getInputs(),s=getCurState();Object.assign(s,{area:i.area,V:i.V,def:i.def,mac:i.mac,ch0:i.ch0,chd:i.chd,cha:i.cha,alpha:i.alpha,sf:i.sf,gear:i.gear,rate:i.rate,eff:i.eff,powerW:i.powerW,volt:i.volt,duty:i.duty,dutyPct:i.dutyPct,dc:{...i.dc},powerManual});}
+function saveCur(){const i=getInputs(),s=getCurState();Object.assign(s,{area:i.area,V:i.V,def:i.def,mac:i.mac,ch0:i.ch0,chd:i.chd,cha:i.cha,alpha:i.alpha,dc:{...i.dc}});}
 function loadCur(){
   const s=getCurState();
   // step 단위로 반올림한 후 슬라이더와 숫자 입력에 동시 적용 (부동소수점 누적 방지)
   const a=rnd(s.area,0.00001), V=rnd(s.V,0.1), d=rnd(s.def,0.01), m=rnd(s.mac,0.001);
-  sv('n-area',a);sv('s-area',a);sv('n-spd',V);sv('s-spd',V);sv('n-def',d);sv('s-def',d);sv('n-mac',m);sv('s-mac',m);
-  sv('f-ch0',(+s.ch0).toFixed(5));sv('f-chd',(+s.chd).toFixed(5));sv('f-cha',(+s.cha).toFixed(5));sv('f-alpha',s.alpha);
-  sv('f-sf',s.sf);sv('f-gear',s.gear);sv('f-rate',s.rate);sv('f-eff',s.eff);
-  sv('f-power-w',s.powerW);sv('f-volt',s.volt);sv('f-duty',s.duty);sv('f-duty-pct',s.dutyPct);
+  sv('n-area',a);sv('s-area',a);sv('n-def',d);sv('s-def',d);sv('n-mac',m);sv('s-mac',m);
+  Vcur=V;refreshSpd();
+  sv('f-ch0',(+s.ch0).toFixed(5));sv('f-chd',chTo(+s.chd).toFixed(5));sv('f-cha',chTo(+s.cha).toFixed(5));sv('f-alpha',s.alpha);
   sv('dc-cf',s.dc.cf);sv('dc-tc',s.dc.tc);sv('dc-hinge',s.dc.hinge);sv('dc-balance',s.dc.balance);
   sv('dc-spani',s.dc.spani);sv('dc-spano',s.dc.spano);sv('dc-ar',s.dc.ar);sv('dc-sweep',s.dc.sweep);
   sv('dc-dihedral',s.dc.dihedral);sv('dc-pivot',s.dc.pivot);
   PAIRS.forEach(([sid])=>setPct(document.getElementById(sid)));
-  powerManual=!!s.powerManual;setBadge('pw-badge',powerManual?'수동':'자동',powerManual?'mb-orange':'mb-blue');
   if(typeof syncHtV1==='function') syncHtV1(); // 탭 전환 시 속도 상한 자동 기본값 갱신
+  if(typeof syncTrVmax==='function') syncTrVmax(); // 트림 Vmax 자동 기본값 갱신
 }
 
 // ── Calc ──────────────────────────────────────────────────────────────────────
@@ -1204,9 +1278,7 @@ function getActiveCH(){
   const i=getInputs();
   if(mode==='datcom'){
     const o=datcomCH({...i.dc,type:getCurSurf().id}, i.def);
-    // DATCOM 모드 전용 표시 필드만 업데이트 (기본모드 UI f-ch0/chd/cha는 건드리지 않음)
-    sv('f-ch0-d',o.ch0.toFixed(5));sv('f-chd-d',o.chd.toFixed(5));sv('f-cha-d',o.cha.toFixed(5));
-    st('dc-out-ch0',o.ch0.toFixed(5));st('dc-out-chd',o.chd.toFixed(5));st('dc-out-cha',o.cha.toFixed(5));
+    st('dc-out-ch0',o.ch0.toFixed(5));st('dc-out-chd',chTo(o.chd).toFixed(5));st('dc-out-cha',chTo(o.cha).toFixed(5));
     return o;
   }
   return{ch0:i.ch0,chd:i.chd,cha:i.cha};
@@ -1221,27 +1293,22 @@ function update(){
   getCurState().lastH = r.H;
 
   document.getElementById('k-hm').innerHTML=r.H.toFixed(2)+'<span class="u">N·m</span>';
-  document.getElementById('k-regime').innerHTML=`<span class="badge ${rc}">${rt}</span> · ${surf.name}`;
-  document.getElementById('k-q').innerHTML=r.q.toFixed(0)+'<span class="u">Pa</span>';
-  st('k-mach','Mach '+r.mach.toFixed(3));
-  const Td=Math.abs(r.H)*i.sf,Tm=Td/Math.max(1,i.gear),w=i.rate*Math.PI/180,Pm=Td*w,Pe=Pm/Math.max(.01,i.eff);
-  document.getElementById('k-torque').innerHTML=Td.toFixed(2)+'<span class="u">N·m</span>';
-  st('k-torque-sub',`모터 ${(Tm*1000).toFixed(1)} mN·m · 기어비 ${i.gear}`);
-  document.getElementById('k-power').innerHTML=Pe.toFixed(2)+'<span class="u">W</span>';
-  st('k-power-sub',`기계 ${Pm.toFixed(2)} W · η=${(i.eff*100).toFixed(0)}%`);
-  if(!powerManual){sv('f-power-w',Pe.toFixed(2));setBadge('pw-badge','자동','mb-blue');}
-  const usedP=+gv('f-power-w'),Ia=usedP/Math.max(.1,i.volt),th=(i.duty*i.dutyPct/100)/60,cap=Ia*th;
-  st('d-current',Ia.toFixed(3)+' A');st('d-cap',(cap*1000).toFixed(1)+' mAh');
-  st('d-torque-design',Td.toFixed(3)+' N·m');st('d-torque-motor',(Tm*1000).toFixed(3)+' mN·m');st('d-power-mech',Pm.toFixed(3)+' W');
+  document.getElementById('k-regime').innerHTML=`<span class="badge ${rc}">${rt}</span> · ${surf.name} · δ = ${i.def}°`;
+  st('k-regime2',`q = ${r.q.toFixed(0)} Pa · M ${r.mach.toFixed(3)} · V = ${i.V} m/s`);
   st('d-rho',i.rho.toFixed(4)+' kg/m³');
+  // 풍동 패널: 온도/음속/Mach/Re + 시뮬레이션 파라미터 전달
   const Tisa=isaT(i.alt,i.dT),sos=Math.sqrt(1.4*287.05*Tisa);
-  st('d-rho-isa',isaRho(i.alt,i.dT).toFixed(4)+' kg/m³');
-  st('d-temp',Tisa.toFixed(1)+' K  /  '+(Tisa-273.15).toFixed(1)+' °C');
-  st('d-sos',sos.toFixed(1)+' m/s');st('d-mach2',r.mach.toFixed(4));
+  const mu=1.458e-6*Math.pow(Tisa,1.5)/(Tisa+110.4);      // Sutherland 점성
+  st('wt-temp',(Tisa-273.15).toFixed(1)+' °C');
+  st('wt-sos',sos.toFixed(1)+' m/s');
+  st('wt-mach',(i.V/sos).toFixed(3));
+  st('wt-re',(i.rho*i.V*i.mac/mu/1e6).toFixed(2)+'×10⁶');
+  st('wt-cond','V '+i.V+' m/s · α '+i.alpha+'° · δ '+i.def+'°');
+  if(typeof wtSet==='function') wtSet({V:i.V,def:i.def,alpha:i.alpha,
+    cf:(mode==='datcom'?i.dc.cf:0.25),tc:(mode==='datcom'?i.dc.tc:0.12)});
   st('d-q',r.q.toFixed(2)+' Pa');st('d-ch0',ch.ch0.toFixed(6));
   st('d-chd',r.chd_t.toFixed(6));st('d-cha',r.cha_t.toFixed(6));
   st('d-ch',r.CH.toFixed(6));st('d-load',r.load.toFixed(1)+' N');
-  st('d-q-d',r.q.toFixed(2)+' Pa');st('d-ch-d',r.CH.toFixed(6));st('d-load-d',r.load.toFixed(1)+' N');
   const fad=document.getElementById('f-alpha-d');if(fad)fad.value=i.alpha;
   if(surf.id==='rudvat'){
     const dh=i.dc.dihedral*Math.PI/180;
@@ -1251,6 +1318,7 @@ function update(){
 
   // 탭 H 표시 및 peak 갱신
   updateTabH();
+  if(typeof updateTrim==='function') updateTrim();
   if(mode==='datcom')drawDiags();drawChart();
 }
 
@@ -1259,7 +1327,6 @@ function updateTabH(){
   // (다른 탭을 재계산하지 않음 → 탭 전환해도 변하지 않음)
   const list=AC_SURFACES[curAC];
   let peakAbsH=0,peakId=null;
-  let totalCap=0;
 
   list.forEach(s=>{
     const s2=surfStates[curAC]&&surfStates[curAC][s.id];
@@ -1270,15 +1337,6 @@ function updateTabH(){
       else sh.innerHTML='—<span class="surf-h-unit">N·m</span>';
     }
     if(H!=null && Math.abs(H)>peakAbsH){peakAbsH=Math.abs(H);peakId=s.id;}
-
-    // 배터리 합산은 계산된 조종면만
-    if(s2){
-      const Td=Math.abs(s2.lastH||0)*s2.sf;
-      const Pe=Td*(s2.rate*Math.PI/180)/Math.max(.01,s2.eff);
-      const Ia=Pe/Math.max(.1,s2.volt);
-      const th=(s2.duty*s2.dutyPct/100)/60;
-      totalCap+=Ia*th;
-    }
   });
 
   list.forEach(s=>{
@@ -1287,7 +1345,6 @@ function updateTabH(){
     if(btn)btn.classList.toggle('peak',s.id===peakId);
     if(dot)dot.style.display=s.id===peakId?'block':'none';
   });
-  st('d-cap-total',(totalCap*1000).toFixed(1)+' mAh');
 }
 
 // ── Chart ─────────────────────────────────────────────────────────────────────
@@ -1661,11 +1718,10 @@ function hlDiag(key){
 });
 
 // ── Events ────────────────────────────────────────────────────────────────────
-['f-ch0','f-chd','f-cha','f-alpha','f-sf','f-gear','f-rate','f-eff','f-volt','f-duty','f-duty-pct',
+['f-ch0','f-chd','f-cha','f-alpha',
  'dc-cf','dc-tc','dc-hinge','dc-balance','dc-spani','dc-spano','dc-ar','dc-sweep','dc-dihedral','dc-pivot'
 ].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{saveCur();update();});});
 document.getElementById('f-alpha-d').addEventListener('input',()=>{sv('f-alpha',gv('f-alpha-d'));saveCur();update();});
-document.getElementById('f-power-w').addEventListener('input',()=>{powerManual=true;setBadge('pw-badge','수동','mb-orange');saveCur();update();});
 
 // ── 4바 링키지 연동 ──────────────────────────────────────────────────────────
 // 4-bar-linkage-torque.html 이 localStorage('hm_linkage_v1') 또는 URL 해시(#linkage=...)로
@@ -1713,6 +1769,7 @@ function lkUpdateLimitInput(){
   const on=lkActive();
   el.disabled=on;
   el.style.opacity=on?'.45':'1';
+  if(typeof updateTrim==='function') updateTrim();
 }
 function lkApply(obj){
   if(!obj||!isFinite(+obj.a)||!isFinite(+obj.T2)) return;
@@ -1849,7 +1906,7 @@ try{
 let htV1Manual=false;
 function syncHtV1(){
   if(htV1Manual) return;
-  const V=+gv('n-spd')||50;
+  const V=getVms()||50;
   sv('ht-v1',Math.ceil(+(V*1.1).toFixed(6)));
 }
 document.getElementById('ht-v1').addEventListener('input',()=>{
@@ -1859,6 +1916,101 @@ document.getElementById('ht-v1').addEventListener('input',()=>{
 });
 ['n-spd','s-spd'].forEach(id=>document.getElementById(id).addEventListener('input',syncHtV1));
 syncHtV1();
+
+// ── 트림 타각 계산 ────────────────────────────────────────────────────────────
+// 종방향 공력 미분계수로 2×2 선형계 (양력 평형 + 모멘트 평형)를 풀어 α, δ 동시 산출.
+//   C_L0 + C_Lα·α + C_Lδ·δ = C_L,req = n·m·g / (q·S_ref)
+//   C_m0 + C_mα·α + C_mδ·δ = 0
+// 미분계수 단위(/rad 또는 /°)는 tr-unit 선택에 따라 내부 변환. 결과 α, δ는 항상 °.
+let trVmaxManual=false;
+function syncTrVmax(){
+  if(trVmaxManual) return;
+  trVms=Math.ceil(+((getVms()||50)*1.1).toFixed(6));
+  refreshTrV();
+}
+function trimSolve(n){
+  const unit=gv('tr-unit');
+  const m=+gv('tr-mass'), S=+gv('tr-sref'), V=trVms, rho=+gv('f-rho');
+  const CL0=+gv('tr-cl0'), CLa=+gv('tr-cla'), CLd=+gv('tr-cld');
+  const Cm0=+gv('tr-cm0'), Cma=+gv('tr-cma'), Cmd=+gv('tr-cmd');
+  if(![m,S,V,rho,CL0,CLa,CLd,Cm0,Cma,Cmd].every(isFinite)||m<=0||S<=0||V<=0||rho<=0) return null;
+  const q=.5*rho*V*V;
+  const CLreq=n*m*9.80665/(q*S);
+  const det=CLa*Cmd-CLd*Cma;
+  if(Math.abs(det)<1e-12) return {err:'특이 행렬 — 미분계수 확인'};
+  const b1=CLreq-CL0, b2=-Cm0;
+  let al=(b1*Cmd-CLd*b2)/det;
+  let de=(CLa*b2-b1*Cma)/det;
+  if(unit==='rad'){al*=180/Math.PI;de*=180/Math.PI;}   // /rad 입력 → 해는 rad → ° 변환
+  return {q,CLreq,al,de};
+}
+// 트림점(α, δ)에서 현재 조종면·모드의 CH로 힌지모멘트 산출 (q는 Vmax 기준)
+function trimH(al,de){
+  const i=getInputs();
+  const ch = mode==='datcom'
+    ? datcomCH({...i.dc,type:getCurSurf().id}, de)
+    : {ch0:i.ch0,chd:i.chd,cha:i.cha};
+  const V=trVms, q=.5*i.rho*V*V;
+  return (ch.ch0+ch.chd*de+ch.cha*al)*q*i.area*i.mac;
+}
+function fillTrimKPI(id,r,n){
+  const v=document.getElementById(id);
+  const sub=document.getElementById(id+'-sub');
+  const sub2=document.getElementById(id+'-sub2');
+  if(!v) return;
+  if(!r||r.err){
+    v.innerHTML='\u2014<span class="u">\u00b0</span>';v.style.color='';
+    if(sub) sub.textContent=r&&r.err?r.err:'\uc785\ub825 \ud655\uc778';
+    if(sub2) sub2.innerHTML='';
+    return;
+  }
+  v.innerHTML=r.de.toFixed(2)+'<span class="u">\u00b0</span>';
+  v.style.color=Math.abs(r.de)>30?'#c0150a':'';   // \uc120\ud615 \ubc94\uc704 \ucd08\uacfc \uacbd\uace0
+  if(sub) sub.textContent='\u03b1 = '+r.al.toFixed(2)+'\u00b0'+(Math.abs(r.al)>20?' (\ubc94\uc704 \uc8fc\uc758)':'')
+    +' \u00b7 n = '+n+' \u00b7 V = '+spdFmt(spdTo(trVms,trvUnit),trvUnit)+' '+SPD_LBL[trvUnit]+' \u00b7 C_L '+r.CLreq.toFixed(3);
+  // \ud2b8\ub9bc\uc810 \ud78c\uc9c0\ubaa8\uba58\ud2b8 + \ub9c1\ud0a4\uc9c0 \ud310\uc815 (\uce74\ub4dc \uc0ad\uc81c\ub85c KPI\uc5d0 \ud1b5\ud569)
+  const H=trimH(r.al,r.de);
+  let s2='H = '+H.toFixed(3)+' N\u00b7m';
+  if(lkActive()){
+    const lim=lkLimit(r.de);
+    if(lim===null) s2+=' \u00b7 <span class="tr-over">\ub9c1\ud0a4\uc9c0 \ub3c4\ub2ec \ubd88\uac00</span>';
+    else if(Math.abs(H)<lim) s2+=' \u00b7 <span class="tr-ok">\ub9c1\ud0a4\uc9c0 \uc5ec\uc720 '+((1-Math.abs(H)/lim)*100).toFixed(0)+'% (\ud55c\uacc4 '+lim.toFixed(2)+')</span>';
+    else s2+=' \u00b7 <span class="tr-over">\ub9c1\ud0a4\uc9c0 \ud55c\uacc4 \ucd08\uacfc! (\ud55c\uacc4 '+lim.toFixed(2)+')</span>';
+  }
+  if(sub2) sub2.innerHTML=s2;
+}
+function updateTrim(){
+  const n2=+gv('tr-nmax')||1;
+  fillTrimKPI('k-tr1',trimSolve(1),1);
+  fillTrimKPI('k-tr2',trimSolve(n2),n2);
+}
+document.getElementById('tr-vmax').addEventListener('input',()=>{
+  trVmaxManual=true;
+  const b=document.getElementById('tr-vmax-badge');
+  if(b){b.textContent='수동';b.style.color='#ea580c';}
+  const v=+gv('tr-vmax');
+  if(isFinite(v)&&v>0) trVms=spdFrom(v,trvUnit);
+  updateTrim();
+});
+document.getElementById('trv-unit').addEventListener('change',function(){trvUnit=this.value;refreshTrV();updateTrim();});
+['tr-mass','tr-sref','tr-nmax','tr-cl0','tr-cla','tr-cld','tr-cm0','tr-cma','tr-cmd']
+  .forEach(id=>{const el=document.getElementById(id);el.addEventListener('input',updateTrim);el.addEventListener('change',updateTrim);});
+// 미분계수 단위 전환 시 값 자동 변환 (C_L0·C_m0은 무차원 → 변환 없음)
+let trPrevUnit='rad';
+document.getElementById('tr-unit').addEventListener('change',function(){
+  const u=this.value;
+  if(u===trPrevUnit) return;
+  const f=(u==='deg')?Math.PI/180:R2D;   // /rad→/°: ×π/180, /°→/rad: ×180/π
+  ['tr-cla','tr-cld','tr-cma','tr-cmd'].forEach(id=>{
+    const el=document.getElementById(id);
+    const v=+el.value;
+    if(isFinite(v)) el.value=(v*f).toFixed(u==='deg'?5:3);
+  });
+  trPrevUnit=u;
+  updateTrim();
+});
+['n-spd','s-spd'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{syncTrVmax();updateTrim();}));
+syncTrVmax();
 
 // ── 받음각 α(V) 근사식 ────────────────────────────────────────────────────────
 // 입력한 모든 지점을 정확히 통과하는 구간별 보간 (x=1/V² 공간에서 선형 → 구간별 α=a+k/V²).
@@ -2056,12 +2208,115 @@ document.getElementById('ht-capture').addEventListener('click',async()=>{
     area.style.cssText=prevArea;
     if(modal)modal.style.cssText=prevModal;
     if(modalBody)modalBody.style.cssText=prevBody;
-    btn.textContent='📷 이미지 저장';btn.disabled=false;
+    btn.textContent='이미지 저장';btn.disabled=false;
   }
 });
 
 
-renderSurfBar();loadCur();toggleACUI();recalcRho();drawDiags();update();
+// ── 풍동 시뮬레이션 (하단 패널) ───────────────────────────────────────────────
+// 소스-싱크(랭킨 오벌) + 1/4시위 와류 근사 유동장을 따라 입자를 이류시키는 연기선 시각화.
+// 비행조건의 V·α·δ 및 형상(cf, t/c — DATCOM 모드 시 해당 값)이 실시간 반영됨.
+const WT={p:null,cv:null,ctx:null,W:0,H:0,parts:[],last:0,raf:0};
+function wtSet(p){WT.p=p;}
+function wtThick(t,tc){ // NACA 대칭 반두께 (시위 정규화)
+  return 5*tc*(0.2969*Math.sqrt(t)-0.1260*t-0.3516*t*t+0.2843*t*t*t-0.1015*t*t*t*t);
+}
+function wtSeed(){
+  const n=Math.max(60,Math.min(150,Math.round(WT.W*WT.H/2600)));
+  WT.parts=[];
+  for(let k=0;k<n;k++)WT.parts.push({x:Math.random()*WT.W,y:Math.random()*WT.H,px:0,py:0,age:Math.random()*6});
+}
+function wtResize(){
+  const wrap=document.querySelector('.wt-wrap');
+  if(!wrap||!WT.cv||!WT.ctx)return;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  if(w<10||h<10)return;
+  WT.cv.width=Math.round(w*dpr);WT.cv.height=Math.round(h*dpr);
+  WT.W=w;WT.H=h;
+  WT.ctx.setTransform(dpr,0,0,dpr,0,0);
+  WT.ctx.fillStyle='#f6f9fc';WT.ctx.fillRect(0,0,w,h);
+  wtSeed();
+}
+function wtFrame(ts){
+  WT.raf=requestAnimationFrame(wtFrame);
+  const ctx=WT.ctx;if(!ctx||!WT.p||WT.W<10)return;
+  let dt=(ts-WT.last)/1000;WT.last=ts;
+  if(!(dt>0)||dt>0.05)dt=0.016;
+  const p=WT.p,W=WT.W,H=WT.H;
+  const c=W*0.52, LEx=W*0.24, LEy=H*0.5;                 // 시위·LE 위치
+  const aRad=(p.alpha||0)*Math.PI/180;
+  const dRad=(p.def||0)*Math.PI/180;
+  const th=aRad, ct=Math.cos(th), sn=Math.sin(th);       // 받음각만큼 기체 회전 (nose-up)
+  const U=1, tc2=(p.tc||0.12);
+  const spd=34+(p.V||50)*1.05;                           // 자유류 픽셀 속도 (V 비례)
+  const m=U*c*tc2*0.62;                                  // 소스/싱크 강도 (두께 스케일)
+  const aEff=aRad+0.42*Math.max(-0.5,Math.min(0.5,dRad));
+  const G=-U*c*0.34*Math.sin(aEff);                      // 양력 순환 와류 (윗면 가속·후방 다운워시)
+  ctx.fillStyle='rgba(246,249,252,0.14)';ctx.fillRect(0,0,W,H);   // 트레일 페이드
+  ctx.lineWidth=1.1;ctx.lineCap='round';
+  for(const q of WT.parts){
+    const dx=q.x-LEx,dy=q.y-LEy;
+    const xb=dx*ct+dy*sn, yb=-dx*sn+dy*ct;               // 화면→기체 좌표
+    const eps=60;
+    const r1=xb*xb+yb*yb+eps, r2=(xb-c)*(xb-c)+yb*yb+eps;
+    let ub=U*ct, vb=-U*sn;                               // 균일류 (기체 좌표)
+    ub+=m*(xb/r1-(xb-c)/r2);
+    vb+=m*(yb/r1-yb/r2);
+    const xv=xb-c*0.25, rv=xv*xv+yb*yb+eps;
+    ub+=G*yb/rv; vb+=-G*xv/rv;
+    if(xb>-4&&xb<c+4){                                   // 몸체 근접 밀어내기 (관통 방지)
+      const hh=wtThick(Math.max(0.001,Math.min(1,xb/c)),tc2)*c;
+      const ad=Math.abs(yb);
+      if(ad<hh*1.5) vb+=(yb>=0?1:-1)*U*0.5*(1-ad/(hh*1.5));
+    }
+    const us=ub*ct-vb*sn, vs=ub*sn+vb*ct;                // 기체→화면 속도
+    q.px=q.x;q.py=q.y;
+    q.x+=us*spd*dt; q.y+=vs*spd*dt; q.age+=dt;
+    let dead=q.x>W+6||q.y<-6||q.y>H+6||q.age>9;
+    if(!dead&&xb>0&&xb<c){
+      const hh=wtThick(Math.min(1,xb/c),tc2)*c;
+      if(Math.abs(yb)<hh*0.9) dead=true;
+    }
+    if(dead){q.x=-4;q.y=Math.random()*H;q.px=q.x;q.py=q.y;q.age=0;continue;}
+    const sm=Math.hypot(us,vs);                          // 국소 속도 → 색 (느림 짙음, 빠름 밝음)
+    const L=Math.max(34,Math.min(66,28+sm*34));
+    ctx.strokeStyle='hsla(211,90%,'+L.toFixed(0)+'%,0.55)';
+    ctx.beginPath();ctx.moveTo(q.px,q.py);ctx.lineTo(q.x,q.y);ctx.stroke();
+  }
+  // ── 에어포일 + 조종면 (매 프레임 최상단) ──
+  const cf=Math.max(0.08,Math.min(0.5,p.cf||0.25));
+  const hx=c*(1-cf);
+  ctx.save();
+  ctx.translate(LEx,LEy);ctx.rotate(th);
+  ctx.beginPath();
+  const N=34,frac=hx/c;
+  for(let k=0;k<=N;k++){const t=Math.max(0.0001,k/N*frac);k?ctx.lineTo(t*c,-wtThick(t,tc2)*c):ctx.moveTo(t*c,-wtThick(t,tc2)*c);}
+  for(let k=N;k>=0;k--){const t=Math.max(0.0001,k/N*frac);ctx.lineTo(t*c, wtThick(t,tc2)*c);}
+  ctx.closePath();
+  ctx.fillStyle='rgba(226,236,250,0.97)';ctx.strokeStyle='#2563eb';ctx.lineWidth=1.4;
+  ctx.fill();ctx.stroke();
+  const off=wtThick(frac,tc2)*c*0.85, fl=c-hx;
+  ctx.save();ctx.translate(hx,0);ctx.rotate(dRad);
+  ctx.beginPath();
+  ctx.moveTo(0,-off);ctx.lineTo(fl,-off*0.18);ctx.lineTo(fl,off*0.18);ctx.lineTo(0,off);ctx.closePath();
+  ctx.fillStyle='rgba(233,225,250,0.97)';ctx.strokeStyle='#8b5cf6';ctx.lineWidth=1.3;
+  ctx.fill();ctx.stroke();
+  ctx.restore();
+  ctx.beginPath();ctx.arc(hx,0,3.6,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
+  ctx.restore();
+}
+function wtInit(){
+  WT.cv=document.getElementById('wtCanvas');
+  if(!WT.cv)return;
+  try{WT.ctx=WT.cv.getContext('2d');}catch(e){WT.ctx=null;}
+  if(!WT.ctx)return;
+  wtResize();
+  WT.raf=requestAnimationFrame(wtFrame);
+}
+
+renderSurfBar();loadCur();toggleACUI();recalcRho();drawDiags();update();wtInit();
 
 // 창 리사이즈 시 차트 강제 재렌더 (가로폭은 자동, Chart.js만 인식 강제)
 let _resizeRAF = 0;
@@ -2070,6 +2325,7 @@ window.addEventListener('resize', () => {
   _resizeRAF = requestAnimationFrame(() => {
     _resizeRAF = 0;
     if(chart) chart.resize();
+    wtResize();
   });
 });
 </script>
