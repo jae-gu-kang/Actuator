@@ -844,6 +844,18 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
           <input type="number" id="tr-nmax" value="3.5" step="0.5" min="1">
           <div class="sub">g</div>
         </div>
+        <div class="field">
+          <label>기준 평균공력시위</label>
+          <input type="number" id="tr-cref" value="0.80" step="0.01" min="0.01">
+          <div class="sub">c̄<sub>ref</sub> · m — q̂ 무차원화용</div>
+        </div>
+        <div class="field">
+          <label>기동 형태 (n<sub>max</sub> 조건)</label>
+          <select id="tr-man">
+            <option value="pull">대칭 풀업 — q=(n−1)g/V</option>
+            <option value="turn">정상 선회 — q=(g/V)(n−1/n)</option>
+          </select>
+        </div>
       </div>
       <div class="divider"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -860,6 +872,8 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         <div class="field"><label>영받음각 피칭모멘트 계수</label><input type="number" id="tr-cm0" value="0.00" step="0.001"><div class="sub">C<sub>m,0</sub></div></div>
         <div class="field"><label>정적 종안정 미분계수</label><input type="number" id="tr-cma" value="-0.40" step="0.01"><div class="sub">C<sub>m,α</sub></div></div>
         <div class="field"><label>조종력 미분계수</label><input type="number" id="tr-cmd" value="-0.50" step="0.01"><div class="sub">C<sub>m,δ</sub></div></div>
+        <div class="field"><label>피치각속도 양력 미분계수</label><input type="number" id="tr-clq" value="0.00" step="0.1"><div class="sub">C<sub>L,q</sub> (동미계수)</div></div>
+        <div class="field"><label>피치 감쇠 미분계수</label><input type="number" id="tr-cmq" value="0.00" step="0.1"><div class="sub">C<sub>m,q</sub> (동미계수)</div></div>
       </div>
     </div>
   </div>
@@ -867,13 +881,15 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <span class="fn-label">평형식</span>
     <span class="fn-eq"><var>C<sub>L,req</sub></var> = <var>n·m·g</var> / (<var>q·S<sub>ref</sub></var>)</span>
     <span class="fn-sep">·</span>
-    <span class="fn-eq"><var>C<sub>L,0</sub></var> + <var>C<sub>L,α</sub></var>α + <var>C<sub>L,δ</sub></var>δ = <var>C<sub>L,req</sub></var></span>
+    <span class="fn-eq"><var>C<sub>L,0</sub></var> + <var>C<sub>L,α</sub></var>α + <var>C<sub>L,δ</sub></var>δ + <var>C<sub>L,q</sub></var>q̂ = <var>C<sub>L,req</sub></var></span>
     <span class="fn-sep">·</span>
-    <span class="fn-eq"><var>C<sub>m,0</sub></var> + <var>C<sub>m,α</sub></var>α + <var>C<sub>m,δ</sub></var>δ = 0</span>
+    <span class="fn-eq"><var>C<sub>m,0</sub></var> + <var>C<sub>m,α</sub></var>α + <var>C<sub>m,δ</sub></var>δ + <var>C<sub>m,q</sub></var>q̂ = 0</span>
+    <span class="fn-sep">·</span>
+    <span class="fn-eq">q̂ = <var>q·c̄<sub>ref</sub></var> / 2<var>V</var></span>
     <span class="fn-sep">·</span>
     <span class="fn-eq"><var>H</var> = <var>C<sub>H</sub></var>(δ,α) · <var>q</var> · <var>S<sub>f</sub></var> · <var>c̄</var></span>
   </div>
-  <div class="note">2×2 선형계(양력·모멘트 평형)를 풀어 α와 δ를 동시에 구합니다. H는 현재 선택된 조종면의 S<sub>f</sub>, c̄와 현재 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 산출되며, V<sub>max</sub>는 기본적으로 비행조건 속도 + 10%를 자동 추적합니다. 4바 링키지가 연동되어 있으면 해당 타각에서의 가용 토크 한계와 비교 판정합니다. |δ| &gt; 30° 또는 |α| &gt; 20°는 선형 미분계수의 유효 범위를 벗어날 수 있습니다.</div>
+  <div class="note">2×2 선형계(양력·모멘트 평형)를 풀어 α와 δ를 동시에 구합니다. n &gt; 1 조건에서는 곡선 비행경로의 피치각속도 q(풀업/선회 선택에 따름)에 의한 동미계수 항 C<sub>L,q</sub>·q̂, C<sub>m,q</sub>·q̂이 반영되며, 두 동미계수를 0으로 두면 정적 근사(피치각속도 무시)가 됩니다. 무미익 델타는 C<sub>m,q</sub>가 작은 편(-1~-4 /rad)이지만 저속·고하중 조건일수록 영향이 커집니다. H는 현재 선택된 조종면의 S<sub>f</sub>, c̄와 현재 모드(기본/DATCOM)의 C<sub>H</sub> 계수로 산출되며, V<sub>max</sub>는 기본적으로 비행조건 속도 + 10%를 자동 추적합니다. 4바 링키지가 연동되어 있으면 해당 타각에서의 가용 토크 한계와 비교 판정합니다. |δ| &gt; 30° 또는 |α| &gt; 20°는 선형 미분계수의 유효 범위를 벗어날 수 있습니다.</div>
 </div>
 
 </div>
@@ -1933,16 +1949,25 @@ function trimSolve(n){
   const m=+gv('tr-mass'), S=+gv('tr-sref'), V=trVms, rho=+gv('f-rho');
   const CL0=+gv('tr-cl0'), CLa=+gv('tr-cla'), CLd=+gv('tr-cld');
   const Cm0=+gv('tr-cm0'), Cma=+gv('tr-cma'), Cmd=+gv('tr-cmd');
+  let CLq=+gv('tr-clq')||0, Cmq=+gv('tr-cmq')||0;
+  const cref=+gv('tr-cref')||0;
   if(![m,S,V,rho,CL0,CLa,CLd,Cm0,Cma,Cmd].every(isFinite)||m<=0||S<=0||V<=0||rho<=0) return null;
+  if(unit==='deg'){CLq*=R2D;Cmq*=R2D;}   // 동미계수도 내부는 /rad 기준으로 통일
+  const g0=9.80665;
   const q=.5*rho*V*V;
-  const CLreq=n*m*9.80665/(q*S);
+  const CLreq=n*m*g0/(q*S);
+  // n>1 정상 기동의 피치각속도: 풀업 q=(n-1)g/V, 정상선회 q=(g/V)(n-1/n) → 무차원 q̂=q·c̄/2V
+  const man=gv('tr-man')||'pull';
+  const qr=(man==='turn')?g0/V*(n-1/n):(n-1)*g0/V;
+  const qhat=qr*cref/(2*V);
   const det=CLa*Cmd-CLd*Cma;
   if(Math.abs(det)<1e-12) return {err:'특이 행렬 — 미분계수 확인'};
-  const b1=CLreq-CL0, b2=-Cm0;
+  const b1=CLreq-CL0-CLq*qhat;           // 동미계수 기여를 우변으로 이항
+  const b2=-Cm0-Cmq*qhat;
   let al=(b1*Cmd-CLd*b2)/det;
   let de=(CLa*b2-b1*Cma)/det;
   if(unit==='rad'){al*=180/Math.PI;de*=180/Math.PI;}   // /rad 입력 → 해는 rad → ° 변환
-  return {q,CLreq,al,de};
+  return {q,CLreq,al,de,qhat};
 }
 // 트림점(α, δ)에서 현재 조종면·모드의 CH로 힌지모멘트 산출 (q는 Vmax 기준)
 function trimH(al,de){
@@ -1993,7 +2018,7 @@ document.getElementById('tr-vmax').addEventListener('input',()=>{
   updateTrim();
 });
 document.getElementById('trv-unit').addEventListener('change',function(){trvUnit=this.value;refreshTrV();updateTrim();});
-['tr-mass','tr-sref','tr-nmax','tr-cl0','tr-cla','tr-cld','tr-cm0','tr-cma','tr-cmd']
+['tr-mass','tr-sref','tr-nmax','tr-cref','tr-man','tr-cl0','tr-cla','tr-cld','tr-cm0','tr-cma','tr-cmd','tr-clq','tr-cmq']
   .forEach(id=>{const el=document.getElementById(id);el.addEventListener('input',updateTrim);el.addEventListener('change',updateTrim);});
 // 미분계수 단위 전환 시 값 자동 변환 (C_L0·C_m0은 무차원 → 변환 없음)
 let trPrevUnit='rad';
@@ -2001,7 +2026,7 @@ document.getElementById('tr-unit').addEventListener('change',function(){
   const u=this.value;
   if(u===trPrevUnit) return;
   const f=(u==='deg')?Math.PI/180:R2D;   // /rad→/°: ×π/180, /°→/rad: ×180/π
-  ['tr-cla','tr-cld','tr-cma','tr-cmd'].forEach(id=>{
+  ['tr-cla','tr-cld','tr-cma','tr-cmd','tr-clq','tr-cmq'].forEach(id=>{
     const el=document.getElementById(id);
     const v=+el.value;
     if(isFinite(v)) el.value=(v*f).toFixed(u==='deg'?5:3);
