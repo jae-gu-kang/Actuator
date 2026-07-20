@@ -886,17 +886,6 @@ canvas.hover { cursor: grab; }
           만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록
           커플러 길이 b 와 중립 출력각 θ₄₀ 를 탐색합니다.
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">c 허용범위 <span style="color:var(--text3);font-weight:400">(패키징 제약)</span></div>
-          <div class="link-field" style="border-radius:7px;">
-            <input type="number" id="icMin" value="20" min="5" max="400" step="1"
-              style="width:44px;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
-            <span style="padding:3px 2px;font-size:10px;color:var(--text3);">~</span>
-            <input type="number" id="icMax" value="80" min="5" max="400" step="1"
-              style="width:44px;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
-            <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">mm</span>
-          </div>
-        </div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 범위 <span style="color:var(--text3);font-weight:400">(θ₄₀ ± δ)</span></div>
           <div class="link-field" style="border-radius:7px;">
@@ -1099,7 +1088,7 @@ canvas.hover { cursor: grab; }
     </div>
     <label style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--text2);cursor:pointer;">
       <input type="checkbox" id="dsOptC" checked style="accent-color:#34c759;">
-      출력링크 c 도 함께 최적화 (사이드바의 c 허용범위 사용 · δ 간격 1°) — 끄면 현재 c 고정으로 검토
+      출력링크 c 도 함께 최적화 (자동 범위 0.2~0.8×d · δ 간격 1°) — 끄면 현재 c 고정으로 검토
     </label>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
       <button class="copy-btn" onclick="copyPlotImage('deltaSweepPlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
@@ -2825,8 +2814,8 @@ function doOptimize(){
   //    (같은 허용범위면 초기 c₀ 와 무관하게 항상 같은 결과)
   const res=optimizeForDeltaWithC(delta,T2,marginVal,cR.lo,cR.hi);
   if(!res){
-    showMsg('⚠︎ c 허용범위('+cR.lo+'~'+cR.hi+'mm) 안에서 타각 범위 ±'+delta.toFixed(1)
-      +'° 를 수용하는 (c, b) 조합이 없습니다.<br>c 허용범위·타각 범위·끝단 마진을 조정해 보세요.');
+    showMsg('⚠︎ c 자동 범위('+cR.lo+'~'+cR.hi+'mm = 0.2~0.8×d) 안에서 타각 범위 ±'+delta.toFixed(1)
+      +'° 를 수용하는 (c, b) 조합이 없습니다.<br>타각 범위·끝단 마진·d 를 조정해 보세요.');
     return;
   }
 
@@ -2882,10 +2871,10 @@ function doOptimize(){
     +(best.atBound
       ?'<div style="background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.2);border-radius:8px;'
        +'padding:5px 10px;margin-bottom:8px;font-size:10px;color:#0058b0;font-weight:600;line-height:1.5;">'
-       +'ⓘ 최적 c 가 허용범위 경계('+best.cOpt+'mm)에 있습니다 — 범위를 넓히면 더 좋은 해가 있을 수 있습니다</div>'
+       +'ⓘ 최적 c 가 자동 범위(0.2~0.8×d) 경계('+best.cOpt+'mm)에 있습니다 — d 를 키우면 더 좋은 해가 있을 수 있습니다</div>'
       :'')
     +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5;">a='+S.a+', d='+S.d
-    +' mm 고정 · c 허용범위 '+cR.lo+'~'+cR.hi+'mm (입력값, 초기 c₀ 무관) · c*='+best.cOpt+'mm 기준 링크비 '+rho.toFixed(2)
+    +' mm 고정 · c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×d, 초기 c₀ 무관) · c*='+best.cOpt+'mm 기준 링크비 '+rho.toFixed(2)
     +' → 성향 w='+wFac.toFixed(2)+' · 아래 추천값을 수정하면 전체 지표가 즉시 재계산됩니다</div>'
     +'<div class="result-card" style="margin-bottom:8px;">'
     +editRow('추천 출력링크 c'+(Math.abs(best.cOpt-c0)>1e-9
@@ -3064,13 +3053,14 @@ function optimizeForDelta(delta,T2,marginVal){
 //   · 절대 짝수 그리드(…38,40,42…) 2mm 스캔 → 최적 후보 ±3mm 를 1mm 정밀 재탐색
 //   · 최적이 범위 경계에 붙으면 atBound 플래그로 알림 (범위를 넓히면 더 좋은 해 가능)
 // 선택: 티어 우선(정상 > 불균형차선 > μ차선) → §3-1 준동률 규칙(합 → 최대토크)
+// c 허용범위는 설치 공간 스케일을 결정하는 고정링크 d 에 연동해 자동 산출:
+//   [0.2·d, 0.8·d]  (5~400mm 클램프, 최소 폭 10mm 보장)
+// d 는 진짜 고정 설계 입력이므로, 임의 초기값 c₀ 나 별도 입력 없이도
+// 같은 d 에서는 항상 같은 범위 → 항상 같은 추천이 나온다.
 function readCRange(){
-  let lo=parseFloat(document.getElementById('icMin')?.value);
-  let hi=parseFloat(document.getElementById('icMax')?.value);
-  if(isNaN(lo)) lo=Math.max(5,Math.round(S.c*0.5));
-  if(isNaN(hi)) hi=Math.min(400,Math.round(S.c*2));
-  lo=Math.max(5,Math.min(400,lo)); hi=Math.max(5,Math.min(400,hi));
-  if(hi<lo){ const t=lo; lo=hi; hi=t; }
+  let lo=Math.max(5,Math.round(S.d*0.2));
+  let hi=Math.min(400,Math.round(S.d*0.8));
+  if(hi<lo+10) hi=Math.min(400,lo+10);
   return{lo,hi};
 }
 
@@ -3149,7 +3139,7 @@ function runDeltaSweep(){
     T2,margin:marginVal,a:S.a,c:S.c,d:S.d,sol:S.sol};
   const cR=readCRange();
   const sub=document.getElementById('dsSub');
-  if(sub) sub.textContent='a='+S.a+(optC?', c 허용범위 '+cR.lo+'~'+cR.hi+'mm':', c='+S.c)
+  if(sub) sub.textContent='a='+S.a+(optC?', c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×d)':', c='+S.c)
     +', d='+S.d+' mm · T₂='+T2.toFixed(2)
     +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준 — 각 δ 마다 최적 ('
     +(optC?'c, ':'')+'b, θ₄₀) 재계산';
