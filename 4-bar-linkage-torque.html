@@ -886,6 +886,17 @@ canvas.hover { cursor: grab; }
           만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록
           커플러 길이 b 와 중립 출력각 θ₄₀ 를 탐색합니다.
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">c 허용범위 <span style="color:var(--text3);font-weight:400">(패키징 제약)</span></div>
+          <div class="link-field" style="border-radius:7px;">
+            <input type="number" id="icMin" value="20" min="5" max="400" step="1"
+              style="width:44px;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+            <span style="padding:3px 2px;font-size:10px;color:var(--text3);">~</span>
+            <input type="number" id="icMax" value="80" min="5" max="400" step="1"
+              style="width:44px;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+            <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">mm</span>
+          </div>
+        </div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 범위 <span style="color:var(--text3);font-weight:400">(θ₄₀ ± δ)</span></div>
           <div class="link-field" style="border-radius:7px;">
@@ -952,7 +963,7 @@ canvas.hover { cursor: grab; }
           <label style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);font-weight:500;cursor:pointer;user-select:none;">
             <input type="checkbox" id="cbPhysSpan" checked onchange="scheduleCouplerPlot()"
               style="width:12px;height:12px;margin:0;accent-color:#38b6ff;cursor:pointer;">
-            <span style="color:#1ca3ec;font-weight:600;">물리 가용</span>
+            <span style="color:#1ca3ec;font-weight:600;">가용각 (μ반영)</span>
           </label>
           <label style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);font-weight:500;cursor:pointer;user-select:none;">
             <input type="checkbox" id="cbTorqueSpan" checked onchange="scheduleCouplerPlot()"
@@ -1067,7 +1078,8 @@ canvas.hover { cursor: grab; }
       <button onclick="closeDeltaSweep()" style="background:rgba(118,118,128,0.12);border:none;border-radius:50%;width:26px;height:26px;font-size:13px;color:var(--text2);cursor:pointer;font-family:inherit;line-height:1;">✕</button>
     </div>
     <div id="dsSub" style="font-size:10.5px;color:var(--text3);margin-bottom:10px;line-height:1.5;">
-      각 타각범위 ±δ 마다 최적 (b, θ₄₀)를 다시 계산하여 작동범위 내 최대·최소 토크의 변화를 보여줍니다.
+      각 타각범위 ±δ 마다 출력링크 c 까지 포함해 최적 (c, b, θ₄₀)를 다시 계산하여
+      작동범위 내 최대·최소 토크와 최적 c 의 변화를 보여줍니다.
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
       <div style="font-size:11px;color:var(--text2);font-weight:500;">δ 범위</div>
@@ -1085,6 +1097,10 @@ canvas.hover { cursor: grab; }
       <button id="dsRun" onclick="runDeltaSweep()" style="background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">계산</button>
       <span id="dsStatus" style="font-size:10.5px;color:var(--text3);font-variant-numeric:tabular-nums;"></span>
     </div>
+    <label style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--text2);cursor:pointer;">
+      <input type="checkbox" id="dsOptC" checked style="accent-color:#34c759;">
+      출력링크 c 도 함께 최적화 (사이드바의 c 허용범위 사용 · δ 간격 1°) — 끄면 현재 c 고정으로 검토
+    </label>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
       <button class="copy-btn" onclick="copyPlotImage('deltaSweepPlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
       <button class="copy-btn" onclick="downloadPlotImage('deltaSweepPlot',this)" title="그래프를 이미지로 저장"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M4.5 6.5 8 10l3.5-3.5"/><path d="M3 13h10"/></svg>그래프 저장</button>
@@ -2179,9 +2195,20 @@ function bisectBoundary(a,b,c,d,sol,infeasDeg,feasDeg){
   }
   return hi;
 }
+// 전달각 경계 이분법: badDeg(μ 미달 또는 해 없음) ↔ goodDeg(μ 충족) 사이의 임계각
+function bisectMuBoundary(a,b,c,d,sol,badDeg,goodDeg){
+  const ok=deg=>{const r=feasibleAt(a,b,c,d,deg,sol); return !!(r&&r.mu>=OPT_MU_MIN);};
+  let lo=badDeg, hi=goodDeg;
+  for(let i=0;i<14;i++){
+    const mid=(lo+hi)/2;
+    if(ok(mid)) hi=mid; else lo=mid;
+  }
+  return hi;
+}
+
 function couplerMetrics(bVal, T2, marginVal, motorVal){
   const{a,c,d,sol}=S;
-  const vals=[];
+  const vals=[], okArr=[];
   let firstIdx=null, lastIdx=null, maxAbs=0;
   for(let deg=0; deg<=180; deg++){
     const r=feasibleAt(a,bVal,c,d,deg,sol);
@@ -2190,19 +2217,42 @@ function couplerMetrics(bVal, T2, marginVal, motorVal){
       lastIdx=deg;
       const val=Math.abs(T2*r.ma);
       vals.push(val);
+      okArr.push(r.mu>=OPT_MU_MIN);   // 전달각 기준(§2-4) 충족 여부
       if(val>maxAbs) maxAbs=val;
-    } else vals.push(null);
+    } else { vals.push(null); okArr.push(false); }
   }
   if(firstIdx===null) return null;
 
-  // ── 물리 가용 각도: 해가 존재하는 θ₄ 범위 − 양끝 마진 ──
-  // 경계를 서브디그리 정밀도로 정제 (b 변화에 따라 매끄럽게 이동)
+  // ── 조립 가능 경계 (서브디그리 정밀, 끝단 마진 적용용) ──
   let firstDeg=firstIdx, lastDeg=lastIdx;
   if(firstIdx>0) firstDeg=bisectBoundary(a,bVal,c,d,sol, firstIdx-1, firstIdx);
   if(lastIdx<180)  lastDeg=bisectBoundary(a,bVal,c,d,sol, lastIdx+1, lastIdx);
 
   const m=(isNaN(marginVal)||marginVal<0)?0:marginVal;
-  const physSpan=Math.max(0, (lastDeg-firstDeg)-2*m);
+
+  // ── 가용 각도 (전달각 반영): 해 존재 ∧ μ′≥기준 인 최장 연속 구간을 찾고
+  //    경계를 이분법으로 정제한 뒤, (조립 범위 − 끝단 마진) 과 교집합 ──
+  let physSpan=0;
+  {
+    let runS=null, bestS=null, bestE=null, bestLen=-1;
+    for(let deg=0; deg<=181; deg++){
+      const ok=deg<=180&&okArr[deg];
+      if(ok){ if(runS===null) runS=deg; }
+      else if(runS!==null){
+        const len=(deg-1)-runS;
+        if(len>bestLen){ bestLen=len; bestS=runS; bestE=deg-1; }
+        runS=null;
+      }
+    }
+    if(bestS!==null){
+      let muLo=bestS, muHi=bestE;
+      if(bestS>0)  muLo=bisectMuBoundary(a,bVal,c,d,sol, bestS-1, bestS);
+      if(bestE<180) muHi=bisectMuBoundary(a,bVal,c,d,sol, bestE+1, bestE);
+      const lo=Math.max(firstDeg+m, muLo);
+      const hi=Math.min(lastDeg-m, muHi);
+      physSpan=Math.max(0, hi-lo);
+    }
+  }
 
   // ── 토크 가용 각도: |T₄| ≥ 토크 요구도 인 θ₄ 구간의 총 각도 ──
   let torqueSpan=NaN;
@@ -2241,7 +2291,7 @@ function drawCouplerPlot(){
   const PAD={t:54, b:84, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
   const legItems=[{type:'line',color:'#ff453a',label:'최대 T₄'}];
-  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'물리 가용 각도'});
+  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (전달각 μ≥'+OPT_MU_MIN+'° 반영)'});
   if(showTorque) legItems.push({type:'line',color:'#bf5af2',label:'토크 가용 각도'});
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
@@ -2595,6 +2645,23 @@ function absT4At(bVal,deg,T2){
 const OPT_IMBAL_LIMIT=0.10;   // 양끝단 토크 불균형 허용치 (10%)
 const OPT_SCORE_TOL=0.03;     // 세 토크 합 준동률 허용폭 (3%) — 이 범위 안에선 최대토크 우선
 const OPT_RELAX_TOL=0.05;     // 차선 모드 불균형 준동률 폭 (5%p) — 이 범위 안에선 §3-1 규칙 적용
+const OPT_MU_BASE=45;         // 전달각 기준 하한 (§2-4): 고하중·고속 권장값 (측하중 cot(45°)=1.0 경계)
+const OPT_MU_MARGIN=5;        // 해석-실물 불확실성 마진: 링크 공차·핀 유격·변형에 의한 μ 편차 (3~5°)
+const OPT_MU_MIN=OPT_MU_BASE+OPT_MU_MARGIN;   // 공칭 μ 제약: 접힌 μ′=min(μ,180−μ) ≥ 50°
+
+// 링크비 기반 설계 성향 반영 (§3-3): ρ=c/a 가 높다 = 토크 증폭을 노린 토크 중시형 설계
+//   성향 계수 w = clamp(ρ/2, 0.5, 1.5)  (기본 링크비 ρ=2 에서 w=1 → 기존 동작 유지)
+//   세 토크 합 준동률 = 3%×w (1.5~4.5% 클램프), 차선 불균형 준동률 = 5%p×w (4~7%p 클램프)
+//   하한 4%p: 양자화 톱니(≈4.6%p) 노이즈 추종 방지 / 상한 7%p: 한계효용 급감 구간(≥8%p) 회피
+function optTols(){
+  const rho=S.c/S.a;
+  const w=Math.min(1.5,Math.max(0.5,rho/2));
+  return{
+    score:Math.min(0.045,Math.max(0.015,OPT_SCORE_TOL*w)),
+    relax:Math.min(0.07, Math.max(0.04, OPT_RELAX_TOL*w)),
+    w,rho
+  };
+}
 
 // 주어진 b 에서: 중립각 θ₄₀ 를 [physLo+δ, physHi−δ] 에서 탐색.
 // 토크 프로파일을 0.25° 그리드로 사전 계산 후 슬라이딩 윈도우 최대(모노토닉 덱)로
@@ -2611,15 +2678,18 @@ function bestNeutralForB(bVal,T2,delta,margin){
   // ── 토크 프로파일 사전 계산 (0.25° 그리드) ──
   const G=0.25;
   const n=Math.max(2,Math.floor((physHi-physLo)/G)+1);
-  const prof=new Array(n), degs=new Array(n);
+  const prof=new Array(n), degs=new Array(n), muArr=new Array(n);
   for(let i=0;i<n;i++){
     const dg=Math.min(physLo+i*G, physHi);
     degs[i]=dg;
-    prof[i]=absT4At(bVal,dg,T2);
+    const r=feasibleAt(S.a,bVal,S.c,S.d,dg,S.sol);
+    prof[i]=r?Math.abs(T2*r.ma):null;
+    muArr[i]=r?r.mu:null;   // 접힌 전달각 (0~90°)
   }
   const w=Math.round(2*delta/G);
   if(w<1||w>=n) return null;
   const val=i=>prof[i]===null?-Infinity:prof[i];
+  const muV=i=>muArr[i]===null?0:muArr[i];   // 해 없음 → 0° (제약 위반 취급)
 
   // 작동범위 [t0−δ, t0+δ] 내 최대토크 (그리드 스캔, 정밀 재탐색용)
   function winMaxAt(t0){
@@ -2629,40 +2699,65 @@ function bestNeutralForB(bVal,T2,delta,margin){
     for(let i=i0;i<=i1;i++){ if(prof[i]!==null&&prof[i]>mx){mx=prof[i];ma=degs[i];} }
     return isFinite(mx)?{mx,ma}:null;
   }
+  // 작동범위 [t0−δ, t0+δ] 내 최소 전달각 (그리드 스캔, 정밀 재탐색용)
+  function winMuAt(t0){
+    let mn=Infinity;
+    const i0=Math.max(0,Math.ceil((t0-delta-physLo)/G-1e-9));
+    const i1=Math.min(n-1,Math.floor((t0+delta-physLo)/G+1e-9));
+    for(let i=i0;i<=i1;i++){ const v=muV(i); if(v<mn) mn=v; }
+    return isFinite(mn)?mn:0;
+  }
   const evalAt=t0=>{
     const tm=absT4At(bVal,t0-delta,T2), tp=absT4At(bVal,t0+delta,T2);
     if(tm===null||tp===null) return null;
     const wm=winMaxAt(t0);
     if(!wm) return null;
+    const muMin=winMuAt(t0);
+    if(muMin<OPT_MU_MIN) return null;   // 전달각 제약 (§2-4)
     const imbal=Math.max(tm,tp)>1e-12?Math.abs(tm-tp)/Math.max(tm,tp):0;
-    return{t0,tm,tp,worst:Math.min(tm,tp),wmax:wm.mx,wargDeg:wm.ma,imbal,score:tm+tp+wm.mx};
+    return{t0,tm,tp,worst:Math.min(tm,tp),wmax:wm.mx,wargDeg:wm.ma,imbal,muMin,score:tm+tp+wm.mx};
   };
 
   // ── 그리드 후보 스윕: 슬라이딩 윈도우 최대 (모노토닉 덱, O(n)) ──
   // best  = 불균형 ≤10% 제약을 만족하며 세 토크 합 최대
   // relax = 제약과 무관하게 불균형 최소 (차선 후보 — 준동률 0.5%p 이내면 합 우선)
   const lo=physLo+delta, hi=physHi-delta;
-  let best=null, relax=null, contained=false;
-  const dq=[];
+  let best=null, relax=null, muRelax=null, contained=false, muFail=false;
+  const dq=[], dqMu=[];
   for(let i=0;i<n;i++){
     while(dq.length&&val(dq[dq.length-1])<=val(i)) dq.pop();
     dq.push(i);
+    while(dqMu.length&&muV(dqMu[dqMu.length-1])>=muV(i)) dqMu.pop();
+    dqMu.push(i);
     const j=i-w;
     if(j<0) continue;
     while(dq[0]<j) dq.shift();
+    while(dqMu[0]<j) dqMu.shift();
     contained=true;
+    const muMin=muV(dqMu[0]);
     const tm=prof[j], tp=prof[i];
     if(tm===null||tp===null) continue;
     const imbal=Math.max(tm,tp)>1e-12?Math.abs(tm-tp)/Math.max(tm,tp):0;
     const wmax=val(dq[0]);
     const score=tm+tp+wmax;
-    const cand={t0:degs[j]+delta,tm,tp,worst:Math.min(tm,tp),wmax,wargDeg:degs[dq[0]],imbal,score};
+    const cand={t0:degs[j]+delta,tm,tp,worst:Math.min(tm,tp),wmax,wargDeg:degs[dq[0]],imbal,muMin,score};
+    if(muMin<OPT_MU_MIN){
+      // 전달각 제약 (§2-4) 위반 — 전달각 최대화 차선 후보로만 추적
+      muFail=true;
+      if(!muRelax||muMin>muRelax.muMin+1e-9
+        ||(Math.abs(muMin-muRelax.muMin)<=1e-9
+           &&(imbal<muRelax.imbal-1e-12||(imbal<=muRelax.imbal+1e-12&&score>muRelax.score))))
+        muRelax=cand;
+      continue;
+    }
     if(imbal<=OPT_IMBAL_LIMIT&&(!best||score>best.score)) best=cand;
     if(!relax||imbal<relax.imbal-0.005||(imbal<=relax.imbal+0.005&&score>relax.score)) relax=cand;
   }
   if(!contained) return null;
 
   if(!best){
+    // 전달각 제약으로 후보 전멸 → 전달각 최대화 후보를 noMu 차선으로 반환
+    if(!relax&&muFail) return muRelax?{noMu:true,...muRelax,physLo,physHi}:{noMu:true,physLo,physHi};
     // 수용은 되나 불균형 ≤10% 후보 없음 → 불균형 최소 후보를 차선으로 반환
     if(!relax) return{noBalance:true,physLo,physHi};
     for(let t0=Math.max(lo,relax.t0-G);t0<=Math.min(hi,relax.t0+G)+1e-9;t0+=0.05){
@@ -2686,10 +2781,21 @@ function runOptimizer(){
   btn._busy=true;
   const orig=btn.innerHTML;
   btn.innerHTML='계산 중…'; btn.style.opacity='0.6';
+  // 결과창에도 즉시 진행 상태 표시 (c 스윕 포함이라 1~2초 소요될 수 있음)
+  const box=document.getElementById('optResult');
+  if(box){ box.style.display='block';
+    box.innerHTML='<div style="font-size:11px;color:var(--text3);">(c, b, θ₄₀) 전수 탐색 중…</div>'; }
   // 렌더 한 프레임 양보 후 계산 (버튼 상태가 화면에 먼저 반영되도록)
   setTimeout(()=>{
     try{ doOptimize(); }
-    catch(e){ console.warn('optimize:',e); }
+    catch(e){
+      console.warn('optimize:',e);
+      // 에러를 화면에 노출해 원인 파악이 가능하게 함
+      if(box){ box.style.display='block';
+        box.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;line-height:1.5;">'
+          +'⚠︎ 계산 중 오류가 발생했습니다:<br><code style="font-size:10px;">'
+          +String(e&&e.message||e).replace(/</g,'&lt;')+'</code></div>'; }
+    }
     btn.innerHTML=orig; btn.style.opacity='';
     btn._busy=false;
   },30);
@@ -2712,122 +2818,185 @@ function doOptimize(){
     return;
   }
 
-  // 1) 정수 b 전수 스윕 — 타각범위 수용 + 불균형 ≤10% (제약) 을 만족하는 후보 수집
-  const cands=[], relaxCands=[];
-  let feasibleAny=false, containAny=false;
-  for(let bv=5;bv<=400;bv++){
-    if(!feasibleRangeOf(bv)) continue;
-    feasibleAny=true;
-    const r=bestNeutralForB(bv,T2,delta,marginVal);
-    if(!r) continue;
-    containAny=true;
-    if(r.noBalance){ if(r.t0!==undefined) relaxCands.push({b:bv,...r}); continue; }
-    cands.push({b:bv,...r});
-  }
-  if(!feasibleAny){
-    showMsg('⚠︎ 현재 a·c·d 조합으로 조립 가능한 커플러 길이가 없습니다.');
-    return;
-  }
-  if(!containAny){
-    showMsg('⚠︎ 타각 범위 ±'+delta.toFixed(1)+'° (총 '+(2*delta).toFixed(1)
-      +'°)를 수용하는 커플러 길이가 없습니다.<br>타각 범위를 줄이거나 끝단 마진('
-      +marginVal.toFixed(1)+'°)·링크 길이를 조정하세요.');
-    return;
-  }
-  if(!cands.length&&!relaxCands.length){
-    showMsg('⚠︎ 타각범위는 수용되지만 유효한 후보를 찾지 못했습니다.<br>링크 길이 조합을 조정해 보세요.');
+  const c0=S.c;
+  const cR=readCRange();
+
+  // 1) (c, b, θ₄₀) 동시 최적화 — 명시적 c 허용범위 내 절대 그리드 탐색
+  //    (같은 허용범위면 초기 c₀ 와 무관하게 항상 같은 결과)
+  const res=optimizeForDeltaWithC(delta,T2,marginVal,cR.lo,cR.hi);
+  if(!res){
+    showMsg('⚠︎ c 허용범위('+cR.lo+'~'+cR.hi+'mm) 안에서 타각 범위 ±'+delta.toFixed(1)
+      +'° 를 수용하는 (c, b) 조합이 없습니다.<br>c 허용범위·타각 범위·끝단 마진을 조정해 보세요.');
     return;
   }
 
-  // 2) 선택 규칙: 세 토크 합이 최대인 후보를 찾되,
-  //    합이 최고값의 (1−3%) 이내로 비슷한 준동률 후보들 사이에서는
-  //    작동범위 내 최대토크(wmax)가 큰 쪽을 우선 (동률이면 합이 큰 쪽)
-  const pickBest=arr=>{
-    const S0=Math.max(...arr.map(c=>c.score));
-    let bb=null;
-    for(const c of arr){
-      if(c.score<S0*(1-OPT_SCORE_TOL)-1e-12) continue;
-      if(!bb||c.wmax>bb.wmax+1e-9||(Math.abs(c.wmax-bb.wmax)<=1e-9&&c.score>bb.score)) bb=c;
-    }
-    return{best:bb,S0};
-  };
-  // 차선 선택 규칙: 불균형 최소값 기준 +5%p 이내를 준동률로 보고
-  // (b별 불균형 값은 경계 양자화로 톱니 노이즈가 있어 좁은 밴드는 부적절)
-  // 그 안에서는 정상 모드와 동일한 §3-1 규칙(세 토크 합 → 최대토크) 적용
-  const pickRelax=arr=>{
-    const m0=Math.min(...arr.map(c=>c.imbal));
-    const band=arr.filter(c=>c.imbal<=m0+OPT_RELAX_TOL);
-    return pickBest(band).best;
-  };
-
-  let best,S0,fallback=false;
-  if(cands.length){
-    ({best,S0}=pickBest(cands));
-  }else{
-    fallback=true;
-    best=pickRelax(relaxCands);
+  // 2) 선택된 c 에서 b ±1mm 를 0.25mm 간격 정밀 재탐색 (동일 티어 내 개선만 수용)
+  let best=res;
+  const myTier=res.fbType===''?0:(res.fbType==='imbal'?1:2);
+  {
+    const saved=S.c; S.c=res.cOpt;
+    try{
+      for(let db=-1;db<=1.0001;db+=0.25){
+        if(Math.abs(db)<1e-9) continue;
+        const bv=res.b+db;
+        if(bv<5||bv>400) continue;
+        const q=bestNeutralForB(bv,T2,delta,marginVal);
+        if(!q||q.t0===undefined) continue;
+        const qt=q.noMu?2:(q.noBalance?1:0);
+        if(qt!==myTier) continue;
+        if(q.score>best.score+1e-12)
+          best={cOpt:res.cOpt,fbType:res.fbType,fallback:res.fallback,b:bv,
+            t0:q.t0,tm:q.tm,tp:q.tp,worst:q.worst,wmax:q.wmax,wargDeg:q.wargDeg,
+            imbal:q.imbal,muMin:q.muMin,score:q.score,physLo:q.physLo,physHi:q.physHi};
+      }
+    } finally { S.c=saved; }
   }
 
-  // 3) 최적 b 주변 ±1mm 를 0.25mm 간격으로 정밀 재탐색 → 후보에 추가 후 동일 규칙으로 재선택
-  for(let db=-1;db<=1.0001;db+=0.25){
-    if(Math.abs(db)<1e-9) continue;
-    const bv=best.b+db;
-    if(bv<5||bv>400) continue;
-    const r=bestNeutralForB(bv,T2,delta,marginVal);
-    if(!r) continue;
-    if(r.noBalance){ if(r.t0!==undefined) relaxCands.push({b:bv,...r}); }
-    else cands.push({b:bv,...r});
-  }
-  if(cands.length){ ({best,S0}=pickBest(cands)); fallback=false; }
-  else { best=pickRelax(relaxCands); S0=best.score; }
+  const fbType=best.fbType, fallback=fbType!=='';
+  _optCtx={delta,T2,margin:marginVal,motorVal:hasMotor?motorVal:NaN,hasMotor,c0};
 
-  const{b:bBest,t0,tm,tp,worst,wmax,wargDeg,imbal,score,physLo,physHi}=best;
-  const bDisp=+bBest.toFixed(2);
-  const tNeutral=absT4At(bBest,t0,T2);
-  const reqOk=hasMotor?(worst>=motorVal):null;
-
-  const row=(k,v,col)=>'<div class="result-row"><span class="result-key" style="font-size:11.5px">'+k
-    +'</span><span class="result-val" style="font-size:13px;'+(col?'color:'+col:'')+'">'+v+'</span></div>';
-  let rows='';
-  rows+=row('추천 커플러 b','<b>'+bDisp+' mm</b>','var(--coupler)');
-  rows+=row('추천 중립각 θ₄₀','<b>'+t0.toFixed(1)+'°</b>','var(--follower)');
-  rows+=row('작동 범위',(t0-delta).toFixed(1)+'° ~ '+(t0+delta).toFixed(1)+'° (±'+delta.toFixed(1)+'°)','var(--text)');
-  rows+='<div class="result-divider"></div>';
-  rows+=row('|T₄| @ −δ 끝단',tm.toFixed(2)+' N·m','var(--follower)');
-  rows+=row('|T₄| @ +δ 끝단',tp.toFixed(2)+' N·m','var(--follower)');
-  rows+=row('끝단 불균형 <span style="color:var(--text3)">(≤10%)</span>',(imbal*100).toFixed(1)+' %',
-    imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
-  rows+=row('최대 |T₄| <span style="color:var(--text3)">(범위 내)</span>',
-    wmax.toFixed(2)+' N·m @ '+(wargDeg!==null?wargDeg.toFixed(1)+'°':'—'),'var(--follower)');
-  if(tNeutral!==null) rows+=row('|T₄| @ 중립각',tNeutral.toFixed(2)+' N·m','var(--text2)');
-  rows+=row('세 토크 합 <span style="color:var(--text3)">(목적함수)</span>',
-    score.toFixed(2)+' N·m'+(fallback?'':' <span style="color:var(--text3);font-size:11px">(최고 대비 '+(score/S0*100).toFixed(1)+'%)</span>'),'var(--purple)');
-  rows+='<div class="result-divider"></div>';
-  rows+=row('물리 가용범위',physLo.toFixed(1)+'° ~ '+physHi.toFixed(1)+'° (마진 '+marginVal.toFixed(1)+'° 제외)','#1ca3ec');
-  if(reqOk!==null)
-    rows+=row('토크 요구도 '+motorVal.toFixed(2)+' N·m',
-      reqOk?'충족 ✓ (worst '+worst.toFixed(2)+')':'미달 ✗ (worst '+worst.toFixed(2)+')',
-      reqOk?'#1a9c3e':'var(--red)');
-
+  const rho=best.cOpt/S.a, wFac=Math.min(1.5,Math.max(0.5,rho/2));
   const banner=fallback
     ?'<div style="background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.25);border-radius:8px;'
      +'padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:#a05800;font-weight:600;line-height:1.5;">'
-     +'⚠︎ 불균형 ≤'+(OPT_IMBAL_LIMIT*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
-     +'<br>(불균형 최소화 우선 — 달성 '+(imbal*100).toFixed(1)+'%)</div>'
+     +(fbType==='mu'
+       ?'⚠︎ c 탐색 범위 내에서도 전달각 μ ≥'+OPT_MU_MIN+'° 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+        +'<br>(전달각 최대화 우선 — 달성 μ '+best.muMin.toFixed(1)+'°)'
+       :'⚠︎ 불균형 ≤'+(OPT_IMBAL_LIMIT*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+        +'<br>(불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
+     +'</div>'
     :'';
+
+  // 수정 가능한 추천값 입력 칸
+  const editRow=(label,id,val,step,unit,col)=>
+    '<div class="result-row"><span class="result-key" style="font-size:11.5px">'+label+'</span>'
+    +'<span class="result-val" style="display:flex;align-items:center;gap:4px;">'
+    +'<input type="number" id="'+id+'" value="'+val+'" step="'+step+'" oninput="scheduleOptRecalc()"'
+    +' style="width:72px;padding:3px 6px;font-size:12.5px;font-weight:600;text-align:right;'
+    +'border:1px solid var(--border2);border-radius:6px;background:var(--card);color:'+col+';'
+    +'font-family:inherit;font-variant-numeric:tabular-nums;outline:none;">'
+    +'<span style="font-size:10.5px;color:var(--text3);">'+unit+'</span></span></div>';
+
   box.style.display='block';
   box.innerHTML=banner
-    +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5;">a='+S.a+', c='+S.c+', d='+S.d
-    +' mm 고정 · '+(fallback
-      ?'차선 규칙: 불균형 최소화 (0.5%p 준동률에선 세 토크 합 우선)'
-      :'목적: 세 토크 합 최대화 · 합 상위 '+(OPT_SCORE_TOL*100).toFixed(0)+'% 이내 준동률에선 최대토크 우선 (불균형 ≤10% 제약)')+'</div>'
-    +'<div class="result-card" style="margin-bottom:8px;">'+rows+'</div>'
-    +'<button onclick="applyOpt('+bDisp+','+t0.toFixed(2)+')"'
+    +(best.atBound
+      ?'<div style="background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.2);border-radius:8px;'
+       +'padding:5px 10px;margin-bottom:8px;font-size:10px;color:#0058b0;font-weight:600;line-height:1.5;">'
+       +'ⓘ 최적 c 가 허용범위 경계('+best.cOpt+'mm)에 있습니다 — 범위를 넓히면 더 좋은 해가 있을 수 있습니다</div>'
+      :'')
+    +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5;">a='+S.a+', d='+S.d
+    +' mm 고정 · c 허용범위 '+cR.lo+'~'+cR.hi+'mm (입력값, 초기 c₀ 무관) · c*='+best.cOpt+'mm 기준 링크비 '+rho.toFixed(2)
+    +' → 성향 w='+wFac.toFixed(2)+' · 아래 추천값을 수정하면 전체 지표가 즉시 재계산됩니다</div>'
+    +'<div class="result-card" style="margin-bottom:8px;">'
+    +editRow('추천 출력링크 c'+(Math.abs(best.cOpt-c0)>1e-9
+        ?' <span style="color:var(--text3)">(기존 '+c0+')</span>':''),
+      'optEditC',best.cOpt,1,'mm','#248a3d')
+    +editRow('추천 커플러 b','optEditB',+(+best.b).toFixed(2),0.25,'mm','var(--coupler)')
+    +editRow('추천 중립각 θ₄₀','optEditT0',+best.t0.toFixed(1),0.5,'°','var(--follower)')
+    +'<div class="result-divider"></div>'
+    +'<div id="optMetrics"></div>'
+    +'</div>'
+    +'<button onclick="applyOptFromCard()"'
     +' style="width:100%;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;'
-    +'font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">이 값 적용 (b · θ₄₀ · 중립각)</button>';
+    +'font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">이 값 적용 (c · b · θ₄₀ · 중립각)</button>';
+  recalcOptCard();   // 최초 지표 채우기
 }
 
-function applyOpt(bVal,t4Val){
+// ── 수정 칸 실시간 재계산 ───────────────────────────────────────────────────
+let _optCtx=null,_optRecalcTimer=null;
+function scheduleOptRecalc(){
+  clearTimeout(_optRecalcTimer);
+  _optRecalcTimer=setTimeout(recalcOptCard,150);
+}
+
+// 주어진 (c, b, θ₄₀) 설계의 전체 지표 평가 (최적화가 아닌 단일 평가)
+function evalDesign(cv,bv,t0,delta,T2,marginVal){
+  const saved=S.c; S.c=cv;
+  try{
+    const fr=feasibleRangeOf(bv);
+    if(!fr) return{err:'이 (c, b) 조합은 어떤 θ₄ 에서도 조립되지 않습니다'};
+    const physLo=Math.ceil(fr.lo-1e-6)+marginVal, physHi=Math.floor(fr.hi+1e-6)-marginVal;
+    const contained=(t0-delta>=physLo-1e-9)&&(t0+delta<=physHi+1e-9);
+    const tm=absT4At(bv,t0-delta,T2), tp=absT4At(bv,t0+delta,T2), tn=absT4At(bv,t0,T2);
+    let wmax=-Infinity,warg=null,muMin=Infinity,gap=false;
+    for(let t=t0-delta;t<=t0+delta+1e-9;t+=0.25){
+      const r=feasibleAt(S.a,bv,S.c,S.d,t,S.sol);
+      if(!r){gap=true;continue;}
+      const v=Math.abs(T2*r.ma);
+      if(v>wmax){wmax=v;warg=t;}
+      if(r.mu<muMin) muMin=r.mu;
+    }
+    if(tm===null||tp===null||!isFinite(wmax)||gap)
+      return{err:'작동범위 일부에서 기구 해가 없습니다 (θ₄₀·범위 확인)',physLo,physHi};
+    const imbal=Math.max(tm,tp)>1e-12?Math.abs(tm-tp)/Math.max(tm,tp):0;
+    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,imbal,
+      score:tm+tp+wmax,physLo,physHi,contained};
+  } finally { S.c=saved; }
+}
+
+function buildOptMetrics(m){
+  const{delta,margin,motorVal,hasMotor}=_optCtx;
+  const row=(k,v,col)=>'<div class="result-row"><span class="result-key" style="font-size:11.5px">'+k
+    +'</span><span class="result-val" style="font-size:13px;'+(col?'color:'+col:'')+'">'+v+'</span></div>';
+  if(m.err){
+    let s='<div style="font-size:11px;color:var(--red);font-weight:600;padding:4px 0;line-height:1.5;">⚠︎ '+m.err+'</div>';
+    if(m.physLo!==undefined)
+      s+=row('물리 가용범위',m.physLo.toFixed(1)+'° ~ '+m.physHi.toFixed(1)+'°','#1ca3ec');
+    return s;
+  }
+  let s='';
+  s+=row('작동 범위',(m.t0-delta).toFixed(1)+'° ~ '+(m.t0+delta).toFixed(1)+'° (±'+delta.toFixed(1)+'°)',
+    m.contained?'var(--text)':'var(--red)');
+  s+=row('최소 전달각 μ <span style="color:var(--text3)">(최우선 필터)</span>',
+    m.muMin.toFixed(1)+'° (≥'+OPT_MU_MIN+'° = 기준 '+OPT_MU_BASE+'°+마진 '+OPT_MU_MARGIN+'°)',
+    m.muMin>=OPT_MU_MIN?'#1a9c3e':'var(--red)');
+  s+='<div class="result-divider"></div>';
+  s+=row('|T₄| @ −δ 끝단',m.tm.toFixed(2)+' N·m','var(--follower)');
+  s+=row('|T₄| @ +δ 끝단',m.tp.toFixed(2)+' N·m','var(--follower)');
+  s+=row('끝단 불균형 <span style="color:var(--text3)">(≤10%)</span>',(m.imbal*100).toFixed(1)+' %',
+    m.imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
+  s+=row('최대 |T₄| <span style="color:var(--text3)">(범위 내)</span>',
+    m.wmax.toFixed(2)+' N·m @ '+m.warg.toFixed(1)+'°','var(--follower)');
+  if(m.tn!==null) s+=row('|T₄| @ 중립각',m.tn.toFixed(2)+' N·m','var(--text2)');
+  s+=row('세 토크 합 <span style="color:var(--text3)">(목적함수)</span>',m.score.toFixed(2)+' N·m','var(--purple)');
+  s+='<div class="result-divider"></div>';
+  s+=row('물리 가용범위',m.physLo.toFixed(1)+'° ~ '+m.physHi.toFixed(1)+'° (마진 '+margin.toFixed(1)+'° 제외)'
+    +(m.contained?'':' — <b style="color:var(--red)">작동범위 이탈!</b>'),'#1ca3ec');
+  if(hasMotor)
+    s+=row('토크 요구도 '+motorVal.toFixed(2)+' N·m',
+      m.worst>=motorVal?'충족 ✓ (worst '+m.worst.toFixed(2)+')':'미달 ✗ (worst '+m.worst.toFixed(2)+')',
+      m.worst>=motorVal?'#1a9c3e':'var(--red)');
+  return s;
+}
+
+function recalcOptCard(){
+  if(!_optCtx) return;
+  const el=id=>document.getElementById(id);
+  const mDiv=el('optMetrics');
+  if(!mDiv) return;
+  const cv=parseFloat(el('optEditC')?.value), bv=parseFloat(el('optEditB')?.value), t0=parseFloat(el('optEditT0')?.value);
+  if([cv,bv,t0].some(v=>isNaN(v))||cv<5||cv>400||bv<5||bv>400){
+    mDiv.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;">⚠︎ 값을 확인하세요 (c·b: 5~400 mm)</div>';
+    return;
+  }
+  const m=evalDesign(cv,bv,t0,_optCtx.delta,_optCtx.T2,_optCtx.margin);
+  m.t0=t0;
+  mDiv.innerHTML=buildOptMetrics(m);
+}
+
+function applyOptFromCard(){
+  const cv=parseFloat(document.getElementById('optEditC')?.value);
+  const bv=parseFloat(document.getElementById('optEditB')?.value);
+  const t0=parseFloat(document.getElementById('optEditT0')?.value);
+  if([cv,bv,t0].some(v=>isNaN(v))) return;
+  applyOpt(bv,t0,cv);
+}
+
+function applyOpt(bVal,t4Val,cVal){
+  if(cVal!==null&&cVal!==undefined&&isFinite(cVal)){
+    S.c=cVal;
+    document.getElementById('ic').value=cVal;
+  }
   S.b=bVal;
   document.getElementById('ib').value=bVal;
   setTransform(); updateGrashof();
@@ -2845,34 +3014,111 @@ let _deltaSweepData=null, _dsBusy=false;
 
 // 단일 δ 에 대한 최적화 (doOptimize 의 선택 규칙과 동일, ±1mm 정밀 재탐색은 생략)
 function optimizeForDelta(delta,T2,marginVal){
-  const cands=[], relaxCands=[];
-  for(let bv=5;bv<=400;bv++){
+  const cands=[], relaxCands=[], muCands=[];
+  // 조립 조건: b 는 [d−a−c, d+a+c] 범위 밖에서는 어떤 θ₄ 에서도 조립 불가
+  const bLo=Math.max(5,Math.ceil(S.d-S.a-S.c)), bHi=Math.min(400,Math.floor(S.d+S.a+S.c));
+  for(let bv=bLo;bv<=bHi;bv++){
     const r=bestNeutralForB(bv,T2,delta,marginVal);
     if(!r) continue;
+    if(r.noMu){ if(r.t0!==undefined) muCands.push({b:bv,...r}); continue; }
     if(r.noBalance){ if(r.t0!==undefined) relaxCands.push({b:bv,...r}); continue; }
     cands.push({b:bv,...r});
   }
+  const TOL=optTols();   // 링크비 기반 유효 준동률 (§3-3)
   if(cands.length){
     const S0=Math.max(...cands.map(c=>c.score));
     let bb=null;
     for(const c of cands){
-      if(c.score<S0*(1-OPT_SCORE_TOL)-1e-12) continue;
+      if(c.score<S0*(1-TOL.score)-1e-12) continue;
       if(!bb||c.wmax>bb.wmax+1e-9||(Math.abs(c.wmax-bb.wmax)<=1e-9&&c.score>bb.score)) bb=c;
     }
-    return{...bb,fallback:false};
+    return{...bb,fallback:false,fbType:''};
   }
   if(relaxCands.length){
     const m0=Math.min(...relaxCands.map(c=>c.imbal));
-    const band=relaxCands.filter(c=>c.imbal<=m0+OPT_RELAX_TOL);
+    const band=relaxCands.filter(c=>c.imbal<=m0+TOL.relax);
     const S0=Math.max(...band.map(c=>c.score));
     let bb=null;
     for(const c of band){
-      if(c.score<S0*(1-OPT_SCORE_TOL)-1e-12) continue;
+      if(c.score<S0*(1-TOL.score)-1e-12) continue;
       if(!bb||c.wmax>bb.wmax+1e-9||(Math.abs(c.wmax-bb.wmax)<=1e-9&&c.score>bb.score)) bb=c;
     }
-    return{...bb,fallback:true};
+    return{...bb,fallback:true,fbType:'imbal'};
+  }
+  if(muCands.length){
+    const m1=Math.max(...muCands.map(c=>c.muMin));
+    const band=muCands.filter(c=>c.muMin>=m1-0.5);   // 전달각 최우선: 엄격 최대화
+
+    let bb=null;
+    for(const c of band){
+      if(!bb||c.imbal<bb.imbal-1e-9||(c.imbal<=bb.imbal+1e-9&&c.score>bb.score)) bb=c;
+    }
+    return{...bb,fallback:true,fbType:'mu'};
   }
   return null;
+}
+
+// δ 별로 출력링크 c 까지 함께 최적화
+// c 허용범위 [cMin, cMax] 는 명시적 패키징 제약 입력 — 초기 c₀ 와 무관하게
+// 같은 범위면 항상 같은 결과가 나온다:
+//   · 절대 짝수 그리드(…38,40,42…) 2mm 스캔 → 최적 후보 ±3mm 를 1mm 정밀 재탐색
+//   · 최적이 범위 경계에 붙으면 atBound 플래그로 알림 (범위를 넓히면 더 좋은 해 가능)
+// 선택: 티어 우선(정상 > 불균형차선 > μ차선) → §3-1 준동률 규칙(합 → 최대토크)
+function readCRange(){
+  let lo=parseFloat(document.getElementById('icMin')?.value);
+  let hi=parseFloat(document.getElementById('icMax')?.value);
+  if(isNaN(lo)) lo=Math.max(5,Math.round(S.c*0.5));
+  if(isNaN(hi)) hi=Math.min(400,Math.round(S.c*2));
+  lo=Math.max(5,Math.min(400,lo)); hi=Math.max(5,Math.min(400,hi));
+  if(hi<lo){ const t=lo; lo=hi; hi=t; }
+  return{lo,hi};
+}
+
+function optimizeForDeltaWithC(delta,T2,marginVal,cMin,cMax){
+  const saved=S.c;
+  const range=(cMin!==undefined&&cMax!==undefined)?{lo:cMin,hi:cMax}:readCRange();
+  const tried=new Map();
+  const evalC=cv=>{
+    cv=Math.round(cv);
+    if(cv<range.lo||cv>range.hi) return null;
+    if(tried.has(cv)) return tried.get(cv);
+    S.c=cv;
+    let r=null;
+    try{
+      r=optimizeForDelta(delta,T2,marginVal);
+      if(r&&r.t0!==undefined){ r.tn=absT4At(r.b,r.t0,T2); r={cOpt:cv,...r}; }
+      else r=null;
+    } finally { S.c=saved; }
+    tried.set(cv,r);
+    return r;
+  };
+  const tierOf=r=>r.fbType===''?0:(r.fbType==='imbal'?1:2);
+  const select=arr=>{
+    const bt=Math.min(...arr.map(tierOf));
+    const pool=arr.filter(r=>tierOf(r)===bt);
+    const S0=Math.max(...pool.map(r=>r.score));
+    let bb=null;
+    for(const r of pool){
+      if(r.score<S0*(1-OPT_SCORE_TOL)-1e-12) continue;
+      if(!bb||r.wmax>bb.wmax+1e-9||(Math.abs(r.wmax-bb.wmax)<=1e-9&&r.score>bb.score)) bb=r;
+    }
+    return{...bb,fallback:bt>0};
+  };
+
+  // 절대 짝수 그리드 스캔 (범위 양끝은 항상 포함)
+  for(let cv=2*Math.ceil(range.lo/2); cv<=range.hi; cv+=2) evalC(cv);
+  evalC(range.lo); evalC(range.hi);
+  let all=[...tried.values()].filter(Boolean);
+  if(!all.length) return null;
+
+  // 1mm 정밀 재탐색 (절대 정수 — 홀수 포함)
+  const pick=select(all);
+  for(let dc=-3;dc<=3;dc++) evalC(pick.cOpt+dc);
+  all=[...tried.values()].filter(Boolean);
+  const fin=select(all);
+  fin.atBound=(fin.cOpt<=range.lo+1)||(fin.cOpt>=range.hi-1);
+  fin.cRange=range;
+  return fin;
 }
 
 function openDeltaSweep(){
@@ -2894,14 +3140,19 @@ function runDeltaSweep(){
     if(status) status.textContent='⚠︎ δ 범위를 확인하세요';
     return;
   }
-  const STEP=0.5;
+  const optC=!!document.getElementById('dsOptC')?.checked;
+  const STEP=optC?1:0.5;   // c-모드는 계산량이 커서 1° 간격
   const deltas=[];
   for(let d=d0;d<=d1+1e-9;d+=STEP) deltas.push(+d.toFixed(2));
   _deltaSweepData={deltas,maxArr:[],minArr:[],fbArr:[],bArr:[],t0Arr:[],tnArr:[],
+    cArr:optC?[]:null,optC,
     T2,margin:marginVal,a:S.a,c:S.c,d:S.d,sol:S.sol};
+  const cR=readCRange();
   const sub=document.getElementById('dsSub');
-  if(sub) sub.textContent='a='+S.a+', c='+S.c+', d='+S.d+' mm · T₂='+T2.toFixed(2)
-    +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준 — 각 δ 마다 최적 (b, θ₄₀) 재계산';
+  if(sub) sub.textContent='a='+S.a+(optC?', c 허용범위 '+cR.lo+'~'+cR.hi+'mm':', c='+S.c)
+    +', d='+S.d+' mm · T₂='+T2.toFixed(2)
+    +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준 — 각 δ 마다 최적 ('
+    +(optC?'c, ':'')+'b, θ₄₀) 재계산';
   _dsBusy=true;
   const runBtn=document.getElementById('dsRun');
   if(runBtn){ runBtn.disabled=true; runBtn.style.opacity='0.5'; }
@@ -2917,15 +3168,17 @@ function runDeltaSweep(){
     if(status) status.textContent='계산 중… '+(i+1)+'/'+deltas.length;
     setTimeout(()=>{
       let r=null;
-      try{ r=optimizeForDelta(deltas[i],T2,marginVal); }catch(e){ console.warn('deltaSweep:',e); }
+      try{ r=optC?optimizeForDeltaWithC(deltas[i],T2,marginVal,cR.lo,cR.hi):optimizeForDelta(deltas[i],T2,marginVal); }
+      catch(e){ console.warn('deltaSweep:',e); }
       // 중립각 토크는 정확값, wmax 는 0.25° 그리드값 → max 곡선이 항상 상한이 되도록 보정
-      const tn=r?absT4At(r.b,r.t0,T2):null;
+      const tn=r?(r.tn!==undefined?r.tn:absT4At(r.b,r.t0,T2)):null;
       _deltaSweepData.maxArr.push(r?Math.max(r.wmax,tn??-Infinity):null);
       _deltaSweepData.minArr.push(r?r.worst:null);
       _deltaSweepData.fbArr.push(r?r.fallback:null);
       _deltaSweepData.bArr.push(r?r.b:null);
       _deltaSweepData.t0Arr.push(r?r.t0:null);
       _deltaSweepData.tnArr.push(tn);   // 중립각에서의 |T₄|
+      if(_deltaSweepData.cArr) _deltaSweepData.cArr.push(r?(r.cOpt??S.c):null);
       i++;
       drawDeltaSweepPlot();   // 진행 상황을 그래프에 점진 표시
       next();
@@ -2941,14 +3194,16 @@ function drawDeltaSweepPlot(){
 
   const D=_deltaSweepData;
   const hasFB=!!(D&&D.fbArr.some(v=>v===true));
+  const hasC=!!(D&&D.cArr&&D.cArr.some(v=>v!==null));
   const legItems=[
     {type:'line',color:'#ff453a',label:'최대 |T₄| (작동범위 내)'},
     {type:'line',color:'#0071e3',label:'최소 |T₄| (끝단 worst)'},
-    {type:'line',color:'#bf5af2',label:'중립각 |T₄|'},
+    {type:'dash',color:'#bf5af2',label:'중립각 |T₄| (점선)'},
   ];
-  if(hasFB) legItems.push({type:'dot',color:'#ff9f0a',label:'차선 (불균형>10%)'});
+  if(hasC) legItems.push({type:'line',color:'#34c759',label:'최적 c (우측축, mm)'});
+  if(hasFB) legItems.push({type:'dot',color:'#ff9f0a',label:'차선 (제약 미충족)'});
 
-  const PAD={t:24,b:46,l:56,r:20};
+  const PAD={t:24,b:46,l:56,r:hasC?56:20};
   const IW=W2-PAD.l-PAD.r;
   const legRows=layoutLegend(legItems,IW);
   const LEG_H=legendHeight(legRows);
@@ -3002,6 +3257,21 @@ function drawDeltaSweepPlot(){
   if(yLo===yHi){yLo-=1;yHi+=1;}
   const yp=v=>PAD.t+IH-(v-yLo)/(yHi-yLo)*IH;
 
+  // ── 우측축: 최적 c (mm) ──
+  let ypR=null,rLo=0,rHi=0,rStep=1;
+  if(hasC){
+    const cs=D.cArr.filter(v=>v!==null&&isFinite(v));
+    const rmin=Math.min(...cs), rmax=Math.max(...cs);
+    const rspan=Math.max(rmax-rmin,2);
+    const rraw=rspan/5;
+    const rmag=Math.pow(10,Math.floor(Math.log10(rraw)));
+    rStep=[1,2,2.5,5,10].map(f=>f*rmag).find(s=>s>0&&rspan/s<=7)||(rmag||1);
+    rLo=Math.floor((rmin-rspan*0.1)/rStep)*rStep;
+    rHi=Math.ceil((rmax+rspan*0.1)/rStep)*rStep;
+    if(rLo===rHi){rLo-=2;rHi+=2;}
+    ypR=v=>PAD.t+IH-(v-rLo)/(rHi-rLo)*IH;
+  }
+
   // ── 차선(fallback) δ 구간 음영 ──
   const stepX=deltas.length>1?deltas[1]-deltas[0]:0.5;
   c2.save();
@@ -3043,15 +3313,28 @@ function drawDeltaSweepPlot(){
     c2.fillStyle='rgba(110,110,115,0.9)';
     c2.fillText(Math.abs(v)<0.001?'0':(+v.toFixed(2))+'', PAD.l-6, y+3);
   }
+  if(ypR){
+    c2.textAlign='left';
+    for(let v=rLo; v<=rHi+1e-9; v+=rStep){
+      const y=ypR(v);
+      if(y<PAD.t-1||y>PAD.t+IH+1) continue;
+      c2.fillStyle='rgba(40,150,70,0.9)';
+      c2.fillText((+v.toFixed(0))+'', PAD.l+IW+6, y+3);
+    }
+  }
   c2.save();
   c2.textAlign='center';
   c2.font="600 9px -apple-system,'SF Pro Text',sans-serif";
   c2.fillStyle='rgba(110,110,115,0.8)';
   c2.fillText('|T₄| (N·m)', PAD.l/2, PAD.t-8);
+  if(ypR){
+    c2.fillStyle='rgba(40,150,70,0.85)';
+    c2.fillText('c (mm)', PW-PAD.r/2, PAD.t-8);
+  }
   c2.restore();
 
   // ── 곡선 ──
-  function strokeSeries(arr,ypFn,color,shadow){
+  function strokeSeries(arr,ypFn,color,shadow,dash){
     c2.save();
     c2.beginPath(); c2.roundRect(PAD.l-1,PAD.t-1,IW+2,IH+2,6); c2.clip();
     c2.beginPath(); let on=false;
@@ -3060,14 +3343,17 @@ function drawDeltaSweepPlot(){
       const x=xp(deltas[i]), y=ypFn(arr[i]);
       if(!on){c2.moveTo(x,y);on=true;}else c2.lineTo(x,y);
     }
+    if(dash) c2.setLineDash([5,4]);
     c2.shadowColor=shadow; c2.shadowBlur=6; c2.shadowOffsetY=2;
     c2.strokeStyle=color; c2.lineWidth=2.2; c2.lineJoin='round'; c2.lineCap='round';
     c2.stroke();
     c2.restore();
   }
-  strokeSeries(maxArr,yp,'#ff453a','rgba(255,69,58,0.25)');
+  // 그리기 순서: 중립(점선, 최대와 겹치는 경우가 많음) → 최소 → 최대(항상 맨 위) → c
+  strokeSeries(tnArr,yp,'#bf5af2','rgba(191,90,242,0.25)',true);
   strokeSeries(minArr,yp,'#0071e3','rgba(0,113,227,0.25)');
-  strokeSeries(tnArr,yp,'#bf5af2','rgba(191,90,242,0.25)');
+  strokeSeries(maxArr,yp,'#ff453a','rgba(255,69,58,0.25)');
+  if(ypR) strokeSeries(D.cArr,ypR,'#34c759','rgba(52,199,89,0.25)');
 
   // ── 데이터 점 (차선은 주황 링) ──
   function dot(x,y,fill,r){
@@ -3077,9 +3363,10 @@ function drawDeltaSweepPlot(){
   }
   for(let i=0;i<deltas.length;i++){
     const x=xp(deltas[i]);
-    if(maxArr[i]!==null) dot(x,yp(maxArr[i]),fbArr[i]?'#ff9f0a':'#ff453a',2.6);
+    if(tnArr[i]!==null&&tnArr[i]!==undefined) dot(x,yp(tnArr[i]),fbArr[i]?'#ff9f0a':'#bf5af2',2.2);
     if(minArr[i]!==null) dot(x,yp(minArr[i]),fbArr[i]?'#ff9f0a':'#0071e3',2.6);
-    if(tnArr[i]!==null&&tnArr[i]!==undefined) dot(x,yp(tnArr[i]),fbArr[i]?'#ff9f0a':'#bf5af2',2.6);
+    if(maxArr[i]!==null) dot(x,yp(maxArr[i]),fbArr[i]?'#ff9f0a':'#ff453a',2.6);
+    if(ypR&&D.cArr[i]!==null) dot(x,ypR(D.cArr[i]),fbArr[i]?'#ff9f0a':'#34c759',2.6);
   }
 
   border();
