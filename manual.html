@@ -630,6 +630,8 @@ body {
             <span class="page-tag">기구학</span>
             <span class="page-tag">토크 해석</span>
             <span class="page-tag">링크 설계</span>
+            <span class="page-tag">AI 최적설계</span>
+            <span class="page-tag">역설계 검토</span>
           </div>
         </div>
       </div>
@@ -639,6 +641,9 @@ body {
         <span id="anc-linkage-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
           4-Bar Linkage 해석기는 4개의 링크(크랭크, 커플러, 팔로워, 고정링크)로 구성된 기구학적 메커니즘의 위치, 각도, 토크를 분석합니다. 항공기 조종면 액추에이터, 로봇 팔, 자동차 서스펜션 등 다양한 분야에서 활용되는 기초 기구학 해석 도구입니다.
+        </p>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-top:10px;">
+          위치·토크 해석에 더해, 이 도구는 <strong>AI 최적 설계 추천</strong>(타각 범위를 만족하며 토크가 최대가 되도록 커플러 b·출력링크 c·중립각 θ₄₀ 자동 탐색), <strong>타각범위 스윕 역설계 검토</strong>, <strong>출력토크·커플러·타각별 그래프</strong>, 그리고 <strong>힌지모멘트·조종면 리깅 계산기로의 연동</strong>까지 지원하는 통합 액추에이터 설계 워크벤치입니다.
         </p>
         <div class="eq-card" style="margin-top:16px;">
           <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
@@ -800,29 +805,43 @@ body {
           <div class="step">
             <div class="step-num">1</div>
             <div class="step-body">
-              <h4>링크 길이 입력</h4>
-              <p>좌측 패널의 <strong>링크 길이</strong> 섹션에서 고정링크(d), 크랭크(a), 커플러(b), 팔로워(c)의 길이를 숫자로 입력합니다. 단위는 mm이며 상대적 비율이 중요합니다.</p>
+              <h4>링크 길이 입력 & 해 유형 선택</h4>
+              <p>좌측 <strong>링크 길이</strong> 섹션에서 고정 d · 입력 a(크랭크) · 커플러 b · 출력 c(팔로워)를 입력합니다(mm). 상단 세그먼트에서 <strong>개방형</strong> / <strong>교차형</strong> 조립 형태를 선택하고, 우측 상단 <strong>Grashof 배지</strong>로 완전회전 가능 여부를 확인합니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-body">
-              <h4>각도 조정</h4>
-              <p><strong>팔로워 각도(θ₄)</strong> 슬라이더로 출력 링크의 각도를 직접 설정하거나, 캔버스에서 절점 A·B를 드래그하여 기구를 직접 조작합니다.</p>
+              <h4>각도 조정 (θ₄ 또는 θ₂ 역해)</h4>
+              <p><strong>θ₄ 출력각</strong> 슬라이더로 출력 링크를 직접 설정하거나, <strong>θ₂ 입력각</strong>을 넣어 입력각으로부터 역해(逆解)를 구할 수 있습니다. 캔버스에서 절점 A·B나 링크 중간점을 드래그해 기구를 직접 조작할 수도 있습니다. 도달 불가 각도에서는 경고 배너가 표시됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">3</div>
             <div class="step-body">
               <h4>토크 해석</h4>
-              <p><strong>토크 해석</strong> 섹션에서 입력 토크 T₂를 입력하면, 가상일 원리에 의해 출력 토크 T₄와 기계적 이득(MA)이 자동 계산됩니다.</p>
+              <p><strong>토크 해석</strong> 섹션에서 입력 토크 T₂를 입력하면, 가상일 원리에 의해 출력 토크 T₄와 기계적 이득(MA)이 자동 계산됩니다. 전달각 μ가 40° 미만이면 불량 경고가 표시됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">4</div>
             <div class="step-body">
-              <h4>출력 토크 플롯 확인</h4>
-              <p>팔로워 전체 회전 범위에 걸쳐 출력 토크가 어떻게 변화하는지 그래프로 확인합니다. 모터 토크 한계선을 입력하면 실제 동작 가능 범위를 시각화합니다.</p>
+              <h4>토크·커플러 그래프 확인</h4>
+              <p><strong>출력토크 변화</strong> 그래프에서 θ₄ 전 범위의 T₄ 곡선을, <strong>커플러 길이 영향</strong> 그래프에서 커플러 b에 따른 최대 토크·가용각 변화를 확인합니다. <strong>토크 요구도</strong>와 <strong>끝단 마진</strong>을 입력하면 <strong>물리(기계적) 가용 각도</strong>·<strong>토크 가용 각도</strong>가 계산·시각화됩니다. 각 그래프는 고해상도 PNG로 복사·저장할 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#0071e3,#bf5af2);">AI</div>
+            <div class="step-body">
+              <h4>AI 최적 설계 추천</h4>
+              <p><strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 해당 타각 범위를 물리 가용범위 안에 수용하면서 양끝단 토크 불균형을 억제하고 토크 합이 최대가 되도록 <strong>커플러 b · 출력링크 c · 중립각 θ₄₀</strong>를 자동 탐색합니다. 추천 값은 카드에서 직접 편집·재평가할 수 있고 <strong>"이 값 적용"</strong>으로 반영됩니다. <strong>"타각범위별 토크 검토 (그래프)"</strong>로 δ 스윕 역설계 검토 모달을 엽니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h4>힌지모멘트 · 리깅 계산기로 연동</h4>
+              <p><strong>중립각 θ₄₀</strong>와 <strong>타각 δ+ 방향</strong>을 설정한 뒤 <strong>"힌지모멘트 계산기로 보내기"</strong>를 누르면 기하·토크가 전달되어, 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 |T₄(δ)|가 자동 계산됩니다. <strong>"조종면 리깅 계산기로 보내기"</strong>로 3차식·단조성 이론 검증에 링크 기하를 넘길 수도 있습니다.</p>
             </div>
           </div>
         </div>
@@ -832,20 +851,133 @@ body {
       <div class="card">
         <span id="anc-linkage-params" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">입력 파라미터</div>
         <table class="input-table">
-          <tr><th>파라미터</th><th>설명</th><th>범위</th></tr>
-          <tr><td>d <span class="unit">mm</span></td><td>고정링크 (Ground Link) — O₂와 O₄ 사이의 거리</td><td>10 ~ 400</td></tr>
-          <tr><td>a <span class="unit">mm</span></td><td>크랭크 (Crank) — 구동 링크. 모터에 연결</td><td>5 ~ 400</td></tr>
-          <tr><td>b <span class="unit">mm</span></td><td>커플러 (Coupler) — 크랭크와 팔로워 연결 링크</td><td>5 ~ 400</td></tr>
-          <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결</td><td>5 ~ 400</td></tr>
-          <tr><td>θ₄ <span class="unit">°</span></td><td>팔로워 각도 — 슬라이더 또는 숫자 입력</td><td>0 ~ 360</td></tr>
-          <tr><td>T₂ <span class="unit">N·m</span></td><td>입력 토크 — 크랭크에 인가되는 모터 토크</td><td>자유입력</td></tr>
+          <tr><th>파라미터</th><th>설명</th><th>기본값</th><th>범위</th></tr>
+          <tr><td>d <span class="unit">mm</span></td><td>고정링크 (Ground Link) — O₂와 O₄ 사이의 거리</td><td>100</td><td>10 ~ 400</td></tr>
+          <tr><td>a <span class="unit">mm</span></td><td>크랭크 (Crank) — 구동 링크. 모터에 연결</td><td>20</td><td>5 ~ 400</td></tr>
+          <tr><td>b <span class="unit">mm</span></td><td>커플러 (Coupler) — 크랭크와 팔로워 연결 링크</td><td>100</td><td>5 ~ 400</td></tr>
+          <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결. AI 최적화 시 c 허용범위는 <strong>0.2~0.8×d</strong>로 자동 연동됩니다</td><td>40</td><td>5 ~ 400</td></tr>
+          <tr><td>θ₄ <span class="unit">°</span></td><td>출력각 (팔로워) — 슬라이더 또는 숫자 입력</td><td>100</td><td>0 ~ 360</td></tr>
+          <tr><td>θ₂ <span class="unit">°</span></td><td>입력각 (크랭크) — 입력하면 역해로 θ₄ 산출</td><td>계산값</td><td>0 ~ 360</td></tr>
+          <tr><td>T₂ <span class="unit">N·m</span></td><td>입력 토크 — 크랭크에 인가되는 모터 토크</td><td>3</td><td>−9999 ~ 9999</td></tr>
+          <tr><td>타각 범위 ±δ <span class="unit">°</span></td><td>AI 최적화 목표 타각 범위 (θ₄₀ ± δ)</td><td>25</td><td>0.5 ~ 89</td></tr>
+          <tr><td>토크 요구도 <span class="unit">N·m</span></td><td>출력토크·커플러 그래프의 요구 토크 기준선. 토크 가용각 판정에 사용</td><td>3</td><td>−9999 ~ 9999</td></tr>
+          <tr><td>끝단 마진 <span class="unit">°</span></td><td>작동범위 양끝단에 두는 안전 여유각. 물리 가용범위에서 제외</td><td>5</td><td>0 ~ 90</td></tr>
+          <tr><td>중립각 θ₄₀ <span class="unit">°</span></td><td>힌지모멘트/리깅 연동용 타각 δ=0° 기준 출력각</td><td>100</td><td>0 ~ 360</td></tr>
         </table>
+      </div>
+
+      <!-- AI 최적 설계 추천 -->
+      <div class="card">
+        <span id="anc-linkage-ai" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">AI 최적 설계 추천</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          좌측 <strong>AI 최적 설계 추천</strong> 패널에 <strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 현재 <strong>고정 d · 입력 a</strong>는 고정한 채 타각 범위 전체를 물리 가용범위 안에 수용하도록 <strong>커플러 b · 출력링크 c · 중립 출력각 θ₄₀</strong>를 자동으로 탐색합니다. 결과 카드의 값은 직접 편집해 즉시 재평가할 수 있으며, <strong>"이 값 적용 (c · b · θ₄₀ · 중립각)"</strong>으로 기구에 반영합니다.
+        </p>
+
+        <div class="eq-card" style="margin-top:16px;">
+          <div class="eq-header" style="background:linear-gradient(90deg,rgba(0,113,227,0.1),rgba(191,90,242,0.1)); color:#6e40c9;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v12M2 8h12"/></svg>
+            최적화 목적함수 · 제약조건
+          </div>
+          <div class="eq-body" style="align-items:center;">
+            <div>
+              <div class="eq-label">목적함수 (최대화) — 세 토크의 합</div>
+              <div class="eq-row" style="flex-wrap:wrap;">
+                <span class="eq-sym" style="font-style:normal;font-family:sans-serif;font-size:15px;font-weight:600;">score</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym">|T₄(θ₄₀−δ)|</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">|T₄(θ₄₀+δ)|</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">max|T₄|</span>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">①</span>작동범위 [θ₄₀−δ, θ₄₀+δ] ⊆ 물리 가용범위(끝단 마진 제외)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">②</span>작동범위 내 최소 전달각 μ ≥ 50°</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">③</span>양끝단 토크 불균형 ≤ 10%</div>
+          </div>
+        </div>
+
+        <p style="font-size:13.5px;color:var(--text2);line-height:1.7;margin-top:14px;">
+          제약을 모두 만족하는 정상해가 없으면 <strong>차선(fallback) 해</strong>를 주황 배너로 안내합니다 — <strong>불균형 차선</strong>(끝단 토크 불균형을 최소화) 또는 <strong>전달각 차선</strong>(최소 전달각을 최대화). 출력링크 c의 탐색 범위는 고정링크 d에 자동 연동되어 <strong>0.2×d ~ 0.8×d</strong>로 설정되며(별도 입력 불필요), 최적 c가 경계에 붙으면 "d를 키우면 더 좋은 해가 있음"을 안내합니다.
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-text">추천 카드에는 작동범위, 최소 μ, 양끝단·중립각 |T₄|, 끝단 불균형, 최대 |T₄| 발생 각도, 세 토크의 합, 물리 가용범위, 토크 요구도 충족 여부가 함께 표시됩니다. 값을 손으로 바꾸면 지표가 실시간으로 다시 계산됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 그래프 & 가용 각도 -->
+      <div class="card">
+        <span id="anc-linkage-graphs" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">출력토크 · 커플러 · 타각 스윕 그래프</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">
+          세 종류의 그래프로 링크 설계를 검토합니다. 모든 그래프는 <strong>"그래프 복사" / "그래프 저장"</strong>으로 고해상도 PNG 내보내기가 가능하며, 그래프를 클릭해 포커스한 뒤 <kbd>←</kbd>/<kbd>→</kbd> 키로 현재 위치(θ₄ 또는 b)를 미세 이동할 수 있습니다.
+        </p>
+        <table class="input-table">
+          <tr><th>그래프</th><th>X축</th><th>내용</th></tr>
+          <tr><td><strong>출력토크 변화</strong></td><td>θ₄ (°)</td><td>출력각 전 범위의 T₄ = |T₂ × MA(θ₄)| 곡선. 최대값·현재 위치 마커, <strong>토크 요구도</strong> 수평선과 교점, 끝단 마진 음영·물리 가용범위 경계 표시</td></tr>
+          <tr><td><strong>커플러 길이 영향</strong></td><td>커플러 b (mm)</td><td>조립 가능한 b 범위에서 최대 T₄(좌축)와 가용 각도(우축) 변화. <strong>가용각 (μ반영)</strong>·<strong>토크 가용</strong> 체크박스로 곡선 표시를 토글. 최고토크·가용각·현재 b 마커 표시</td></tr>
+          <tr><td><strong>타각범위 스윕</strong><br>(역설계 검토)</td><td>타각범위 ±δ (°)</td><td>모달 창. 각 δ마다 최적 (c, b, θ₄₀)를 재계산해 작동범위 내 최대·최소 |T₄|와 최적 c(우축)의 변화를 보여줌 → 토크 최적화에 따른 <strong>커플러·출력링크 길이 역설계</strong> 검토</td></tr>
+        </table>
+        <div class="tip-box" style="margin-top:14px;">
+          <div class="tip-icon">📐</div>
+          <div class="tip-text"><strong>물리(기계적) 가용 각도</strong>는 유효 해가 존재하고 전달각 μ ≥ 50°인 최장 연속구간에서 끝단 마진을 뺀 범위이고, <strong>토크 가용 각도</strong>는 |T₄| ≥ 토크 요구도인 θ₄ 구간의 총 각도입니다. 두 값은 출력토크 그래프 아래 박스에 각각 표시됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 도구 간 연동 -->
+      <div class="card">
+        <span id="anc-linkage-link" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 간 연동 — 힌지모멘트 · 조종면 리깅</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          링크 해석기는 상단 세그먼트에서 <strong>개방형 / 교차형</strong> 조립 형태를 선택할 수 있고, 이 기하와 토크를 다른 도구로 넘길 수 있습니다.
+        </p>
+        <div class="step-list" style="margin-top:14px;">
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#9b5de5,#bf5af2);">H</div>
+            <div class="step-body">
+              <h4>힌지모멘트 계산기로 보내기</h4>
+              <p>연동 패널에서 <strong>중립각 θ₄₀</strong>("현재값" 버튼으로 현재 θ₄ 복사)과 <strong>타각 δ+ 방향</strong>(θ₄ 증가/감소)을 설정한 뒤 <strong>"힌지모멘트 계산기로 보내기 →"</strong>를 누르면 {a,b,c,d,해유형,T₂,θ₄₀,방향}이 전달됩니다. 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 <strong>|T₄(δ)| = |T₂ × MA(θ₄₀ ± δ)|</strong>가 자동 계산되어, 공력 힌지모멘트와 링크의 가용 토크를 함께 비교할 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#28a745,#32d74b);">R</div>
+            <div class="step-body">
+              <h4>조종면 리깅 계산기로 보내기</h4>
+              <p><strong>"조종면 리깅 계산기로 보내기 →"</strong>로 링크 기하를 CS Rigging의 <strong>이론 검증</strong> 탭에 넘기면, 4절 링크 기구로부터 이론 3차식과 단조성(monotonicity)을 판정해 실측 리깅 회귀와 비교할 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 핵심 용어 -->
       <div class="card">
         <span id="anc-linkage-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">핵심 공학 용어</div>
         <div class="term-grid">
+          <div class="term-row">
+            <span id="anc-solution-type"></span><div class="term-name">개방형 / 교차형 (Open / Cross)
+              <span class="term-symbol">조립 형태</span>
+            </div>
+            <div class="term-desc">동일한 링크 길이·입력각에 대해 4절 링크는 두 가지 조립 자세(분기해)를 가집니다. 커플러와 팔로워가 교차하지 않는 <strong>개방형</strong>과 교차하는 <strong>교차형</strong>이며, 상단 세그먼트로 선택합니다. 해석은 선택된 분기의 위치·토크를 기준으로 수행됩니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-neutral-angle"></span><div class="term-name">중립각 (Neutral Angle)
+              <span class="term-symbol">θ₄₀</span>
+            </div>
+            <div class="term-desc">타각 δ = 0°에 대응하는 기준 출력각. 조종면의 중립(뉴트럴) 위치에 해당하며, 작동범위는 θ₄₀ ± δ로 정의됩니다. AI 최적화의 탐색 변수이자 힌지모멘트·리깅 연동의 기준각입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-phys-span"></span><div class="term-name">물리(기계적) 가용 각도
+              <span class="term-symbol">Mechanical Span</span>
+            </div>
+            <div class="term-desc">유효한 해가 존재하고 전달각 μ가 기준(최적화 시 50°) 이상으로 유지되는 최장 연속 출력각 구간에서, 양끝단 마진을 제외한 실제 사용 가능한 각도 범위입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-torque-span"></span><div class="term-name">토크 가용 각도
+              <span class="term-symbol">Torque Span</span>
+            </div>
+            <div class="term-desc">출력 토크 |T₄|가 입력한 <strong>토크 요구도</strong> 이상을 만족하는 θ₄ 구간의 총 각도. 물리 가용 각도가 기구학적 한계라면, 토크 가용 각도는 요구 하중을 실제로 감당할 수 있는 범위를 뜻합니다.</div>
+          </div>
           <div class="term-row">
             <span id="anc-crank"></span><div class="term-name">크랭크 (Crank)
               <span class="term-symbol">링크 a</span>
@@ -942,7 +1074,11 @@ body {
 
       <div class="tip-box">
         <div class="tip-icon">💡</div>
-        <div class="tip-text"><strong>팁:</strong> 캔버스에서 링크 중간 부분을 호버하면 각 링크의 길이 레이블이 표시됩니다. 절점 A, B를 드래그하여 실시간으로 기구 형태를 바꿀 수 있습니다.</div>
+        <div class="tip-text"><strong>팁:</strong> 캔버스에서 링크 중간 부분을 호버하면 각 링크의 길이 레이블이 표시됩니다. 절점 A, B를 드래그하여 실시간으로 기구 형태를 바꿀 수 있고, 마우스 휠·핀치·줌 버튼으로 확대/축소, 사이드바 경계를 드래그해 패널 폭을 조절할 수 있습니다.</div>
+      </div>
+      <div class="tip-box">
+        <div class="tip-icon">🤖</div>
+        <div class="tip-text"><strong>추천 워크플로우:</strong> ① 타각 범위 ±δ 입력 → <strong>"✦ 최적값 계산"</strong>으로 c·b·θ₄₀ 초안 확보 → ② <strong>"타각범위별 토크 검토"</strong> 스윕으로 δ 변화에 따른 최적 c·토크 여유 확인 → ③ 중립각·δ+ 방향 설정 후 <strong>힌지모멘트 계산기</strong>로 보내 공력 힌지모멘트 대비 링크 가용 토크를 검증합니다.</div>
       </div>
     </section>
 
@@ -960,13 +1096,14 @@ body {
         </div>
         <div>
           <h2>힌지모멘트 계산기</h2>
-          <p>기체 타입별 조종면 힌지모멘트 H 계산 · DATCOM 형상 보정 · BLDC 서보 사이징 · 전력 산정</p>
+          <p>기체 타입별 조종면 힌지모멘트 H 계산 · DATCOM 형상 보정 · 트림 타각 · 속도×타각 테이블 · 4바 링키지 연동</p>
           <div class="page-tags">
             <span class="page-tag">항공역학</span>
             <span class="page-tag">조종면 설계</span>
-            <span class="page-tag">서보 사이징</span>
             <span class="page-tag">DATCOM</span>
-            <span class="page-tag">전력 산정</span>
+            <span class="page-tag">트림 타각</span>
+            <span class="page-tag">속도×타각 테이블</span>
+            <span class="page-tag">링키지 연동</span>
           </div>
         </div>
       </div>
@@ -976,7 +1113,7 @@ body {
         <span id="anc-hinge-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
         <div class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
-          조종면(에일러론, 엘리베이터, 러더, 플랩, 러더베이터, 올무빙 테일, 엘러본 등)이 공기 중에서 편향될 때 힌지 축 주변에 발생하는 모멘트를 계산합니다. 계산기는 <strong>기체 타입 4종</strong>과 <strong>기본 모드 / DATCOM 보정 모드</strong>를 지원하며, 힌지모멘트를 바탕으로 <strong>서보 사이징과 전력 산정</strong>까지 한 화면에서 수행합니다.
+          조종면(엘러본, 에일러론, 엘리베이터, 러더, 플랩, 러더베이터, 올무빙 테일 등)이 공기 중에서 편향될 때 힌지 축 주변에 발생하는 모멘트를 계산합니다. 계산기는 <strong>기체 타입 4종</strong>과 <strong>기본 모드 / DATCOM 보정 모드</strong>를 지원하며, 힌지모멘트를 바탕으로 <strong>종방향 공력 미분계수 기반 트림 타각 계산</strong>, <strong>속도×타각 힌지모멘트 테이블</strong>, <strong>받음각 α(V) 근사</strong>, <strong>4바 링키지 연동</strong>, <strong>풍동 시뮬레이션</strong>까지 한 화면에서 수행합니다.
         </p>
 
         <!-- 메인 공식 카드 -->
@@ -1145,6 +1282,7 @@ body {
 </svg>
         </div>
       </div>
+      </div>
 
       <!-- 기체 타입 & 조종면 선택 -->
       <div class="card">
@@ -1155,6 +1293,11 @@ body {
         </p>
         <table class="input-table">
           <tr><th>기체 타입</th><th>설명</th><th>제공 조종면</th></tr>
+          <tr>
+            <td><strong>델타윙</strong> <span class="unit">기본</span></td>
+            <td>꼬리 없는 델타/플라잉윙 구성. 기본 선택 기체</td>
+            <td>엘러본 아웃, 엘러본 인, 러더</td>
+          </tr>
           <tr>
             <td><strong>일반 고정익</strong></td>
             <td>표준 테일 구성 고정익기</td>
@@ -1169,11 +1312,6 @@ body {
             <td><strong>올무빙 테일</strong></td>
             <td>꼬리날개 전체가 피벗 회전. 피벗 위치가 힌지모멘트에 직접 영향</td>
             <td>플랩, 에일러론, 올무빙 테일</td>
-          </tr>
-          <tr>
-            <td><strong>드론</strong></td>
-            <td>꼬리 없는 플라잉윙/드론 구성</td>
-            <td>엘러본, 러더</td>
           </tr>
         </table>
         <div class="tip-box" style="margin-top:14px;">
@@ -1191,21 +1329,21 @@ body {
             <div class="step-num">1</div>
             <div class="step-body">
               <h4>기체 타입 & 조종면 선택</h4>
-              <p>상단 <strong>기체 타입</strong> 버튼(일반 고정익 / V-tail / 올무빙 테일 / 드론)에서 설계 대상 항공기를 선택합니다. 이후 조종면 탭에서 분석할 조종면을 선택합니다.</p>
+              <p>상단 <strong>기체 타입</strong> 버튼(델타윙 / 일반 고정익 / V-tail / 올무빙 테일)에서 설계 대상 항공기를 선택합니다. 이후 조종면 탭에서 분석할 조종면을 선택합니다. 각 탭은 독립 입력값을 유지하며 헤더에 현재 H가 표시됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-body">
               <h4>비행 조건 입력</h4>
-              <p><strong>조종면 면적(S<sub>f</sub>)</strong>, <strong>에어스피드(V)</strong>, <strong>편향각(δ)</strong>, <strong>평균 시위(c̄)</strong>를 슬라이더 또는 숫자 입력란에 설정합니다. 고도와 온도편차(ΔT)를 입력하거나 ISA 프리셋(ISA / ISA±15 / ISA+20 / ISA+30)을 선택하면 공기 밀도(ρ)가 자동 계산됩니다.</p>
+              <p><strong>조종면 면적(S<sub>f</sub>)</strong>, <strong>에어스피드(V)</strong>, <strong>편향각(δ)</strong>, <strong>평균 시위(c̄)</strong>를 슬라이더 또는 숫자 입력란에 설정합니다. 에어스피드는 <strong>m/s · km/h · Mach</strong> 단위를 전환할 수 있습니다. <strong>대기 조건(ISA)</strong> 패널에서 고도와 온도편차(ΔT)를 입력하거나 ISA 프리셋(ISA−15 / ISA / ISA+15 / ISA+20 / ISA+30)을 선택하면 공기 밀도(ρ)가 자동 계산됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">3</div>
             <div class="step-body">
               <h4>C<sub>H</sub> 계수 설정 (기본 모드)</h4>
-              <p>비행 조건 패널 우측 상단의 <strong>"기본"</strong> 버튼이 활성화된 상태에서 C<sub>H,0</sub>, C<sub>H,δ</sub>, C<sub>H,α</sub>와 받음각 α를 직접 입력합니다. 각 조종면 타입의 경험 기본값이 미리 채워져 있습니다.</p>
+              <p>비행 조건 패널의 <strong>"기본"</strong> 모드에서 C<sub>H,0</sub>, C<sub>H,δ</sub>, C<sub>H,α</sub>와 받음각 α를 직접 입력합니다. 계수 단위는 <strong>/° 또는 /rad</strong>로 전환 가능하며, 각 조종면 타입의 경험 기본값이 미리 채워져 있습니다.</p>
             </div>
           </div>
           <div class="step">
@@ -1219,14 +1357,21 @@ body {
             <div class="step-num">4</div>
             <div class="step-body">
               <h4>결과 확인 & 감도 분석</h4>
-              <p>상단 KPI 카드에서 <strong>힌지모멘트 H</strong>, <strong>설계 토크</strong>, <strong>필요 전력</strong>, <strong>동압 q</strong>를 실시간으로 확인합니다. 우측 차트에서 속도 / 편향각 / 면적 변화에 따른 감도(민감도) 곡선을 분석합니다.</p>
+              <p>상단 KPI 카드에서 <strong>힌지모멘트 H</strong>, <strong>최대속도 트림 타각 δ</strong>(n=1), <strong>최대속도·최대하중배수 타각 δ</strong>(n=n<sub>max</sub>)를 실시간으로 확인합니다. 하단 <strong>파라미터 감도</strong> 차트에서 속도 / 편향각 / 면적 변화에 따른 감도 곡선을, <strong>중간 계산값</strong> 패널에서 ρ·q·C<sub>H</sub> 분해값을, <strong>풍동 시뮬레이션</strong> 패널에서 유동·음속·Mach·Re를 확인합니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">5</div>
             <div class="step-body">
-              <h4>서보 사이징 & 전력 산정</h4>
-              <p>하단 <strong>BLDC 서보 사이징</strong> 패널에서 안전계수(SF), 기어비(N), 구동 속도(ω̇), 효율(η)을 입력합니다. <strong>전력 & 용량 산정</strong> 패널에서 전압, 비행시간, 듀티 사이클을 설정하면 배터리 용량 산정값을 얻습니다.</p>
+              <h4>트림 타각 · 속도×타각 테이블</h4>
+              <p>우측 <strong>트림 타각 계산</strong> 패널에 기체 질량·기준 면적·최대속도·최대 하중배수와 종방향 공력 미분계수를 입력하면 정해진 하중배수를 만드는 <strong>받음각 α와 타각 δ</strong>가 동시에 계산됩니다. 중앙 <strong>속도 × 타각 힌지모멘트 테이블</strong>에서 속도·타각 범위를 지정하고 <strong>"테이블 생성 (팝업)"</strong>을 누르면 (δ, V) 격자별 H와 한계 초과 여부가 색으로 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#30b0c7,#0071e3);">α</div>
+            <div class="step-body">
+              <h4>받음각 α(V) 근사 & 4바 링키지 연동</h4>
+              <p>테이블 패널의 <strong>받음각 α(V) 근사식</strong> 박스에 실속속도·마하별 받음각 데이터점을 넣고 체크하면, 속도에 따라 변하는 α가 테이블 전체에 반영됩니다(공력데이터 기반 타각정보). <strong>4바 링키지 연동</strong> 박스는 링크 해석기에서 전달된 기하로 타각별 가용 토크 한계 |T₂·MA(θ₄₀±δ)|를 자동 적용합니다.</p>
             </div>
           </div>
         </div>
@@ -1444,117 +1589,134 @@ body {
         </div>
       </div>
 
-      <!-- 서보 사이징 -->
+      <!-- 트림 타각 계산 -->
       <div class="card">
-        <span id="anc-servo-sizing" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
-        <div class="card-title">BLDC 서보 사이징</div>
+        <span id="anc-trim" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">트림 타각 계산</div>
         <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;">
-          계산된 힌지모멘트에 안전계수와 기어비를 적용해 모터 토크 요구량을 역산합니다.
+          우측 <strong>트림 타각 계산</strong> 패널은 종방향 공력 미분계수(C<sub>L</sub>·C<sub>m</sub>)로 <strong>양력 평형과 피칭모멘트 평형을 동시에</strong> 만족시키는 받음각 α와 타각 δ를 구합니다. 지정한 하중배수 n을 최대속도 V<sub>max</sub>에서 만들어내는 조종면 편향을 산출하여, KPI에 <strong>n = 1(순항 트림)</strong>과 <strong>n = n<sub>max</sub>(기동)</strong> 두 경우를 표시합니다.
         </p>
-        <div class="eq-card" style="margin-bottom:16px;">
-          <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3; font-size:10px;">서보 사이징 공식</div>
-          <div class="eq-body" style="padding:14px 20px; align-items:center; gap:12px;">
+        <div class="eq-card" style="margin-bottom:14px;">
+          <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">종방향 2×2 평형 (V = V<sub>max</sub>)</div>
+          <div class="eq-body" style="align-items:center;">
             <div>
-              <div class="eq-label">설계 토크 (출력축)</div>
-              <div class="eq-row">
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;font-weight:600;">T<span class="sub" style="font-style:normal;">design</span></span>
+              <div class="eq-label">양력 평형 — 요구 양력계수</div>
+              <div class="eq-row" style="flex-wrap:wrap;">
+                <span class="eq-sym">C<span class="sub">L,0</span></span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">L,α</span>·α</span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">L,δ</span>·δ</span>
                 <span class="eq-eq">=</span>
-                <span class="eq-sym"><span class="var-purple">H</span></span>
-                <span class="eq-op">×</span>
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;">SF</span>
+                <span class="eq-sym">C<span class="sub">L,req</span> = n·m·g / (q·S<span class="sub">ref</span>)</span>
               </div>
             </div>
             <div class="eq-divider"></div>
             <div>
-              <div class="eq-label">모터 토크 (역산)</div>
-              <div class="eq-row">
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;font-weight:600;">T<span class="sub" style="font-style:normal;">motor</span></span>
+              <div class="eq-label">피칭모멘트 평형</div>
+              <div class="eq-row" style="flex-wrap:wrap;">
+                <span class="eq-sym">C<span class="sub">m,0</span></span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">m,α</span>·α</span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">m,δ</span>·δ</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">m,q</span>·q̂</span>
                 <span class="eq-eq">=</span>
-                <div class="frac">
-                  <div class="frac-num"><span style="font-family:sans-serif;font-style:normal;font-size:13px;">T<span class="sub" style="font-style:normal;">design</span></span></div>
-                  <div class="frac-line"></div>
-                  <div class="frac-den"><span style="font-family:sans-serif;font-style:normal;font-size:13px;">N · η</span></div>
-                </div>
-              </div>
-            </div>
-            <div class="eq-divider"></div>
-            <div>
-              <div class="eq-label">기계 출력</div>
-              <div class="eq-row">
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;font-weight:600;">P<span class="sub" style="font-style:normal;">mech</span></span>
-                <span class="eq-eq">=</span>
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;">T<span class="sub" style="font-style:normal;">design</span></span>
-                <span class="eq-op">·</span>
-                <span class="eq-sym" style="font-family:'Georgia',serif;font-style:italic;">ω̇</span>
+                <span class="eq-sym">0</span>
               </div>
             </div>
           </div>
           <div class="eq-legend">
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">SF</span>안전계수 (Safety Factor)</div>
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">N</span>기어비 (Gear Ratio)</div>
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">η</span>기계 효율</div>
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">ω̇</span>구동 각속도 (°/s)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">n</span>하중배수 (g)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">q̂</span>무차원 피치각속도 = q<sub>rate</sub>·c̄<sub>ref</sub>/(2V)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym">C<span style="font-size:0.65em;vertical-align:sub;">L,δ</span></span>타각 양력 미분계수</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym">C<span style="font-size:0.65em;vertical-align:sub;">m,δ</span></span>조종력 미분계수</div>
           </div>
         </div>
         <table class="input-table">
           <tr><th>파라미터</th><th>설명</th><th>기본값</th></tr>
-          <tr><td>SF</td><td>안전계수 — 최대 하중 대비 설계 마진</td><td>1.25</td></tr>
-          <tr><td>N</td><td>기어비 — 모터 출력 토크의 증배 비율</td><td>100</td></tr>
-          <tr><td>ω̇</td><td>구동 속도 — 조종면 목표 각속도</td><td>60 °/s</td></tr>
-          <tr><td>η</td><td>기계 효율 — 기어트레인 및 마찰 손실 반영</td><td>0.75</td></tr>
+          <tr><td>기체 질량 m</td><td>총 기체 질량</td><td>100 kg</td></tr>
+          <tr><td>기준 면적 S<sub>ref</sub></td><td>양력 기준 날개 면적</td><td>1.20 m²</td></tr>
+          <tr><td>최대속도 V<sub>max</sub></td><td>트림 계산 기준 속도 (m/s·km/h·M 전환, 비행속도+10% 자동추적)</td><td>220 m/s</td></tr>
+          <tr><td>최대 하중배수 n<sub>max</sub></td><td>기동 시 최대 g</td><td>3.5 g</td></tr>
+          <tr><td>기동 형태</td><td>대칭 풀업 q=(n−1)g/V 또는 정상 선회 q=(g/V)(n−1/n)</td><td>대칭 풀업</td></tr>
+          <tr><td>C<sub>L,0/α/δ</sub></td><td>양력계수 · 양력곡선 기울기 · 타각 양력 미분계수</td><td>0 / 2.80 / 0.60</td></tr>
+          <tr><td>C<sub>m,0/α/δ</sub></td><td>피칭모멘트 계수 · 정적 종안정 · 조종력 미분계수</td><td>0 / −0.40 / −0.50</td></tr>
+          <tr><td>C<sub>L,q</sub> · C<sub>m,q</sub></td><td>피치각속도 동미분계수 (선택)</td><td>0 / 0</td></tr>
         </table>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-text">공력 미분계수는 <strong>/rad · /°</strong> 단위를 전환할 수 있습니다. |δ| &gt; 30° 또는 |α| &gt; 20°이면 범위 주의 표시가 나타납니다. 4바 링키지가 연동된 경우 KPI에 링크 가용 토크 대비 여유/초과가 함께 판정됩니다.</div>
+        </div>
       </div>
 
-      <!-- 전력 산정 -->
+      <!-- 속도 × 타각 테이블 -->
       <div class="card">
-        <span id="anc-power-sizing" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
-        <div class="card-title">전력 & 배터리 용량 산정</div>
+        <span id="anc-htable" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">속도 × 타각 힌지모멘트 테이블</div>
         <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;">
-          기계 출력과 듀티 사이클을 바탕으로 조종면 하나당 필요 배터리 용량 및 전체 조종면 합산 용량을 산출합니다.
+          중앙 <strong>속도 × 타각 힌지모멘트 테이블</strong> 패널에서 속도 범위(시작·상한·간격)와 타각 범위(최소·최대·간격), <strong>기준 |H| 한계</strong>를 지정하고 <strong>"테이블 생성 (팝업)"</strong>을 누르면 (δ, V) 격자의 힌지모멘트가 팝업 모달로 출력됩니다. 속도 상한은 비행속도의 1.1배로 자동 추적되며 직접 수정할 수 있습니다.
         </p>
-        <div class="eq-card" style="margin-bottom:16px;">
-          <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2; font-size:10px;">전력 산정 공식</div>
-          <div class="eq-body" style="padding:14px 20px; align-items:center; gap:12px;">
-            <div>
-              <div class="eq-label">전류</div>
-              <div class="eq-row">
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;font-weight:600;">I</span>
-                <span class="eq-eq">=</span>
-                <div class="frac">
-                  <div class="frac-num"><span style="font-family:sans-serif;font-style:normal;font-size:13px;">P</span></div>
-                  <div class="frac-line"></div>
-                  <div class="frac-den"><span style="font-family:sans-serif;font-style:normal;font-size:13px;">V<span class="sub" style="font-style:normal;">bus</span></span></div>
-                </div>
-              </div>
-            </div>
-            <div class="eq-divider"></div>
-            <div>
-              <div class="eq-label">배터리 용량 (단일 조종면)</div>
-              <div class="eq-row">
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;font-weight:600;">Cap</span>
-                <span class="eq-eq">=</span>
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;">I</span>
-                <span class="eq-op">×</span>
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;">t<span class="sub" style="font-style:normal;">flight</span></span>
-                <span class="eq-op">×</span>
-                <span class="eq-sym" style="font-family:sans-serif;font-style:normal;font-size:15px;">D</span>
+        <table class="input-table">
+          <tr><th>셀 색상</th><th>의미</th></tr>
+          <tr><td><strong style="color:#c0392b;">빨강 (over)</strong></td><td>|H| ≥ 한계 — 한계 초과</td></tr>
+          <tr><td><strong style="color:#c77a00;">노랑 (warn)</strong></td><td>|H| ≥ 한계 × 0.8 — 80~100% 주의</td></tr>
+          <tr><td><strong style="color:#6e6e73;">회색 (unreach)</strong></td><td>4바 링키지가 해당 θ₄에 도달 불가</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          링키지 연동 시 각 타각별 <strong>한계 |H|</strong> 열이 추가되고, α(V) 근사가 켜져 있으면 속도별 적용 받음각을 보여주는 <strong>α(V)° 행</strong>이 표시됩니다. 팝업에는 조종면명·모드·한계식·속도범위·S<sub>f</sub>·c̄·ρ 메타와 범례가 포함되며, <strong>"이미지 저장"</strong>으로 PNG를 내보낼 수 있습니다(최대 400행).
+        </p>
+      </div>
+
+      <!-- 받음각 α(V) 근사 -->
+      <div class="card">
+        <span id="anc-aoav" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">받음각 α(V) 근사식 — 공력데이터 기반 타각정보</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;">
+          받음각은 속도에 따라 변하므로, 테이블 패널의 <strong>받음각 α(V) 근사식</strong> 박스에 실속속도(V<sub>s</sub>)와 마하별 받음각 데이터점을 입력하면 속도의 함수 α(V)를 근사해 속도×타각 테이블 전체에 반영합니다. 이것이 "공력데이터를 통한 타각정보" 기능입니다.
+        </p>
+        <div class="eq-card" style="margin-bottom:14px;">
+          <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">1/V² 공간 구간별 선형 보간</div>
+          <div class="eq-body" style="align-items:center;">
+            <div class="eq-row">
+              <span class="eq-sym">α(V)</span>
+              <span class="eq-eq">=</span>
+              <span class="eq-sym">a</span>
+              <span class="eq-op">+</span>
+              <div class="frac">
+                <div class="frac-num"><span>k</span></div>
+                <div class="frac-line"></div>
+                <div class="frac-den"><span class="var-blue">V</span><span class="sup">2</span></div>
               </div>
             </div>
           </div>
           <div class="eq-legend">
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">P</span>전력 소비 (W)</div>
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">V<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">bus</span></span>공급 전압 (V)</div>
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">t</span>비행 시간 (h)</div>
-            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:sans-serif;font-style:normal;font-size:12px;">D</span>듀티 사이클 (%)</div>
+            <div class="eq-legend-item">데이터점: (V<sub>s</sub>, α₁), (1.15V<sub>s</sub>, α₂), (M0.3, α₃), (M0.5, α₄), (M0.6, α₅)</div>
+            <div class="eq-legend-item">양력 평형 형태 α ∝ 1/V² — 입력점을 모두 정확히 통과</div>
           </div>
         </div>
-        <table class="input-table">
-          <tr><th>파라미터</th><th>설명</th><th>기본값</th></tr>
-          <tr><td>전력 소비</td><td>수동 입력 또는 기계 출력에서 자동 계산 (전환 가능)</td><td>자동</td></tr>
-          <tr><td>공급 전압</td><td>버스 전압 (Bus Voltage)</td><td>28 V</td></tr>
-          <tr><td>비행 시간</td><td>총 임무 시간</td><td>30 분</td></tr>
-          <tr><td>듀티 사이클</td><td>전체 비행 중 서보 작동 비율 — 실제 에너지 소비에 직결</td><td>20 %</td></tr>
-        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;">
+          마하 지점의 속도는 현재 고도·ΔT의 음속 <strong>sos = √(1.4·287.05·T)</strong>로 자동 환산됩니다. 최고속점 이상에서는 마지막 α로 수렴하고, 최저속점 이하에서는 첫 구간 기울기로 외삽합니다. 체크박스를 끄면 비행 조건의 고정 α가 사용됩니다.
+        </p>
+      </div>
+
+      <!-- 4바 링키지 연동 & 풍동 -->
+      <div class="card">
+        <span id="anc-hinge-linkage" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">4바 링키지 연동 & 풍동 시뮬레이션</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#0071e3,#bf5af2);">L</div>
+            <div class="step-body">
+              <h4>4바 링키지 연동 — 타각별 가용 토크 한계</h4>
+              <p>링크 해석기의 <strong>"힌지모멘트 계산기로 보내기"</strong>로 전달된 기하(a·b·c·d·해유형·T₂·θ₄₀·δ+방향)가 <strong>4바 링키지 연동</strong> 박스에 자동 채워집니다. 링키지 기계이득 MA로 타각별 한계 <strong>|H|<sub>lim</sub>(δ) = |T₂ × MA(θ₄₀ ± δ)|</strong>가 계산되어 트림 KPI·테이블의 판정 기준이 이 값으로 대체됩니다. <strong>연동 해제</strong>(수동 편집) / <strong>재연동</strong> / <strong>삭제</strong>가 가능하며, 조립 불가 θ₄는 "도달 불가"로 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#30b0c7,#1a7a8a);">W</div>
+            <div class="step-body">
+              <h4>풍동 시뮬레이션 & 중간 계산값</h4>
+              <p>하단 <strong>풍동 시뮬레이션</strong> 패널은 비행 조건(V·α·δ)과 형상(c<sub>f</sub>/c·t/c)을 반영한 유동 애니메이션과 함께 <strong>온도·음속·Mach·Re</strong>(Sutherland 점성 기반)를 실시간 표시합니다. <strong>중간 계산값</strong> 패널에서 ρ, q = ½ρV², C<sub>H</sub> 분해(C<sub>H,0</sub> / C<sub>H,δ</sub>·δ / C<sub>H,α</sub>·α / 합산), q·S<sub>f</sub>를 확인할 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 핵심 용어 -->
@@ -1623,7 +1785,7 @@ body {
             <div class="term-name">엘러본 (Elevon)
               <span class="term-symbol">Flying Wing Control Surface</span>
             </div>
-            <div class="term-desc">플라잉윙/드론에서 에일러론(roll)과 엘리베이터(pitch) 기능을 겸하는 조종면. 꼬리날개가 없는 구성에서 필수적인 조종면으로, 드론 모드에서 선택 가능합니다.</div>
+            <div class="term-desc">델타윙/플라잉윙에서 에일러론(roll)과 엘리베이터(pitch) 기능을 겸하는 조종면. 꼬리날개가 없는 구성에서 필수적이며, <strong>델타윙</strong> 기체 타입에서 엘러본 아웃·엘러본 인으로 선택 가능합니다.</div>
           </div>
           <div class="term-row">
             <span id="anc-deflection"></span>
@@ -1644,7 +1806,7 @@ body {
 
       <div class="warn-box">
         <div class="tip-icon">⚠️</div>
-        <div class="tip-text"><strong>주의:</strong> DATCOM 방법론은 아음속(Mach ≤ 0.8) 적용을 전제로 합니다. C<sub>H</sub> 계수는 조종면 형상(밸런스비, 시위비, 에어포일, 갭 크기)에 따라 실제와 상당히 차이날 수 있습니다. 풍동 시험 데이터를 보유하고 있다면 기본 모드에서 실측값을 직접 입력하고, DATCOM 모드는 설계 초기 추정 또는 경향 분석 용도로 활용하십시오. 최종 사이징에는 반드시 충분한 안전계수(SF ≥ 1.25)를 적용하십시오.</div>
+        <div class="tip-text"><strong>주의:</strong> DATCOM 방법론은 아음속(Mach ≤ 0.8) 적용을 전제로 합니다. C<sub>H</sub> 계수는 조종면 형상(밸런스비, 시위비, 에어포일, 갭 크기)에 따라 실제와 상당히 차이날 수 있습니다. 풍동 시험 데이터를 보유하고 있다면 기본 모드에서 실측값을 직접 입력하고, DATCOM 모드는 설계 초기 추정 또는 경향 분석 용도로 활용하십시오. 트림 타각·서보 토크 최종 검토에는 반드시 충분한 안전 마진을 적용하십시오.</div>
       </div>
     </section>
 
@@ -1675,7 +1837,7 @@ body {
       <div class="card">
         <span id="anc-reg-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
-          X-Y 데이터 쌍을 입력하면 선택한 회귀 모델로 자동 피팅하고, 결정계수(R²), 잔차, RMSE 등 통계 지표를 제공합니다. 엔지니어링 데이터 경향 파악, 보정 곡선 작성, 센서 캘리브레이션에 활용됩니다.
+          X-Y 데이터를 <strong>스프레드시트형 그리드</strong>에 입력하면 선택한 회귀 모델로 자동 피팅하고, 결정계수(R²), 잔차, RMSE 등 통계 지표를 제공합니다. 엔지니어링 데이터 경향 파악, 보정 곡선 작성, 센서 캘리브레이션은 물론 <strong>다중 Y·다중 X 회귀</strong>와 <strong>조종면 리깅</strong> 계수 산출까지 지원합니다.
         </p>
       </div>
 
@@ -1685,22 +1847,29 @@ body {
           <div class="step">
             <div class="step-num">1</div>
             <div class="step-body">
-              <h4>데이터 입력</h4>
-              <p>좌측 패널의 텍스트 영역에 <code>x, y</code> 형식으로 데이터를 입력하거나, 스프레드시트에서 복사·붙여넣기합니다. 또는 하단 예제 데이터 버튼으로 샘플 데이터를 불러옵니다.</p>
+              <h4>데이터 입력 (그리드)</h4>
+              <p>화면의 <strong>스프레드시트형 그리드</strong>에 값을 입력하거나, 엑셀·시트에서 복사한 뒤 첫 셀에 <kbd>Ctrl+V</kbd>로 붙여넣습니다(탭·쉼표·세미콜론·공백 구분 자동 인식, 부족한 행 자동 추가). <strong>+10행</strong>·<strong>초기화</strong>·<strong>데이터 복사</strong> 버튼과 드래그 셀 선택·복사/잘라내기/삭제 툴바를 사용할 수 있습니다. <strong>샘플 데이터</strong> 버튼은 유형별 3세트를 순환 제공합니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-body">
-              <h4>회귀 유형 선택</h4>
-              <p>선형(Linear), 다항(Polynomial), 지수(Exponential), 대수(Logarithmic), 멱함수(Power), 시그모이드(Sigmoid) 중 데이터 형태에 맞는 모델을 선택합니다.</p>
+              <h4>분석 모드 선택</h4>
+              <p>세그먼트에서 <strong>X → Y1~Y4</strong>(하나의 X에 최대 4개 Y 계열 동시 회귀), <strong>X1~X4 → Y</strong>(다중선형회귀), <strong>조종면 리깅</strong>(명령·실제·피드백 각도로 리깅 계수 산출) 중 선택합니다. 모드에 따라 그리드 열 구성과 선택 가능한 회귀 유형이 바뀝니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">3</div>
             <div class="step-body">
+              <h4>회귀 유형 선택</h4>
+              <p><strong>선형 · 2차 · 3차 · 지수 · 로그 · 거듭제곱</strong> 중 데이터 형태에 맞는 모델을 선택합니다. 다중선형(X1~X4→Y) 모드는 선형만, 조종면 리깅 모드는 3차만 사용됩니다. 입력을 바꾸면 약 0.6초 후 자동으로 재분석됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
               <h4>결과 확인</h4>
-              <p>R², Adjusted R², RMSE, MAE 지표와 회귀 방정식을 확인합니다. 산점도와 회귀 곡선 차트, 잔차 분포 차트, 예측값 테이블을 분석합니다.</p>
+              <p>회귀 방정식, R² · Adjusted R² · RMSE · MAE 지표, 산점도+회귀곡선·잔차 분포 차트, 그리고 <strong>RMSE 배율·평가(우수/보통/불량)</strong> 배지가 포함된 예측값·잔차 테이블을 확인합니다. 계수는 배열 형태로 원클릭 복사할 수 있습니다.</p>
             </div>
           </div>
         </div>
@@ -1729,19 +1898,19 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2; font-size:10px;"><span id="anc-polynomial" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>다항 회귀 · Polynomial</div>
+            <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2; font-size:10px;"><span id="anc-polynomial" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>2차 회귀 · Quadratic</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
               <div class="eq-row" style="font-size:17px;">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
                 <span class="eq-eq">=</span>
-                <span class="eq-sym"><span class="var-orange">a<span class="sub">n</span></span><span class="var-red">x</span><span class="sup">n</span></span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">2</span></span><span class="var-red">x</span><span class="sup">2</span></span>
                 <span class="eq-op">+</span>
-                <span style="color:var(--text3);font-size:14px;">···</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">1</span></span><span class="var-red">x</span></span>
                 <span class="eq-op">+</span>
                 <span class="eq-sym"><span class="var-orange">a<span class="sub">0</span></span></span>
               </div>
             </div>
-            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">비선형 곡선. 차수 높을수록 과적합 주의</div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">U자형 곡선. 3차는 별도 버튼으로 제공</div>
           </div>
 
           <div class="eq-card" style="margin:0;">
@@ -1792,22 +1961,40 @@ body {
           </div>
 
           <div class="eq-card" style="margin:0;">
-            <div class="eq-header" style="background:rgba(40,167,69,0.08); color:#28a745; font-size:10px;"><span id="anc-sigmoid" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>시그모이드 회귀 · Logistic</div>
+            <div class="eq-header" style="background:rgba(40,167,69,0.08); color:#28a745; font-size:10px;"><span id="anc-cubic" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>3차 회귀 · Cubic</div>
             <div class="eq-body" style="padding:16px 20px; align-items:center;">
-              <div class="eq-row">
+              <div class="eq-row" style="font-size:15px;">
                 <span class="eq-sym"><span class="var-blue">y</span></span>
                 <span class="eq-eq">=</span>
-                <div class="frac">
-                  <div class="frac-num"><span class="var-green">L</span></div>
-                  <div class="frac-line"></div>
-                  <div class="frac-den" style="font-size:12px;">1 + e<span style="font-size:0.8em;vertical-align:super;">−k(x−x₀)</span></div>
-                </div>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">3</span></span><span class="var-red">x</span><span class="sup">3</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">2</span></span><span class="var-red">x</span><span class="sup">2</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">1</span></span><span class="var-red">x</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">0</span></span></span>
               </div>
             </div>
-            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">S형 성장. 포화점 있는 성장 모델</div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">S자·변곡 포함 곡선. 조종면 리깅 계수에 사용</div>
           </div>
 
         </div>
+        <p style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-top:10px;">
+          ※ 회귀 유형은 <strong>선형 · 2차 · 3차 · 지수 · 로그 · 거듭제곱</strong> 6종입니다. 다항은 <strong>2차·3차 버튼으로 분리</strong>되어 있으며, 다중선형(X1~X4→Y) 모드는 선형만, 조종면 리깅 모드는 3차만 사용합니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-reg-modes" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">분석 모드 & 조종면 리깅</div>
+        <table class="input-table">
+          <tr><th>모드</th><th>그리드 열</th><th>내용</th></tr>
+          <tr><td><strong>X → Y1~Y4</strong><br>(기본)</td><td>X, Y1, Y2, Y3, Y4</td><td>하나의 X에 대해 최대 4개 Y 계열을 동시에 회귀. 6종 회귀 유형 모두 선택 가능</td></tr>
+          <tr><td><strong>X1~X4 → Y</strong></td><td>X1, X2, X3, X4, Y</td><td>다중선형회귀(가우스 소거). 실제값 대 예측값 일치선 차트 제공</td></tr>
+          <tr><td><strong>조종면 리깅</strong></td><td>명령각도, 실제각도기, 피드백각도</td><td>3차 회귀로 CMD·FB·REV 3개 식을 산출. 목표 실제각(−30/0/30°)에 대한 명령각·피드백 예측·역산값 카드 출력</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          조종면 리깅 모드는 CS Rigging 도구와 동일한 규약(FCA_RIG 정방향, FCA_RIG_REVERS 역방향)으로 계수를 계산하며, 계수 배열을 <code>[a,b,c,d]</code> 형식으로 원클릭 복사해 비행제어 컴퓨터(FCC) 파라미터로 사용할 수 있습니다. 최소 데이터 수는 3차=5, 2차=4, 그 외=3(다중선형=변수수+2, 리깅=4)입니다.
+        </p>
       </div>
 
       <div class="card">
@@ -1891,7 +2078,7 @@ body {
 
       <div class="tip-box">
         <div class="tip-icon">💡</div>
-        <div class="tip-text"><strong>팁:</strong> 어떤 모델을 선택할지 모를 때는 데이터 산점도를 먼저 확인하세요. 직선이면 선형, U자형이면 2차 다항, 급격한 증가/감소면 지수, 포화 경향이면 대수 또는 시그모이드가 적합합니다.</div>
+        <div class="tip-text"><strong>팁:</strong> 어떤 모델을 선택할지 모를 때는 데이터 산점도를 먼저 확인하세요. 직선이면 선형, U자형이면 2차, 변곡이 있으면 3차, 급격한 증가/감소면 지수, 포화 경향이면 로그가 적합합니다. 조종면 리깅 데이터는 3차 회귀를 사용합니다.</div>
       </div>
     </section>
 
@@ -1918,7 +2105,7 @@ body {
       <div class="card">
         <span id="anc-servo-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
-          서보 시스템에 정현파 스윕(Chirp) 신호를 인가하고 측정한 명령(u)과 응답(y) 데이터를 CSV로 업로드하면, Bode Plot, 코히런스(Coherence), 2차 시스템 전달함수를 자동으로 추정합니다. 서보의 대역폭과 위상 지연을 평가하는 표준 방법입니다.
+          서보 시스템에 정현파 스윕(Chirp) 신호를 인가하고 측정한 명령(u)과 응답(y) 데이터를 CSV로 업로드하면, Bode Plot, 코히런스(Coherence), 2차 시스템 전달함수를 자동으로 추정합니다. <strong>연속 스윕</strong>(Welch FFT)과 <strong>스텝 주파수</strong>(구간별 RMS/위상) 두 분석 모드를 지원하며, 서보의 <strong>진폭 대역폭(−3 dB)</strong>·<strong>위상 대역폭(−90°)</strong>·고유진동수·감쇠비를 평가합니다.
         </p>
       </div>
 
@@ -1929,31 +2116,44 @@ body {
             <div class="step-num">1</div>
             <div class="step-body">
               <h4>CSV 파일 준비</h4>
-              <p>CSV 파일은 시간 열, 명령 u 열, 응답 y 열로 구성합니다. 헤더 행이 있어도 자동 감지됩니다. 샘플링 주파수는 자동 계산되거나 직접 입력합니다.</p>
+              <p>두 가지 CSV 포맷을 자동 인식합니다 — ① <strong>표준</strong>: 시간·명령 u·응답 y 열, ② <strong>FRF 로그</strong>: <code>ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg</code>(mdeg는 ÷1000 변환). 헤더·주석(<code>#</code>)·터미널 로그가 섞여 있어도 자동 스킵되며, <code># freq_mHz=</code> 구간 마커가 있으면 스텝 모드가 자동 추천됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-body">
               <h4>CSV 업로드</h4>
-              <p>드롭존에 파일을 드래그&드롭하거나 <strong>파일 선택</strong> 버튼을 클릭합니다. 업로드 후 스윕 파형 차트가 즉시 표시됩니다.</p>
+              <p>드롭존에 파일을 드래그&드롭하거나 <strong>파일 선택</strong> 버튼을 클릭합니다(또는 <strong>샘플 데이터</strong> 버튼). 업로드 후 파형 차트가 즉시 표시됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">3</div>
             <div class="step-body">
-              <h4>분석 설정 및 실행</h4>
-              <p>샘플링 주파수(Fs), 주파수 스케일(Log/Linear)을 확인 후 <strong>분석 실행</strong> 버튼을 클릭합니다. Bode Plot, Coherence, 전달함수 피팅 결과가 생성됩니다.</p>
+              <h4>분석 모드 & 설정 후 실행</h4>
+              <p><strong>연속 스윕</strong>(시간에 따라 주파수 연속 변화 · Welch FFT) 또는 <strong>스텝 주파수</strong>(주파수별 구간 데이터 · 구간 RMS/위상)를 선택합니다. 샘플링 주파수(Fs, 자동 감지)·주파수 스케일(Log/Linear)·테이블 행 수(20/50/100/전체)를 확인한 뒤 <strong>분석 실행</strong>을 누르면 Bode·Coherence·전달함수 피팅이 생성됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">4</div>
             <div class="step-body">
               <h4>결과 해석 및 내보내기</h4>
-              <p>Bode Plot에서 대역폭(−3 dB 주파수)과 위상 지연을 확인합니다. 각 차트 우측 CSV 다운로드 버튼으로 데이터를 내보낼 수 있습니다.</p>
+              <p>KPI에서 <strong>진폭 대역폭(−3 dB)</strong>·<strong>위상 대역폭(−90°)</strong>·고유진동수 f<sub>n</sub>·감쇠비 ζ를 확인하고, 스윕 파형 / Bode / Coherence / Transfer Function 탭을 전환하며 표와 함께 분석합니다. 각 탭의 CSV 버튼 또는 <strong>전체 결과 CSV</strong>로 <code>bode_plot·coherence·transfer_function·servo_fra_results</code> 4종을 내보낼 수 있습니다.</p>
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-servo-modes" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">분석 모드 & 전달함수 피팅</div>
+        <table class="input-table">
+          <tr><th>항목</th><th>연속 스윕</th><th>스텝 주파수</th></tr>
+          <tr><td>입력</td><td>연속 로그/선형 chirp</td><td>주파수별 구간 데이터(<code># freq_mHz=</code> 마커)</td></tr>
+          <tr><td>스펙트럼</td><td>radix-2 FFT · Hann · 50% overlap Welch</td><td>구간 앞 20% 과도 제거 후 단일-빈 DFT</td></tr>
+          <tr><td>H, γ²</td><td>H=P<sub>xy</sub>/P<sub>xx</sub>, γ²=|P<sub>xy</sub>|²/(P<sub>xx</sub>P<sub>yy</sub>)</td><td>구간 RMS 게인·위상, Coherence=1 고정</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          2차 표준형 전달함수 <strong>H(s)=ω<sub>n</sub>²/(s²+2ζω<sub>n</sub>s+ω<sub>n</sub>²)</strong>는 그리드서치(w<sub>n</sub>×ζ)로 초기값을 잡은 뒤 <strong>Adam 최적화(멀티스타트)</strong>로 정밀 피팅합니다. 스윕 상한은 누적 파워 99% 지점으로 자동 검출하고, 저주파 기준으로 크기·위상을 정규화합니다.
+        </p>
       </div>
 
       <div class="card">
@@ -1967,9 +2167,9 @@ body {
           </div>
           <div class="term-row">
             <span id="anc-bandwidth"></span><div class="term-name">대역폭 (Bandwidth)
-              <span class="term-symbol">BW, −3 dB Frequency</span>
+              <span class="term-symbol">−3 dB · −90° Frequency</span>
             </div>
-            <div class="term-desc">시스템이 입력 신호를 충실히 추종할 수 있는 최대 주파수. Bode Plot에서 크기가 −3 dB(약 70.7%)로 떨어지는 주파수로 정의됩니다. 서보의 대역폭이 높을수록 빠른 명령을 추종할 수 있습니다.</div>
+            <div class="term-desc">시스템이 입력 신호를 충실히 추종할 수 있는 최대 주파수. 이 도구는 두 가지를 함께 산출합니다 — 크기가 −3 dB(약 70.7%)로 떨어지는 <strong>진폭 대역폭</strong>과 위상이 −90°에 도달하는 <strong>위상 대역폭</strong>. 두 값 모두 선형 보간으로 계산되며, 대역폭이 높을수록 빠른 명령을 추종할 수 있습니다.</div>
           </div>
           <div class="term-row">
             <span id="anc-coherence"></span><div class="term-name">코히런스 γ²(f)
@@ -2050,11 +2250,13 @@ body {
         </div>
         <div>
           <h2>CS Rigging 도구</h2>
-          <p>조종면 리깅 측정 관리 및 계수 산출 통합 도구</p>
+          <p>비행체 조종면 3차(SFP: 1차) 회귀 리깅 · FCA_RIG / FCA_RIG_REVERS 이중 계수 · 이론 검증 · JSON 출력</p>
           <div class="page-tags">
             <span class="page-tag">항공 정비</span>
             <span class="page-tag">조종면 리깅</span>
-            <span class="page-tag">데이터 관리</span>
+            <span class="page-tag">3차 회귀</span>
+            <span class="page-tag">이론 검증</span>
+            <span class="page-tag">JSON 출력</span>
           </div>
         </div>
       </div>
@@ -2062,7 +2264,7 @@ body {
       <div class="card">
         <span id="anc-rigging-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
-          항공기 조종면(CS: Control Surface)의 리깅(Rigging) 작업 시 측정한 명령각도-응답각도 데이터를 체계적으로 입력·관리하고, 회귀 분석을 통해 리깅 계수(기울기·오프셋)를 산출합니다. 결과는 JSON 파일로 저장되어 비행제어 소프트웨어에서 직접 활용할 수 있습니다.
+          비행체 조종면(CS: Control Surface)의 리깅(Rigging) 작업 시 측정한 <strong>명령각도 · 실제출력각도 · 피드백각도</strong> 데이터를 체계적으로 입력·관리하고, <strong>3차 회귀</strong>(SFP는 1차)를 통해 <strong>FCA_RIG</strong>(정방향)와 <strong>FCA_RIG_REVERS</strong>(역방향) 이중 계수를 산출합니다. 8개 조종면(ELV_LI/LO/RI/RO, RUD_L/R, SFP_L/R)을 관리하며, 4절 링크 기구로부터 이론 리깅식을 생성해 실측과 비교하는 <strong>이론 검증</strong> 기능을 제공합니다. 결과는 <code>TYPE-SID_YYMMDD_R{rev}.json</code> 형식으로 저장되어 비행제어 컴퓨터(FCC)에서 직접 활용할 수 있습니다.
         </p>
       </div>
 
@@ -2073,24 +2275,66 @@ body {
             <div class="step-num">①</div>
             <div class="step-body">
               <h4>설정 파일 & 배치도</h4>
-              <p>기존 JSON 파일을 불러오거나 새 리깅을 시작합니다. <strong>호기 번호(SID)</strong>와 <strong>리비전</strong>을 입력합니다. 우측 항공기 배치도에서 원하는 조종면을 클릭해 선택합니다.</p>
+              <p>기존 <strong>JSON / TXT</strong> 파일을 불러오거나 새 리깅을 시작합니다. 상단에 <strong>비행체 타입</strong>(예: M2), <strong>호기 번호(SID)</strong>, <strong>리비전 R</strong>을 입력합니다. 좌측 항공기 배치도(SVG)에서 8개 조종면 중 하나를 클릭해 선택하거나 상단 탭으로 전환합니다. JSON을 불러오면 FCA_RIG_REVERS 계수로 피드백 각도가 자동 역산 채움됩니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">②</div>
             <div class="step-body">
               <h4>측정값 입력</h4>
-              <p>선택한 조종면의 명령 각도(Command)와 실제 측정 각도를 입력합니다. 스프레드시트에서 복사 후 <kbd>Ctrl+V</kbd>로 붙여넣기가 가능합니다. 회귀 결과(기울기·R²)가 실시간으로 표시됩니다.</p>
+              <p>선택한 조종면의 <strong>명령 각도(편집 가능) · 실제 출력 각도 · 피드백 각도</strong>를 입력합니다(스프레드시트에서 <kbd>Ctrl+V</kbd> 다중열 붙여넣기 지원). <strong>균등 오프셋 · 선형 오프셋</strong>으로 부호별·각도별 보정을 적용할 수 있습니다. <strong>"회귀식 계산"</strong>을 누르면 FCA_RIG·FCA_RIG_REVERS 계수와 R²가 실시간으로 표시됩니다. <strong>단일 / 전체 / 이론 검증</strong> 3가지 뷰를 전환할 수 있습니다.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">③</div>
             <div class="step-body">
               <h4>리깅 실행 & JSON 출력</h4>
-              <p>메모를 입력하고 <strong>리깅 실행</strong> 버튼을 클릭하면 모든 조종면의 리깅 계수가 포함된 JSON 파일이 다운로드됩니다. 파일명에 SID와 리비전이 자동 포함됩니다.</p>
+              <p><strong>메모</strong>를 입력하고 <strong>"리깅 시작"</strong>을 누르면 전 조종면 계수가 포함된 JSON이 생성됩니다. 편집 가능한 하이라이트 JSON에서 <strong>a₀ 오프셋</strong> 미세조정, <strong>비교 파일 diff</strong>, <strong>정렬</strong>이 가능하며, <strong>JSON 복사 / JSON 다운로드 / TXT 다운로드</strong>로 내보냅니다. 파일명은 <code>TYPE-SID_YYMMDD_R{rev}.json</code> 형식으로 자동 생성됩니다(메모는 TXT에만 저장).</p>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 뷰 모드 & 조종면 -->
+      <div class="card">
+        <span id="anc-rigging-views" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">뷰 모드 · 조종면 · 회귀 규약</div>
+        <table class="input-table">
+          <tr><th>구분</th><th>내용</th></tr>
+          <tr><td><strong>뷰 모드</strong></td><td><strong>단일</strong>(선택 조종면 상세 입력·회귀) · <strong>전체</strong>(4열 미니 테이블 일괄 계산) · <strong>이론 검증</strong>(4절 링크 이론식 비교)</td></tr>
+          <tr><td><strong>조종면 8종</strong></td><td>ELV_LI, ELV_LO, ELV_RI, ELV_RO(엘리베이터 좌우 내·외측), RUD_L, RUD_R(러더), SFP_L, SFP_R</td></tr>
+          <tr><td><strong>회귀 차수</strong></td><td>ELV·RUD = <strong>3차</strong>(y=a₃x³+a₂x²+a₁x+a₀), SFP = <strong>1차</strong>(y=a₁x+a₀). 최소 데이터 수 SFP=2, 그 외=4</td></tr>
+          <tr><td><strong>FCA_RIG</strong> (정방향)</td><td>x = 실제 출력각도 → y = 명령각. 명령을 물리 편향으로 변환하는 보정식</td></tr>
+          <tr><td><strong>FCA_RIG_REVERS</strong> (역방향)</td><td>x = 피드백 각도 → y = 실제 출력각도. 피드백 센서값을 실제 편향으로 환산</td></tr>
+          <tr><td><strong>오프셋</strong></td><td>균등(부호별 상수 가감) · 선형(명령각 절댓값 비례 보간) · a₀(출력 다항 상수항 미세조정, ELV·RUD 6면)</td></tr>
+        </table>
+      </div>
+
+      <!-- 이론 검증 -->
+      <div class="card">
+        <span id="anc-rigging-theory" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">이론 검증 (4절 링크 연동)</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          <strong>이론 검증</strong> 뷰는 4절 링크 기구 기하(a·b·c·d·중립각 θ₄₀·개방/교차형·δ+ 방향·운용범위)로부터 <strong>Freudenstein 역기구학</strong>을 풀어 타각을 0.25° 간격으로 샘플링하고, 이를 3차 회귀해 <strong>이론 리깅식</strong>(FCA_RIG 축 규약)을 생성합니다. 링크 해석기에서 <strong>"조종면 리깅 계산기로 보내기"</strong>로 넘긴 기하는 URL 해시 또는 localStorage로 자동 수신되어 이론 탭이 열립니다.
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">🔍</div>
+          <div class="tip-text">이론식은 <strong>도달 가능 범위 · 단조성(극점/변곡점)</strong>과 <strong>REVERS 오수렴 위험</strong>을 배지로 표시하고, 3차 근사 오차·R²와 함께 실측 회귀(FCA_RIG)와의 계수 차이(Δh·Δp·Δa)를 비교합니다. 기구가 비단조이면 역함수가 다중해를 가질 수 있으므로 리깅 신뢰성 판단에 활용합니다.</div>
+        </div>
+      </div>
+
+      <!-- JSON 구조 -->
+      <div class="card">
+        <span id="anc-rigging-json" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">JSON 출력 구조 & 파일명</div>
+        <table class="input-table">
+          <tr><th>키</th><th>내용</th></tr>
+          <tr><td><code>SID</code></td><td>호기 번호</td></tr>
+          <tr><td><code>FCA_RIG_0 ~ 7</code></td><td>조종면별 정방향 3차 계수 <code>[a3,a2,a1,a0]</code> (SFP는 a3=a2=0)</td></tr>
+          <tr><td><code>FCA_RIG_REVERS_0 ~ 7</code></td><td>조종면별 역방향 계수</td></tr>
+          <tr><td><code>FCA_RIG_{i}_Note</code></td><td>조종면명 주석 (인덱스 0~7: ELV_LI, ELV_LO, ELV_RI, ELV_RO, RUD_L, RUD_R, SFP_L, SFP_R)</td></tr>
+          <tr><td><code>ANALONG_*, Reserb_*</code></td><td>원본 JSON의 비-리깅 키는 그대로 유지(pass-through), 없으면 기본값 생성</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          파일명 예시: <code>M2-01_260515_R0.json</code> = 타입 M2 · SID 01 · 2026-05-15 · 리비전 0. 측정 원자료와 메모는 별도 <strong>TXT</strong> 파일로 저장/복원되며 JSON에는 포함되지 않습니다.
+        </p>
       </div>
 
       <div class="card">
@@ -2104,9 +2348,9 @@ body {
           </div>
           <div class="term-row">
             <span id="anc-rigging-coef"></span><div class="term-name">리깅 계수
-              <span class="term-symbol">Rigging Coefficient</span>
+              <span class="term-symbol">FCA_RIG / FCA_RIG_REVERS</span>
             </div>
-            <div class="term-desc">명령 각도 대비 실제 조종면 편향 각도의 선형 회귀 기울기(Slope)와 오프셋(Intercept). 비행제어 소프트웨어에서 명령을 물리적 편향으로 변환하는 핵심 보정 계수입니다.</div>
+            <div class="term-desc">조종면 편향과 명령·피드백 각도의 관계를 나타내는 <strong>3차 다항 계수</strong>(SFP는 1차) <code>[a₃, a₂, a₁, a₀]</code>. 정방향 <strong>FCA_RIG</strong>(실제각→명령)와 역방향 <strong>FCA_RIG_REVERS</strong>(피드백→실제각) 두 세트로 산출되어, 비행제어 소프트웨어에서 명령·센서값을 물리적 편향으로 상호 변환합니다.</div>
           </div>
           <div class="term-row">
             <span id="anc-control-surface"></span><div class="term-name">조종면 (CS)
@@ -2130,7 +2374,7 @@ body {
             <span id="anc-rigging-r2"></span><div class="term-name">R² (회귀 품질)
               <span class="term-symbol">Goodness of Fit</span>
             </div>
-            <div class="term-desc">측정 데이터와 선형 리깅 모델의 적합도. <strong>R² = 1.0</strong>이면 완벽한 선형성, 낮은 R²는 기계적 결함(백래시, 마찰, 결함 링키지)의 신호일 수 있습니다. 일반적으로 <strong>R² ≥ 0.999</strong>를 요구합니다.</div>
+            <div class="term-desc">측정 데이터와 3차(SFP는 1차) 리깅 회귀 모델의 적합도. <strong>R²가 1.0에 가까울수록</strong> 기구가 잘 정합된 것이며, 낮은 R²는 기계적 결함(백래시, 마찰, 결함 링키지)의 신호일 수 있습니다. 이론 검증 뷰에서 이론식과의 계수 차이·근사 오차를 함께 확인해 신뢰성을 판단합니다.</div>
           </div>
         </div>
       </div>
@@ -2153,28 +2397,36 @@ body {
 // ── 검색 인덱스 (anchor 포함) ──
 const SEARCH_INDEX = [
   // ── 4-BAR LINKAGE ──
-  { id:'linkage', anchor:'anc-linkage-overview',   title:'4-Bar Linkage — 도구 개요',        keywords:'4절 링크 기구 기구학 kinematics 크랭크 커플러 팔로워 고정링크 액추에이터 서스펜션' },
+  { id:'linkage', anchor:'anc-linkage-overview',   title:'4-Bar Linkage — 도구 개요',        keywords:'4절 링크 기구 기구학 kinematics 크랭크 커플러 팔로워 고정링크 액추에이터 서스펜션 AI 최적설계 역설계 워크벤치' },
   { id:'linkage', anchor:'anc-loop-closure',        title:'루프 폐합 방정식',                  keywords:'loop closure equation 루프 폐합 방정식 θ₂ θ₃ θ₄ cos sin a b c d X Y방향' },
-  { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 토크 해석 플롯 슬라이더 드래그' },
-  { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ T₂ 고정링크 크랭크 커플러 팔로워 각도 범위' },
+  { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 토크 해석 플롯 슬라이더 드래그 개방형 교차형 θ₂ 역해 AI 최적화 그래프 힌지모멘트 리깅 연동' },
+  { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ θ₂ T₂ 타각범위 토크요구도 끝단마진 중립각 기본값 고정링크 크랭크 커플러 팔로워 각도 범위 자동연동' },
+  { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 d' },
+  { id:'linkage', anchor:'anc-linkage-graphs',      title:'출력토크·커플러·타각 스윕 그래프',  keywords:'출력토크 변화 커플러 길이 영향 타각범위 스윕 역설계 그래프 T₄ 물리 가용 토크 가용 각도 μ반영 토크 요구도 끝단마진 그래프 복사 저장 png' },
+  { id:'linkage', anchor:'anc-linkage-link',        title:'도구 간 연동 — 힌지모멘트·리깅',    keywords:'힌지모멘트 계산기로 보내기 조종면 리깅 계산기로 보내기 개방형 교차형 중립각 θ₄₀ 타각 δ+ 방향 |T₄(δ)| MA localStorage 연동' },
   { id:'linkage', anchor:'anc-crank',               title:'크랭크 (Crank)',                    keywords:'크랭크 crank 링크 a 구동 모터 360 로커 rocker Grashof' },
   { id:'linkage', anchor:'anc-coupler',             title:'커플러 (Coupler)',                  keywords:'커플러 coupler 링크 b 커플러곡선 coupler curve 중간링크' },
   { id:'linkage', anchor:'anc-follower',            title:'팔로워 (Follower)',                 keywords:'팔로워 follower 링크 c 출력 θ₄ 조종면 아암 레버' },
-  { id:'linkage', anchor:'anc-transmission-angle',  title:'전달각 (Transmission Angle)',       keywords:'전달각 μ 40도 90도 전달효율 커플러 팔로워 transmission angle' },
+  { id:'linkage', anchor:'anc-solution-type',       title:'개방형 / 교차형 (Open/Cross)',      keywords:'개방형 교차형 open cross 조립 형태 분기해 세그먼트 자세' },
+  { id:'linkage', anchor:'anc-neutral-angle',       title:'중립각 θ₄₀ (Neutral Angle)',        keywords:'중립각 neutral θ₄₀ 타각 delta 0 기준 출력각 뉴트럴 작동범위 힌지모멘트 리깅 기준' },
+  { id:'linkage', anchor:'anc-phys-span',           title:'물리(기계적) 가용 각도',            keywords:'물리 기계적 가용 각도 mechanical span 전달각 μ 50 끝단 마진 연속구간 유효해' },
+  { id:'linkage', anchor:'anc-torque-span',         title:'토크 가용 각도',                    keywords:'토크 가용 각도 torque span T₄ 토크 요구도 하중 감당 범위' },
+  { id:'linkage', anchor:'anc-transmission-angle',  title:'전달각 (Transmission Angle)',       keywords:'전달각 μ 40도 50도 90도 전달효율 커플러 팔로워 transmission angle 최적화' },
   { id:'linkage', anchor:'anc-ma',                  title:'기계적 이득 (MA)',                  keywords:'기계적이득 MA mechanical advantage T₄ T₂ ω₂ ω₄ 가상일 virtual work 힘증폭 속도증폭' },
   { id:'linkage', anchor:'anc-grashof',             title:'Grashof 조건',                     keywords:'Grashof 조건 s l p q 완전회전 크랭크 로커 최단 최장' },
   { id:'linkage', anchor:'anc-loop-term',           title:'루프 폐합 방정식 (용어)',            keywords:'루프 폐합 loop closure Freudenstein 벡터 합 영 기하학적 해' },
 
   // ── HINGE MOMENT ──
-  { id:'hinge', anchor:'anc-hinge-overview',        title:'힌지모멘트 계산기 — 도구 개요',    keywords:'힌지모멘트 hinge moment 조종면 에일러론 aileron 엘리베이터 elevator 러더 rudder 플랩 flap 서보 사이징 액추에이터 aerodynamics 공기역학 기체타입 드론 V-tail 올무빙' },
+  { id:'hinge', anchor:'anc-hinge-overview',        title:'힌지모멘트 계산기 — 도구 개요',    keywords:'힌지모멘트 hinge moment 조종면 엘러본 에일러론 aileron 엘리베이터 elevator 러더 rudder 플랩 flap 트림 타각 속도 타각 테이블 링키지 연동 풍동 aerodynamics 공기역학 기체타입 델타윙 V-tail 올무빙' },
   { id:'hinge', anchor:'anc-hinge-formula',         title:'힌지모멘트 공식 H = CH·q·Sf·c̄',   keywords:'H q Sf c̄ MAC CH CH0 CHd CHa delta alpha 힌지모멘트 공식 동압 formula 편향각 받음각 선형분해' },
-  { id:'hinge', anchor:'anc-hinge-actype',          title:'기체 타입 & 조종면 선택',           keywords:'기체타입 일반고정익 V-tail 올무빙테일 드론 조종면탭 플랩 에일러론 엘리베이터 러더 러더베이터 엘러본 피크 조종면' },
-  { id:'hinge', anchor:'anc-hinge-how',             title:'힌지모멘트 — 사용 방법',            keywords:'날개면적 비행속도 편향각 MAC 고도 프리셋 공기밀도 감도분석 차트 DATCOM 서보 전력 단계' },
+  { id:'hinge', anchor:'anc-hinge-actype',          title:'기체 타입 & 조종면 선택',           keywords:'기체타입 델타윙 일반고정익 V-tail 올무빙테일 조종면탭 플랩 에일러론 엘리베이터 러더 러더베이터 엘러본 아웃 인 피크 조종면' },
+  { id:'hinge', anchor:'anc-hinge-how',             title:'힌지모멘트 — 사용 방법',            keywords:'날개면적 비행속도 편향각 MAC 고도 프리셋 공기밀도 감도분석 차트 DATCOM 트림 타각 속도 테이블 α(V) 링키지 단계 mach km/h rad' },
   { id:'hinge', anchor:'anc-hinge-params',          title:'힌지모멘트 — 비행조건 입력 파라미터', keywords:'Sf m² V m/s δ 편향각 MAC m CH0 받음각 α ρ kg/m³ ΔT ISA 온도편차 단위' },
   { id:'hinge', anchor:'anc-datcom-params',         title:'DATCOM 형상 파라미터',              keywords:'DATCOM 시위비 cf/c 두께비 t/c 힌지위치 밸런스 ηi ηo 스팬 AR 종횡비 후퇴각 Λ 경사각 Γ 피벗 thin airfoil K_exp K_def' },
-  { id:'hinge', anchor:'anc-servo-sizing',          title:'BLDC 서보 사이징',                  keywords:'서보사이징 BLDC 안전계수 SF 기어비 N 구동속도 ω 효율 η 설계토크 모터토크 기계출력 역산' },
-  { id:'hinge', anchor:'anc-power-sizing',          title:'전력 & 배터리 용량 산정',           keywords:'전력산정 배터리용량 전류 전압 비행시간 듀티사이클 duty cycle mAh Ah 용량 합산 조종면' },
-  { id:'hinge', anchor:'anc-hinge-h',               title:'힌지모멘트 H',                     keywords:'힌지모멘트 H N·m 하중 서보 사이징 파라미터' },
+  { id:'hinge', anchor:'anc-trim',                  title:'트림 타각 계산',                    keywords:'트림 타각 trim deflection 종방향 공력 미분계수 CL0 CLa CLd Cm0 Cma Cmd 평형 하중배수 n 풀업 선회 α δ 동시 2x2 Vmax 기동' },
+  { id:'hinge', anchor:'anc-htable',                title:'속도 × 타각 힌지모멘트 테이블',     keywords:'속도 타각 테이블 힌지모멘트 팝업 한계 초과 색상 over warn 도달불가 이미지 저장 html2canvas 속도범위 자동 400행' },
+  { id:'hinge', anchor:'anc-aoav',                  title:'받음각 α(V) 근사 — 공력 타각정보',  keywords:'받음각 α(V) alpha V 근사식 공력데이터 타각정보 1/V² 실속속도 Vs 마하 M0.3 M0.5 M0.6 음속 sos 보간 수렴 외삽' },
+  { id:'hinge', anchor:'anc-hinge-linkage',         title:'4바 링키지 연동 & 풍동 시뮬레이션', keywords:'4바 링키지 연동 타각별 가용 토크 한계 T₂ MA θ₄₀ 도달불가 연동해제 재연동 풍동 시뮬레이션 음속 mach re 중간계산값 q' },
   { id:'hinge', anchor:'anc-dynamic-pressure',      title:'동압 (Dynamic Pressure) q',        keywords:'동압 dynamic pressure q 0.5 ρ V² 속도제곱 비례 항공하중 Pa' },
   { id:'hinge', anchor:'anc-ch',                    title:'힌지모멘트 계수 C_H',               keywords:'힌지모멘트계수 CH CH0 영위 편향각계수 CH_delta 받음각계수 CH_alpha 풍동 무차원 음수 restoring' },
   { id:'hinge', anchor:'anc-datcom-method',         title:'DATCOM 방법론',                    keywords:'DATCOM USAF 반경험 공력계수 thin airfoil 2D 3D 보정 K_exp 실측보정 K_def 편향각비선형 아음속 Mach 0.8' },
@@ -2182,46 +2434,51 @@ const SEARCH_INDEX = [
   { id:'hinge', anchor:'anc-aoa',                   title:'받음각 (Angle of Attack) α',       keywords:'받음각 AoA angle of attack α 양력 실속 stall 임계' },
   { id:'hinge', anchor:'anc-mac',                   title:'평균공력시위 (MAC)',                keywords:'평균공력시위 MAC mean aerodynamic chord 테이퍼 날개 등가 시위 기준길이' },
   { id:'hinge', anchor:'anc-rudvat',                title:'러더베이터 (Ruddervator)',          keywords:'러더베이터 ruddervator V-tail 피치 요 분배 cos sin Γ 경사각 벡터 분해' },
-  { id:'hinge', anchor:'anc-elvon',                 title:'엘러본 (Elevon)',                   keywords:'엘러본 elevon 플라잉윙 드론 에일러론 엘리베이터 꼬리없는 조종면' },
+  { id:'hinge', anchor:'anc-elvon',                 title:'엘러본 (Elevon)',                   keywords:'엘러본 elevon 델타윙 플라잉윙 에일러론 엘리베이터 꼬리없는 조종면 아웃 인' },
   { id:'hinge', anchor:'anc-deflection',            title:'편향각 (δ)',                        keywords:'편향각 deflection angle δ 조종면 중립 하향 상향 선형 비선형 K_def 박리' },
   { id:'hinge', anchor:'anc-isa',                   title:'ISA 대기 모델',                    keywords:'ISA 국제표준대기 고도 기온 밀도 대류권 11km ISA+15 ISA-15 핫데이 콜드데이 온도편차 ΔT' },
 
   // ── REGRESSION ──
-  { id:'regression', anchor:'anc-reg-overview',     title:'회귀분석 — 도구 개요',              keywords:'회귀분석 regression 데이터 피팅 보정곡선 센서 캘리브레이션 통계 경향' },
-  { id:'regression', anchor:'anc-reg-how',          title:'회귀분석 — 사용 방법',              keywords:'데이터 입력 붙여넣기 회귀 유형 선택 결과 확인 차트 잔차 테이블' },
-  { id:'regression', anchor:'anc-reg-models',       title:'지원 회귀 모델 전체',               keywords:'회귀 모델 선형 다항 지수 대수 멱함수 시그모이드 6가지' },
+  { id:'regression', anchor:'anc-reg-overview',     title:'회귀분석 — 도구 개요',              keywords:'회귀분석 regression 데이터 피팅 보정곡선 센서 캘리브레이션 통계 경향 그리드 다중 조종면 리깅' },
+  { id:'regression', anchor:'anc-reg-how',          title:'회귀분석 — 사용 방법',              keywords:'데이터 입력 그리드 스프레드시트 붙여넣기 분석 모드 회귀 유형 선택 자동 결과 확인 차트 잔차 테이블 rmse 배율 평가' },
+  { id:'regression', anchor:'anc-reg-models',       title:'지원 회귀 모델 전체',               keywords:'회귀 모델 선형 2차 3차 지수 로그 대수 거듭제곱 멱함수 6가지' },
   { id:'regression', anchor:'anc-linear',           title:'선형 회귀 (Linear)',                keywords:'선형 linear y=ax+b 직선 최소제곱 OLS 선형관계' },
-  { id:'regression', anchor:'anc-polynomial',       title:'다항 회귀 (Polynomial)',            keywords:'다항 polynomial y=ax^n 차수 degree 과적합 overfitting 비선형' },
+  { id:'regression', anchor:'anc-polynomial',       title:'2차 회귀 (Quadratic)',              keywords:'2차 quadratic 다항 polynomial y=a2x²+a1x+a0 U자형 곡선 비선형' },
+  { id:'regression', anchor:'anc-cubic',            title:'3차 회귀 (Cubic)',                  keywords:'3차 cubic y=a3x³ 변곡 S자 조종면 리깅 계수 다항' },
   { id:'regression', anchor:'anc-exponential',      title:'지수 회귀 (Exponential)',           keywords:'지수 exponential y=a*e^bx 성장 감쇠 세균증식 방사성붕괴 복리' },
-  { id:'regression', anchor:'anc-logarithmic',      title:'대수 회귀 (Logarithmic)',           keywords:'대수 logarithmic y=a*ln(x)+b 포화 데시벨 학습곡선 인구성장' },
-  { id:'regression', anchor:'anc-power',            title:'멱함수 회귀 (Power)',               keywords:'멱함수 power y=a*x^b 케플러 스케일링 로그로그 log-log' },
-  { id:'regression', anchor:'anc-sigmoid',          title:'시그모이드 회귀 (Sigmoid/Logistic)','keywords':'시그모이드 sigmoid logistic S형 S자 성장곡선 포화 L / 1+e' },
+  { id:'regression', anchor:'anc-logarithmic',      title:'로그 회귀 (Logarithmic)',           keywords:'로그 대수 logarithmic y=a*ln(x)+b 포화 데시벨 학습곡선 인구성장' },
+  { id:'regression', anchor:'anc-power',            title:'거듭제곱 회귀 (Power)',             keywords:'거듭제곱 멱함수 power y=a*x^b 케플러 스케일링 로그로그 log-log' },
+  { id:'regression', anchor:'anc-reg-modes',        title:'분석 모드 & 조종면 리깅',           keywords:'분석 모드 X Y1 Y4 다중 Y X1 X4 다중선형회귀 조종면 리깅 명령 실제 피드백 FCA_RIG 목표각 30 계수 배열 복사 fcc' },
   { id:'regression', anchor:'anc-gof',              title:'적합도 지표 전체',                  keywords:'적합도 goodness of fit R² RMSE MAE MSE 잔차 지표' },
   { id:'regression', anchor:'anc-r2',               title:'R² 결정계수',                      keywords:'R squared R² 결정계수 SS_res SS_tot 0~1 0.95 분산 설명' },
   { id:'regression', anchor:'anc-rmse',             title:'RMSE (Root Mean Square Error)',     keywords:'RMSE root mean square error 제곱평균제곱근 잔차 이상값 민감' },
   { id:'regression', anchor:'anc-mae',              title:'MAE (Mean Absolute Error)',         keywords:'MAE mean absolute error 절대오차 평균 이상값 강건 robust' },
 
   // ── SERVO FRA ──
-  { id:'servo', anchor:'anc-servo-overview',        title:'주파수 응답 분석기 — 도구 개요',    keywords:'주파수응답 FRA frequency response 서보 스윕 chirp bode coherence 전달함수 대역폭 제어공학' },
-  { id:'servo', anchor:'anc-servo-how',             title:'주파수 응답 분석기 — 사용 방법',   keywords:'CSV 파일 업로드 샘플링 주파수 Fs 드래그드롭 분석 실행 차트 내보내기' },
+  { id:'servo', anchor:'anc-servo-overview',        title:'주파수 응답 분석기 — 도구 개요',    keywords:'주파수응답 FRA frequency response 서보 스윕 chirp bode coherence 전달함수 대역폭 위상 연속 스텝 제어공학' },
+  { id:'servo', anchor:'anc-servo-how',             title:'주파수 응답 분석기 — 사용 방법',   keywords:'CSV 파일 업로드 FRF 로그 freq_mHz cmd_mdeg angle_mdeg 샘플링 주파수 Fs 드래그드롭 분석 모드 연속 스텝 실행 테이블 행수 차트 내보내기 csv 4종' },
+  { id:'servo', anchor:'anc-servo-modes',           title:'분석 모드 & 전달함수 피팅',         keywords:'연속 스윕 스텝 주파수 welch fft hann overlap dft rms 그리드서치 adam 최적화 멀티스타트 스윕 상한 정규화 2차 피팅' },
   { id:'servo', anchor:'anc-bode',                  title:'Bode Plot (보드선도)',              keywords:'bode plot 보드선도 크기 magnitude dB 위상 phase 주파수 Hz 안정성' },
-  { id:'servo', anchor:'anc-bandwidth',             title:'대역폭 (Bandwidth)',                keywords:'대역폭 bandwidth BW -3dB 주파수 추종 서보 응답속도' },
+  { id:'servo', anchor:'anc-bandwidth',             title:'대역폭 (진폭·위상)',                keywords:'대역폭 bandwidth BW -3dB -90도 위상 진폭 주파수 추종 서보 응답속도 선형보간' },
   { id:'servo', anchor:'anc-coherence',             title:'코히런스 γ²(f)',                   keywords:'코히런스 coherence γ² 0.8 신뢰도 노이즈 비선형성 인과성' },
   { id:'servo', anchor:'anc-transfer-fn',           title:'전달함수 H(s)',                    keywords:'전달함수 transfer function H(s) 라플라스 laplace 2차 입출력' },
   { id:'servo', anchor:'anc-2nd-order',             title:'2차 표준형 전달함수 공식',          keywords:'2차 표준형 ωn² s² 2ζωns ωn² standard second order 공식' },
   { id:'servo', anchor:'anc-natural-freq',          title:'고유진동수 ωₙ (Natural Frequency)', keywords:'고유진동수 natural frequency ωn rad/s fn Hz 2π 자유진동' },
-  { id:'servo', anchor:'anc-damping',               title:'감쇠비 ζ (Damping Ratio)',          keywords:'감쇠비 damping ratio ζ 부족감쇠 임계감쇠 과감쇠 0.5 0.8 진동' },
+  { id:'servo', anchor:'anc-damping',               title:'감쇠비 ζ (Damping Ratio)',          keywords:'감쇠비 damping ratio ζ 부족감쇠 임계감쇠 과감쇠 0.5 0.707 진동' },
   { id:'servo', anchor:'anc-chirp',                 title:'스윕 신호 (Chirp)',                 keywords:'스윕 신호 chirp sweep 정현파 주파수증가 선형스윕 로그스윕 FRA 시험' },
 
   // ── CS RIGGING ──
-  { id:'rigging', anchor:'anc-rigging-overview',    title:'CS Rigging — 도구 개요',           keywords:'리깅 rigging 조종면 CS 명령각도 응답각도 회귀계수 JSON 비행제어 소프트웨어 FCC' },
-  { id:'rigging', anchor:'anc-rigging-how',         title:'CS Rigging — 사용 방법 3단계',     keywords:'설정파일 배치도 측정값 입력 JSON 출력 실행 붙여넣기 SID 리비전' },
+  { id:'rigging', anchor:'anc-rigging-overview',    title:'CS Rigging — 도구 개요',           keywords:'리깅 rigging 조종면 CS 명령각도 실제 피드백 3차 회귀 FCA_RIG FCA_RIG_REVERS 이중 계수 8 조종면 이론 검증 비행체 타입 JSON 비행제어 FCC' },
+  { id:'rigging', anchor:'anc-rigging-how',         title:'CS Rigging — 사용 방법 3단계',     keywords:'설정파일 JSON TXT 배치도 비행체 타입 M2 측정값 입력 명령 실제 피드백 균등 선형 오프셋 뷰 단일 전체 이론 리깅 시작 출력 파일명 SID 리비전' },
+  { id:'rigging', anchor:'anc-rigging-views',       title:'뷰 모드 · 조종면 · 회귀 규약',      keywords:'뷰 모드 단일 전체 이론 검증 조종면 ELV_LI LO RI RO RUD SFP 3차 1차 FCA_RIG 정방향 FCA_RIG_REVERS 역방향 오프셋 균등 선형 a0' },
+  { id:'rigging', anchor:'anc-rigging-theory',      title:'이론 검증 (4절 링크 연동)',         keywords:'이론 검증 4절 링크 freudenstein 역기구학 타각 샘플링 3차 이론식 단조성 극점 변곡점 REVERS 오수렴 도달 범위 토크 계산기 연동 localstorage 비교' },
+  { id:'rigging', anchor:'anc-rigging-json',        title:'JSON 출력 구조 & 파일명',           keywords:'JSON 구조 SID FCA_RIG_0 7 REVERS Note ANALONG Reserb pass-through 파일명 TYPE SID YYMMDD R rev TXT 메모' },
   { id:'rigging', anchor:'anc-rigging-def',         title:'리깅 (Rigging)',                   keywords:'리깅 rigging 조종 입력 편향 각도 링키지 마모 온도 조립 오차 보정 게인' },
-  { id:'rigging', anchor:'anc-rigging-coef',        title:'리깅 계수',                        keywords:'리깅계수 rigging coefficient slope intercept 기울기 오프셋 선형회귀 보정계수' },
-  { id:'rigging', anchor:'anc-control-surface',     title:'조종면 (Control Surface)',          keywords:'조종면 control surface 에일러론 aileron 엘리베이터 elevator 러더 rudder 플랩 flap 스포일러 spoiler 롤 피치 요' },
-  { id:'rigging', anchor:'anc-sid',                 title:'SID (호기번호)',                   keywords:'SID serial ship id 호기 번호 식별자 항공기 기종' },
+  { id:'rigging', anchor:'anc-rigging-coef',        title:'리깅 계수 (FCA_RIG/REVERS)',        keywords:'리깅계수 rigging coefficient FCA_RIG FCA_RIG_REVERS 3차 다항 a3 a2 a1 a0 정방향 역방향 보정계수' },
+  { id:'rigging', anchor:'anc-control-surface',     title:'조종면 (Control Surface)',          keywords:'조종면 control surface 엘리베이터 elevator 러더 rudder SFP 엘러본 롤 피치 요' },
+  { id:'rigging', anchor:'anc-sid',                 title:'SID (호기번호)',                   keywords:'SID serial ship id 호기 번호 식별자 항공기 기종 비행체 타입' },
   { id:'rigging', anchor:'anc-revision',            title:'리비전 (Revision)',                 keywords:'리비전 revision 개정번호 이력 정기점검 형상관리 configuration management' },
-  { id:'rigging', anchor:'anc-rigging-r2',          title:'R² 리깅 품질',                    keywords:'R² 리깅 1.0 선형성 백래시 마찰 링키지 결함 0.999' },
+  { id:'rigging', anchor:'anc-rigging-r2',          title:'R² 리깅 품질',                    keywords:'R² 리깅 1.0 3차 백래시 마찰 링키지 결함 이론 검증' },
 ];
 
 const NAV_IDS = ['linkage','hinge','regression','servo','rigging'];
