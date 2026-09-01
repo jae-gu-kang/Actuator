@@ -943,19 +943,45 @@ canvas.hover { cursor: grab; }
     <div class="s-sec">
       <div class="s-title" style="margin-bottom:6px">AI 최적 설계 추천</div>
       <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:12px;margin-bottom:6px;">
-        <div style="font-size:10.5px;color:var(--text2);line-height:1.55;margin-bottom:10px;">
-          현재 <b>고정 d · 입력 a · 출력 c</b> 를 고정한 채, 입력한 <b>타각 범위 ±δ</b> 를
+        <div style="font-size:10.5px;color:var(--text2);line-height:1.55;margin-bottom:10px;" id="optDesc">
+          현재 <b>고정 d · 입력 a</b> 를 고정한 채, 입력한 <b>타각 범위</b> 를
           물리 가용범위(양끝단 마진 제외) 안에 수용하고 <b>양끝단 토크 불균형 ≤ 10%</b> 를
           만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록
-          커플러 길이 b 와 중립 출력각 θ₄₀ 를 탐색합니다.
+          출력링크 c · 커플러 b · 중립 출력각 θ₄₀ 를 탐색합니다.
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 범위 <span style="color:var(--text3);font-weight:400">(θ₄₀ ± δ)</span></div>
-          <div class="link-field" style="border-radius:7px;">
-            <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
-            <input type="number" id="iDeflect" value="25" min="0.5" max="89" step="0.5"
-              style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
-            <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+        <!-- 타각 범위: 대칭(±δ) / 비대칭(+δ₊·−δ₋) 토글 -->
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 범위
+              <span style="color:var(--text3);font-weight:400" id="deflectHint">(θ₄₀ ± δ)</span></div>
+            <div class="seg-ctrl" style="padding:2px;">
+              <button class="seg-btn active" id="btnDeflectSym"  onclick="setDeflectMode('sym')"  style="padding:4px 11px;font-size:11px;">대칭</button>
+              <button class="seg-btn"        id="btnDeflectAsym" onclick="setDeflectMode('asym')" style="padding:4px 11px;font-size:11px;">비대칭</button>
+            </div>
+          </div>
+          <!-- 대칭: ±δ 한 칸 -->
+          <div id="deflectSymRow" style="display:flex;align-items:center;justify-content:flex-end;">
+            <div class="link-field" style="border-radius:7px;">
+              <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
+              <input type="number" id="iDeflect" value="25" min="0.5" max="89" step="0.5"
+                style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+            </div>
+          </div>
+          <!-- 비대칭: +δ₊ / −δ₋ 두 칸 -->
+          <div id="deflectAsymRow" style="display:none;grid-template-columns:1fr 1fr;gap:6px;">
+            <div class="link-field" style="border-radius:7px;" title="θ₄ 증가(+) 방향 타각">
+              <span style="padding:3px 2px 3px 8px;font-size:12px;color:var(--follower);font-weight:700;">＋</span>
+              <input type="number" id="iDeflectP" value="20" min="0.5" max="89" step="0.5"
+                style="width:100%;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+            </div>
+            <div class="link-field" style="border-radius:7px;" title="θ₄ 감소(−) 방향 타각">
+              <span style="padding:3px 2px 3px 8px;font-size:12px;color:var(--crank);font-weight:700;">－</span>
+              <input type="number" id="iDeflectM" value="30" min="0.5" max="89" step="0.5"
+                style="width:100%;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+            </div>
           </div>
         </div>
         <button id="btnOptimize" onclick="runOptimizer()"
@@ -2941,17 +2967,28 @@ function optTols(){
   };
 }
 
-// 주어진 b 에서: 중립각 θ₄₀ 를 [physLo+δ, physHi−δ] 에서 탐색.
-// 토크 프로파일을 0.25° 그리드로 사전 계산 후 슬라이딩 윈도우 최대(모노토닉 덱)로
-// 각 후보의 작동범위 내 최대토크를 O(n) 에 구하고, 불균형 제약을 만족하는
-// 후보 중 세 토크의 합이 최대인 θ₄₀ 를 선택 (0.05° 정밀 재탐색 포함)
-function bestNeutralForB(bVal,T2,delta,margin){
+// 주어진 b 에서: 중립각 θ₄₀ 를 [physLo+δ₋, physHi−δ₊] 에서 탐색.
+// 타각 스펙은 비대칭 (dm=−측 δ₋, dp=+측 δ₊). 대칭이면 dm=dp.
+// 토크 프로파일을 0.25° 그리드로 사전 계산 후 슬라이딩 윈도우(모노토닉 덱)로
+// 각 후보의 작동범위 내 최대토크·최소 μ 를 O(n) 에 구하고, 불균형 제약을 만족하는
+// 후보 중 목적함수(score)가 최대인 θ₄₀ 를 선택 (0.05° 정밀 재탐색 포함)
+//   · 대칭(sym): score = |T(−δ)|+|T(+δ)|+max|T|,  imbal = |T₋−T₊|/max   (기존 로직 그대로)
+//   · 비대칭   : 요구 힌지모멘트 ∝ 타각 가정 → 여유율 margin = |T|/δ.
+//               score = min(T₋/δ₋, T₊/δ₊)  (최소 안전여유),  imbal = |margin₋−margin₊|/max
+//               (미지 공력상수는 비율에서 소거 → 타각범위만으로 결정. sym 이면 두 식이 기존과 수치 동일)
+function bestNeutralForB(bVal,T2,dm,dp,margin){
+  const sym=Math.abs(dm-dp)<1e-9;
   const fr=feasibleRangeOf(bVal);
   if(!fr) return null;
   // 물리 가용범위: 화면에 표시되는 정수 스캔 경계와 동일한 보수적 경계 사용
   // (이분법 경계를 그대로 쓰면 추천 작동범위가 표시된 가용범위보다 최대 1° 밖에 걸칠 수 있음)
   const physLo=Math.ceil(fr.lo-1e-6)+margin, physHi=Math.floor(fr.hi+1e-6)-margin;
-  if(physHi-physLo<2*delta-1e-9) return null;   // 타각범위 미수용 → 제약 위반, 탈락
+  if(physHi-physLo<(dm+dp)-1e-9) return null;   // 타각범위 미수용 → 제약 위반, 탈락
+
+  // 목적함수·불균형 정의 (sym 이면 기존 수식과 수치적으로 동일)
+  const scoreOf=(tm,tp,wmax)=> sym ? (tm+tp+wmax) : Math.min(tm/dm, tp/dp);
+  const imbalOf=(tm,tp)=>{ const mm=tm/dm, mp=tp/dp, mx=Math.max(mm,mp);
+    return mx>1e-12?Math.abs(mm-mp)/mx:0; };
 
   // ── 토크 프로파일 사전 계산 (0.25° 그리드) ──
   const G=0.25;
@@ -2964,42 +3001,42 @@ function bestNeutralForB(bVal,T2,delta,margin){
     prof[i]=r?Math.abs(T2*r.ma):null;
     muArr[i]=r?r.mu:null;   // 접힌 전달각 (0~90°)
   }
-  const w=Math.round(2*delta/G);
+  const w=Math.round((dm+dp)/G);   // 창 폭(그리드): −측+ +측  (sym 이면 round(2δ/G) 와 동일)
   if(w<1||w>=n) return null;
   const val=i=>prof[i]===null?-Infinity:prof[i];
   const muV=i=>muArr[i]===null?0:muArr[i];   // 해 없음 → 0° (제약 위반 취급)
 
-  // 작동범위 [t0−δ, t0+δ] 내 최대토크 (그리드 스캔, 정밀 재탐색용)
+  // 작동범위 [t0−δ₋, t0+δ₊] 내 최대토크 (그리드 스캔, 정밀 재탐색용)
   function winMaxAt(t0){
     let mx=-Infinity, ma=null;
-    const i0=Math.max(0,Math.ceil((t0-delta-physLo)/G-1e-9));
-    const i1=Math.min(n-1,Math.floor((t0+delta-physLo)/G+1e-9));
+    const i0=Math.max(0,Math.ceil((t0-dm-physLo)/G-1e-9));
+    const i1=Math.min(n-1,Math.floor((t0+dp-physLo)/G+1e-9));
     for(let i=i0;i<=i1;i++){ if(prof[i]!==null&&prof[i]>mx){mx=prof[i];ma=degs[i];} }
     return isFinite(mx)?{mx,ma}:null;
   }
-  // 작동범위 [t0−δ, t0+δ] 내 최소 전달각 (그리드 스캔, 정밀 재탐색용)
+  // 작동범위 [t0−δ₋, t0+δ₊] 내 최소 전달각 (그리드 스캔, 정밀 재탐색용)
   function winMuAt(t0){
     let mn=Infinity;
-    const i0=Math.max(0,Math.ceil((t0-delta-physLo)/G-1e-9));
-    const i1=Math.min(n-1,Math.floor((t0+delta-physLo)/G+1e-9));
+    const i0=Math.max(0,Math.ceil((t0-dm-physLo)/G-1e-9));
+    const i1=Math.min(n-1,Math.floor((t0+dp-physLo)/G+1e-9));
     for(let i=i0;i<=i1;i++){ const v=muV(i); if(v<mn) mn=v; }
     return isFinite(mn)?mn:0;
   }
   const evalAt=t0=>{
-    const tm=absT4At(bVal,t0-delta,T2), tp=absT4At(bVal,t0+delta,T2);
+    const tm=absT4At(bVal,t0-dm,T2), tp=absT4At(bVal,t0+dp,T2);
     if(tm===null||tp===null) return null;
     const wm=winMaxAt(t0);
     if(!wm) return null;
     const muMin=winMuAt(t0);
     if(muMin<OPT_MU_MIN) return null;   // 전달각 제약 (§2-4)
-    const imbal=Math.max(tm,tp)>1e-12?Math.abs(tm-tp)/Math.max(tm,tp):0;
-    return{t0,tm,tp,worst:Math.min(tm,tp),wmax:wm.mx,wargDeg:wm.ma,imbal,muMin,score:tm+tp+wm.mx};
+    return{t0,tm,tp,worst:Math.min(tm,tp),wmax:wm.mx,wargDeg:wm.ma,
+      imbal:imbalOf(tm,tp),muMin,score:scoreOf(tm,tp,wm.mx)};
   };
 
   // ── 그리드 후보 스윕: 슬라이딩 윈도우 최대 (모노토닉 덱, O(n)) ──
   // best  = 불균형 ≤10% 제약을 만족하며 세 토크 합 최대
   // relax = 제약과 무관하게 불균형 최소 (차선 후보 — 준동률 0.5%p 이내면 합 우선)
-  const lo=physLo+delta, hi=physHi-delta;
+  const lo=physLo+dm, hi=physHi-dp;
   let best=null, relax=null, muRelax=null, contained=false, muFail=false;
   const dq=[], dqMu=[];
   for(let i=0;i<n;i++){
@@ -3015,10 +3052,10 @@ function bestNeutralForB(bVal,T2,delta,margin){
     const muMin=muV(dqMu[0]);
     const tm=prof[j], tp=prof[i];
     if(tm===null||tp===null) continue;
-    const imbal=Math.max(tm,tp)>1e-12?Math.abs(tm-tp)/Math.max(tm,tp):0;
+    const imbal=imbalOf(tm,tp);
     const wmax=val(dq[0]);
-    const score=tm+tp+wmax;
-    const cand={t0:degs[j]+delta,tm,tp,worst:Math.min(tm,tp),wmax,wargDeg:degs[dq[0]],imbal,muMin,score};
+    const score=scoreOf(tm,tp,wmax);
+    const cand={t0:degs[j]+dm,tm,tp,worst:Math.min(tm,tp),wmax,wargDeg:degs[dq[0]],imbal,muMin,score};
     if(muMin<OPT_MU_MIN){
       // 전달각 제약 (§2-4) 위반 — 전달각 최대화 차선 후보로만 추적
       muFail=true;
@@ -3053,6 +3090,37 @@ function bestNeutralForB(bVal,T2,delta,margin){
   return{...best,physLo,physHi};
 }
 
+// ── 타각 범위 입력 모드 (대칭 ±δ / 비대칭 +δ₊·−δ₋) ──────────────────────────
+let _deflectMode='sym';
+function setDeflectMode(mode){
+  _deflectMode=(mode==='asym')?'asym':'sym';
+  const asym=_deflectMode==='asym';
+  document.getElementById('btnDeflectSym').classList.toggle('active',!asym);
+  document.getElementById('btnDeflectAsym').classList.toggle('active',asym);
+  document.getElementById('deflectSymRow').style.display=asym?'none':'flex';
+  document.getElementById('deflectAsymRow').style.display=asym?'grid':'none';
+  const hint=document.getElementById('deflectHint');
+  if(hint) hint.textContent=asym?'(θ₄₀ +δ₊ / −δ₋)':'(θ₄₀ ± δ)';
+  const desc=document.getElementById('optDesc');
+  if(desc) desc.innerHTML=asym
+    ? '비대칭 타각에서는 <b>요구 힌지모멘트 ∝ 타각</b> 가정으로 '
+      +'<b>목표 토크비 = 타각비(δ₋:δ₊)</b> 를 잡고, 전 구간 <b>안전여유(가용÷요구) 균형 ≤ 10%</b> 를 '
+      +'만족하면서 <b>최소 안전여유가 최대</b>가 되도록 c · b · θ₄₀ 를 탐색합니다. (힌지모멘트 입력 불필요)'
+    : '현재 <b>고정 d · 입력 a</b> 를 고정한 채, 입력한 <b>타각 범위</b> 를 '
+      +'물리 가용범위(양끝단 마진 제외) 안에 수용하고 <b>양끝단 토크 불균형 ≤ 10%</b> 를 '
+      +'만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 출력링크 c · 커플러 b · 중립 출력각 θ₄₀ 를 탐색합니다.';
+}
+// 현재 입력된 타각 스펙 {dm:−측, dp:+측, sym}
+function getDeflect(){
+  if(_deflectMode==='asym'){
+    const dp=parseFloat(document.getElementById('iDeflectP')?.value);
+    const dm=parseFloat(document.getElementById('iDeflectM')?.value);
+    return {dm,dp,sym:false};
+  }
+  const d=parseFloat(document.getElementById('iDeflect')?.value);
+  return {dm:d,dp:d,sym:true};
+}
+
 function runOptimizer(){
   const btn=document.getElementById('btnOptimize');
   if(!btn||btn._busy) return;
@@ -3085,26 +3153,28 @@ function doOptimize(){
   const motorEl=document.getElementById('iMotorTorque');
   const motorVal=parseFloat(motorEl?.value);
   const hasMotor=!isNaN(motorVal)&&motorEl.value.trim()!=='';
-  const delta=parseFloat(document.getElementById('iDeflect')?.value);
+  const {dm,dp,sym}=getDeflect();
   const box=document.getElementById('optResult');
   const showMsg=t=>{box.style.display='block';
     box.innerHTML='<div style="font-size:11px;color:#a05800;font-weight:500;line-height:1.5;">'+t+'</div>';};
 
-  // 타각 범위는 필수 입력 (optimal-linkage-logic.md §1)
-  if(isNaN(delta)||delta<=0){
-    showMsg('⚠︎ 타각 범위 ±δ 를 먼저 입력하세요. (예: ±25°)');
+  // 타각 범위는 필수 입력
+  if(isNaN(dm)||isNaN(dp)||dm<=0||dp<=0){
+    showMsg(sym?'⚠︎ 타각 범위 ±δ 를 먼저 입력하세요. (예: ±25°)'
+               :'⚠︎ 비대칭 타각 +δ₊ / −δ₋ 를 먼저 입력하세요. (예: +20° / −30°)');
     return;
   }
+  const defLbl=sym?('±'+dp.toFixed(1)+'°'):('+'+dp.toFixed(1)+'° / −'+dm.toFixed(1)+'°');
 
   const c0=S.c;
   const cR=readCRange();
 
   // 1) (c, b, θ₄₀) 동시 최적화 — 명시적 c 허용범위 내 절대 그리드 탐색
   //    (같은 허용범위면 초기 c₀ 와 무관하게 항상 같은 결과)
-  const res=optimizeForDeltaWithC(delta,T2,marginVal,cR.lo,cR.hi);
+  const res=optimizeForDeltaWithC(dm,dp,T2,marginVal,cR.lo,cR.hi);
   if(!res){
-    showMsg('⚠︎ c 자동 범위('+cR.lo+'~'+cR.hi+'mm = 0.2~0.8×d) 안에서 타각 범위 ±'+delta.toFixed(1)
-      +'° 를 수용하는 (c, b) 조합이 없습니다.<br>타각 범위·끝단 마진·d 를 조정해 보세요.');
+    showMsg('⚠︎ c 자동 범위('+cR.lo+'~'+cR.hi+'mm = 0.2~0.8×d) 안에서 타각 범위 '+defLbl
+      +' 를 수용하는 (c, b) 조합이 없습니다.<br>타각 범위·끝단 마진·d 를 조정해 보세요.');
     return;
   }
 
@@ -3118,7 +3188,7 @@ function doOptimize(){
         if(Math.abs(db)<1e-9) continue;
         const bv=res.b+db;
         if(bv<5||bv>400) continue;
-        const q=bestNeutralForB(bv,T2,delta,marginVal);
+        const q=bestNeutralForB(bv,T2,dm,dp,marginVal);
         if(!q||q.t0===undefined) continue;
         const qt=q.noMu?2:(q.noBalance?1:0);
         if(qt!==myTier) continue;
@@ -3131,7 +3201,7 @@ function doOptimize(){
   }
 
   const fbType=best.fbType, fallback=fbType!=='';
-  _optCtx={delta,T2,margin:marginVal,motorVal:hasMotor?motorVal:NaN,hasMotor,c0};
+  _optCtx={dm,dp,sym,T2,margin:marginVal,motorVal:hasMotor?motorVal:NaN,hasMotor,c0};
 
   const rho=best.cOpt/S.a, wFac=Math.min(1.5,Math.max(0.5,rho/2));
   const banner=fallback
@@ -3140,8 +3210,8 @@ function doOptimize(){
      +(fbType==='mu'
        ?'⚠︎ c 탐색 범위 내에서도 전달각 μ ≥'+OPT_MU_MIN+'° 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>(전달각 최대화 우선 — 달성 μ '+best.muMin.toFixed(1)+'°)'
-       :'⚠︎ 불균형 ≤'+(OPT_IMBAL_LIMIT*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
-        +'<br>(불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
+       :'⚠︎ '+(sym?'':'여유율 ')+'불균형 ≤'+(OPT_IMBAL_LIMIT*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+        +'<br>('+(sym?'':'여유율 ')+'불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
      +'</div>'
     :'';
 
@@ -3188,16 +3258,17 @@ function scheduleOptRecalc(){
 }
 
 // 주어진 (c, b, θ₄₀) 설계의 전체 지표 평가 (최적화가 아닌 단일 평가)
-function evalDesign(cv,bv,t0,delta,T2,marginVal){
+function evalDesign(cv,bv,t0,dm,dp,T2,marginVal){
+  const sym=Math.abs(dm-dp)<1e-9;
   const saved=S.c; S.c=cv;
   try{
     const fr=feasibleRangeOf(bv);
     if(!fr) return{err:'이 (c, b) 조합은 어떤 θ₄ 에서도 조립되지 않습니다'};
     const physLo=Math.ceil(fr.lo-1e-6)+marginVal, physHi=Math.floor(fr.hi+1e-6)-marginVal;
-    const contained=(t0-delta>=physLo-1e-9)&&(t0+delta<=physHi+1e-9);
-    const tm=absT4At(bv,t0-delta,T2), tp=absT4At(bv,t0+delta,T2), tn=absT4At(bv,t0,T2);
+    const contained=(t0-dm>=physLo-1e-9)&&(t0+dp<=physHi+1e-9);
+    const tm=absT4At(bv,t0-dm,T2), tp=absT4At(bv,t0+dp,T2), tn=absT4At(bv,t0,T2);
     let wmax=-Infinity,warg=null,muMin=Infinity,gap=false;
-    for(let t=t0-delta;t<=t0+delta+1e-9;t+=0.25){
+    for(let t=t0-dm;t<=t0+dp+1e-9;t+=0.25){
       const r=feasibleAt(S.a,bv,S.c,S.d,t,S.sol);
       if(!r){gap=true;continue;}
       const v=Math.abs(T2*r.ma);
@@ -3206,14 +3277,16 @@ function evalDesign(cv,bv,t0,delta,T2,marginVal){
     }
     if(tm===null||tp===null||!isFinite(wmax)||gap)
       return{err:'작동범위 일부에서 기구 해가 없습니다 (θ₄₀·범위 확인)',physLo,physHi};
-    const imbal=Math.max(tm,tp)>1e-12?Math.abs(tm-tp)/Math.max(tm,tp):0;
-    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,imbal,
-      score:tm+tp+wmax,physLo,physHi,contained};
+    const mm=tm/dm, mp=tp/dp, mx=Math.max(mm,mp);
+    const imbal=mx>1e-12?Math.abs(mm-mp)/mx:0;   // sym 이면 |T₋−T₊|/max 와 동일
+    const score=sym?(tm+tp+wmax):Math.min(mm,mp);
+    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,imbal,marginM:mm,marginP:mp,
+      score,physLo,physHi,contained};
   } finally { S.c=saved; }
 }
 
 function buildOptMetrics(m){
-  const{delta,margin,motorVal,hasMotor}=_optCtx;
+  const{dm,dp,sym,margin,motorVal,hasMotor}=_optCtx;
   const row=(k,v,col)=>'<div class="result-row"><span class="result-key" style="font-size:11.5px">'+k
     +'</span><span class="result-val" style="font-size:13px;'+(col?'color:'+col:'')+'">'+v+'</span></div>';
   if(m.err){
@@ -3222,21 +3295,34 @@ function buildOptMetrics(m){
       s+=row('물리 가용범위',m.physLo.toFixed(1)+'° ~ '+m.physHi.toFixed(1)+'°','#1ca3ec');
     return s;
   }
+  const rangeLbl=sym?('±'+dp.toFixed(1)+'°'):('+'+dp.toFixed(1)+'° / −'+dm.toFixed(1)+'°');
   let s='';
-  s+=row('작동 범위',(m.t0-delta).toFixed(1)+'° ~ '+(m.t0+delta).toFixed(1)+'° (±'+delta.toFixed(1)+'°)',
+  s+=row('작동 범위',(m.t0-dm).toFixed(1)+'° ~ '+(m.t0+dp).toFixed(1)+'° ('+rangeLbl+')',
     m.contained?'var(--text)':'var(--red)');
   s+=row('최소 전달각 μ <span style="color:var(--text3)">(최우선 필터)</span>',
     m.muMin.toFixed(1)+'° (≥'+OPT_MU_MIN+'° = 기준 '+OPT_MU_BASE+'°+마진 '+OPT_MU_MARGIN+'°)',
     m.muMin>=OPT_MU_MIN?'#1a9c3e':'var(--red)');
   s+='<div class="result-divider"></div>';
-  s+=row('|T₄| @ −δ 끝단',m.tm.toFixed(2)+' N·m','var(--follower)');
-  s+=row('|T₄| @ +δ 끝단',m.tp.toFixed(2)+' N·m','var(--follower)');
-  s+=row('끝단 불균형 <span style="color:var(--text3)">(≤10%)</span>',(m.imbal*100).toFixed(1)+' %',
-    m.imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
+  s+=row('|T₄| @ −δ'+(sym?'':'₋ ('+dm.toFixed(1)+'°)')+' 끝단',m.tm.toFixed(2)+' N·m','var(--follower)');
+  s+=row('|T₄| @ +δ'+(sym?'':'₊ ('+dp.toFixed(1)+'°)')+' 끝단',m.tp.toFixed(2)+' N·m','var(--follower)');
+  if(sym){
+    s+=row('끝단 불균형 <span style="color:var(--text3)">(≤10%)</span>',(m.imbal*100).toFixed(1)+' %',
+      m.imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
+  }else{
+    // 비대칭: 목표 토크비 = 타각비(δ₋:δ₊), 여유율 균형이 실제 제약
+    s+=row('토크비 T₋ : T₊ <span style="color:var(--text3)">(목표 δ₋:δ₊='+dm.toFixed(0)+':'+dp.toFixed(0)+')</span>',
+      m.tm.toFixed(2)+' : '+m.tp.toFixed(2),'var(--follower)');
+    s+=row('여유율 불균형 <span style="color:var(--text3)">(|가용÷타각| 차, ≤10%)</span>',(m.imbal*100).toFixed(1)+' %',
+      m.imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
+  }
   s+=row('최대 |T₄| <span style="color:var(--text3)">(범위 내)</span>',
     m.wmax.toFixed(2)+' N·m @ '+m.warg.toFixed(1)+'°','var(--follower)');
   if(m.tn!==null) s+=row('|T₄| @ 중립각',m.tn.toFixed(2)+' N·m','var(--text2)');
-  s+=row('세 토크 합 <span style="color:var(--text3)">(목적함수)</span>',m.score.toFixed(2)+' N·m','var(--purple)');
+  if(sym)
+    s+=row('세 토크 합 <span style="color:var(--text3)">(목적함수)</span>',m.score.toFixed(2)+' N·m','var(--purple)');
+  else
+    s+=row('최소 안전여유 <span style="color:var(--text3)">(가용÷타각, 목적함수)</span>',
+      m.score.toFixed(3)+' N·m/°','var(--purple)');
   s+='<div class="result-divider"></div>';
   s+=row('물리 가용범위',m.physLo.toFixed(1)+'° ~ '+m.physHi.toFixed(1)+'° (마진 '+margin.toFixed(1)+'° 제외)'
     +(m.contained?'':' — <b style="color:var(--red)">작동범위 이탈!</b>'),'#1ca3ec');
@@ -3257,7 +3343,7 @@ function recalcOptCard(){
     mDiv.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;">⚠︎ 값을 확인하세요 (c·b: 5~400 mm)</div>';
     return;
   }
-  const m=evalDesign(cv,bv,t0,_optCtx.delta,_optCtx.T2,_optCtx.margin);
+  const m=evalDesign(cv,bv,t0,_optCtx.dm,_optCtx.dp,_optCtx.T2,_optCtx.margin);
   m.t0=t0;
   mDiv.innerHTML=buildOptMetrics(m);
 }
@@ -3291,12 +3377,12 @@ function applyOpt(bVal,t4Val,cVal){
 let _deltaSweepData=null, _dsBusy=false;
 
 // 단일 δ 에 대한 최적화 (doOptimize 의 선택 규칙과 동일, ±1mm 정밀 재탐색은 생략)
-function optimizeForDelta(delta,T2,marginVal){
+function optimizeForDelta(dm,dp,T2,marginVal){
   const cands=[], relaxCands=[], muCands=[];
   // 조립 조건: b 는 [d−a−c, d+a+c] 범위 밖에서는 어떤 θ₄ 에서도 조립 불가
   const bLo=Math.max(5,Math.ceil(S.d-S.a-S.c)), bHi=Math.min(400,Math.floor(S.d+S.a+S.c));
   for(let bv=bLo;bv<=bHi;bv++){
-    const r=bestNeutralForB(bv,T2,delta,marginVal);
+    const r=bestNeutralForB(bv,T2,dm,dp,marginVal);
     if(!r) continue;
     if(r.noMu){ if(r.t0!==undefined) muCands.push({b:bv,...r}); continue; }
     if(r.noBalance){ if(r.t0!==undefined) relaxCands.push({b:bv,...r}); continue; }
@@ -3353,7 +3439,7 @@ function readCRange(){
   return{lo,hi};
 }
 
-function optimizeForDeltaWithC(delta,T2,marginVal,cMin,cMax){
+function optimizeForDeltaWithC(dm,dp,T2,marginVal,cMin,cMax){
   const saved=S.c;
   const range=(cMin!==undefined&&cMax!==undefined)?{lo:cMin,hi:cMax}:readCRange();
   const tried=new Map();
@@ -3364,7 +3450,7 @@ function optimizeForDeltaWithC(delta,T2,marginVal,cMin,cMax){
     S.c=cv;
     let r=null;
     try{
-      r=optimizeForDelta(delta,T2,marginVal);
+      r=optimizeForDelta(dm,dp,T2,marginVal);
       if(r&&r.t0!==undefined){ r.tn=absT4At(r.b,r.t0,T2); r={cOpt:cv,...r}; }
       else r=null;
     } finally { S.c=saved; }
@@ -3419,19 +3505,23 @@ function runDeltaSweep(){
     if(status) status.textContent='⚠︎ δ 범위를 확인하세요';
     return;
   }
+  // 현재 타각 모드가 비대칭이면 δ₋/δ₊ 비율을 보존한 채 x축(δ₊)만 스윕
+  const df=getDeflect();
+  const ratio=(df.sym||!(df.dp>0)||!(df.dm>0))?1:(df.dm/df.dp);
   const optC=!!document.getElementById('dsOptC')?.checked;
   const STEP=optC?1:0.5;   // c-모드는 계산량이 커서 1° 간격
   const deltas=[];
   for(let d=d0;d<=d1+1e-9;d+=STEP) deltas.push(+d.toFixed(2));
   _deltaSweepData={deltas,maxArr:[],minArr:[],fbArr:[],bArr:[],t0Arr:[],tnArr:[],
-    cArr:optC?[]:null,optC,
+    cArr:optC?[]:null,optC,ratio,sym:df.sym,
     T2,margin:marginVal,a:S.a,c:S.c,d:S.d,sol:S.sol};
   const cR=readCRange();
   const sub=document.getElementById('dsSub');
   if(sub) sub.textContent='a='+S.a+(optC?', c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×d)':', c='+S.c)
     +', d='+S.d+' mm · T₂='+T2.toFixed(2)
-    +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준 — 각 δ 마다 최적 ('
-    +(optC?'c, ':'')+'b, θ₄₀) 재계산';
+    +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준'
+    +(df.sym?' — x축 ±δ':' — x축 δ₊ (δ₋=δ₊×'+ratio.toFixed(2)+' 비율 보존, 여유율 균형)')
+    +' · 각 점마다 최적 ('+(optC?'c, ':'')+'b, θ₄₀) 재계산';
   _dsBusy=true;
   const runBtn=document.getElementById('dsRun');
   if(runBtn){ runBtn.disabled=true; runBtn.style.opacity='0.5'; }
@@ -3447,7 +3537,8 @@ function runDeltaSweep(){
     if(status) status.textContent='계산 중… '+(i+1)+'/'+deltas.length;
     setTimeout(()=>{
       let r=null;
-      try{ r=optC?optimizeForDeltaWithC(deltas[i],T2,marginVal,cR.lo,cR.hi):optimizeForDelta(deltas[i],T2,marginVal); }
+      const dpI=deltas[i], dmI=+(dpI*ratio).toFixed(4);   // 비대칭: 비율 보존 (대칭이면 ratio=1 → dmI=dpI)
+      try{ r=optC?optimizeForDeltaWithC(dmI,dpI,T2,marginVal,cR.lo,cR.hi):optimizeForDelta(dmI,dpI,T2,marginVal); }
       catch(e){ console.warn('deltaSweep:',e); }
       // 중립각 토크는 정확값, wmax 는 0.25° 그리드값 → max 곡선이 항상 상한이 되도록 보정
       const tn=r?(r.tn!==undefined?r.tn:absT4At(r.b,r.t0,T2)):null;
