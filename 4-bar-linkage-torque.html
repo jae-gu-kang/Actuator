@@ -2955,6 +2955,9 @@ const OPT_MU_MIN=OPT_MU_BASE+OPT_MU_MARGIN;   // 공칭 μ 제약: 접힌 μ′=
 // 비대칭 '토크 최우선' 모드: 절대 토크(중립)를 최대화하되 최소 안전여유가 이 비율 아래로는
 // 못 내려가게 하는 하한. floor = ASYM_MARGIN_FLOOR × M*(달성 가능한 최대 최소여유). (2-패스)
 const ASYM_MARGIN_FLOOR=0.90;
+// 비대칭: 물리 가용범위가 작동(타각)범위보다 최소 이만큼(°) 더 크도록 강제 — 끝단이 물리
+// 경계에 딱 붙지 않게(0 버퍼 방지) 대칭처럼 ~1° 버퍼 확보. (토크모드는 0까지 조이는 경향)
+const ASYM_RANGE_SLACK=1.0;
 
 // 링크비 기반 설계 성향 반영 (§3-3): ρ=c/a 가 높다 = 토크 증폭을 노린 토크 중시형 설계
 //   성향 계수 w = clamp(ρ/2, 0.5, 1.5)  (기본 링크비 ρ=2 에서 w=1 → 기존 동작 유지)
@@ -2991,7 +2994,9 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
   // 물리 가용범위: 화면에 표시되는 정수 스캔 경계와 동일한 보수적 경계 사용
   // (이분법 경계를 그대로 쓰면 추천 작동범위가 표시된 가용범위보다 최대 1° 밖에 걸칠 수 있음)
   const physLo=Math.ceil(fr.lo-1e-6)+margin, physHi=Math.floor(fr.hi+1e-6)-margin;
-  if(physHi-physLo<(dm+dp)-1e-9) return null;   // 타각범위 미수용 → 제약 위반, 탈락
+  // 비대칭은 물리 가용범위가 작동범위보다 최소 ASYM_RANGE_SLACK(1°) 크도록 요구 (끝단 버퍼 확보)
+  const needSpan=(dm+dp)+(sym?0:ASYM_RANGE_SLACK);
+  if(physHi-physLo<needSpan-1e-9) return null;   // 타각범위 미수용/버퍼 부족 → 탈락
 
   // 목적함수·불균형·여유 정의 (sym 이면 기존 수식과 수치적으로 동일)
   //   score: sym=합+피크 / torque=중립토크 tn / margin=최소여유
