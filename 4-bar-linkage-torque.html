@@ -2958,6 +2958,18 @@ const ASYM_MARGIN_FLOOR=0.90;
 // 비대칭: 물리 가용범위가 작동(타각)범위보다 최소 이만큼(°) 더 크도록 강제 — 끝단이 물리
 // 경계에 딱 붙지 않게(0 버퍼 방지) 대칭처럼 ~1° 버퍼 확보. (토크모드는 0까지 조이는 경향)
 const ASYM_RANGE_SLACK=1.0;
+// 강비대칭 완화: 타각비 r=max/min 이 클수록 불균형 상한을 10%→30% 로 램프.
+//   강비대칭(3:1)에선 균형과 '중립을 피크에 근접'이 기하적으로 양립 불가 → 균형을 일부 풀어
+//   중립 토크를 끌어올린다. 일반 비대칭(r≤1.5)은 10% 그대로(균형·중립 이미 양립).
+//   최소 안전여유 하한이 여전히 최악(수요 큰) 끝단을 보장하므로 안전은 유지.
+const OPT_IMBAL_STRONG=0.30;                 // 강비대칭 완화 상한
+const OPT_IMBAL_R_LO=1.5, OPT_IMBAL_R_HI=3.0; // 램프 구간 (타각비 r)
+function optImbalLimit(dm,dp){
+  if(Math.abs(dm-dp)<1e-9) return OPT_IMBAL_LIMIT;   // 대칭 → 10%
+  const r=Math.max(dm,dp)/Math.min(dm,dp);
+  const t=Math.min(1,Math.max(0,(r-OPT_IMBAL_R_LO)/(OPT_IMBAL_R_HI-OPT_IMBAL_R_LO)));
+  return OPT_IMBAL_LIMIT + t*(OPT_IMBAL_STRONG-OPT_IMBAL_LIMIT);
+}
 
 // 링크비 기반 설계 성향 반영 (§3-3): ρ=c/a 가 높다 = 토크 증폭을 노린 토크 중시형 설계
 //   성향 계수 w = clamp(ρ/2, 0.5, 1.5)  (기본 링크비 ρ=2 에서 w=1 → 기존 동작 유지)
@@ -2989,6 +3001,7 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
   const sym=Math.abs(dm-dp)<1e-9;
   const torque=!sym&&opt&&opt.mode==='torque';   // 절대 토크 최우선 모드
   const floor=torque?(opt.floor||0):0;            // 최소 안전여유 하한
+  const imbalLim=optImbalLimit(dm,dp);            // 불균형 상한 (대칭·일반 10%, 강비대칭 ~30%)
   const fr=feasibleRangeOf(bVal);
   if(!fr) return null;
   // 물리 가용범위: 화면에 표시되는 정수 스캔 경계와 동일한 보수적 경계 사용
@@ -3086,7 +3099,7 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
       continue;
     }
     // 토크모드: 최소 안전여유 하한을 못 넘으면 best 후보 제외 (imbal 차선 추적은 유지)
-    if(imbal<=OPT_IMBAL_LIMIT&&okFloor(tm,tp)&&(!best||score>best.score)) best=cand;
+    if(imbal<=imbalLim&&okFloor(tm,tp)&&(!best||score>best.score)) best=cand;
     if(!relax||imbal<relax.imbal-0.005||(imbal<=relax.imbal+0.005&&score>relax.score)) relax=cand;
   }
   if(!contained) return null;
@@ -3106,7 +3119,7 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
   // ── 0.05° 정밀 재탐색 (끝단 토크는 정확값으로 재평가) ──
   for(let t0=Math.max(lo,best.t0-G);t0<=Math.min(hi,best.t0+G)+1e-9;t0+=0.05){
     const r=evalAt(t0);
-    if(r&&r.imbal<=OPT_IMBAL_LIMIT&&okFloor(r.tm,r.tp)&&r.score>best.score) best=r;
+    if(r&&r.imbal<=imbalLim&&okFloor(r.tm,r.tp)&&r.score>best.score) best=r;
   }
   return{...best,physLo,physHi};
 }
@@ -3247,7 +3260,7 @@ function doOptimize(){
      +(fbType==='mu'
        ?'⚠︎ c 탐색 범위 내에서도 전달각 μ ≥'+OPT_MU_MIN+'° 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>(전달각 최대화 우선 — 달성 μ '+best.muMin.toFixed(1)+'°)'
-       :'⚠︎ '+(sym?'':'여유율 ')+'불균형 ≤'+(OPT_IMBAL_LIMIT*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+       :'⚠︎ '+(sym?'':'여유율 ')+'불균형 ≤'+(optImbalLimit(dm,dp)*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>('+(sym?'':'여유율 ')+'불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
      +'</div>'
     :'';
@@ -3325,6 +3338,7 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode){
 
 function buildOptMetrics(m){
   const{dm,dp,sym,mode,floor,margin,motorVal,hasMotor}=_optCtx;
+  const imbalLim=optImbalLimit(dm,dp);   // 불균형 상한 (강비대칭이면 완화됨)
   const row=(k,v,col)=>'<div class="result-row"><span class="result-key" style="font-size:11.5px">'+k
     +'</span><span class="result-val" style="font-size:13px;'+(col?'color:'+col:'')+'">'+v+'</span></div>';
   if(m.err){
@@ -3352,8 +3366,9 @@ function buildOptMetrics(m){
     s+=row('|T₄| @ 하향 ('+dm.toFixed(1)+'°)',m.tm.toFixed(2)+' N·m','var(--crank)');
     s+=row('토크비 상향 : 하향 <span style="color:var(--text3)">(목표 '+dp.toFixed(0)+':'+dm.toFixed(0)+')</span>',
       m.tp.toFixed(2)+' : '+m.tm.toFixed(2),'var(--follower)');
-    s+=row('여유율 불균형 <span style="color:var(--text3)">(|가용÷타각| 차, ≤10%)</span>',(m.imbal*100).toFixed(1)+' %',
-      m.imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
+    s+=row('여유율 불균형 <span style="color:var(--text3)">(|가용÷타각| 차, ≤'+(imbalLim*100).toFixed(0)+'%'
+        +(imbalLim>OPT_IMBAL_LIMIT+1e-9?' · 강비대칭 완화':'')+')</span>',(m.imbal*100).toFixed(1)+' %',
+      m.imbal<=imbalLim+1e-9?'#1a9c3e':'var(--orange)');
   }
   const isObjNeutral=!sym&&mode==='torque';
   s+=row('최대 |T₄| <span style="color:var(--text3)">(범위 내)</span>',
