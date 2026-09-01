@@ -60,7 +60,15 @@ SHIM = """
     var a = e.target && e.target.closest ? e.target.closest('a') : null;
     if(!a) return;
     var href = a.getAttribute('href');
-    if(!href || href.charAt(0)==='#') return;
+    if(href===null) return;                       // not a link
+    if(href===''||href.charAt(0)==='#'){          // empty/hash link
+      // this iframe's srcdoc base URL is the PARENT file, so an empty or '#' href would
+      // otherwise reload the whole merged app inside the iframe. Keep it in-page instead.
+      e.preventDefault();
+      var id = href.slice(1);
+      if(id){ var el = document.getElementById(id); if(el) el.scrollIntoView(); }
+      return;
+    }
     var t = resolve(href);
     if(t){ e.preventDefault(); try{ parent.postMessage({__mergedNav:true, target:t, reload:false}, '*'); }catch(err){} }
   }, true);
@@ -83,7 +91,6 @@ def process(name, filename):
 
 data = {name: process(name, fn) for name, fn, _ in TOOLS}
 tools_js = ("const TOOLS = " + json.dumps(data, ensure_ascii=False) + ";").replace("</", "<\\/")
-nav_buttons = "\n".join('    <button class="tab" data-tool="{n}">{l}</button>'.format(n=n, l=label) for n, fn, label in TOOLS)
 
 SHELL = """<!DOCTYPE html>
 <html lang="ko">
@@ -96,36 +103,13 @@ SHELL = """<!DOCTYPE html>
   html,body{height:100%;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
        background:#f5f5f7;color:#1d1d1f;display:flex;flex-direction:column;height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;}
-  header{flex:0 0 auto;display:flex;align-items:center;gap:14px;height:52px;padding:0 16px;
-         background:rgba(245,245,247,0.92);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
-         border-bottom:1px solid rgba(0,0,0,0.08);z-index:10;}
-  .brand{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;letter-spacing:-0.2px;white-space:nowrap;}
-  .brand .ic{width:26px;height:26px;border-radius:7px;background:#0071e3;display:flex;align-items:center;justify-content:center;}
-  .brand .ic svg{width:15px;height:15px;fill:#fff;}
-  .tabs{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:thin;}
-  .tab{flex:0 0 auto;border:none;background:transparent;color:#6e6e73;font-size:13.5px;font-weight:600;font-family:inherit;
-       padding:7px 13px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:all .15s;}
-  .tab:hover{background:rgba(0,0,0,0.05);color:#1d1d1f;}
-  .tab.active{background:#0071e3;color:#fff;}
-  .offline{flex:0 0 auto;font-size:11px;font-weight:600;color:#28a745;background:rgba(40,167,69,0.1);padding:4px 10px;border-radius:100px;white-space:nowrap;}
   main{flex:1 1 auto;position:relative;background:#fff;}
   iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;display:none;}
   iframe.active{display:block;}
   .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aeaeb2;font-size:14px;}
-  @media (max-width:640px){ .brand span{display:none;} }
 </style>
 </head>
 <body>
-<header>
-  <a class="brand" href="#" onclick="return false;">
-    <span class="ic"><svg viewBox="0 0 16 16"><path d="M2 3h12v2H2zm0 4h8v2H2zm0 4h10v2H2z"/></svg></span>
-    <span>Engineering Tools</span>
-  </a>
-  <nav class="tabs" id="tabs">
-""" + nav_buttons + """
-  </nav>
-  <span class="offline">● OFFLINE READY</span>
-</header>
 <main id="stage">
   <div class="loading" id="loading">도구를 불러오는 중…</div>
 </main>
@@ -154,14 +138,9 @@ function showTool(name, reload){
   const f = ensureFrame(name);
   if(reload){ f.srcdoc = TOOLS[name]; }
   Object.keys(frames).forEach(k=>frames[k].classList.toggle('active', k===name));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tool===name));
   current = name;
   try{ location.hash = name; }catch(e){}
 }
-document.getElementById('tabs').addEventListener('click', function(e){
-  const b = e.target.closest('.tab'); if(!b) return;
-  showTool(b.dataset.tool, false);
-});
 window.addEventListener('message', function(e){
   const d = e.data; if(!d || !d.__mergedNav) return;
   showTool(d.target, !!d.reload);

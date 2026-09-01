@@ -853,7 +853,7 @@ body {
         <table class="input-table">
           <tr><th>파라미터</th><th>설명</th><th>기본값</th><th>범위</th></tr>
           <tr><td>d <span class="unit">mm</span></td><td>고정링크 (Ground Link) — O₂와 O₄ 사이의 거리</td><td>100</td><td>10 ~ 400</td></tr>
-          <tr><td>a <span class="unit">mm</span></td><td>크랭크 (Crank) — 구동 링크. 모터에 연결</td><td>20</td><td>5 ~ 400</td></tr>
+          <tr><td>a <span class="unit">mm</span></td><td>크랭크 (Crank) — 구동 링크. 실물은 서보암이며 길이 a = 서보암 <strong>홀간 거리</strong></td><td>20</td><td>5 ~ 400</td></tr>
           <tr><td>b <span class="unit">mm</span></td><td>커플러 (Coupler) — 크랭크와 팔로워 연결 링크</td><td>100</td><td>5 ~ 400</td></tr>
           <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결. AI 최적화 시 c 허용범위는 <strong>0.2~0.8×d</strong>로 자동 연동됩니다</td><td>40</td><td>5 ~ 400</td></tr>
           <tr><td>θ₄ <span class="unit">°</span></td><td>출력각 (팔로워) — 슬라이더 또는 숫자 입력</td><td>100</td><td>0 ~ 360</td></tr>
@@ -863,7 +863,22 @@ body {
           <tr><td>토크 요구도 <span class="unit">N·m</span></td><td>출력토크·커플러 그래프의 요구 토크 기준선. 토크 가용각 판정에 사용</td><td>3</td><td>−9999 ~ 9999</td></tr>
           <tr><td>끝단 마진 <span class="unit">°</span></td><td>작동범위 양끝단에 두는 안전 여유각. 물리 가용범위에서 제외</td><td>5</td><td>0 ~ 90</td></tr>
           <tr><td>중립각 θ₄₀ <span class="unit">°</span></td><td>힌지모멘트/리깅 연동용 타각 δ=0° 기준 출력각</td><td>100</td><td>0 ~ 360</td></tr>
+          <tr><td>서보암 홀간거리 <span class="unit">mm</span></td><td>서보/서보암 표시 시 크랭크 a 를 구동하는 홀간 거리(스플라인 허브 ↔ 푸시로드 M3 홀). 입력하면 a 가 따라 변함 (1.0 in = 25.4 mm)</td><td>a와 동기</td><td>5 ~ 400</td></tr>
         </table>
+      </div>
+
+      <!-- 액추에이터 / 서보암 -->
+      <div class="card">
+        <span id="anc-linkage-servo" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">액추에이터 / 서보암 렌더</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          좌측 <strong>"액추에이터 / 서보암"</strong> 패널의 <strong>표시</strong> 체크박스를 켜면, 추상 크랭크 막대 대신 실제 <strong>서보(작동기) 몸체</strong>와 <strong>서보암</strong>이 실측 mm 스케일로 그려집니다. 출력 샤프트는 입력 피벗 O₂ 에 고정되고, 서보암만 θ₂ 로 회전하며 몸체는 <strong>링키지 반대쪽으로 자동 배치</strong>됩니다.
+        </p>
+        <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
+          <li><strong>프리셋</strong> — Hitec MDD961WP(몸체 54.5×20mm, 마운트홀 Ø5)를 기본 제공하며, 몸체 길이·폭·샤프트 오프셋·마운트홀 등 치수를 직접 수정하면 자동으로 "직접 입력(커스텀)"으로 전환됩니다.</li>
+          <li><strong>홀간거리 → a</strong> — 서보암 홀간 거리를 입력하면 크랭크 a 가 그 값으로 바뀝니다(양방향 동기 — a 를 바꿔도 홀간거리 칸에 반영). 푸시로드 홀은 <strong>M3(Ø3)</strong> 고정입니다.</li>
+          <li><strong>표시 전용</strong> — 렌더링 토글일 뿐 기구·토크 계산은 링크 길이(특히 a)로만 이루어져 결과는 동일합니다. 기본값은 꺼짐입니다.</li>
+        </ul>
+        <div class="tip-box" style="margin-top:14px;">서보암 형상은 이후 <strong>금속 질감 렌더링</strong>으로 확장될 예정입니다.</div>
       </div>
 
       <!-- AI 최적 설계 추천 -->
@@ -2402,6 +2417,7 @@ const SEARCH_INDEX = [
   { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 토크 해석 플롯 슬라이더 드래그 개방형 교차형 θ₂ 역해 AI 최적화 그래프 힌지모멘트 리깅 연동' },
   { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ θ₂ T₂ 타각범위 토크요구도 끝단마진 중립각 기본값 고정링크 크랭크 커플러 팔로워 각도 범위 자동연동' },
   { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 d' },
+  { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암 렌더',           keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 M3 스플라인 허브 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 자동 배치 표시 토글 금속 렌더링 inch 25.4 mm' },
   { id:'linkage', anchor:'anc-linkage-graphs',      title:'출력토크·커플러·타각 스윕 그래프',  keywords:'출력토크 변화 커플러 길이 영향 타각범위 스윕 역설계 그래프 T₄ 물리 가용 토크 가용 각도 μ반영 토크 요구도 끝단마진 그래프 복사 저장 png' },
   { id:'linkage', anchor:'anc-linkage-link',        title:'도구 간 연동 — 힌지모멘트·리깅',    keywords:'힌지모멘트 계산기로 보내기 조종면 리깅 계산기로 보내기 개방형 교차형 중립각 θ₄₀ 타각 δ+ 방향 |T₄(δ)| MA localStorage 연동' },
   { id:'linkage', anchor:'anc-crank',               title:'크랭크 (Crank)',                    keywords:'크랭크 crank 링크 a 구동 모터 360 로커 rocker Grashof' },

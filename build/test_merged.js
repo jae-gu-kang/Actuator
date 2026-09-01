@@ -75,9 +75,11 @@ async function clickByText(frame, txt){
   await page.goto(FILE, {waitUntil:'load', timeout:30000});
   await sleep(400);
 
-  // 1) Shell: tabs present
-  const tabs = await page.$$eval('.tab', els=>els.map(e=>e.dataset.tool));
-  rec('shell: 7개 탭 존재', tabs.length===7 && ['home','linkage','hinge','regression','servo','rigging','manual'].every(t=>tabs.includes(t)), tabs.join(','));
+  // 1) Shell: 7 tools registered, tab bar removed (nav = home cards + per-tool 홈 button)
+  const shellNav = await page.evaluate(()=>({ tools: Object.keys(TOOLS), tabBar: document.querySelectorAll('.tab').length }));
+  rec('shell: 7개 도구 등록 & 탭바 제거됨',
+      shellNav.tools.length===7 && ['home','linkage','hinge','regression','servo','rigging','manual'].every(t=>shellNav.tools.includes(t)) && shellNav.tabBar===0,
+      'tools='+shellNav.tools.join(',')+' tabBar='+shellNav.tabBar);
 
   // helper to open a tool tab and get its frame
   async function open(name){ await page.evaluate(n=>window.showTool(n,false), name); await sleep(250); return await frameByName(page, name); }
@@ -107,6 +109,18 @@ async function clickByText(frame, txt){
     // graphs render (mechanism cv + torque/coupler plots)
     const cr = await canvasReport(f);
     rec('linkage: 그래프/기구 캔버스 렌더(오프라인)', cr.nonblank>=2, JSON.stringify(cr.details));
+    // servo/arm: toggle on, hole-to-hole drives crank a (양방향 동기), no throw
+    const sv = await f.evaluate(()=>{ try{
+      const cb=document.getElementById('cbServo'); if(!cb) return {err:'no-toggle'};
+      cb.checked=true; onServoToggle();
+      const ah=document.getElementById('iArmHole'); ah.value='25.4';
+      ah.dispatchEvent(new Event('input',{bubbles:true}));
+      const ok = SERVO.show===true && Math.abs(S.a-25.4)<1e-6
+                 && document.getElementById('ia').value==='25.4';
+      cb.checked=false; onServoToggle();   // 원상 복구 (이후 연동 테스트에 영향 없게)
+      return {ok, a:S.a};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 서보/암 토글 + 홀간거리→a 연동', sv.ok===true, JSON.stringify(sv));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)
@@ -114,9 +128,9 @@ async function clickByText(frame, txt){
     await page.evaluate(()=>{ localStorage.removeItem('hm_linkage_v1'); });
     const sent = await f.evaluate(()=>{ try{ if(typeof sendToHM==='function'){ sendToHM(); return 'called'; } const b=document.getElementById('sendHM'); if(b){ b.click(); return 'clicked'; } return 'no-target'; }catch(e){ return 'ERR:'+e.message; } });
     await sleep(600);
-    const cur = await page.evaluate(()=>{ const t=document.querySelector('.tab.active'); return t?t.dataset.tool:'?'; });
+    const cur = await page.evaluate(()=>{ const fr=document.querySelector('iframe.active'); return fr?fr.getAttribute('data-name'):'?'; });
     const ls  = await page.evaluate(()=>localStorage.getItem('hm_linkage_v1'));
-    rec('연동: 4-Bar→힌지 window.open이 부모 탭전환', cur==='hinge', 'sent='+sent+' activeTab='+cur);
+    rec('연동: 4-Bar→힌지 window.open이 부모 탭전환', cur==='hinge', 'sent='+sent+' activeTool='+cur);
     rec('연동: localStorage(hm_linkage_v1) 기록', !!ls && ls.length>2, ls?('len '+ls.length):'null');
   }
 

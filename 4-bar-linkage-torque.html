@@ -326,6 +326,23 @@ body {
   font-weight: 400;
 }
 
+/* 서보 치수 필드 (컴팩트) */
+.servo-dim {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 4px 7px;
+}
+.servo-dim:focus-within { border-color: var(--crank); }
+.servo-dim span { flex: 1; font-size: 10px; color: var(--text2); white-space: nowrap; }
+.servo-dim input {
+  width: 42px; text-align: right; border: none; background: transparent;
+  font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text); outline: none;
+  -moz-appearance: textfield;
+}
+.servo-dim input::-webkit-outer-spin-button,
+.servo-dim input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.servo-dim i { font-size: 9.5px; color: var(--text3); font-style: normal; }
+
 /* Angle block */
 .angle-card {
   background: var(--card);
@@ -769,6 +786,51 @@ canvas.hover { cursor: grab; }
       </div>
     </div>
 
+    <!-- 액추에이터 / 서보암 -->
+    <div class="s-sec">
+      <div class="s-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>액추에이터 / 서보암</span>
+        <label style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text2);cursor:pointer;">
+          <input type="checkbox" id="cbServo" onchange="onServoToggle()" style="cursor:pointer;margin:0;"> 표시
+        </label>
+      </div>
+
+      <div id="servoBox" style="display:none;">
+        <!-- 프리셋 -->
+        <select id="servoPreset" onchange="applyServoPreset()"
+          style="width:100%;padding:6px 8px;margin-bottom:8px;font-size:12px;font-weight:600;
+                 border:1px solid var(--border2);border-radius:8px;background:var(--card);
+                 color:var(--text);font-family:inherit;outline:none;cursor:pointer;">
+          <option value="MDD961WP">Hitec MDD961WP</option>
+          <option value="custom">직접 입력 (커스텀)</option>
+        </select>
+
+        <!-- 서보암 홀간거리 → 크랭크 a -->
+        <div class="link-card" style="margin-bottom:6px;">
+          <div class="link-pip" style="background:var(--crank)"></div>
+          <div class="link-meta">
+            <div class="link-name">홀간거리 <span style="color:var(--text3);font-weight:400">→ a</span></div>
+            <div class="link-sub">1.0 in = 25.4 mm</div>
+          </div>
+          <div class="link-field">
+            <input type="number" id="iArmHole" value="20" min="5" max="400" oninput="onArmHole()">
+            <span class="u">mm</span>
+          </div>
+        </div>
+
+        <!-- 몸체·암 치수 (커스텀 시 편집) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          <label class="servo-dim"><span>몸체 길이</span><input type="number" id="iBodyLen"  value="54.5" min="10" max="200" step="0.1" oninput="onServoDim()"><i>mm</i></label>
+          <label class="servo-dim"><span>몸체 폭</span><input type="number"  id="iBodyWid"  value="20"   min="5"  max="120" step="0.1" oninput="onServoDim()"><i>mm</i></label>
+          <label class="servo-dim"><span>샤프트 오프셋</span><input type="number" id="iShaftOff" value="14.9" min="0"  max="200" step="0.1" oninput="onServoDim()"><i>mm</i></label>
+          <label class="servo-dim"><span>마운트홀 Ø</span><input type="number" id="iMountDia" value="5"    min="1"  max="12"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
+          <label class="servo-dim"><span>암 폭</span><input type="number"    id="iArmWidth" value="9"    min="3"  max="40"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
+          <label class="servo-dim"><span>허브 Ø</span><input type="number"   id="iHubDia"   value="11"   min="4"  max="40"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
+        </div>
+        <div class="link-sub" style="margin-top:6px;color:var(--text3);">푸시로드 홀 <b style="color:var(--text2)">M3</b> (Ø3 고정) · 몸체는 링키지 반대쪽 자동 배치</div>
+      </div>
+    </div>
+
     <!-- Angles -->
     <div class="s-sec">
       <div class="s-title">각도</div>
@@ -1112,6 +1174,20 @@ const C = { ground:'#8e8e93', crank:'#0071e3', coupler:'#bf5af2', follower:'#ff4
 const RAD=Math.PI/180, DEG=180/Math.PI;
 const norm=d=>{d=d%360; return d<0?d+360:d};
 
+// ── 서보(작동기) + 서보암 ──
+// 실측 치수(mm). 몸체는 O₂(출력샤프트)에 고정, 암만 θ₂ 로 회전. armHole 은 크랭크 a 와 동기.
+const SERVO_PRESETS = {
+  // Hitec MDD961WP: 몸체 54.5×20, 출력샤프트 한쪽 끝에서 14.9mm, 마운트홀 Ø5.0
+  MDD961WP: { name:'Hitec MDD961WP', bodyLen:54.5, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 },
+  custom:   { name:'직접 입력',       bodyLen:54.5, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 }
+};
+const SERVO = {
+  show:false, preset:'MDD961WP',
+  bodyLen:54.5, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0,   // 몸체 (프리셋 프리필)
+  // 암 길이(홀간 거리)는 크랭크 a 와 동일 → 단일 진리원 S.a 사용 (여기 중복 저장 안 함)
+  armWidth:9.0, hubDia:11.0, m3Dia:3.0                                // 암 형상 (M3 홀 Ø3)
+};
+
 // ── MATH ──
 function solve(a,b,c,d,t4d){
   const t4=t4d*RAD;
@@ -1182,7 +1258,9 @@ function fwdSolve(a,b,c,d,t2d){
 // ── TRANSFORM ──
 function setTransform(){
   const{a,b,c,d}=S;
-  const range=Math.max(a+b,c+d,d+a+c)*1.4;
+  // 서보 표시 시 몸체가 O₂ 밖으로 뻗으므로 뷰 범위에 몸체 최대 반경을 포함(클리핑 방지)
+  const servoR = SERVO.show ? 2*((SERVO.bodyLen-SERVO.shaftFromEnd)+SERVO.bodyWid) : 0;
+  const range=Math.max(a+b,c+d,d+a+c,servoR)*1.4;
   scale=Math.min((W-60)/range,(H-60)/range)*userZoom;
   ox=W/2-(d/2)*scale+panX; oy=H*0.62+panY;
 }
@@ -1253,15 +1331,19 @@ function drawGrid(){
 function drawMech(sol,main){
   const{d}=S;
   const O2=[0,0],O4=[d,0],A=[sol.Ax,sol.Ay],B=[sol.Bx,sol.By];
+  const servo = main && SERVO.show;   // 서보/암 렌더는 활성 해에만
 
   if(main) drawGroundHatch(O2,O4);
+
+  // 서보 몸체 (맨 뒤, 링크 아래)
+  if(servo) drawServoBody(A);
 
   // Shadow pass for main links
   if(main){
     ctx.save();
     ctx.shadowColor='rgba(0,0,0,0.10)';
     ctx.shadowBlur=12; ctx.shadowOffsetY=3;
-    drawLinkShape(O2,A,C.crank,7);
+    if(!servo) drawLinkShape(O2,A,C.crank,7);   // 서보암 모드에선 크랭크 캡슐 생략
     drawLinkShape(A,B,C.coupler,7);
     drawLinkShape(O4,B,C.follower,7);
     ctx.restore();
@@ -1269,18 +1351,25 @@ function drawMech(sol,main){
 
   // Ground link
   drawLink(O2,O4,C.ground,main?3:2,true);
-  // Main links — rounded capsule style
-  drawLinkShape(O2,A,C.crank,main?7:3);
+  // Main links — rounded capsule style (크랭크는 서보암으로 대체)
+  if(servo) drawServoArm(A);
+  else drawLinkShape(O2,A,C.crank,main?7:3);
   drawLinkShape(A,B,C.coupler,main?7:3);
   drawLinkShape(O4,B,C.follower,main?7:3);
 
   if(!main) return;
 
   // Joints
-  drawJoint(O2,C.ground,9,'O₂',false);
   drawJoint(O4,C.ground,9,'O₄',false);
-  drawJoint(A,C.joint,8,'A',true);
   drawJoint(B,C.joint,8,'B',true);
+  if(servo){
+    // O₂(스플라인 허브)·A(M3 홀)는 서보 파트 자체가 마커 → 라벨만 표기
+    partLabel(O2,'O₂',C.ground);
+    partLabel(A,'A',C.joint);
+  }else{
+    drawJoint(O2,C.ground,9,'O₂',false);
+    drawJoint(A,C.joint,8,'A',true);
+  }
 
   // Length labels
   midLabel(O2,O4,`d = ${S.d} mm`,C.ground);
@@ -1407,6 +1496,104 @@ function roundRect(c,x,y,w,h,r){
   c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
   c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
   c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  서보(작동기) + 서보암 렌더링  (실측 mm, O₂=출력샤프트에 고정, 암만 회전)
+// ════════════════════════════════════════════════════════════════════════
+// 파트별 로컬 프레임: 원점=월드 Oworld, 로컬 +x=axisWorld 방향, 단위=mm(화면 scale 반영).
+// 이 프레임 안에서는 mm 좌표로 arc/roundRect 를 그대로 쓸 수 있고 회전/스케일은 자동 처리된다.
+// (선폭은 scale 로 확대되므로 lw/scale 로 지정 → 화면상 일정 두께 유지)
+function partFrame(Oworld, axisWorld, fn){
+  const phi = Math.atan2(-axisWorld[1], axisWorld[0]); // 월드 방향 → 화면각(Y 반전 반영)
+  ctx.save();
+  ctx.translate(wx(Oworld[0]), wy(Oworld[1]));
+  ctx.rotate(phi);
+  ctx.scale(scale, scale);
+  fn();
+  ctx.restore();
+}
+
+// ── 금속 렌더 seam ──────────────────────────────────────────────────────
+// 지금은 flat(단색 채움+스트로크). 다음 패스에서 이 함수 내부만 createLinearGradient
+// (금속 그라디언트+엣지 하이라이트)로 교체하면 모든 파트가 한 번에 금속 질감이 된다.
+// 호출 전 현재 경로(path)가 구성돼 있어야 하며, 프레임은 mm 스케일이라 lw 는 /scale.
+function paintCurrentPath(style){
+  ctx.fillStyle = style.base;
+  ctx.fill();
+  ctx.lineWidth = (style.lw||1.5)/scale;
+  ctx.strokeStyle = style.stroke;
+  ctx.stroke();
+}
+
+// 로컬 프레임 안에서 구멍(드릴 홀)을 "뚫린 것처럼" 표기: 배경색 채움 + 파트색 링
+function holeLocal(cx,cy,dia,stroke){
+  ctx.beginPath();
+  ctx.arc(cx,cy,dia/2,0,Math.PI*2);
+  ctx.fillStyle='#f5f5f7'; ctx.fill();          // 캔버스 배경색과 동일 → 구멍처럼 보임
+  ctx.lineWidth=1.2/scale; ctx.strokeStyle=stroke; ctx.stroke();
+}
+
+// 두 원(반경 r0@원점, r1@(len,0))을 외접선으로 이은 테이퍼 캡슐 경로 (로컬 좌표, 원점 축 위)
+function taperCapsulePath(len,r0,r1){
+  const cg=Math.max(-1,Math.min(1,(r0-r1)/len)), g=Math.acos(cg);
+  ctx.beginPath();
+  ctx.moveTo(len+r1*Math.cos(-g), r1*Math.sin(-g));
+  ctx.arc(len,0,r1,-g,g,false);                 // 앞쪽(푸시로드 끝) 캡
+  ctx.lineTo(r0*Math.cos(g), r0*Math.sin(g));   // 윗 외접선
+  ctx.arc(0,0,r0,g,2*Math.PI-g,false);          // 뒤쪽(허브) 캡
+  ctx.closePath();                              // 아랫 외접선
+}
+
+// 링키지 반대쪽 단위벡터(월드) — 서보 몸체 자동 배치 방향
+function servoAwayDir(A){
+  let vx=-(S.d+A[0]), vy=-A[1];
+  const L=Math.hypot(vx,vy)||1;
+  return [vx/L, vy/L];
+}
+
+// 서보 몸체(고정): O₂=출력샤프트, 몸체는 awayDir 로 뻗음
+function drawServoBody(A){
+  const away=servoAwayDir(A);
+  const{bodyLen,bodyWid,shaftFromEnd,mountHoleDia}=SERVO;
+  const x0=-shaftFromEnd, hw=bodyWid/2;          // 로컬 x: [-shaftFromEnd, bodyLen-shaftFromEnd]
+  partFrame([0,0],away,function(){
+    // 몸체 외곽 (라운드 사각)
+    ctx.beginPath();
+    roundRect(ctx,x0,-hw,bodyLen,bodyWid,3);
+    paintCurrentPath({base:'#3a3a3c',stroke:'#1c1c1e',lw:1.6});
+    // 마운트 홀 4개 (양끝 탭, y=±5, Ø mountHoleDia)
+    const hx0=x0+4, hx1=x0+bodyLen-4, hy=Math.min(hw-2.5,5);
+    holeLocal(hx0, hy,mountHoleDia,'#1c1c1e'); holeLocal(hx0,-hy,mountHoleDia,'#1c1c1e');
+    holeLocal(hx1, hy,mountHoleDia,'#1c1c1e'); holeLocal(hx1,-hy,mountHoleDia,'#1c1c1e');
+    // 출력 샤프트 보스 (암 허브에 가려짐 — 저비용이라 그냥 그림)
+    ctx.beginPath(); ctx.arc(0,0,SERVO.hubDia/2+1.5,0,Math.PI*2);
+    paintCurrentPath({base:'#4a4a4d',stroke:'#1c1c1e',lw:1.2});
+  });
+}
+
+// 서보암(=입력 크랭크 a): O₂ 허브 → A 푸시로드 홀(M3). 길이 = |A-O₂| = S.a
+function drawServoArm(A){
+  const a=Math.hypot(A[0],A[1])||S.a;
+  const r0=SERVO.hubDia/2, r1=Math.max(SERVO.armWidth/2, SERVO.m3Dia/2+1.5);
+  partFrame([0,0],A,function(){
+    taperCapsulePath(a,r0,r1);
+    paintCurrentPath({base:hexAlpha(C.crank,0.22),stroke:C.crank,lw:1.6});
+    // 스플라인 허브 안쪽 링
+    ctx.beginPath(); ctx.arc(0,0,r0-2,0,Math.PI*2);
+    ctx.lineWidth=1.2/scale; ctx.strokeStyle=C.crank; ctx.stroke();
+    // 푸시로드 M3 홀
+    holeLocal(a,0,SERVO.m3Dia,C.crank);
+  });
+}
+
+// 서보 모드에서 O₂/A 피벗 라벨만 (흰 디스크 없이 — 서보 파트가 마커 역할)
+function partLabel(p,text,color){
+  const px=wx(p[0]),py=wy(p[1]);
+  ctx.save();
+  ctx.fillStyle=color; ctx.font='600 11px -apple-system,sans-serif';
+  ctx.fillText(text,px+9,py-9);
+  ctx.restore();
 }
 
 function drawArcs(sol){
@@ -1567,7 +1754,7 @@ function onMove(p){
     else if(t.link==='d') nl=Math.max(10,Math.round(Math.abs(wx2)*2));
     else if(t.link==='c') nl=Math.max(5,Math.round(Math.hypot(wx2-S.d,wy2)));
     else if(t.link==='b'&&act) nl=Math.max(5,Math.round(Math.hypot(wx2-act.Ax,wy2-act.Ay)));
-    if(nl!==undefined){S[t.link]=nl;document.getElementById('i'+t.link).value=nl;setTransform();updateGrashof();scheduleCouplerPlot();}
+    if(nl!==undefined){S[t.link]=nl;document.getElementById('i'+t.link).value=nl;if(t.link==='a')syncArmHole();setTransform();updateGrashof();scheduleCouplerPlot();}
   }
   draw();
 }
@@ -1580,7 +1767,54 @@ function onLink(){
   S.b=+document.getElementById('ib').value||S.b;
   S.c=+document.getElementById('ic').value||S.c;
   S.d=+document.getElementById('id').value||S.d;
+  syncArmHole();                                   // a ↔ 서보암 홀간거리 역동기
   setTransform(); updateGrashof(); draw(); scheduleCouplerPlot();
+}
+
+// ── 서보/암 UI ──────────────────────────────────────────────────────────
+// #ia(크랭크 a) 값을 서보암 홀간거리 입력칸에 반영 (양방향 일관성)
+function syncArmHole(){
+  const ah=document.getElementById('iArmHole');
+  if(ah && document.activeElement!==ah) ah.value=S.a;
+}
+function onServoToggle(){
+  SERVO.show=!!document.getElementById('cbServo').checked;
+  const box=document.getElementById('servoBox');
+  if(box) box.style.display=SERVO.show?'block':'none';
+  syncArmHole();
+  setTransform(); draw();
+}
+// 서보암 홀간거리 입력 → 크랭크 a 구동
+function onArmHole(){
+  const v=+document.getElementById('iArmHole').value;
+  if(v>=5&&v<=400){ S.a=v; document.getElementById('ia').value=v; }
+  setTransform(); updateGrashof(); draw(); scheduleCouplerPlot();
+}
+// 프리셋 선택 → 몸체 치수 프리필
+function applyServoPreset(){
+  const key=document.getElementById('servoPreset').value;
+  SERVO.preset=key;
+  const p=SERVO_PRESETS[key]; if(!p) return;
+  SERVO.bodyLen=p.bodyLen; SERVO.bodyWid=p.bodyWid;
+  SERVO.shaftFromEnd=p.shaftFromEnd; SERVO.mountHoleDia=p.mountHoleDia;
+  document.getElementById('iBodyLen').value=p.bodyLen;
+  document.getElementById('iBodyWid').value=p.bodyWid;
+  document.getElementById('iShaftOff').value=p.shaftFromEnd;
+  document.getElementById('iMountDia').value=p.mountHoleDia;
+  setTransform(); draw();
+}
+// 치수 직접 수정 → SERVO 반영 (프리셋은 자동으로 '커스텀' 전환)
+function onServoDim(){
+  const num=(id,cur)=>{ const v=+document.getElementById(id).value; return isFinite(v)&&v>0?v:cur; };
+  SERVO.bodyLen=num('iBodyLen',SERVO.bodyLen);
+  SERVO.bodyWid=num('iBodyWid',SERVO.bodyWid);
+  SERVO.shaftFromEnd=num('iShaftOff',SERVO.shaftFromEnd);
+  SERVO.mountHoleDia=num('iMountDia',SERVO.mountHoleDia);
+  SERVO.armWidth=num('iArmWidth',SERVO.armWidth);
+  SERVO.hubDia=num('iHubDia',SERVO.hubDia);
+  const sel=document.getElementById('servoPreset');
+  if(sel && sel.value!=='custom'){ sel.value='custom'; SERVO.preset='custom'; }
+  setTransform(); draw();
 }
 
 function setT4(v){
@@ -3662,6 +3896,7 @@ window.addEventListener('load',()=>{
   initPlotKeyboard();
   updateGrashof(); resize(); setT4(100);
   useCurT4();  // 힌지모멘트 연동 중립각 초기값 = 현재 θ₄
+  syncArmHole();  // 서보암 홀간거리 입력칸을 현재 크랭크 a 와 맞춤
 });
 </script>
 </body>
