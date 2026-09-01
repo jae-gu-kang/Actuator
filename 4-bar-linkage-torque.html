@@ -1515,23 +1515,36 @@ function partFrame(Oworld, axisWorld, fn){
 }
 
 // ── 금속 렌더 seam ──────────────────────────────────────────────────────
-// 지금은 flat(단색 채움+스트로크). 다음 패스에서 이 함수 내부만 createLinearGradient
-// (금속 그라디언트+엣지 하이라이트)로 교체하면 모든 파트가 한 번에 금속 질감이 된다.
-// 호출 전 현재 경로(path)가 구성돼 있어야 하며, 프레임은 mm 스케일이라 lw 는 /scale.
+// 모든 서보 파트는 이 함수만 통해 칠한다. 금속 질감 = 그라디언트(원통형 sheen) + 어두운
+// 외곽 스트로크 + 안쪽 베벨 하이라이트. 호출 전 현재 경로가 구성돼 있어야 하며,
+// 프레임은 mm 스케일이라 선폭·그라디언트 좌표 모두 로컬 mm 로 지정한다.
+//   style.grad {kind:'linear', a:[x0,y0], b:[x1,y1], stops:[[t,color],…]}
+//              {kind:'radial', c:[cx,cy], r, stops:[…]}  (없으면 style.base 단색)
+//   style.stroke 외곽색 · style.lw · style.hi 안쪽 베벨 하이라이트색 · style.hiLw
 function paintCurrentPath(style){
-  ctx.fillStyle = style.base;
-  ctx.fill();
-  ctx.lineWidth = (style.lw||1.5)/scale;
-  ctx.strokeStyle = style.stroke;
-  ctx.stroke();
+  let fill=style.base;
+  if(style.grad){
+    const g=style.grad;
+    fill = g.kind==='radial'
+      ? ctx.createRadialGradient(g.c[0],g.c[1],0, g.c[0],g.c[1],g.r)
+      : ctx.createLinearGradient(g.a[0],g.a[1], g.b[0],g.b[1]);
+    g.stops.forEach(s=>fill.addColorStop(s[0],s[1]));
+  }
+  ctx.fillStyle=fill; ctx.fill();
+  if(style.stroke){ ctx.lineWidth=(style.lw||1.5)/scale; ctx.strokeStyle=style.stroke; ctx.stroke(); }
+  if(style.hi){ ctx.lineWidth=(style.hiLw||0.7)/scale; ctx.strokeStyle=style.hi; ctx.stroke(); }
 }
 
-// 로컬 프레임 안에서 구멍(드릴 홀)을 "뚫린 것처럼" 표기: 배경색 채움 + 파트색 링
-function holeLocal(cx,cy,dia,stroke){
-  ctx.beginPath();
-  ctx.arc(cx,cy,dia/2,0,Math.PI*2);
-  ctx.fillStyle='#f5f5f7'; ctx.fill();          // 캔버스 배경색과 동일 → 구멍처럼 보임
-  ctx.lineWidth=1.2/scale; ctx.strokeStyle=stroke; ctx.stroke();
+// 로컬 프레임 안에서 드릴 홀: 어두운 보어(라디얼) + 어두운 외곽 + 상단-좌 밝은 림(입체감)
+function holeLocal(cx,cy,dia){
+  const r=dia/2;
+  const g=ctx.createRadialGradient(cx-r*0.35,cy-r*0.35,r*0.1, cx,cy,r);
+  g.addColorStop(0,'#4c4c50'); g.addColorStop(0.55,'#232326'); g.addColorStop(1,'#0c0c0e');
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+  ctx.lineWidth=1/scale; ctx.strokeStyle='#0a0a0c'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r*0.96, Math.PI*1.05, Math.PI*1.8);   // 상단-좌 밝은 호
+  ctx.lineWidth=0.8/scale; ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.stroke();
 }
 
 // 두 원(반경 r0@원점, r1@(len,0))을 외접선으로 이은 테이퍼 캡슐 경로 (로컬 좌표, 원점 축 위)
@@ -1554,16 +1567,22 @@ function drawServoBody(){
   // 로컬 원점 = 샤프트(O₂). 짧은쪽(shaftFromEnd)=+x(O₄ 향함), 긴쪽=−x(반대). 폭은 ±hw 로 샤프트가 중앙.
   const xNear=shaftFromEnd, xFar=shaftFromEnd-bodyLen;   // +14.9 ~ −39.6 (도면상 14.9 / 39.6)
   partFrame([0,0],[1,0],function(){                      // phi=0 → 수평 고정 (θ₄ 무관)
-    // 몸체 top-view 외곽 (샤프트가 몸체 위 정위치에 놓임)
+    // 몸체 top-view 외곽 (그래파이트 아노다이즈 금속) — 폭 방향 원통형 sheen
     ctx.beginPath(); roundRect(ctx, xFar, -hw, bodyLen, bodyWid, 4);
-    paintCurrentPath({base:'#3a3a3c',stroke:'#1c1c1e',lw:1.6});
+    paintCurrentPath({stroke:'#0c0c0e',lw:1.6,hi:'rgba(255,255,255,0.10)',hiLw:0.8,
+      grad:{kind:'linear',a:[0,-hw],b:[0,hw],stops:[
+        [0,'#141416'],[0.2,'#313135'],[0.4,'#57585d'],[0.5,'#47474c'],
+        [0.62,'#3a3a3f'],[0.85,'#212125'],[1,'#0e0e10']]}});
     // 마운트 홀 4개 (양끝 탭, 폭 ±)
     const mhy=Math.min(hw-2.5,5), mL=xFar+4, mR=xNear-4;
-    holeLocal(mL,mhy,mountHoleDia,'#1c1c1e'); holeLocal(mL,-mhy,mountHoleDia,'#1c1c1e');
-    holeLocal(mR,mhy,mountHoleDia,'#1c1c1e'); holeLocal(mR,-mhy,mountHoleDia,'#1c1c1e');
-    // 출력 샤프트 보스 (O₂ = 회전축, 도면 정위치) — 암 허브가 위에 얹힘
-    ctx.beginPath(); ctx.arc(0,0,hubDia/2+2,0,Math.PI*2);
-    paintCurrentPath({base:'#5a5a5e',stroke:'#1c1c1e',lw:1.4});
+    holeLocal(mL,mhy,mountHoleDia); holeLocal(mL,-mhy,mountHoleDia);
+    holeLocal(mR,mhy,mountHoleDia); holeLocal(mR,-mhy,mountHoleDia);
+    // 출력 샤프트 보스 (O₂ = 회전축) — 머시닝 알루미늄, 라디얼
+    const br=hubDia/2+2;
+    ctx.beginPath(); ctx.arc(0,0,br,0,Math.PI*2);
+    paintCurrentPath({stroke:'#161618',lw:1.4,hi:'rgba(255,255,255,0.18)',hiLw:0.7,
+      grad:{kind:'radial',c:[-br*0.25,-br*0.25],r:br*1.35,stops:[
+        [0,'#9a9ba1'],[0.5,'#66676d'],[0.8,'#48494e'],[1,'#2b2b30']]}});
   });
 }
 
@@ -1572,13 +1591,19 @@ function drawServoArm(A){
   const a=Math.hypot(A[0],A[1])||S.a;
   const r0=SERVO.hubDia/2, r1=Math.max(SERVO.armWidth/2, SERVO.m3Dia/2+1.5);
   partFrame([0,0],A,function(){
+    // 블루 아노다이즈 알루미늄 — 길이 축을 따라 흐르는 원통형 sheen (폭 방향 그라디언트)
     taperCapsulePath(a,r0,r1);
-    paintCurrentPath({base:hexAlpha(C.crank,0.22),stroke:C.crank,lw:1.6});
-    // 스플라인 허브 안쪽 링
+    paintCurrentPath({stroke:'#063a78',lw:1.6,hi:'rgba(255,255,255,0.32)',hiLw:0.7,
+      grad:{kind:'linear',a:[a*0.5,-r0],b:[a*0.5,r0],stops:[
+        [0,'#083a72'],[0.24,'#1d6ac4'],[0.42,'#7cbaff'],[0.52,'#3f8ae6'],
+        [0.72,'#1a5fb4'],[1,'#06305e']]}});
+    // 스플라인 허브 안쪽 링 (머시닝 자국)
     ctx.beginPath(); ctx.arc(0,0,r0-2,0,Math.PI*2);
-    ctx.lineWidth=1.2/scale; ctx.strokeStyle=C.crank; ctx.stroke();
+    ctx.lineWidth=1/scale; ctx.strokeStyle='rgba(0,0,0,0.32)'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,r0-2.6, Math.PI*1.05, Math.PI*1.8);
+    ctx.lineWidth=0.7/scale; ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.stroke();
     // 푸시로드 M3 홀
-    holeLocal(a,0,SERVO.m3Dia,C.crank);
+    holeLocal(a,0,SERVO.m3Dia);
   });
 }
 
