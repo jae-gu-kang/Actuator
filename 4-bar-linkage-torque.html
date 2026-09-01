@@ -820,7 +820,8 @@ canvas.hover { cursor: grab; }
 
         <!-- 몸체·암 치수 (커스텀 시 편집) -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-          <label class="servo-dim"><span>몸체 길이</span><input type="number" id="iBodyLen"  value="54.5" min="10" max="200" step="0.1" oninput="onServoDim()"><i>mm</i></label>
+          <label class="servo-dim"><span>전체 길이</span><input type="number" id="iBodyLen"  value="54.5" min="10" max="200" step="0.1" oninput="onServoDim()"><i>mm</i></label>
+          <label class="servo-dim"><span>본체 길이</span><input type="number" id="iBodyCore" value="40"   min="8"  max="200" step="0.1" oninput="onServoDim()"><i>mm</i></label>
           <label class="servo-dim"><span>몸체 폭</span><input type="number"  id="iBodyWid"  value="20"   min="5"  max="120" step="0.1" oninput="onServoDim()"><i>mm</i></label>
           <label class="servo-dim"><span>샤프트 오프셋</span><input type="number" id="iShaftOff" value="14.9" min="0"  max="200" step="0.1" oninput="onServoDim()"><i>mm</i></label>
           <label class="servo-dim"><span>마운트홀 Ø</span><input type="number" id="iMountDia" value="5"    min="1"  max="12"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
@@ -1177,21 +1178,21 @@ const norm=d=>{d=d%360; return d<0?d+360:d};
 // ── 서보(작동기) + 서보암 ──
 // 실측 치수(mm). 몸체는 O₂(출력샤프트)에 고정, 암만 θ₂ 로 회전. armHole 은 크랭크 a 와 동기.
 const SERVO_PRESETS = {
-  // Hitec MDD961WP: 몸체 54.5×20, 출력샤프트 한쪽 끝에서 14.9mm, 마운트홀 Ø5.0
-  MDD961WP: { name:'Hitec MDD961WP', bodyLen:54.5, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 },
-  custom:   { name:'직접 입력',       bodyLen:54.5, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 }
+  // Hitec MDD961WP: 전체(탭 포함) 54.5, 본체 40.0, 폭 20.0, 샤프트 끝에서 14.9, 마운트홀 Ø5.0
+  MDD961WP: { name:'Hitec MDD961WP', bodyLen:54.5, bodyCore:40.0, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 },
+  custom:   { name:'직접 입력',       bodyLen:54.5, bodyCore:40.0, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 }
 };
 const SERVO = {
   show:false, preset:'MDD961WP',
-  bodyLen:54.5, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0,   // 몸체 (프리셋 프리필)
+  bodyLen:54.5, bodyCore:40.0, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0,  // 전체·본체·폭·샤프트·홀
   // 암 길이(홀간 거리)는 크랭크 a 와 동일 → 단일 진리원 S.a 사용 (여기 중복 저장 안 함)
   armWidth:9.0, hubDia:11.0, m3Dia:3.0                                // 암 형상 (M3 홀 Ø3)
 };
-// 금속 팔레트 (하드웨어 렌더용) — 링크는 아노다이즈(색상 유지), 볼트는 스테인리스
+// satin(무광) 금속 팔레트 — 채도·하이라이트 대비를 낮춰 자연스럽게. 색상 정체성은 유지.
 const PAL = {
-  coupler:  { stroke:'#3a1f6b', hi:'rgba(255,255,255,0.30)', stops:[[0,'#2a1550'],[0.24,'#6a3fc0'],[0.42,'#c6a8ff'],[0.52,'#8a5fe0'],[0.72,'#5a34aa'],[1,'#22103f']] },
-  follower: { stroke:'#7a1414', hi:'rgba(255,255,255,0.30)', stops:[[0,'#5a0e0e'],[0.24,'#c23030'],[0.42,'#ffa3a3'],[0.52,'#e04a4a'],[0.72,'#b02828'],[1,'#4a0a0a']] },
-  steel:    { stroke:'#161618', stops:[[0,'#c6cad0'],[0.5,'#8c8e94'],[0.8,'#5c5e64'],[1,'#3a3b40']] }   // 볼트(라디얼)
+  coupler:  { stroke:'#2c2448', hi:'rgba(228,224,238,0.13)', stops:[[0,'#2b2348'],[0.28,'#463a68'],[0.5,'#5b4f80'],[0.62,'#4c4170'],[1,'#241d3c']] },
+  follower: { stroke:'#4a2020', hi:'rgba(240,228,228,0.13)', stops:[[0,'#45201f'],[0.28,'#743a39'],[0.5,'#8f4f4e'],[0.62,'#7a4241'],[1,'#3a1a19']] },
+  steel:    { stroke:'#3a3b40', hi:'rgba(255,255,255,0.20)', stops:[[0,'#b6bac1'],[0.5,'#888b91'],[0.8,'#63656b'],[1,'#45464b']] }   // 볼트(라디얼)
 };
 
 // ── MATH ──
@@ -1573,27 +1574,32 @@ function taperCapsulePath(len,r0,r1){
 // 출력 샤프트(=회전축 O₂)를 도면 위치(한쪽 끝에서 shaftFromEnd, 폭 중앙)에 박아 몸체를 눕혀 그린다.
 // 링크 상태(θ₄)와 무관하게 항상 같은 위치·방향 → 기울지 않고 링크와 함께 움직이지 않는다.
 function drawServoBody(){
-  const{bodyLen,bodyWid,shaftFromEnd,mountHoleDia,hubDia}=SERVO;
+  const{bodyLen,bodyCore,bodyWid,shaftFromEnd,mountHoleDia,hubDia}=SERVO;
   const hw=bodyWid/2;
-  // 로컬 원점 = 샤프트(O₂). 짧은쪽(shaftFromEnd)=+x(O₄ 향함), 긴쪽=−x(반대). 폭은 ±hw 로 샤프트가 중앙.
-  const xNear=shaftFromEnd, xFar=shaftFromEnd-bodyLen;   // +14.9 ~ −39.6 (도면상 14.9 / 39.6)
-  partFrame([0,0],[1,0],function(){                      // phi=0 → 수평 고정 (θ₄ 무관)
-    // 몸체 top-view 외곽 (그래파이트 아노다이즈 금속) — 폭 방향 원통형 sheen
+  // 로컬 원점 = 샤프트(O₂). 짧은쪽(shaftFromEnd)=+x(O₄ 향함), 긴쪽=−x(반대). 폭은 ±hw.
+  const xNear=shaftFromEnd, xFar=shaftFromEnd-bodyLen;   // 전체(탭 포함) x범위
+  const core=Math.min(bodyCore,bodyLen), cHalf=core/2;
+  const cMid=(xNear+xFar)/2, cxL=cMid-cHalf, cxR=cMid+cHalf;   // 본체(20×40) x범위
+  partFrame([0,0],[1,0],function(){                     // phi=0 → 수평 고정 (θ₄ 무관)
+    // ① 마운트 플랜지(날개) — 전체 길이, 밝은 satin 알루미늄 (본체보다 밝게 → 구분)
     ctx.beginPath(); roundRect(ctx, xFar, -hw, bodyLen, bodyWid, 4);
-    paintCurrentPath({stroke:'#0c0c0e',lw:1.6,hi:'rgba(255,255,255,0.10)',hiLw:0.8,
+    paintCurrentPath({stroke:'#2a2b30',lw:1.2,hi:'rgba(255,255,255,0.09)',hiLw:0.6,
+      grad:{kind:'linear',a:[0,-hw],b:[0,hw],stops:[[0,'#45464c'],[0.5,'#63646a'],[1,'#3c3d42']]}});
+    // 마운트 홀 4개 — 본체 밖(날개) 중앙에 위치
+    const mhy=Math.min(hw-2.5,5), wL=(xFar+cxL)/2, wR=(cxR+xNear)/2;
+    holeLocal(wL,mhy,mountHoleDia); holeLocal(wL,-mhy,mountHoleDia);
+    holeLocal(wR,mhy,mountHoleDia); holeLocal(wR,-mhy,mountHoleDia);
+    // ② 본체 블록 (20×40) — 어두운 graphite satin, 폭을 살짝 인셋해 플랜지 위에 얹힌 느낌
+    ctx.beginPath(); roundRect(ctx, cxL, -hw+0.6, core, bodyWid-1.2, 3);
+    paintCurrentPath({stroke:'#141518',lw:1.4,hi:'rgba(255,255,255,0.06)',hiLw:0.7,
       grad:{kind:'linear',a:[0,-hw],b:[0,hw],stops:[
-        [0,'#141416'],[0.2,'#313135'],[0.4,'#57585d'],[0.5,'#47474c'],
-        [0.62,'#3a3a3f'],[0.85,'#212125'],[1,'#0e0e10']]}});
-    // 마운트 홀 4개 (양끝 탭, 폭 ±)
-    const mhy=Math.min(hw-2.5,5), mL=xFar+4, mR=xNear-4;
-    holeLocal(mL,mhy,mountHoleDia); holeLocal(mL,-mhy,mountHoleDia);
-    holeLocal(mR,mhy,mountHoleDia); holeLocal(mR,-mhy,mountHoleDia);
-    // 출력 샤프트 보스 (O₂ = 회전축) — 머시닝 알루미늄, 라디얼
+        [0,'#26272b'],[0.32,'#34353b'],[0.5,'#3d3e44'],[0.64,'#34353b'],[1,'#1e1f23']]}});
+    // ③ 출력 샤프트 보스 (O₂ = 회전축) — satin 알루미늄, 라디얼
     const br=hubDia/2+2;
     ctx.beginPath(); ctx.arc(0,0,br,0,Math.PI*2);
-    paintCurrentPath({stroke:'#161618',lw:1.4,hi:'rgba(255,255,255,0.18)',hiLw:0.7,
-      grad:{kind:'radial',c:[-br*0.25,-br*0.25],r:br*1.35,stops:[
-        [0,'#9a9ba1'],[0.5,'#66676d'],[0.8,'#48494e'],[1,'#2b2b30']]}});
+    paintCurrentPath({stroke:'#161618',lw:1.3,hi:'rgba(255,255,255,0.15)',hiLw:0.6,
+      grad:{kind:'radial',c:[-br*0.25,-br*0.25],r:br*1.4,stops:[
+        [0,'#8f9096'],[0.5,'#63646a'],[0.8,'#48494e'],[1,'#2c2d31']]}});
   });
 }
 
@@ -1602,17 +1608,16 @@ function drawServoArm(A){
   const a=Math.hypot(A[0],A[1])||S.a;
   const r0=SERVO.hubDia/2, r1=Math.max(SERVO.armWidth/2, SERVO.m3Dia/2+1.5);
   partFrame([0,0],A,function(){
-    // 블루 아노다이즈 알루미늄 — 길이 축을 따라 흐르는 원통형 sheen (폭 방향 그라디언트)
+    // 스틸-블루 satin 알루미늄 — 길이 축을 따라 흐르는 부드러운 sheen (폭 방향 그라디언트)
     taperCapsulePath(a,r0,r1);
-    paintCurrentPath({stroke:'#063a78',lw:1.6,hi:'rgba(255,255,255,0.32)',hiLw:0.7,
+    paintCurrentPath({stroke:'#1d3048',lw:1.5,hi:'rgba(230,238,246,0.15)',hiLw:0.7,
       grad:{kind:'linear',a:[a*0.5,-r0],b:[a*0.5,r0],stops:[
-        [0,'#083a72'],[0.24,'#1d6ac4'],[0.42,'#7cbaff'],[0.52,'#3f8ae6'],
-        [0.72,'#1a5fb4'],[1,'#06305e']]}});
+        [0,'#22384f'],[0.28,'#3d6088'],[0.5,'#5378a0'],[0.62,'#456889'],[1,'#1d3048']]}});
     // 스플라인 허브 안쪽 링 (머시닝 자국)
     ctx.beginPath(); ctx.arc(0,0,r0-2,0,Math.PI*2);
-    ctx.lineWidth=1/scale; ctx.strokeStyle='rgba(0,0,0,0.32)'; ctx.stroke();
+    ctx.lineWidth=1/scale; ctx.strokeStyle='rgba(0,0,0,0.28)'; ctx.stroke();
     ctx.beginPath(); ctx.arc(0,0,r0-2.6, Math.PI*1.05, Math.PI*1.8);
-    ctx.lineWidth=0.7/scale; ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.stroke();
+    ctx.lineWidth=0.7/scale; ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.stroke();
     // 푸시로드 M3 홀
     holeLocal(a,0,SERVO.m3Dia);
   });
@@ -1851,9 +1856,10 @@ function applyServoPreset(){
   const key=document.getElementById('servoPreset').value;
   SERVO.preset=key;
   const p=SERVO_PRESETS[key]; if(!p) return;
-  SERVO.bodyLen=p.bodyLen; SERVO.bodyWid=p.bodyWid;
+  SERVO.bodyLen=p.bodyLen; SERVO.bodyCore=p.bodyCore; SERVO.bodyWid=p.bodyWid;
   SERVO.shaftFromEnd=p.shaftFromEnd; SERVO.mountHoleDia=p.mountHoleDia;
   document.getElementById('iBodyLen').value=p.bodyLen;
+  document.getElementById('iBodyCore').value=p.bodyCore;
   document.getElementById('iBodyWid').value=p.bodyWid;
   document.getElementById('iShaftOff').value=p.shaftFromEnd;
   document.getElementById('iMountDia').value=p.mountHoleDia;
@@ -1863,6 +1869,7 @@ function applyServoPreset(){
 function onServoDim(){
   const num=(id,cur)=>{ const v=+document.getElementById(id).value; return isFinite(v)&&v>0?v:cur; };
   SERVO.bodyLen=num('iBodyLen',SERVO.bodyLen);
+  SERVO.bodyCore=num('iBodyCore',SERVO.bodyCore);
   SERVO.bodyWid=num('iBodyWid',SERVO.bodyWid);
   SERVO.shaftFromEnd=num('iShaftOff',SERVO.shaftFromEnd);
   SERVO.mountHoleDia=num('iMountDia',SERVO.mountHoleDia);
