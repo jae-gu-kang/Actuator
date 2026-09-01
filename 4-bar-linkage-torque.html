@@ -827,7 +827,7 @@ canvas.hover { cursor: grab; }
           <label class="servo-dim"><span>암 폭</span><input type="number"    id="iArmWidth" value="9"    min="3"  max="40"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
           <label class="servo-dim"><span>허브 Ø</span><input type="number"   id="iHubDia"   value="11"   min="4"  max="40"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
         </div>
-        <div class="link-sub" style="margin-top:6px;color:var(--text3);">푸시로드 홀 <b style="color:var(--text2)">M3</b> (Ø3 고정) · 회전축(O₂)=출력샤프트가 몸체 정위치(도면 14.9mm)에 구속 · θ₄ 무관 고정</div>
+        <div class="link-sub" style="margin-top:6px;color:var(--text3);">푸시로드 홀 <b style="color:var(--text2)">M3</b> (Ø3 고정) · 회전축(O₂)=출력샤프트가 몸체 정위치(도면 14.9mm)에 구속 · θ₄ 무관 고정 · 켜면 <b style="color:var(--text2)">링크·연결 볼트</b>도 금속 렌더</div>
       </div>
     </div>
 
@@ -1187,6 +1187,12 @@ const SERVO = {
   // 암 길이(홀간 거리)는 크랭크 a 와 동일 → 단일 진리원 S.a 사용 (여기 중복 저장 안 함)
   armWidth:9.0, hubDia:11.0, m3Dia:3.0                                // 암 형상 (M3 홀 Ø3)
 };
+// 금속 팔레트 (하드웨어 렌더용) — 링크는 아노다이즈(색상 유지), 볼트는 스테인리스
+const PAL = {
+  coupler:  { stroke:'#3a1f6b', hi:'rgba(255,255,255,0.30)', stops:[[0,'#2a1550'],[0.24,'#6a3fc0'],[0.42,'#c6a8ff'],[0.52,'#8a5fe0'],[0.72,'#5a34aa'],[1,'#22103f']] },
+  follower: { stroke:'#7a1414', hi:'rgba(255,255,255,0.30)', stops:[[0,'#5a0e0e'],[0.24,'#c23030'],[0.42,'#ffa3a3'],[0.52,'#e04a4a'],[0.72,'#b02828'],[1,'#4a0a0a']] },
+  steel:    { stroke:'#161618', stops:[[0,'#c6cad0'],[0.5,'#8c8e94'],[0.8,'#5c5e64'],[1,'#3a3b40']] }   // 볼트(라디얼)
+};
 
 // ── MATH ──
 function solve(a,b,c,d,t4d){
@@ -1335,40 +1341,45 @@ function drawMech(sol,main){
 
   if(main) drawGroundHatch(O2,O4);
 
-  // 서보 몸체 (맨 뒤, 링크 아래) — 프레임에 고정, θ₄ 무관
-  if(servo) drawServoBody();
-
-  // Shadow pass for main links
-  if(main){
-    ctx.save();
-    ctx.shadowColor='rgba(0,0,0,0.10)';
-    ctx.shadowBlur=12; ctx.shadowOffsetY=3;
-    if(!servo) drawLinkShape(O2,A,C.crank,7);   // 서보암 모드에선 크랭크 캡슐 생략
-    drawLinkShape(A,B,C.coupler,7);
-    drawLinkShape(O4,B,C.follower,7);
-    ctx.restore();
+  if(servo){
+    // ── 실물(금속) 하드웨어 렌더 ──
+    drawServoBody();                          // 몸체(고정) — 맨 뒤
+    drawLink(O2,O4,C.ground,3,true);          // 프레임(고정링크) 점선 유지
+    drawMetalLink(A,B,3.0,PAL.coupler);       // 커플러 b (푸시로드)
+    drawMetalLink(O4,B,4.5,PAL.follower);     // 출력 혼 c
+    drawServoArm(A);                          // 크랭크 a = 서보암
+  } else {
+    // ── 추상 스키매틱 (기존) ──
+    if(main){
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,0.10)';
+      ctx.shadowBlur=12; ctx.shadowOffsetY=3;
+      drawLinkShape(O2,A,C.crank,7);
+      drawLinkShape(A,B,C.coupler,7);
+      drawLinkShape(O4,B,C.follower,7);
+      ctx.restore();
+    }
+    drawLink(O2,O4,C.ground,main?3:2,true);
+    drawLinkShape(O2,A,C.crank,main?7:3);
+    drawLinkShape(A,B,C.coupler,main?7:3);
+    drawLinkShape(O4,B,C.follower,main?7:3);
   }
-
-  // Ground link
-  drawLink(O2,O4,C.ground,main?3:2,true);
-  // Main links — rounded capsule style (크랭크는 서보암으로 대체)
-  if(servo) drawServoArm(A);
-  else drawLinkShape(O2,A,C.crank,main?7:3);
-  drawLinkShape(A,B,C.coupler,main?7:3);
-  drawLinkShape(O4,B,C.follower,main?7:3);
 
   if(!main) return;
 
-  // Joints
-  drawJoint(O4,C.ground,9,'O₄',false);
-  drawJoint(B,C.joint,8,'B',true);
   if(servo){
-    // O₂(스플라인 허브)·A(M3 홀)는 서보 파트 자체가 마커 → 라벨만 표기
-    partLabel(O2,'O₂',C.ground);
-    partLabel(A,'A',C.joint);
-  }else{
+    // 연결부 금속 볼트 (소켓헤드) + 라벨
+    drawBolt(O2,SERVO.hubDia*0.5,PAL.steel);  // 서보암 고정 스크류
+    drawBolt(A,5,PAL.steel);                  // 크랭크–커플러
+    drawBolt(B,6,PAL.steel);                  // 커플러–출력혼
+    drawBolt(O4,6,PAL.steel);                 // 출력 피벗
+    partLabel(O2,'O₂',C.ground); partLabel(A,'A',C.joint);
+    partLabel(B,'B',C.joint);    partLabel(O4,'O₄',C.ground);
+  } else {
     drawJoint(O2,C.ground,9,'O₂',false);
+    drawJoint(O4,C.ground,9,'O₄',false);
     drawJoint(A,C.joint,8,'A',true);
+    drawJoint(B,C.joint,8,'B',true);
   }
 
   // Length labels
@@ -1604,6 +1615,31 @@ function drawServoArm(A){
     ctx.lineWidth=0.7/scale; ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.stroke();
     // 푸시로드 M3 홀
     holeLocal(a,0,SERVO.m3Dia);
+  });
+}
+
+// 금속 링크 (아노다이즈 캡슐): p1→p2 를 균일폭 halfW 로 그리고 폭방향 sheen
+function drawMetalLink(p1,p2,halfW,pal){
+  const dx=p2[0]-p1[0], dy=p2[1]-p1[1], L=Math.hypot(dx,dy)||1;
+  partFrame(p1,[dx,dy],function(){
+    taperCapsulePath(L,halfW,halfW);
+    paintCurrentPath({stroke:pal.stroke,lw:1.5,hi:pal.hi,hiLw:0.7,
+      grad:{kind:'linear',a:[L*0.5,-halfW],b:[L*0.5,halfW],stops:pal.stops}});
+  });
+}
+
+// 금속 볼트 (소켓헤드 캡스크류 top-view): 금속 라디얼 헤드 + 어두운 육각 소켓
+function drawBolt(p,dia,pal){
+  const r=dia/2;
+  partFrame(p,[1,0],function(){
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+    paintCurrentPath({stroke:pal.stroke,lw:1.1,hi:'rgba(255,255,255,0.40)',hiLw:0.6,
+      grad:{kind:'radial',c:[-r*0.3,-r*0.3],r:r*1.5,stops:pal.stops}});
+    const hr=r*0.52; ctx.beginPath();
+    for(let i=0;i<6;i++){ const ang=i*Math.PI/3+Math.PI/6, x=hr*Math.cos(ang), y=hr*Math.sin(ang); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.closePath();
+    ctx.fillStyle='#141416'; ctx.fill();
+    ctx.lineWidth=0.5/scale; ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.stroke();
   });
 }
 
