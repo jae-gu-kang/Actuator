@@ -827,7 +827,7 @@ canvas.hover { cursor: grab; }
           <label class="servo-dim"><span>암 폭</span><input type="number"    id="iArmWidth" value="9"    min="3"  max="40"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
           <label class="servo-dim"><span>허브 Ø</span><input type="number"   id="iHubDia"   value="11"   min="4"  max="40"  step="0.1" oninput="onServoDim()"><i>mm</i></label>
         </div>
-        <div class="link-sub" style="margin-top:6px;color:var(--text3);">푸시로드 홀 <b style="color:var(--text2)">M3</b> (Ø3 고정) · 몸체는 프레임(고정링크 아래)에 고정 — θ₄ 무관</div>
+        <div class="link-sub" style="margin-top:6px;color:var(--text3);">푸시로드 홀 <b style="color:var(--text2)">M3</b> (Ø3 고정) · 회전축(O₂)=출력샤프트가 몸체 정위치(도면 14.9mm)에 구속 · θ₄ 무관 고정</div>
       </div>
     </div>
 
@@ -1545,28 +1545,25 @@ function taperCapsulePath(len,r0,r1){
   ctx.closePath();                              // 아랫 외접선
 }
 
-// 서보 몸체(프레임에 고정): O₂=출력샤프트, 몸체는 고정링크(프레임) 아래에 수평 고정.
-// 링키지 상태(θ₄)와 무관하게 항상 같은 위치·방향 → 기울지 않고, 링크와 함께 움직이지 않는다.
+// 서보 몸체(프레임에 고정): 링크 회전 평면 = 서보 top-view 평면.
+// 출력 샤프트(=회전축 O₂)를 도면 위치(한쪽 끝에서 shaftFromEnd, 폭 중앙)에 박아 몸체를 눕혀 그린다.
+// 링크 상태(θ₄)와 무관하게 항상 같은 위치·방향 → 기울지 않고 링크와 함께 움직이지 않는다.
 function drawServoBody(){
   const{bodyLen,bodyWid,shaftFromEnd,mountHoleDia,hubDia}=SERVO;
-  const gap=6;                                        // 출력샤프트(O₂)와 몸체 윗면 사이 넥 길이(mm)
-  const xL=-(bodyLen-shaftFromEnd), xR=shaftFromEnd;  // 몸체 x범위: O₄ 반대쪽(왼쪽)으로 뻗음
-  const yT=gap, yB=gap+bodyWid, r=hubDia/2;
-  // partFrame([0,0],[1,0]) → 회전 0(수평 고정). 로컬 +x=월드 +x(우), 로컬 +y=월드 −y(아래)
-  partFrame([0,0],[1,0],function(){
-    // 출력샤프트 넥 (O₂ → 몸체 윗면)
-    ctx.beginPath(); ctx.rect(-r*0.8, 0, r*1.6, yT+2);
-    paintCurrentPath({base:'#4a4a4d',stroke:'#1c1c1e',lw:1.2});
-    // 몸체 외곽 (라운드 사각, 프레임 아래)
-    ctx.beginPath(); roundRect(ctx, xL, yT, bodyLen, bodyWid, 3);
+  const hw=bodyWid/2;
+  // 로컬 원점 = 샤프트(O₂). 짧은쪽(shaftFromEnd)=+x(O₄ 향함), 긴쪽=−x(반대). 폭은 ±hw 로 샤프트가 중앙.
+  const xNear=shaftFromEnd, xFar=shaftFromEnd-bodyLen;   // +14.9 ~ −39.6 (도면상 14.9 / 39.6)
+  partFrame([0,0],[1,0],function(){                      // phi=0 → 수평 고정 (θ₄ 무관)
+    // 몸체 top-view 외곽 (샤프트가 몸체 위 정위치에 놓임)
+    ctx.beginPath(); roundRect(ctx, xFar, -hw, bodyLen, bodyWid, 4);
     paintCurrentPath({base:'#3a3a3c',stroke:'#1c1c1e',lw:1.6});
-    // 마운트 홀 4개 (양끝, 상/하)
-    const my0=yT+3, my1=yB-3;
-    holeLocal(xL+4,my0,mountHoleDia,'#1c1c1e'); holeLocal(xL+4,my1,mountHoleDia,'#1c1c1e');
-    holeLocal(xR-4,my0,mountHoleDia,'#1c1c1e'); holeLocal(xR-4,my1,mountHoleDia,'#1c1c1e');
-    // 출력샤프트 보스 (O₂ — 암 허브가 위에 얹힘)
-    ctx.beginPath(); ctx.arc(0,0,r+1.5,0,Math.PI*2);
-    paintCurrentPath({base:'#4a4a4d',stroke:'#1c1c1e',lw:1.2});
+    // 마운트 홀 4개 (양끝 탭, 폭 ±)
+    const mhy=Math.min(hw-2.5,5), mL=xFar+4, mR=xNear-4;
+    holeLocal(mL,mhy,mountHoleDia,'#1c1c1e'); holeLocal(mL,-mhy,mountHoleDia,'#1c1c1e');
+    holeLocal(mR,mhy,mountHoleDia,'#1c1c1e'); holeLocal(mR,-mhy,mountHoleDia,'#1c1c1e');
+    // 출력 샤프트 보스 (O₂ = 회전축, 도면 정위치) — 암 허브가 위에 얹힘
+    ctx.beginPath(); ctx.arc(0,0,hubDia/2+2,0,Math.PI*2);
+    paintCurrentPath({base:'#5a5a5e',stroke:'#1c1c1e',lw:1.4});
   });
 }
 
