@@ -395,6 +395,7 @@ input[type=range] {
 
 input[type=range].sl-t4 { background: linear-gradient(to right, var(--follower) 0%, var(--follower) var(--pct,17%), rgba(0,0,0,0.1) var(--pct,17%)); }
 input[type=range].sl-t2 { background: linear-gradient(to right, var(--crank) 0%, var(--crank) var(--pct,0%), rgba(0,0,0,0.1) var(--pct,0%)); }
+input[type=range].sl-cs { background: linear-gradient(to right, #34c759 0%, #34c759 var(--pct,50%), rgba(0,0,0,0.1) var(--pct,50%)); }
 
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -898,6 +899,23 @@ canvas.hover { cursor: grab; }
       </div>
 
       </div>
+
+      <!-- 조종면 각도 δ — 중립 0°, 상향(+)/하향(−) 입력 타각범위 내 구동 -->
+      <div class="angle-card" style="margin-top:6px">
+        <div class="angle-top">
+          <div class="angle-label">
+            <span class="angle-sym" style="background:rgba(52,199,89,.12);color:#28a745">δ</span>조종면 각도
+          </div>
+          <div class="angle-readout" style="color:#28a745" id="lCS">중립 0.0°</div>
+        </div>
+        <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text3);margin-top:2px;">
+          <span id="lCSdn" style="color:var(--crank);font-weight:600;">▼ 하향 25°</span>
+          <button onclick="csSetNeutral()" title="현재 θ₄ 위치를 조종면 중립(δ=0°)으로 지정"
+            style="background:rgba(52,199,89,.12);color:#28a745;border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">중립 지정 (θ₄=<span id="lCSneutral">100</span>°)</button>
+          <span id="lCSup" style="color:var(--follower);font-weight:600;">상향 25° ▲</span>
+        </div>
+      </div>
     </div>
 
     <!-- Results + Torque (2열) -->
@@ -989,7 +1007,7 @@ canvas.hover { cursor: grab; }
           <div id="deflectSymRow" style="display:flex;align-items:center;justify-content:flex-end;">
             <div class="link-field" style="border-radius:7px;">
               <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
-              <input type="number" id="iDeflect" value="25" min="0.5" max="89" step="0.5"
+              <input type="number" id="iDeflect" value="25" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
                 style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
               <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
             </div>
@@ -998,13 +1016,13 @@ canvas.hover { cursor: grab; }
           <div id="deflectAsymRow" style="display:none;grid-template-columns:1fr 1fr;gap:6px;">
             <div class="link-field" style="border-radius:7px;" title="조종면 상향 타각 (θ₄ + 방향)">
               <span style="padding:3px 1px 3px 7px;font-size:10.5px;color:var(--follower);font-weight:600;white-space:nowrap;">상향</span>
-              <input type="number" id="iDeflectP" value="20" min="0.5" max="89" step="0.5"
+              <input type="number" id="iDeflectP" value="20" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
                 style="width:100%;padding:3px 3px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
               <span style="padding:3px 7px 3px 1px;font-size:10px;color:var(--text3);">°</span>
             </div>
             <div class="link-field" style="border-radius:7px;" title="조종면 하향 타각 (θ₄ − 방향)">
               <span style="padding:3px 1px 3px 7px;font-size:10.5px;color:var(--crank);font-weight:600;white-space:nowrap;">하향</span>
-              <input type="number" id="iDeflectM" value="30" min="0.5" max="89" step="0.5"
+              <input type="number" id="iDeflectM" value="30" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
                 style="width:100%;padding:3px 3px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
               <span style="padding:3px 7px 3px 1px;font-size:10px;color:var(--text3);">°</span>
             </div>
@@ -1093,7 +1111,7 @@ canvas.hover { cursor: grab; }
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">중립각 θ₄ <span style="color:var(--text3);font-weight:400">(타각 δ=0°)</span></div>
           <div class="link-field" style="border-radius:7px;">
-            <input type="number" id="iT4Neutral" value="100" min="0" max="360" step="0.1"
+            <input type="number" id="iT4Neutral" value="100" min="0" max="360" step="0.1" oninput="updateCSUI()"
               style="width:56px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);">
             <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">°</span>
           </div>
@@ -1790,6 +1808,7 @@ function updateSliderTrack(id,pct){
 
 // ── UI ──
 function updateUI(sols){
+  updateCSUI();   // θ₄ 변화(슬라이더·드래그·최적적용 등)를 조종면 각도 δ 읽기값에 동기화
   const noSol=document.getElementById('noSol');
   const rC=document.getElementById('rContent');
   if(!sols){
@@ -1988,6 +2007,44 @@ function setT4(v){
 function onT4(v){setT4(v);draw();}
 function onT4num(v){setT4(v);draw();}
 function fmtOnBlur(el,val){ el.value=(+val).toFixed(1); }
+
+// ── 조종면 각도 δ (중립 0° = 중립각 θ₄₀, +상향/−하향) ──────────────────────────
+// 규약: θ₄ = θ₄₀ + δ  (상향 dp ⇒ θ₄₀+dp, 하향 dm ⇒ θ₄₀−dm — 타각 입력·옵티마이저와 동일).
+// θ₄₀ 는 기존 '중립각 θ₄(δ=0)' 필드(iT4Neutral). δ 범위 = 입력 타각 [−dm, +dp].
+function csNeutralT4(){ const v=parseFloat(document.getElementById('iT4Neutral')?.value); return isFinite(v)?v:S.t4; }
+function csDelta(){ let r=S.t4-csNeutralT4(); r=((r+180)%360+360)%360-180; return r; }   // 부호 δ, [-180,180]
+function onCSAngle(v){
+  const df=getDeflect();
+  const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
+  let d=parseFloat(v); if(!isFinite(d)) d=0;
+  d=Math.max(-dm, Math.min(dp, d));            // 입력 타각범위로 클램프
+  setT4(csNeutralT4()+d);
+  draw();                                      // draw → updateUI → updateCSUI 로 읽기값 동기화
+}
+function csSetNeutral(){                        // 현재 θ₄ 를 조종면 중립(δ=0)으로 지정
+  const el=document.getElementById('iT4Neutral'); if(el) el.value=(+S.t4).toFixed(1);
+  updateCSUI();
+}
+function updateCSUI(){
+  const sl=document.getElementById('slCS'); if(!sl) return;
+  const df=getDeflect();
+  const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
+  sl.min=(-dm); sl.max=(dp);
+  const d=csDelta(), dc=Math.max(-dm, Math.min(dp, d));
+  if(document.activeElement!==sl) sl.value=dc.toFixed(1);
+  const span=(dm+dp)||1;
+  updateSliderTrack('slCS', (dc+dm)/span*100);
+  const up=document.getElementById('lCSup'), dn=document.getElementById('lCSdn'),
+        nt=document.getElementById('lCSneutral'), rd=document.getElementById('lCS');
+  if(up) up.textContent='상향 '+(+dp)+'° ▲';
+  if(dn) dn.textContent='▼ 하향 '+(+dm)+'°';
+  if(nt) nt.textContent=(+csNeutralT4()).toFixed(0);
+  if(rd){
+    const a=Math.abs(d), over=(d>dp+1e-6||d<-dm-1e-6)?' ⚠':'';
+    rd.textContent = a<0.05 ? '중립 0.0°'
+      : (d>0 ? '상향 +'+d.toFixed(1)+'°'+over : '하향 −'+a.toFixed(1)+'°'+over);
+  }
+}
 
 function applyT2(v){
   const t2=norm(+v);
@@ -3221,6 +3278,7 @@ function setDeflectMode(mode){
     : '현재 <b>고정 d · 입력 a</b> 를 고정한 채, 입력한 <b>타각 범위</b> 를 '
       +'물리 가용범위(양끝단 마진 제외) 안에 수용하고 <b>양끝단 토크 불균형 ≤ 10%</b> 를 '
       +'만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 출력링크 c · 커플러 b · 중립 출력각 θ₄₀ 를 탐색합니다.';
+  updateCSUI();   // 대칭/비대칭 전환 → 조종면 각도 δ 범위(±δ ↔ 상향/하향) 갱신
 }
 // 현재 입력된 타각 스펙 {dm:−측, dp:+측, sym}
 function getDeflect(){
@@ -4184,6 +4242,7 @@ window.addEventListener('load',()=>{
   updateGrashof(); resize(); setT4(100);
   useCurT4();  // 힌지모멘트 연동 중립각 초기값 = 현재 θ₄
   syncArmHole();  // 서보암 홀간거리 입력칸을 현재 크랭크 a 와 맞춤
+  updateCSUI();   // 조종면 각도 δ 슬라이더 초기 범위·읽기값 세팅
 });
 </script>
 </body>
