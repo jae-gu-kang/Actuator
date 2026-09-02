@@ -906,7 +906,10 @@ canvas.hover { cursor: grab; }
           <div class="angle-label">
             <span class="angle-sym" style="background:rgba(52,199,89,.12);color:#28a745">δ</span>조종면 각도
           </div>
-          <div class="angle-readout" style="color:#28a745" id="lCS">중립 0.0°</div>
+          <div style="text-align:right;line-height:1.12;">
+            <div class="angle-readout" style="color:#28a745" id="lCS">중립 0.0°</div>
+            <div id="lCST4" style="font-size:11.5px;font-weight:600;color:var(--follower);font-variant-numeric:tabular-nums;">T₄ —</div>
+          </div>
         </div>
         <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text3);margin-top:2px;">
@@ -2043,6 +2046,13 @@ function updateCSUI(){
     const a=Math.abs(d), over=(d>dp+1e-6||d<-dm-1e-6)?' ⚠':'';
     rd.textContent = a<0.05 ? '중립 0.0°'
       : (d>0 ? '상향 +'+d.toFixed(1)+'°'+over : '하향 −'+a.toFixed(1)+'°'+over);
+  }
+  // 현재 조종면 위치의 출력 토크 T₄ (= T₂·MA) 를 함께 표시 — δ 를 움직이면 실시간 갱신
+  const t4El=document.getElementById('lCST4');
+  if(t4El){
+    let tr=null; try{ tr=calcTorque(); }catch(e){}
+    const T2=parseFloat(document.getElementById('iTorque')?.value)||0;
+    t4El.textContent = (tr&&isFinite(tr.ma)) ? ('T₄ '+Math.abs(T2*tr.ma).toFixed(2)+' N·m') : 'T₄ —';
   }
 }
 
