@@ -1461,6 +1461,17 @@ function drawMech(sol,main){
   midLabel(O2,A,`a = ${S.a} mm`,C.crank);
   midLabel(A,B,`b = ${S.b} mm`,C.coupler);
   midLabel(O4,B,`c = ${S.c} mm`,C.follower);
+
+  // 작동기 y오프셋 치수 — 0 이 아닐 때만: O₄ 기준선(y=0) → O₂ 수직거리 표시
+  if(S.offY){
+    const base=[0,0];                          // O₂ 바로 아래, O₄ 와 같은 높이(y=0)
+    drawLink(base,O2,C.crank,1.4,true);        // 수직 치수선(점선)
+    ctx.save();                                // 기준선 가로 틱(O₄ 높이 기준)
+    ctx.strokeStyle=hexAlpha(C.crank,0.45); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(wx(0)-9,wy(0)); ctx.lineTo(wx(0)+9,wy(0)); ctx.stroke();
+    ctx.restore();
+    midLabel(base,O2,`y오프셋 = ${S.offY} mm`,C.crank);
+  }
 }
 
 // Rounded capsule link shape
