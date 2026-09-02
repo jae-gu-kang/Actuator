@@ -831,6 +831,19 @@ canvas.hover { cursor: grab; }
           </div>
         </div>
 
+        <!-- 작동기 y오프셋 — O₄ 고정, O₂만 y이동(편심). 지상링크 L=√(d²+e²) 변화 → 토크 재계산 -->
+        <div class="link-card" style="margin-bottom:6px;">
+          <div class="link-pip" style="background:var(--crank)"></div>
+          <div class="link-meta">
+            <div class="link-name">작동기 y오프셋 <span style="color:var(--text3);font-weight:400">O₂ 높이</span></div>
+            <div class="link-sub">O₄ 고정 · O₂만 위(＋)/아래(−) 이동 · 링키지 연동 · L=√(d²+e²) → 토크 재계산</div>
+          </div>
+          <div class="link-field">
+            <input type="number" id="iServoOffY" value="0" min="-400" max="400" step="1" oninput="onServoOffset()">
+            <span class="u">mm</span>
+          </div>
+        </div>
+
         <!-- 몸체·암 치수 (커스텀 시 편집) -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
           <label class="servo-dim"><span>전체 길이</span><input type="number" id="iBodyLen"  value="54.5" min="10" max="200" step="0.1" oninput="onServoDim()"><i>mm</i></label>
@@ -1204,7 +1217,7 @@ canvas.hover { cursor: grab; }
 
 <script>
 // ── STATE ──
-const S = { a:20, b:100, c:40, d:100, t4:100, sol:'open', solutions:null };
+const S = { a:20, b:100, c:40, d:100, t4:100, sol:'open', solutions:null, offY:0 };
 let cv, ctx, W, H, scale=1, ox=0, oy=0;
 let userZoom=1, panX=0, panY=0;   // 사용자 확대/이동 (setTransform 에 합성)
 let plotDPR=null;                 // 그래프 내보내기용 렌더 스케일 override (null = 화면 DPR)
@@ -1308,7 +1321,8 @@ function setTransform(){
   const{a,b,c,d}=S;
   // 서보 표시 시 몸체가 O₂ 밖으로 뻗으므로 뷰 범위에 몸체 최대 반경을 포함(클리핑 방지)
   const servoR = SERVO.show ? 2*((SERVO.bodyLen-SERVO.shaftFromEnd)+SERVO.bodyWid) : 0;
-  const range=Math.max(a+b,c+d,d+a+c,servoR)*1.4;
+  // 작동기 y오프셋만큼 세로로 더 뻗으므로 뷰 범위에 반영(클리핑 방지)
+  const range=(Math.max(a+b,c+d,d+a+c,servoR)+Math.abs(S.offY||0))*1.4;
   scale=Math.min((W-60)/range,(H-60)/range)*userZoom;
   ox=W/2-(d/2)*scale+panX; oy=H*0.62+panY;
 }
@@ -1337,6 +1351,23 @@ const wy=y=>oy-y*scale;
 const sx=px=>(px-ox)/scale;
 const sy=py=>-(py-oy)/scale;
 
+// ── 작동기 y오프셋(편심 지상링크) ─────────────────────────────────────────
+// O₄=[d,0] 고정, O₂=[0,offY] 로 올림 → 지상링크 유효길이 L=√(d²+offY²).
+// 기구학은 캐노니컬 프레임(O₂'=원점, O₄'=[L,0])에서 풀고(모든 solve/calcMA/feasible 에
+// gLen() 를 d 로 전달), 그 해를 φ=atan2(-offY,d) 만큼 회전·[0,offY] 평행이동해
+// 월드(화면)에 배치한다. offY=0 → φ=0, L=d 이므로 기존 동작과 완전히 동일.
+const gLen = ()=>Math.hypot(S.d, S.offY||0);
+const gPhi = ()=>Math.atan2(-(S.offY||0), S.d);       // 월드 지상벡터 [d,-offY] 의 각(rad)
+function toWorld(px,py){                                // 캐노니컬 → 월드
+  const ph=gPhi(), cs=Math.cos(ph), sn=Math.sin(ph);
+  return [cs*px - sn*py, (S.offY||0) + sn*px + cs*py];
+}
+function toCanon(px,py){                                // 월드 → 캐노니컬 (드래그 입력용)
+  const ph=gPhi(), cs=Math.cos(ph), sn=Math.sin(ph);
+  const x=px, y=py-(S.offY||0);
+  return [cs*x + sn*y, -sn*x + cs*y];
+}
+
 // ── DRAW ──
 function draw(){
   ctx.clearRect(0,0,W,H);
@@ -1345,7 +1376,7 @@ function draw(){
   ctx.fillStyle='#f5f5f7'; ctx.fillRect(0,0,W,H);
   drawGrid();
 
-  const sols=solve(S.a,S.b,S.c,S.d,S.t4);
+  const sols=solve(S.a,S.b,S.c,gLen(),S.t4);
   S.solutions=sols;
   updateUI(sols);
   if(!sols){drawNoSol();return;}
@@ -1377,8 +1408,9 @@ function drawGrid(){
 }
 
 function drawMech(sol,main){
-  const{d}=S;
-  const O2=[0,0],O4=[d,0],A=[sol.Ax,sol.Ay],B=[sol.Bx,sol.By];
+  // 캐노니컬 해(sol)를 월드로 변환 배치: O₂=[0,offY], O₄=[d,0]. offY=0 → 기존과 동일.
+  const O2=toWorld(0,0), O4=toWorld(gLen(),0);
+  const A=toWorld(sol.Ax,sol.Ay), B=toWorld(sol.Bx,sol.By);
   const servo = main && SERVO.show;   // 서보/암 렌더는 활성 해에만
 
   if(main) drawGroundHatch(O2,O4);
@@ -1615,9 +1647,9 @@ function drawServoBody(){
   const xNear=shaftFromEnd, xFar=shaftFromEnd-bodyLen;   // 전체(탭 포함) x범위
   const core=Math.min(bodyCore,bodyLen), cHalf=core/2;
   const cMid=(xNear+xFar)/2, cxL=cMid-cHalf, cxR=cMid+cHalf;   // 본체(20×40) x범위
-  // 장착 기울기: 회전축 O₂ 는 [0,0] 고정, 몸체 로컬 +x 축을 tilt(°)만큼 회전 (θ₄ 무관)
+  // 장착 기울기: 회전축 O₂(=[0,offY]) 고정, 몸체 로컬 +x 축을 tilt(°)만큼 회전 (θ₄·프레임기울기 무관)
   const tr=(SERVO.tilt||0)*RAD;
-  partFrame([0,0],[Math.cos(tr),Math.sin(tr)],function(){
+  partFrame([0,S.offY||0],[Math.cos(tr),Math.sin(tr)],function(){
     // ① 마운트 플랜지(날개) — 전체 길이, 밝은 알루미늄 (본체보다 밝게 → 구분)
     ctx.beginPath(); roundRect(ctx, xFar, -hw, bodyLen, bodyWid, 4);
     paintCurrentPath({base:'#d4d6da',stroke:'#9a9ca2',lw:1.2,hi:'rgba(255,255,255,0.25)',hiLw:0.6,
@@ -1640,9 +1672,10 @@ function drawServoBody(){
 
 // 서보암(=입력 크랭크 a): O₂ 허브 → A 푸시로드 홀(M3). 길이 = |A-O₂| = S.a
 function drawServoArm(A){
-  const a=Math.hypot(A[0],A[1])||S.a;
+  const O2=[0,S.offY||0], ax=A[0]-O2[0], ay=A[1]-O2[1];   // A 는 월드 좌표 → O₂ 기준 크랭크 벡터
+  const a=Math.hypot(ax,ay)||S.a;
   const r0=SERVO.hubDia/2, r1=Math.max(SERVO.armWidth/2, SERVO.m3Dia/2+1.5);
-  partFrame([0,0],A,function(){
+  partFrame(O2,[ax,ay],function(){
     // 선명한 블루(크랭크 아이덴티티 색) — flat 단색 + 외곽선
     taperCapsulePath(a,r0,r1);
     paintCurrentPath({base:'#0071e3',stroke:'#0056b3',lw:1.6,hi:'rgba(255,255,255,0.20)',hiLw:0.7,
@@ -1690,32 +1723,35 @@ function partLabel(p,text,color){
 }
 
 function drawArcs(sol){
-  const t2r=sol.t2*RAD,t4r=S.t4*RAD;
-  arcAng(wx(0),wy(0),t2r,44,C.crank,`θ₂ = ${sol.t2.toFixed(1)}°`);
-  arcAng(wx(S.d),wy(0),t4r,44,C.follower,`θ₄ = ${S.t4.toFixed(1)}°`);
+  // 각(θ₂·θ₄)은 캐노니컬(지상링크 기준). 프레임 기울기 φ 만큼 기준선을 회전해 월드에 그림.
+  const t2r=sol.t2*RAD,t4r=S.t4*RAD, ph=gPhi();
+  const O2=toWorld(0,0), O4=toWorld(gLen(),0);
+  arcAng(wx(O2[0]),wy(O2[1]),t2r,44,C.crank,`θ₂ = ${sol.t2.toFixed(1)}°`,ph);
+  arcAng(wx(O4[0]),wy(O4[1]),t4r,44,C.follower,`θ₄ = ${S.t4.toFixed(1)}°`,ph);
 }
 
-function arcAng(cx,cy,angle,r,color,label){
+function arcAng(cx,cy,angle,r,color,label,base){
+  base=base||0;                       // 기준선 각(math). base=0 → 기존 동작과 동일
   ctx.save();
   // Arc fill
   ctx.beginPath(); ctx.moveTo(cx,cy);
-  ctx.arc(cx,cy,r,0,-angle,angle<0);
+  ctx.arc(cx,cy,r,-base,-(base+angle),angle<0);
   ctx.closePath();
   ctx.fillStyle=hexAlpha(color,0.08); ctx.fill();
 
   // Arc stroke
   ctx.strokeStyle=color; ctx.lineWidth=1.5;
   ctx.setLineDash([4,3]);
-  ctx.beginPath(); ctx.arc(cx,cy,r,0,-angle,angle<0); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r,-base,-(base+angle),angle<0); ctx.stroke();
 
   // Angle line
   ctx.setLineDash([]);
   ctx.strokeStyle=hexAlpha(color,0.4); ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(cx,cy);
-  ctx.lineTo(cx+r*Math.cos(-angle),cy+r*Math.sin(-angle)); ctx.stroke();
+  ctx.lineTo(cx+r*Math.cos(-(base+angle)),cy+r*Math.sin(-(base+angle))); ctx.stroke();
 
   // Label pill
-  const mid=angle/2;
+  const mid=base+angle/2;
   const lx=cx+(r+18)*Math.cos(-mid),ly=cy+(r+18)*Math.sin(-mid);
   ctx.font='500 10px -apple-system,sans-serif';
   const tw=ctx.measureText(label).width;
@@ -1728,10 +1764,11 @@ function arcAng(cx,cy,angle,r,color,label){
 }
 
 function drawNoSol(){
-  const{d,t4,c}=S,t4r=t4*RAD;
+  const{t4,c}=S,t4r=t4*RAD,L=gLen();
   ctx.globalAlpha=0.2;
-  drawLink([0,0],[d,0],C.ground,2.5,true);
-  drawLink([d,0],[d+c*Math.cos(t4r),c*Math.sin(t4r)],C.follower,3);
+  const O2=toWorld(0,0),O4=toWorld(L,0);
+  drawLink(O2,O4,C.ground,2.5,true);
+  drawLink(O4,toWorld(L+c*Math.cos(t4r),c*Math.sin(t4r)),C.follower,3);
   ctx.globalAlpha=1;
 }
 
@@ -1777,7 +1814,7 @@ function updateOverlay(act){
 }
 
 function updateGrashof(){
-  const l=[S.a,S.b,S.c,S.d].sort((a,b)=>a-b);
+  const l=[S.a,S.b,S.c,gLen()].sort((a,b)=>a-b);
   const ok=l[0]+l[3]<=l[1]+l[2];
   const b=document.getElementById('gBadge');
   b.textContent=ok?'Grashof 조건 ✓':'Non-Grashof';
@@ -1789,17 +1826,17 @@ function targets(){
   if(!S.solutions) return [];
   const act=S.solutions.find(s=>s.type===S.sol)||S.solutions[0];
   if(!act) return [];
-  const{d}=S;
-  const O2=[0,0],O4=[d,0],A=[act.Ax,act.Ay],B=[act.Bx,act.By];
+  const O2=toWorld(0,0), O4=toWorld(gLen(),0);
+  const A=toWorld(act.Ax,act.Ay), B=toWorld(act.Bx,act.By);
   return[
-    {label:'O2',type:'fixed',x:wx(0),  y:wy(0),  r:12},
-    {label:'O4',type:'fixed',x:wx(d),  y:wy(0),  r:12},
+    {label:'O2',type:'fixed',x:wx(O2[0]),y:wy(O2[1]),r:12},
+    {label:'O4',type:'fixed',x:wx(O4[0]),y:wy(O4[1]),r:12},
     {label:'A', type:'jA',   x:wx(A[0]),y:wy(A[1]),r:12},
     {label:'B', type:'jB',   x:wx(B[0]),y:wy(B[1]),r:12},
-    {label:'mid-a',type:'mid',x:(wx(0)+wx(A[0]))/2,   y:(wy(0)+wy(A[1]))/2,   r:11,link:'a'},
-    {label:'mid-b',type:'mid',x:(wx(A[0])+wx(B[0]))/2,y:(wy(A[1])+wy(B[1]))/2,r:11,link:'b'},
-    {label:'mid-c',type:'mid',x:(wx(d)+wx(B[0]))/2,   y:(wy(0)+wy(B[1]))/2,   r:11,link:'c'},
-    {label:'mid-d',type:'mid',x:(wx(0)+wx(d))/2,      y:wy(0),                 r:11,link:'d'},
+    {label:'mid-a',type:'mid',x:(wx(O2[0])+wx(A[0]))/2, y:(wy(O2[1])+wy(A[1]))/2, r:11,link:'a'},
+    {label:'mid-b',type:'mid',x:(wx(A[0])+wx(B[0]))/2,  y:(wy(A[1])+wy(B[1]))/2,  r:11,link:'b'},
+    {label:'mid-c',type:'mid',x:(wx(O4[0])+wx(B[0]))/2, y:(wy(O4[1])+wy(B[1]))/2, r:11,link:'c'},
+    {label:'mid-d',type:'mid',x:(wx(O2[0])+wx(O4[0]))/2,y:(wy(O2[1])+wy(O4[1]))/2,r:11,link:'d'},
   ];
 }
 
@@ -1834,18 +1871,22 @@ function onMove(p){
     return;
   }
   if(t.type==='jB'){
-    setT4(norm(Math.atan2(sy(p.y),sx(p.x)-S.d)*DEG));
+    // 마우스(월드) → 캐노니컬 후 O₄'=[L,0] 기준 θ₄
+    const q=toCanon(sx(p.x),sy(p.y));
+    setT4(norm(Math.atan2(q[1],q[0]-gLen())*DEG));
   }
   if(t.type==='jA'){
-    const newT4=fwdSolve(S.a,S.b,S.c,S.d,norm(Math.atan2(sy(p.y),sx(p.x))*DEG));
+    // 캐노니컬 θ₂ 로 역해
+    const q=toCanon(sx(p.x),sy(p.y));
+    const newT4=fwdSolve(S.a,S.b,S.c,gLen(),norm(Math.atan2(q[1],q[0])*DEG));
     if(newT4!==null) setT4(newT4);
   }
   if(t.type==='mid'){
-    const wx2=sx(p.x),wy2=sy(p.y); let nl;
+    const q=toCanon(sx(p.x),sy(p.y)), wx2=q[0], wy2=q[1]; let nl;   // 캐노니컬 좌표에서 길이 산출
     const act=S.solutions&&(S.solutions.find(s=>s.type===S.sol)||S.solutions[0]);
     if(t.link==='a') nl=Math.max(5,Math.round(Math.hypot(wx2,wy2)));
     else if(t.link==='d') nl=Math.max(10,Math.round(Math.abs(wx2)*2));
-    else if(t.link==='c') nl=Math.max(5,Math.round(Math.hypot(wx2-S.d,wy2)));
+    else if(t.link==='c') nl=Math.max(5,Math.round(Math.hypot(wx2-gLen(),wy2)));
     else if(t.link==='b'&&act) nl=Math.max(5,Math.round(Math.hypot(wx2-act.Ax,wy2-act.Ay)));
     if(nl!==undefined){S[t.link]=nl;document.getElementById('i'+t.link).value=nl;if(t.link==='a')syncArmHole();setTransform();updateGrashof();scheduleCouplerPlot();}
   }
@@ -1917,6 +1958,12 @@ function onServoTilt(){
   if(isFinite(tv)) SERVO.tilt=Math.max(-90,Math.min(90,tv));
   draw();
 }
+// 작동기 y오프셋(편심 지상링크): O₂ 를 [0,offY] 로 이동 → L·φ 변화. 길이변경과 동일하게 전체 재계산.
+function onServoOffset(){
+  const v=+document.getElementById('iServoOffY')?.value;
+  if(isFinite(v)) S.offY=Math.max(-400,Math.min(400,v));
+  setTransform(); updateGrashof(); draw(); scheduleCouplerPlot();
+}
 
 function setT4(v){
   S.t4=norm(+v);
@@ -1937,7 +1984,7 @@ function applyT2(v){
   const nT2=document.getElementById('nT2');
   if(document.activeElement!==nT2) nT2.value=t2.toFixed(1);
   document.getElementById('lT2').textContent=t2.toFixed(1)+'°';
-  const res=fwdSolveEx(S.a,S.b,S.c,S.d,t2);
+  const res=fwdSolveEx(S.a,S.b,S.c,gLen(),t2);
   if(res===null) return;
   // 입력 θ₂ 가 현재 해 유형으로 도달 불가하고 반대 유형으로만 가능하면 자동 전환
   if(res.type!==S.sol && res.err<0.5) setSol(res.type);
@@ -2091,7 +2138,7 @@ function drawTorquePlot(){
   if(!pc) return;
   const W2=pc.offsetWidth||220;
 
-  const{a,b,c,d,sol,solutions,t4:curT4deg}=S;
+  const{a,b,c,sol,solutions,t4:curT4deg}=S, d=gLen();   // d = 유효 지상링크 L(√(d²+offY²))
   const T2=parseFloat(document.getElementById("iTorque")?.value)||0;
   const marginVal=Math.max(0, parseFloat(document.getElementById("iMarginAngle")?.value)||0);
   const _legMotorEl=document.getElementById("iMotorTorque");
@@ -2531,7 +2578,7 @@ function bisectMuBoundary(a,b,c,d,sol,badDeg,goodDeg){
 }
 
 function couplerMetrics(bVal, T2, marginVal, motorVal){
-  const{a,c,d,sol}=S;
+  const{a,c,sol}=S, d=gLen();
   const vals=[], okArr=[];
   let firstIdx=null, lastIdx=null, maxAbs=0;
   for(let deg=0; deg<=180; deg++){
@@ -2602,7 +2649,7 @@ function drawCouplerPlot(){
   if(!pc) return;
   const W2=pc.offsetWidth||220;
 
-  const{a,b:curB,c,d}=S;
+  const{a,b:curB,c}=S, d=gLen();
   const T2=parseFloat(document.getElementById("iTorque")?.value)||0;
   const marginVal=Math.max(0, parseFloat(document.getElementById("iMarginAngle")?.value)||0);
   const motorEl=document.getElementById("iMotorTorque");
@@ -2945,7 +2992,7 @@ function scheduleCouplerPlot(){
 
 // 주어진 b 에서 유효 해가 존재하는 θ₄ 경계 (이분법 sub-degree 정밀)
 function feasibleRangeOf(bVal){
-  const{a,c,d,sol}=S;
+  const{a,c,sol}=S, d=gLen();
   let first=null,last=null;
   for(let deg=0;deg<=180;deg++){
     if(feasibleAt(a,bVal,c,d,deg,sol)){ if(first===null) first=deg; last=deg; }
@@ -2959,7 +3006,7 @@ function feasibleRangeOf(bVal){
 
 // 주어진 b, θ₄(deg) 에서의 |T₄| (해 없으면 null)
 function absT4At(bVal,deg,T2){
-  const r=feasibleAt(S.a,bVal,S.c,S.d,deg,S.sol);
+  const r=feasibleAt(S.a,bVal,S.c,gLen(),deg,S.sol);
   return r?Math.abs(T2*r.ma):null;
 }
 
@@ -3046,7 +3093,7 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
   for(let i=0;i<n;i++){
     const dg=Math.min(physLo+i*G, physHi);
     degs[i]=dg;
-    const r=feasibleAt(S.a,bVal,S.c,S.d,dg,S.sol);
+    const r=feasibleAt(S.a,bVal,S.c,gLen(),dg,S.sol);
     prof[i]=r?Math.abs(T2*r.ma):null;
     muArr[i]=r?r.mu:null;   // 접힌 전달각 (0~90°)
   }
@@ -3339,7 +3386,7 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode){
     const tm=absT4At(bv,t0-dm,T2), tp=absT4At(bv,t0+dp,T2), tn=absT4At(bv,t0,T2);
     let wmax=-Infinity,warg=null,muMin=Infinity,gap=false;
     for(let t=t0-dm;t<=t0+dp+1e-9;t+=0.25){
-      const r=feasibleAt(S.a,bv,S.c,S.d,t,S.sol);
+      const r=feasibleAt(S.a,bv,S.c,gLen(),t,S.sol);
       if(!r){gap=true;continue;}
       const v=Math.abs(T2*r.ma);
       if(v>wmax){wmax=v;warg=t;}
@@ -3461,7 +3508,8 @@ let _deltaSweepData=null, _dsBusy=false;
 function optimizeForDelta(dm,dp,T2,marginVal,opt){
   const cands=[], relaxCands=[], muCands=[];
   // 조립 조건: b 는 [d−a−c, d+a+c] 범위 밖에서는 어떤 θ₄ 에서도 조립 불가
-  const bLo=Math.max(5,Math.ceil(S.d-S.a-S.c)), bHi=Math.min(400,Math.floor(S.d+S.a+S.c));
+  const _L=gLen();
+  const bLo=Math.max(5,Math.ceil(_L-S.a-S.c)), bHi=Math.min(400,Math.floor(_L+S.a+S.c));
   for(let bv=bLo;bv<=bHi;bv++){
     const r=bestNeutralForB(bv,T2,dm,dp,marginVal,opt);
     if(!r) continue;
@@ -3514,8 +3562,9 @@ function optimizeForDelta(dm,dp,T2,marginVal,opt){
 // d 는 진짜 고정 설계 입력이므로, 임의 초기값 c₀ 나 별도 입력 없이도
 // 같은 d 에서는 항상 같은 범위 → 항상 같은 추천이 나온다.
 function readCRange(){
-  let lo=Math.max(5,Math.round(S.d*0.2));
-  let hi=Math.min(400,Math.round(S.d*0.8));
+  const _L=gLen();
+  let lo=Math.max(5,Math.round(_L*0.2));
+  let hi=Math.min(400,Math.round(_L*0.8));
   if(hi<lo+10) hi=Math.min(400,lo+10);
   return{lo,hi};
 }
@@ -3846,7 +3895,7 @@ function sendToHM(){
 
   const payload = {
     v: 1,
-    a: S.a, b: S.b, c: S.c, d: S.d,      // 링크 길이 (MA는 c/a 비율만 사용 → 단위 무관)
+    a: S.a, b: S.b, c: S.c, d: gLen(),   // 링크 길이 (MA는 c/a 비율만 사용 → 단위 무관). d=유효 지상링크 L=√(d²+offY²) — 편심 오프셋을 반영해 수신 도구가 동일 기구학 재현
     sol: S.sol,                           // 'open' | 'cross'
     T2: T2,                               // 크랭크 입력토크 (서보 출력) N·m
     t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
@@ -3876,7 +3925,7 @@ function sendToRig(){
 
   const payload = {
     v: 1,
-    a: S.a, b: S.b, c: S.c, d: S.d,      // 링크 길이: 입력 크랭크, 커플러, 출력 혼, 고정
+    a: S.a, b: S.b, c: S.c, d: gLen(),   // 링크 길이: 입력 크랭크, 커플러, 출력 혼, 유효 지상링크 L=√(d²+offY²)(편심 반영)
     sol: S.sol,                           // 'open' | 'cross'
     t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
     dir: hmDir,                           // δ+ → θ₄ 증가(+1)/감소(-1)
