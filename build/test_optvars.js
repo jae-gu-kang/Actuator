@@ -226,7 +226,7 @@ const DEFL = [ {dm:25,dp:25}, {dm:40,dp:40}, {dm:30,dp:20} ];
       !err && g3.b===BASE.b && g3.c===BASE.c,
       err ? ('예외: '+err) : ('b='+g3.b+' c='+g3.c+' (둘 다 불변)'));
 
-  // (d) a·d 도 렌더된 경우 — d 의 10mm 하한과 a 의 서보암 연동까지 실제로 태운다
+  // (d) a·d 도 렌더된 경우 — d 의 10mm 하한과 #ia·#id 입력칸 반영까지 실제로 태운다
   A.resetVars(); A.setS(BASE); A.setCtx(CTX);
   A.setAbsent([]);
   A.setField('optEditA',26); A.setField('optEditD',120);

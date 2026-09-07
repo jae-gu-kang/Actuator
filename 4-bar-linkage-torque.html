@@ -315,8 +315,11 @@ body {
   color: var(--text);
   text-align: right;
   font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;   /* 44px 로 좁혀서 Firefox 스피너가 숫자를 밀어내지 않도록 */
+  appearance: textfield;
 }
 
+.link-field input::-webkit-outer-spin-button,
 .link-field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .link-field .u {
@@ -762,7 +765,7 @@ canvas.hover { cursor: grab; }
             <span class="u">mm</span>
           </div>
           <button class="lock-btn" id="btnVarLock_d" onclick="toggleOptVar('d')"
-            title="고정 d — 고정: 입력값 유지 (누르면 변수)">🔒</button>
+            title="고정 d — 고정: 입력값 유지 (누르면 변수) · 유효 지상링크 L=√(d²+e²) (y오프셋 반영)">🔒</button>
           <div id="varRange_d" style="display:none;width:100%;gap:4px;align-items:center;">
             <span style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
@@ -814,7 +817,7 @@ canvas.hover { cursor: grab; }
             <span class="u">mm</span>
           </div>
           <button class="lock-btn on" id="btnVarLock_b" onclick="toggleOptVar('b')"
-            title="커플러 b — 변수: 옵티마이저가 탐색 (누르면 고정)">🔓</button>
+            title="커플러 b — 변수: 옵티마이저가 탐색 (누르면 고정) · 조립조건 [L−a−c, L+a+c] 자동 반영">🔓</button>
           <div id="varRange_b" style="display:flex;width:100%;gap:4px;align-items:center;">
             <span style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
@@ -840,7 +843,7 @@ canvas.hover { cursor: grab; }
             <span class="u">mm</span>
           </div>
           <button class="lock-btn on" id="btnVarLock_c" onclick="toggleOptVar('c')"
-            title="출력 c — 변수: 옵티마이저가 탐색 (누르면 고정)">🔓</button>
+            title="출력 c — 변수: 옵티마이저가 탐색 (누르면 고정) · 자동범위 0.2~0.8×L">🔓</button>
           <div id="varRange_c" style="display:flex;width:100%;gap:4px;align-items:center;">
             <span style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
@@ -1562,13 +1565,14 @@ function drawMech(sol,main){
   }
 
   // 작동기 장착 기울기 — 서보 몸체를 그릴 때만, 0 이 아닐 때만.
-  // 기준선은 '월드 수평'(base=0). drawServoBody 가 partFrame(...,[cos(tr),sin(tr)]) 로
-  // 월드 +x 기준 회전시키므로 θ₄·프레임기울기(gPhi)와 무관하다 — θ₂/θ₄ 호가 base=gPhi() 를
-  // 쓰는 것과 대비. 반지름은 θ₂ 호(r=44, 같은 O₂ 중심)와 겹치지 않게 벌린다.
+  // 기준선은 '월드 수평'. drawServoBody 가 partFrame(...,[cos(tr),sin(tr)]) 로 월드 기준
+  // 회전시키므로 θ₄·프레임기울기(gPhi)와 무관하다 — θ₂/θ₄ 호가 base=gPhi() 를 쓰는 것과 대비.
   if(servo && SERVO.tilt){
-    // 기준선을 −x(180°)로 잡는다: ①offY=0 이면 +x 는 지상링크와 정확히 겹쳐 구분이 안 되고
-    // ②몸체가 −x 쪽으로 길게 뻗어(xFar=shaftFromEnd−bodyLen) 그쪽이 비어 있다.
-    // 몸체 로컬 −x 의 월드각 = tr+180° 이므로 180°에서 tr 만큼 스윕하면 각도는 동일하다.
+    // 기준선을 −x(180°)로 잡는 이유: offY=0 이면 +x 가 지상링크와 정확히 겹쳐 구분이 안 되고,
+    // 같은 O₂ 중심의 θ₂ 호(r=44)·라벨과도 부딪힌다. 몸체 로컬 −x 의 월드각이 tr+180° 이므로
+    // 180°에서 tr 만큼 스윕하면 각도 크기는 동일하다(호가 몸체 축 위에서 닫힘).
+    // 주의: −x 쪽은 몸체(xFar=shaftFromEnd−bodyLen)가 덮고 있다 — R 을 키워도 비워지지 않으므로
+    // 가독성은 arcAng 의 라벨 pill 배경에 의존한다.
     const cx=wx(O2[0]), cy=wy(O2[1]), tr=SERVO.tilt*RAD, R=64, B=Math.PI;
     ctx.save();                       // 기준선 — arcAng 은 기준선을 그리지 않는다
     ctx.strokeStyle=hexAlpha(C.ground,0.45); ctx.lineWidth=1; ctx.setLineDash([4,3]);
@@ -3757,8 +3761,10 @@ function optimizeForDelta(dm,dp,T2,marginVal,opt){
 // 같은 d 에서는 항상 같은 범위 → 항상 같은 추천이 나온다.
 // ── 설계 변수(고정/변수) 헬퍼 ─────────────────────────────────────────────
 // 링크 표시명 / 입력칸 id / 하한
-const OPTVAR_META={ d:{nm:'고정 d', min:10}, a:{nm:'입력 a', min:5},
-                    b:{nm:'커플러 b',min:5}, c:{nm:'출력 c', min:5} };
+const OPTVAR_META={ d:{nm:'고정 d', min:10, note:' · 유효 지상링크 L=√(d²+e²) (y오프셋 반영)'},
+                    a:{nm:'입력 a', min:5,  note:' · 토크 ∝ 1/a → 하한에 붙기 쉬움'},
+                    b:{nm:'커플러 b',min:5, note:' · 조립조건 [L−a−c, L+a+c] 자동 반영'},
+                    c:{nm:'출력 c', min:5,  note:' · 자동범위 0.2~0.8×L'} };
 const OPTVAR_ORDER=['d','a','b','c'];
 
 // b 조립 가능 구간: [L−a−c, L+a+c] ∩ [5,400].
@@ -3857,7 +3863,7 @@ function updateOptVarUI(){
       lk.classList.toggle('on', v);
       lk.title = OPTVAR_META[k].nm + (v ? ' — 변수: 옵티마이저가 탐색 (누르면 고정)'
                                         : ' — 고정: 입력값 유지 (누르면 변수)')
-               + (k==='a' ? ' · 토크 ∝ 1/a → 하한에 붙기 쉬움' : '');
+               + (OPTVAR_META[k].note||'');
     }
     if(rg) rg.style.display=v?'flex':'none';
     if(v&&!OPTVARS[k].user){              // 자동 범위는 항상 현재 a·c·d 기준으로 다시 표시

@@ -125,10 +125,18 @@ async function clickByText(frame, txt){
 
     // 링크 카드의 고정/변수 자물쇠 토글 (설계 변수 블록에서 이동)
     const lk = await f.evaluate(()=>{ try{
-      const b=document.getElementById('btnVarLock_c'); if(!b) return {err:'no-lock'};
-      const was=OPTVARS.c.v; b.click(); const mid=OPTVARS.c.v; b.click();
-      return {ok: was!==mid && OPTVARS.c.v===was,
-              rangeShown:getComputedStyle(document.getElementById('varRange_c')).display};
+      const b=document.getElementById('btnVarLock_c'), rg=document.getElementById('varRange_c');
+      if(!b||!rg) return {err:'no-lock'};
+      // 상태값(OPTVARS)만 보면 setOptVar 배선만 검증되고 이 리팩터가 바꾼 '렌더링'은 안 잡힌다
+      const g0=b.textContent, c0=b.classList.contains('on'), d0=getComputedStyle(rg).display, v0=OPTVARS.c.v;
+      b.click();
+      const g1=b.textContent, c1=b.classList.contains('on'), d1=getComputedStyle(rg).display, v1=OPTVARS.c.v;
+      b.click();
+      return {ok: v0===true&&v1===false&&OPTVARS.c.v===v0            // 상태 반전·복귀
+                  && g0==='🔓'&&g1==='🔒'&&b.textContent===g0        // 자물쇠 글리프
+                  && c0===true&&c1===false&&b.classList.contains('on')===c0   // .on 클래스
+                  && d0==='flex'&&d1==='none'&&getComputedStyle(rg).display===d0, // 범위행 표시
+              glyph:[g0,g1], on:[c0,c1], range:[d0,d1]};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 링크 카드 고정/변수 자물쇠 토글', lk.ok===true, JSON.stringify(lk));
   } else rec('linkage: 프레임 로드', false);
