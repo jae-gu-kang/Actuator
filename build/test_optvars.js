@@ -233,9 +233,9 @@ const DEFL = [ {dm:25,dp:25}, {dm:40,dp:40}, {dm:30,dp:20} ];
   A.setField('optEditC',45); A.setField('optEditB',105); A.setField('optEditT0',95);
   err=null; try{ A.applyFromCard(); }catch(e){ err=e.message; }
   const g4 = A.getS();
-  rec('적용: a·d 도 변수면 함께 반영되고 서보암 홀간거리가 연동됨',
-      !err && g4.a===26 && g4.d===120 && g4.c===45 && g4.b===105 && A.field('iArmHole')===26,
-      err ? ('예외: '+err) : ('a='+g4.a+' d='+g4.d+' c='+g4.c+' b='+g4.b+' arm='+A.field('iArmHole')));
+  rec('적용: a·d 도 변수면 네 링크가 모두 반영됨',
+      !err && g4.a===26 && g4.d===120 && g4.c===45 && g4.b===105 && A.field('ia')===26 && A.field('id')===120,
+      err ? ('예외: '+err) : ('a='+g4.a+' d='+g4.d+' c='+g4.c+' b='+g4.b+' #ia='+A.field('ia')+' #id='+A.field('id')));
   A.setAbsent([]);
 }
 

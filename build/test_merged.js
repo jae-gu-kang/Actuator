@@ -109,18 +109,28 @@ async function clickByText(frame, txt){
     // graphs render (mechanism cv + torque/coupler plots)
     const cr = await canvasReport(f);
     rec('linkage: 그래프/기구 캔버스 렌더(오프라인)', cr.nonblank>=2, JSON.stringify(cr.details));
-    // servo/arm: toggle on, hole-to-hole drives crank a (양방향 동기), no throw
+    // servo toggle + 크랭크 a 는 #ia 로만 입력 (중복이던 홀간거리 칸은 제거됨), no throw
     const sv = await f.evaluate(()=>{ try{
       const cb=document.getElementById('cbServo'); if(!cb) return {err:'no-toggle'};
       cb.checked=true; onServoToggle();
-      const ah=document.getElementById('iArmHole'); ah.value='25.4';
-      ah.dispatchEvent(new Event('input',{bubbles:true}));
+      const ia=document.getElementById('ia'); ia.value='25.4';
+      ia.dispatchEvent(new Event('input',{bubbles:true}));
       const ok = SERVO.show===true && Math.abs(S.a-25.4)<1e-6
-                 && document.getElementById('ia').value==='25.4';
+                 && document.getElementById('iArmHole')===null;   // 중복 입력칸 삭제 확인
       cb.checked=false; onServoToggle();   // 원상 복구 (이후 연동 테스트에 영향 없게)
-      return {ok, a:S.a};
+      ia.value='20'; ia.dispatchEvent(new Event('input',{bubbles:true}));
+      return {ok, a:S.a, armHoleGone:document.getElementById('iArmHole')===null};
     }catch(e){ return {err:e.message}; } });
-    rec('linkage: 서보/암 토글 + 홀간거리→a 연동', sv.ok===true, JSON.stringify(sv));
+    rec('linkage: 서보 토글 + a 단일 입력(#ia, 홀간거리 중복칸 제거)', sv.ok===true, JSON.stringify(sv));
+
+    // 링크 카드의 고정/변수 자물쇠 토글 (설계 변수 블록에서 이동)
+    const lk = await f.evaluate(()=>{ try{
+      const b=document.getElementById('btnVarLock_c'); if(!b) return {err:'no-lock'};
+      const was=OPTVARS.c.v; b.click(); const mid=OPTVARS.c.v; b.click();
+      return {ok: was!==mid && OPTVARS.c.v===was,
+              rangeShown:getComputedStyle(document.getElementById('varRange_c')).display};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 링크 카드 고정/변수 자물쇠 토글', lk.ok===true, JSON.stringify(lk));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)
