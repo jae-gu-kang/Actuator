@@ -1031,6 +1031,110 @@ canvas.hover { cursor: grab; }
             </div>
           </div>
         </div>
+        <!-- 설계 변수: 링크별 고정/변수 + 변수일 때 탐색범위 -->
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">설계 변수
+              <span style="color:var(--text3);font-weight:400">(변수만 탐색 · 최소 1개 고정)</span></div>
+          </div>
+          <div class="link-card" style="margin-bottom:4px;flex-wrap:wrap;">
+            <div class="link-pip" style="background:var(--ground)"></div>
+            <div class="link-meta">
+              <div class="link-name">고정 <span style="color:var(--text3);font-weight:400">d</span></div>
+              <div class="link-sub">Ground · O₂–O₄ 설치거리 (y오프셋 반영 L=√(d²+e²))</div>
+            </div>
+            <div class="seg-ctrl" style="padding:2px;">
+              <button class="seg-btn active" id="btnVarFix_d" onclick="setOptVar('d',false)" style="padding:3px 9px;font-size:10.5px;">고정</button>
+              <button class="seg-btn" id="btnVarVar_d" onclick="setOptVar('d',true)"  style="padding:3px 9px;font-size:10.5px;">변수</button>
+            </div>
+            <div id="varRange_d" style="display:none;width:100%;gap:4px;align-items:center;margin-top:4px;">
+              <span style="font-size:10px;color:var(--text3);white-space:nowrap;">탐색범위</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMin_d" min="10" max="400" step="1" oninput="onOptVarRange('d')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">~</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMax_d" min="10" max="400" step="1" oninput="onOptVarRange('d')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">mm</span>
+            </div>
+          </div>
+          <div class="link-card" style="margin-bottom:4px;flex-wrap:wrap;">
+            <div class="link-pip" style="background:var(--crank)"></div>
+            <div class="link-meta">
+              <div class="link-name">입력 <span style="color:var(--text3);font-weight:400">a</span></div>
+              <div class="link-sub">Crank · 서보암 홀간거리 연동 · <b>토크 ∝ 1/a</b> → 하한에 붙기 쉬움</div>
+            </div>
+            <div class="seg-ctrl" style="padding:2px;">
+              <button class="seg-btn active" id="btnVarFix_a" onclick="setOptVar('a',false)" style="padding:3px 9px;font-size:10.5px;">고정</button>
+              <button class="seg-btn" id="btnVarVar_a" onclick="setOptVar('a',true)"  style="padding:3px 9px;font-size:10.5px;">변수</button>
+            </div>
+            <div id="varRange_a" style="display:none;width:100%;gap:4px;align-items:center;margin-top:4px;">
+              <span style="font-size:10px;color:var(--text3);white-space:nowrap;">탐색범위</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMin_a" min="5" max="400" step="1" oninput="onOptVarRange('a')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">~</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMax_a" min="5" max="400" step="1" oninput="onOptVarRange('a')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">mm</span>
+            </div>
+          </div>
+          <div class="link-card" style="margin-bottom:4px;flex-wrap:wrap;">
+            <div class="link-pip" style="background:var(--coupler)"></div>
+            <div class="link-meta">
+              <div class="link-name">커플러 <span style="color:var(--text3);font-weight:400">b</span></div>
+              <div class="link-sub">Coupler · 조립조건 [L−a−c, L+a+c] 자동 반영</div>
+            </div>
+            <div class="seg-ctrl" style="padding:2px;">
+              <button class="seg-btn" id="btnVarFix_b" onclick="setOptVar('b',false)" style="padding:3px 9px;font-size:10.5px;">고정</button>
+              <button class="seg-btn active" id="btnVarVar_b" onclick="setOptVar('b',true)"  style="padding:3px 9px;font-size:10.5px;">변수</button>
+            </div>
+            <div id="varRange_b" style="display:flex;width:100%;gap:4px;align-items:center;margin-top:4px;">
+              <span style="font-size:10px;color:var(--text3);white-space:nowrap;">탐색범위</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMin_b" min="5" max="400" step="1" oninput="onOptVarRange('b')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">~</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMax_b" min="5" max="400" step="1" oninput="onOptVarRange('b')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">mm</span>
+            </div>
+          </div>
+          <div class="link-card" style="margin-bottom:4px;flex-wrap:wrap;">
+            <div class="link-pip" style="background:var(--follower)"></div>
+            <div class="link-meta">
+              <div class="link-name">출력 <span style="color:var(--text3);font-weight:400">c</span></div>
+              <div class="link-sub">Follower · 자동범위 0.2~0.8×L</div>
+            </div>
+            <div class="seg-ctrl" style="padding:2px;">
+              <button class="seg-btn" id="btnVarFix_c" onclick="setOptVar('c',false)" style="padding:3px 9px;font-size:10.5px;">고정</button>
+              <button class="seg-btn active" id="btnVarVar_c" onclick="setOptVar('c',true)"  style="padding:3px 9px;font-size:10.5px;">변수</button>
+            </div>
+            <div id="varRange_c" style="display:flex;width:100%;gap:4px;align-items:center;margin-top:4px;">
+              <span style="font-size:10px;color:var(--text3);white-space:nowrap;">탐색범위</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMin_c" min="5" max="400" step="1" oninput="onOptVarRange('c')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">~</span>
+              <div class="link-field" style="border-radius:7px;flex:1;">
+                <input type="number" id="iVarMax_c" min="5" max="400" step="1" oninput="onOptVarRange('c')"
+                  style="width:100%;padding:3px 6px;font-size:11.5px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
+              </div>
+              <span style="font-size:10px;color:var(--text3);">mm</span>
+            </div>
+          </div>
+          <div id="optVarHint" style="display:none;font-size:10px;color:var(--red);font-weight:600;margin-top:4px;line-height:1.45;"></div>
+        </div>
         <button id="btnOptimize" onclick="runOptimizer()"
           style="width:100%;background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(94,92,230,.25);">
           ✦ 최적값 계산</button>
@@ -1239,6 +1343,14 @@ canvas.hover { cursor: grab; }
 <script>
 // ── STATE ──
 const S = { a:20, b:100, c:40, d:100, t4:100, sol:'open', solutions:null, offY:0 };
+
+// ── 설계 변수: 링크별 고정/변수 ────────────────────────────────────────────
+// v:true 면 옵티마이저가 그 링크를 탐색, false 면 입력값 고정.
+// 기본값 = 기존 동작(c·b 탐색, a·d 고정) → 이 조합에서는 기존 코드경로를 그대로 탄다.
+// lo/hi = 사용자가 지정한 탐색범위(null 이면 '변수' 전환 시 autoVarRange 로 자동 프리필).
+// 스케일 불변성(a:b:c:d 를 같은 배율로 키우면 MA·각도 동일) 때문에 최소 1개는 고정이어야 한다.
+const OPTVARS = { d:{v:false,lo:null,hi:null,user:false}, a:{v:false,lo:null,hi:null,user:false},
+                  b:{v:true, lo:null,hi:null,user:false}, c:{v:true, lo:null,hi:null,user:false} };
 let cv, ctx, W, H, scale=1, ox=0, oy=0;
 let userZoom=1, panX=0, panY=0;   // 사용자 확대/이동 (setTransform 에 합성)
 let plotDPR=null;                 // 그래프 내보내기용 렌더 스케일 override (null = 화면 DPR)
@@ -1926,7 +2038,7 @@ function onMove(p){
   draw();
 }
 
-function endDrag(){drag=null;cv.classList.remove('drag');}
+function endDrag(){drag=null;cv.classList.remove('drag');updateOptVarUI();}  // 드래그로 바뀐 a·c·d 를 탐색범위 표시에 1회 반영
 
 // ── CONTROLS ──
 function onLink(){
@@ -1935,6 +2047,7 @@ function onLink(){
   S.c=+document.getElementById('ic').value||S.c;
   S.d=+document.getElementById('id').value||S.d;
   syncArmHole();                                   // a ↔ 서보암 홀간거리 역동기
+  updateOptVarUI();                                // 자동 탐색범위 표시를 새 a·c·d 기준으로 갱신
   setTransform(); updateGrashof(); draw(); scheduleCouplerPlot();
 }
 
@@ -1955,6 +2068,7 @@ function onServoToggle(){
 function onArmHole(){
   const v=+document.getElementById('iArmHole').value;
   if(v>=5&&v<=400){ S.a=v; document.getElementById('ia').value=v; }
+  updateOptVarUI();
   setTransform(); updateGrashof(); draw(); scheduleCouplerPlot();
 }
 // 프리셋 선택 → 몸체 치수 프리필
@@ -1995,6 +2109,7 @@ function onServoTilt(){
 function onServoOffset(){
   const v=+document.getElementById('iServoOffY')?.value;
   if(isFinite(v)) S.offY=Math.max(-400,Math.min(400,v));
+  updateOptVarUI();                                // gLen() 변화 → 자동 탐색범위 갱신
   setTransform(); updateGrashof(); draw(); scheduleCouplerPlot();
 }
 
@@ -3280,14 +3395,7 @@ function setDeflectMode(mode){
   document.getElementById('deflectAsymRow').style.display=asym?'grid':'none';
   const hint=document.getElementById('deflectHint');
   if(hint) hint.textContent=asym?'(중립 기준 상향·하향)':'(θ₄₀ ± δ)';
-  const desc=document.getElementById('optDesc');
-  if(desc) desc.innerHTML=asym
-    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b>·μ≥50°·'
-      +'<b>최소 안전여유 하한(달성 최대의 90%)</b> 을 제약으로 두고, 그 안에서 '
-      +'<b>c · b 로 절대 토크(중립)를 최대화</b>합니다. (힌지모멘트 입력 불필요)'
-    : '현재 <b>고정 d · 입력 a</b> 를 고정한 채, 입력한 <b>타각 범위</b> 를 '
-      +'물리 가용범위(양끝단 마진 제외) 안에 수용하고 <b>양끝단 토크 불균형 ≤ 10%</b> 를 '
-      +'만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 출력링크 c · 커플러 b · 중립 출력각 θ₄₀ 를 탐색합니다.';
+  refreshOptDesc();   // 설명문은 타각 모드 + 고정/변수 조합을 함께 반영
   updateCSUI();   // 대칭/비대칭 전환 → 조종면 각도 δ 범위(±δ ↔ 상향/하향) 갱신
 }
 // 현재 입력된 타각 스펙 {dm:−측, dp:+측, sym}
@@ -3347,7 +3455,6 @@ function doOptimize(){
   const defLbl=sym?('±'+dp.toFixed(1)+'°'):('상향 '+dp.toFixed(1)+'° / 하향 '+dm.toFixed(1)+'°');
 
   const c0=S.c;
-  const cR=readCRange();
 
   // 1) (c, b, θ₄₀) 동시 최적화 — 명시적 c 허용범위 내 절대 그리드 탐색
   //    대칭: 기존 목적함수(합+피크).
@@ -3356,29 +3463,33 @@ function doOptimize(){
   //    (b·c 를 토크가 커지는 쪽으로 몰되 μ≥50°·불균형≤10%·여유하한은 지킴)
   let res, optUsed, floorAbs=0, Mstar=null;
   if(sym){
-    res=optimizeForDeltaWithC(dm,dp,T2,marginVal,cR.lo,cR.hi);
+    res=optimizeForVars(dm,dp,T2,marginVal);
   } else {
-    const passA=optimizeForDeltaWithC(dm,dp,T2,marginVal,cR.lo,cR.hi,{mode:'margin'});
+    const passA=optimizeForVars(dm,dp,T2,marginVal,{mode:'margin'});
     if(passA){
       Mstar=passA.score;                       // score(margin) = 최소 안전여유 M*
       floorAbs=ASYM_MARGIN_FLOOR*Mstar;
       optUsed={mode:'torque',floor:floorAbs};
-      res=optimizeForDeltaWithC(dm,dp,T2,marginVal,cR.lo,cR.hi,optUsed)||passA;
+      res=optimizeForVars(dm,dp,T2,marginVal,optUsed)||passA;
     }
   }
   if(!res){
-    showMsg('⚠︎ c 자동 범위('+cR.lo+'~'+cR.hi+'mm = 0.2~0.8×d) 안에서 타각 범위 '+defLbl
-      +' 를 수용하는 (c, b) 조합이 없습니다.<br>타각 범위·끝단 마진·d 를 조정해 보세요.');
+    showMsg('⚠︎ 현재 설계 변수 설정('+optVarSummary()+') 안에서 타각 범위 '+defLbl
+      +' 를 수용하는 조합이 없습니다.<br>타각 범위·끝단 마진·탐색범위를 조정해 보세요.');
     return;
   }
+  // 기본 경로(optimizeForDeltaWithC)는 cOpt 만 주므로 a·d 를 현재값으로 채운다
+  if(res.aOpt===undefined) res.aOpt=S.a;
+  if(res.dOpt===undefined) res.dOpt=S.d;
 
   // 2) 선택된 c 에서 b ±1mm 를 0.25mm 간격 정밀 재탐색 (동일 티어 내 개선만 수용)
   let best=res;
   const myTier=res.fbType===''?0:(res.fbType==='imbal'?1:2);
   {
-    const saved=S.c; S.c=res.cOpt;
+    const sc=S.c, sa=S.a, sd=S.d;
+    S.c=res.cOpt; S.a=res.aOpt; S.d=res.dOpt;
     try{
-      for(let db=-1;db<=1.0001;db+=0.25){
+      if(OPTVARS.b.v) for(let db=-1;db<=1.0001;db+=0.25){
         if(Math.abs(db)<1e-9) continue;
         const bv=res.b+db;
         if(bv<5||bv>400) continue;
@@ -3387,19 +3498,22 @@ function doOptimize(){
         const qt=q.noMu?2:(q.noBalance?1:0);
         if(qt!==myTier) continue;
         if(q.score>best.score+1e-12)
-          best={cOpt:res.cOpt,fbType:res.fbType,fallback:res.fallback,b:bv,
+          best={cOpt:res.cOpt,aOpt:res.aOpt,dOpt:res.dOpt,
+            fbType:res.fbType,fallback:res.fallback,b:bv,
             t0:q.t0,tm:q.tm,tp:q.tp,worst:q.worst,wmax:q.wmax,wargDeg:q.wargDeg,
             tn:(q.tn!==undefined?q.tn:absT4At(bv,q.t0,T2)),
-            imbal:q.imbal,muMin:q.muMin,score:q.score,physLo:q.physLo,physHi:q.physHi};
+            imbal:q.imbal,muMin:q.muMin,score:q.score,physLo:q.physLo,physHi:q.physHi,
+            atBound:res.atBound,varBounds:res.varBounds};
       }
-    } finally { S.c=saved; }
+    } finally { S.c=sc; S.a=sa; S.d=sd; }
   }
 
   const fbType=best.fbType, fallback=fbType!=='';
   _optCtx={dm,dp,sym,mode:sym?'margin':'torque',floor:floorAbs,Mstar,
-    T2,margin:marginVal,motorVal:hasMotor?motorVal:NaN,hasMotor,c0};
+    T2,margin:marginVal,motorVal:hasMotor?motorVal:NaN,hasMotor,c0,
+    a0:S.a,d0:S.d};
 
-  const rho=best.cOpt/S.a, wFac=Math.min(1.5,Math.max(0.5,rho/2));
+  const rho=best.cOpt/(best.aOpt||S.a), wFac=Math.min(1.5,Math.max(0.5,rho/2));
   const banner=fallback
     ?'<div style="background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.25);border-radius:8px;'
      +'padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:#a05800;font-weight:600;line-height:1.5;">'
@@ -3421,28 +3535,43 @@ function doOptimize(){
     +'font-family:inherit;font-variant-numeric:tabular-nums;outline:none;">'
     +'<span style="font-size:10.5px;color:var(--text3);">'+unit+'</span></span></div>';
 
+  // 탐색범위 경계에 붙은 변수 목록
+  const bndVal={c:best.cOpt,a:best.aOpt,d:best.dOpt};
+  const bnd=[];
+  if(best.varBounds){ for(const k of ['c','a','d']) if(best.varBounds[k]) bnd.push(k+'='+bndVal[k]+'mm'); }
+  else if(best.atBound) bnd.push('c='+best.cOpt+'mm');
+  // 적용 대상 라벨 (변수인 링크 + θ₄₀)
+  const applied=['c','b','a','d'].filter(k=>OPTVARS[k].v);
+
   box.style.display='block';
   box.innerHTML=banner
-    +(best.atBound
+    +(bnd.length
       ?'<div style="background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.2);border-radius:8px;'
        +'padding:5px 10px;margin-bottom:8px;font-size:10px;color:#0058b0;font-weight:600;line-height:1.5;">'
-       +'ⓘ 최적 c 가 자동 범위(0.2~0.8×d) 경계('+best.cOpt+'mm)에 있습니다 — d 를 키우면 더 좋은 해가 있을 수 있습니다</div>'
+       +'ⓘ 최적값이 탐색범위 경계에 있습니다 ('+bnd.join(', ')+') — 해당 범위를 넓히면 더 좋은 해가 있을 수 있습니다</div>'
       :'')
-    +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5;">a='+S.a+', d='+S.d
-    +' mm 고정 · c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×d, 초기 c₀ 무관) · c*='+best.cOpt+'mm 기준 링크비 '+rho.toFixed(2)
+    +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5;">'+optVarSummary()
+    +' · c*='+best.cOpt+'mm 기준 링크비 '+rho.toFixed(2)
     +' → 성향 w='+wFac.toFixed(2)+' · 아래 추천값을 수정하면 전체 지표가 즉시 재계산됩니다</div>'
     +'<div class="result-card" style="margin-bottom:8px;">'
-    +editRow('추천 출력링크 c'+(Math.abs(best.cOpt-c0)>1e-9
+    +(OPTVARS.d.v?editRow('추천 고정링크 d'+(Math.abs(best.dOpt-_optCtx.d0)>1e-9
+        ?' <span style="color:var(--text3)">(기존 '+_optCtx.d0+')</span>':''),
+      'optEditD',best.dOpt,1,'mm','var(--ground)'):'')
+    +(OPTVARS.a.v?editRow('추천 입력링크 a'+(Math.abs(best.aOpt-_optCtx.a0)>1e-9
+        ?' <span style="color:var(--text3)">(기존 '+_optCtx.a0+')</span>':''),
+      'optEditA',best.aOpt,1,'mm','var(--crank)'):'')
+    +(OPTVARS.c.v?editRow('추천 출력링크 c'+(Math.abs(best.cOpt-c0)>1e-9
         ?' <span style="color:var(--text3)">(기존 '+c0+')</span>':''),
-      'optEditC',best.cOpt,1,'mm','#248a3d')
-    +editRow('추천 커플러 b','optEditB',+(+best.b).toFixed(2),0.25,'mm','var(--coupler)')
+      'optEditC',best.cOpt,1,'mm','#248a3d'):'')
+    +(OPTVARS.b.v?editRow('추천 커플러 b','optEditB',+(+best.b).toFixed(2),0.25,'mm','var(--coupler)'):'')
     +editRow('추천 중립각 θ₄₀','optEditT0',+best.t0.toFixed(1),0.5,'°','var(--follower)')
     +'<div class="result-divider"></div>'
     +'<div id="optMetrics"></div>'
     +'</div>'
     +'<button onclick="applyOptFromCard()"'
     +' style="width:100%;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;'
-    +'font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">이 값 적용 (c · b · θ₄₀ · 중립각)</button>';
+    +'font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">이 값 적용 ('
+    +(applied.length?applied.join(' · ')+' · ':'')+'θ₄₀ · 중립각)</button>';
   recalcOptCard();   // 최초 지표 채우기
 }
 
@@ -3454,9 +3583,12 @@ function scheduleOptRecalc(){
 }
 
 // 주어진 (c, b, θ₄₀) 설계의 전체 지표 평가 (최적화가 아닌 단일 평가)
-function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode){
+function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
   const sym=Math.abs(dm-dp)<1e-9;
-  const saved=S.c; S.c=cv;
+  const sc=S.c, sa=S.a, sd=S.d;
+  S.c=cv;
+  if(isFinite(av)) S.a=av;
+  if(isFinite(dv)) S.d=dv;
   try{
     const fr=feasibleRangeOf(bv);
     if(!fr) return{err:'이 (c, b) 조합은 어떤 θ₄ 에서도 조립되지 않습니다'};
@@ -3479,7 +3611,7 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode){
     const score=sym?(tm+tp+wmax):(mode==='torque'?tn:minMgn);
     return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,imbal,marginM:mm,marginP:mp,minMgn,
       score,physLo,physHi,contained};
-  } finally { S.c=saved; }
+  } finally { S.c=sc; S.a=sa; S.d=sd; }
 }
 
 function buildOptMetrics(m){
@@ -3545,31 +3677,48 @@ function recalcOptCard(){
   const el=id=>document.getElementById(id);
   const mDiv=el('optMetrics');
   if(!mDiv) return;
-  const cv=parseFloat(el('optEditC')?.value), bv=parseFloat(el('optEditB')?.value), t0=parseFloat(el('optEditT0')?.value);
-  if([cv,bv,t0].some(v=>isNaN(v))||cv<5||cv>400||bv<5||bv>400){
-    mDiv.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;">⚠︎ 값을 확인하세요 (c·b: 5~400 mm)</div>';
+  // 고정된 링크는 편집칸이 없으므로 '현재 S' 값을 쓴다 — 스냅샷을 쓰면 사용자가 그 뒤
+  // 링크를 직접 고쳤을 때 카드가 '적용해도 나올 수 없는 설계' 를 보여주게 된다.
+  const get=id=>{ const e=el(id); if(!e) return undefined; const v=parseFloat(e.value); return isNaN(v)?NaN:v; };
+  const cvR=get('optEditC'), bvR=get('optEditB'), t0=get('optEditT0'),
+        avR=get('optEditA'), dvR=get('optEditD');
+  // 범위 검사는 '카드에서 고칠 수 있는 칸' 에만 적용 (아니면 지울 수 없는 오류배너에 갇힘)
+  const bad=(v,lo,hi)=>v!==undefined&&(isNaN(v)||v<lo||v>hi);
+  if(t0===undefined||isNaN(t0)||bad(cvR,5,400)||bad(bvR,5,400)||bad(avR,5,400)||bad(dvR,10,400)){
+    mDiv.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;">⚠︎ 값을 확인하세요 (a·b·c: 5~400 mm, d: 10~400 mm)</div>';
     return;
   }
-  const m=evalDesign(cv,bv,t0,_optCtx.dm,_optCtx.dp,_optCtx.T2,_optCtx.margin,_optCtx.mode);
+  const cv=cvR!==undefined?cvR:S.c, bv=bvR!==undefined?bvR:S.b,
+        av=avR!==undefined?avR:S.a, dv=dvR!==undefined?dvR:S.d;
+  const m=evalDesign(cv,bv,t0,_optCtx.dm,_optCtx.dp,_optCtx.T2,_optCtx.margin,_optCtx.mode,av,dv);
   m.t0=t0;
   mDiv.innerHTML=buildOptMetrics(m);
 }
 
 function applyOptFromCard(){
-  const cv=parseFloat(document.getElementById('optEditC')?.value);
-  const bv=parseFloat(document.getElementById('optEditB')?.value);
-  const t0=parseFloat(document.getElementById('optEditT0')?.value);
-  if([cv,bv,t0].some(v=>isNaN(v))) return;
-  applyOpt(bv,t0,cv);
+  // undefined = 그 링크가 고정이라 편집칸이 아예 없음 → applyOpt 가 건너뜀
+  // NaN       = 칸은 있는데 비었거나 숫자가 아님 → 부분 적용 대신 전체 취소
+  const get=id=>{ const e=document.getElementById(id); if(!e) return undefined;
+                  const v=parseFloat(e.value); return isNaN(v)?NaN:v; };
+  const cv=get('optEditC'), bv=get('optEditB'), t0=get('optEditT0');
+  const av=get('optEditA'), dv=get('optEditD');
+  if(t0===undefined||!isFinite(t0)) return;   // NaN·Infinity 모두 차단
+  // b·θ₄₀ 는 추천 c 를 전제로 함께 최적화된 값이므로 일부만 적용하면 안 된다.
+  const bad=(v,lo,hi)=>v!==undefined&&(isNaN(v)||v<lo||v>hi);
+  if(bad(cv,5,400)||bad(bv,5,400)||bad(av,5,400)||bad(dv,10,400)) return;
+  applyOpt(bv,t0,cv,av,dv);
 }
 
-function applyOpt(bVal,t4Val,cVal){
-  if(cVal!==null&&cVal!==undefined&&isFinite(cVal)){
-    S.c=cVal;
-    document.getElementById('ic').value=cVal;
-  }
-  S.b=bVal;
-  document.getElementById('ib').value=bVal;
+function applyOpt(bVal,t4Val,cVal,aVal,dVal){
+  // 입력칸의 min/max 를 지켜 기록 (a 가 탐색범위 하한에 닿는 경우 대비)
+  const put=(id,v,lo,hi)=>{ const x=Math.min(hi,Math.max(lo,v));
+    const e=document.getElementById(id); if(e) e.value=x; return x; };
+  const ok=v=>v!==null&&v!==undefined&&isFinite(v);   // isFinite(null)===true 라 단독 사용 금지
+  if(ok(dVal)) S.d=put('id',dVal,10,400);
+  if(ok(aVal)){ S.a=put('ia',aVal,5,400); syncArmHole(); }   // 서보암 홀간거리 연동 유지
+  if(ok(cVal)) S.c=put('ic',cVal,5,400);
+  if(ok(bVal)) S.b=put('ib',bVal,5,400);            // 고정된 링크는 손대지 않음
+  updateOptVarUI();                                 // a·c·d 변경 → 자동 탐색범위 표시 갱신
   setTransform(); updateGrashof();
   setT4(t4Val);
   // 최적화의 θ₄₀ 는 중립각이므로 힌지모멘트 연동 중립각에도 반영
@@ -3587,8 +3736,14 @@ let _deltaSweepData=null, _dsBusy=false;
 function optimizeForDelta(dm,dp,T2,marginVal,opt){
   const cands=[], relaxCands=[], muCands=[];
   // 조립 조건: b 는 [d−a−c, d+a+c] 범위 밖에서는 어떤 θ₄ 에서도 조립 불가
-  const _L=gLen();
-  const bLo=Math.max(5,Math.ceil(_L-S.a-S.c)), bHi=Math.min(400,Math.floor(_L+S.a+S.c));
+  const _w=bAssemblyWindow();
+  let bLo=_w.lo, bHi=_w.hi;
+  if(!OPTVARS.b.v){                 // b 고정 → 현재 b 한 점만 평가 (bestNeutralForB 는 실수 b 허용)
+    bLo=bHi=S.b;
+  } else {                          // 지정 범위 ∩ 조립조건 (자동이면 조립조건 자신이라 무연산)
+    const rb=optVarRange('b');      // 역전 범위(lo>hi)는 optVarRange 가 자동으로 되돌림 — c 와 동일 규칙
+    bLo=Math.max(bLo,rb.lo); bHi=Math.min(bHi,rb.hi);
+  }
   for(let bv=bLo;bv<=bHi;bv++){
     const r=bestNeutralForB(bv,T2,dm,dp,marginVal,opt);
     if(!r) continue;
@@ -3640,12 +3795,268 @@ function optimizeForDelta(dm,dp,T2,marginVal,opt){
 //   [0.2·d, 0.8·d]  (5~400mm 클램프, 최소 폭 10mm 보장)
 // d 는 진짜 고정 설계 입력이므로, 임의 초기값 c₀ 나 별도 입력 없이도
 // 같은 d 에서는 항상 같은 범위 → 항상 같은 추천이 나온다.
+// ── 설계 변수(고정/변수) 헬퍼 ─────────────────────────────────────────────
+// 링크 표시명 / 입력칸 id / 하한
+const OPTVAR_META={ d:{nm:'고정 d', min:10}, a:{nm:'입력 a', min:5},
+                    b:{nm:'커플러 b',min:5}, c:{nm:'출력 c', min:5} };
+const OPTVAR_ORDER=['d','a','b','c'];
+
+// b 조립 가능 구간: [L−a−c, L+a+c] ∩ [5,400].
+// 이 밖의 b 는 어떤 θ₄ 에서도 조립되지 않는다. (탐색·자동범위·요약이 모두 이걸 쓴다)
+function bAssemblyWindow(){
+  const L=gLen();
+  return { lo:Math.max(5,Math.ceil(L-S.a-S.c)), hi:Math.min(400,Math.floor(L+S.a+S.c)) };
+}
+
+// '변수' 로 전환할 때 한 번 계산해 입력칸에 넣는 자동 탐색범위.
+// d 가 변수면 탐색 중 gLen() 이 변하므로 라이브 재계산하지 않고 이 값을 고정 사용한다.
+function autoVarRange(key){
+  const L=gLen();
+  let lo,hi;
+  if(key==='c'){ const r=readCRange(); return {lo:r.lo,hi:r.hi}; }
+  if(key==='a'){ lo=Math.max(5,Math.round(L*0.05)); hi=Math.min(400,Math.round(L*0.35)); }
+  else if(key==='d'){ const d0=S.d||100; lo=Math.max(10,Math.round(d0*0.5)); hi=Math.min(400,Math.round(d0*1.5)); }
+  else { const w=bAssemblyWindow(); lo=w.lo; hi=w.hi; }   // b: 조립 가능 조건
+  if(hi<lo+10) hi=Math.min(400,lo+10);
+  if(lo>hi) lo=Math.max(OPTVAR_META[key].min,hi-10);
+  return {lo,hi};
+}
+// 실제 탐색에 쓸 범위 — 사용자가 직접 고친 값만 고정 사용, 아니면 '라이브' 자동범위.
+// (자동범위를 토글 시점에 얼려두면 d 를 바꿨을 때 c 범위가 낡아 기존 동작과 달라진다.
+//  대신 optimizeForVars 가 탐색 시작 시 한 번 스냅샷해 탐색 도중에는 흔들리지 않게 한다.)
+function optVarRange(key){
+  const o=OPTVARS[key];
+  if(o.user&&isFinite(o.lo)&&isFinite(o.hi)&&o.hi>=o.lo) return {lo:o.lo,hi:o.hi};
+  return autoVarRange(key);
+}
+// 현재 고정/변수 조합을 한 줄 요약 (결과 카드·경고문에 사용)
+function optVarSummary(){
+  const cv={a:S.a,b:S.b,c:S.c,d:S.d}, fx=[], vr=[];
+  for(const k of OPTVAR_ORDER){
+    if(OPTVARS[k].v){
+      let r=optVarRange(k);
+      let note=OPTVARS[k].user?'':' (자동)';
+      if(k==='b'){
+        // a·c·d 가 모두 고정일 때만 조립 구간이 하나로 정해진다. 하나라도 변수면
+        // 좌표강하가 (a,c,d) 마다 다른 구간으로 b 를 훑으므로 단일 구간으로 못 적는다.
+        if(!OPTVARS.a.v&&!OPTVARS.c.v&&!OPTVARS.d.v){
+          const w=bAssemblyWindow();
+          r={lo:Math.max(r.lo,w.lo), hi:Math.min(r.hi,w.hi)};
+        } else note+=' ∩조립조건(a·c·d 따라 변동)';
+      }
+      vr.push(k+' '+(r.lo>r.hi?'—(조립 가능 구간 없음)':r.lo+'~'+r.hi+'mm')+note);
+    }
+    else fx.push(k+'='+cv[k]+'mm');
+  }
+  return '고정 '+(fx.length?fx.join(', '):'—')+' · 변수 '+(vr.length?vr.join(', '):'θ₄₀ 만');
+}
+function optFixedCount(){ return OPTVAR_ORDER.filter(k=>!OPTVARS[k].v).length; }
+function showOptVarHint(msg){
+  const h=document.getElementById('optVarHint'); if(!h) return;
+  h.textContent=msg; h.style.display='block';
+  clearTimeout(showOptVarHint._t);
+  showOptVarHint._t=setTimeout(()=>{ h.style.display='none'; },5000);
+}
+function setOptVar(key,isVar){
+  if(!OPTVARS[key]) return;
+  if(isVar===OPTVARS[key].v){ updateOptVarUI(); return; }
+  if(isVar && optFixedCount()<=1){          // 마지막 고정을 변수로 → 거부 (스케일 축퇴)
+    showOptVarHint('최소 1개 링크는 고정해야 합니다 — a:b:c:d 를 같은 배율로 키우면 토크·전달각이 완전히 같아져(스케일 불변) 해가 무한히 많아집니다.');
+    updateOptVarUI(); return;
+  }
+  OPTVARS[key].v=isVar;
+  updateOptVarUI();
+}
+function onOptVarRange(key){
+  const mn=document.getElementById('iVarMin_'+key), mx=document.getElementById('iVarMax_'+key);
+  if(!mn||!mx) return;
+  const lim=OPTVAR_META[key].min;
+  let lo=parseFloat(mn.value), hi=parseFloat(mx.value);
+  if(isFinite(lo)) lo=Math.max(lim,Math.min(400,lo));
+  if(isFinite(hi)) hi=Math.max(lim,Math.min(400,hi));
+  OPTVARS[key].lo=isFinite(lo)?lo:null;
+  OPTVARS[key].hi=isFinite(hi)?hi:null;
+  OPTVARS[key].user=(isFinite(lo)&&isFinite(hi));   // 직접 입력한 범위만 탐색에 강제
+  const h=document.getElementById('optVarHint');
+  if(isFinite(lo)&&isFinite(hi)&&lo>hi)
+    showOptVarHint(key+' 탐색범위가 뒤집혀 있습니다 (최소>최대) — 자동 범위로 대체해 계산합니다.');
+  else if(h&&h.style.display==='block'){ h.style.display='none'; clearTimeout(showOptVarHint._t); }
+}
+function updateOptVarUI(){
+  for(const k of OPTVAR_ORDER){
+    const v=OPTVARS[k].v;
+    const bf=document.getElementById('btnVarFix_'+k), bv=document.getElementById('btnVarVar_'+k),
+          rg=document.getElementById('varRange_'+k);
+    if(bf) bf.classList.toggle('active',!v);
+    if(bv) bv.classList.toggle('active', v);
+    if(rg) rg.style.display=v?'flex':'none';
+    if(v&&!OPTVARS[k].user){              // 자동 범위는 항상 현재 a·c·d 기준으로 다시 표시
+      const r=autoVarRange(k);
+      OPTVARS[k].lo=r.lo; OPTVARS[k].hi=r.hi;
+      const mn=document.getElementById('iVarMin_'+k), mx=document.getElementById('iVarMax_'+k);
+      if(mn&&document.activeElement!==mn) mn.value=r.lo;
+      if(mx&&document.activeElement!==mx) mx.value=r.hi;
+    }
+  }
+  const ds=document.getElementById('dsOptC');
+  if(ds) ds.disabled=!OPTVARS.c.v;   // c 가 고정이면 스윕의 'c 도 최적화' 는 무의미
+  refreshOptDesc();
+  // 고정 링크는 카드에 편집칸이 없어 recalc 가 자동으로 안 돈다. a·c·d 가 바뀌는 모든 경로
+  // (onLink·onArmHole·onServoOffset·endDrag·applyOpt)가 여기를 지나므로 여기서 한 번 걸어준다.
+  // 안 걸면 카드가 '적용해도 나올 수 없는 설계' 의 지표를 계속 보여준다.
+  if(typeof _optCtx!=='undefined'&&_optCtx) scheduleOptRecalc();
+}
+// 옵티마이저 설명문 — 타각 모드(대칭/비대칭) + 현재 고정/변수 조합을 함께 반영
+function refreshOptDesc(){
+  const desc=document.getElementById('optDesc'); if(!desc) return;
+  const fixed=OPTVAR_ORDER.filter(k=>!OPTVARS[k].v).map(k=>OPTVAR_META[k].nm);
+  const vars =OPTVAR_ORDER.filter(k=> OPTVARS[k].v).map(k=>OPTVAR_META[k].nm);
+  const asym=(typeof _deflectMode!=='undefined'&&_deflectMode==='asym');
+  const head='<b>'+(fixed.length?fixed.join(' · '):'—')+'</b> 를 고정한 채, <b>'
+           +(vars.length?vars.join(' · ')+' · ':'')+'중립 출력각 θ₄₀</b> 를 탐색합니다. ';
+  desc.innerHTML=head+(asym
+    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b> · μ≥50° · '
+      +'<b>최소 안전여유 하한(달성 최대의 90%)</b> 을 제약으로 두고 그 안에서 <b>절대 토크(중립)를 최대화</b>합니다. (힌지모멘트 입력 불필요)'
+    : '입력한 <b>타각 범위</b> 를 물리 가용범위(양끝단 마진 제외) 안에 수용하고 <b>양끝단 토크 불균형 ≤ 10%</b> 를 '
+      +'만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 탐색합니다.');
+}
+
 function readCRange(){
   const _L=gLen();
   let lo=Math.max(5,Math.round(_L*0.2));
   let hi=Math.min(400,Math.round(_L*0.8));
   if(hi<lo+10) hi=Math.min(400,lo+10);
   return{lo,hi};
+}
+
+// 티어(정상 > 불균형차선 > μ차선) 우선 → §3-1 준동률 안에서 최대토크 우선
+// (optimizeForDeltaWithC 의 지역 클로저였던 것을 optimizeForVars 와 공유하려고 승격)
+function optTierOf(r){ return r.fbType===''?0:(r.fbType==='imbal'?1:2); }
+function optSelect(arr){
+  const bt=Math.min(...arr.map(optTierOf));
+  const pool=arr.filter(r=>optTierOf(r)===bt);
+  const S0=Math.max(...pool.map(r=>r.score));
+  let bb=null;
+  for(const r of pool){
+    if(r.score<S0*(1-OPT_SCORE_TOL)-1e-12) continue;
+    if(!bb||r.wmax>bb.wmax+1e-9||(Math.abs(r.wmax-bb.wmax)<=1e-9&&r.score>bb.score)) bb=r;
+  }
+  return{...bb,fallback:bt>0};
+}
+
+// ── 설계 변수 조합에 따른 최적화 (좌표강하) ────────────────────────────────
+// a·c·d 중 '변수' 인 것을 좌표강하로 번갈아 최적화하고, b·θ₄₀ 는 기존
+// optimizeForDelta → bestNeutralForB 파이프라인이 담당한다.
+// 핫루프 헬퍼(feasibleRangeOf/absT4At)가 S.a·S.c·gLen() 을 전역에서 읽으므로
+// 좌표값은 S 를 변이시킨 뒤 finally 로 반드시 복원한다(예외 시에도 누수 없음).
+function optimizeForVars(dm,dp,T2,marginVal,opt){
+  const outer=['c','a','d'].filter(k=>OPTVARS[k].v);
+
+  // ① 기본 조합(c·b 변수, a·d 고정) → 기존 경로 그대로 (회귀 0)
+  if(outer.length===1&&outer[0]==='c'&&OPTVARS.b.v&&!OPTVARS.a.v&&!OPTVARS.d.v){
+    const r=optVarRange('c');
+    return optimizeForDeltaWithC(dm,dp,T2,marginVal,r.lo,r.hi,opt);
+  }
+  // ② a·c·d 전부 고정 → b(+θ₄₀)만 최적화
+  if(!outer.length){
+    const r0=optimizeForDelta(dm,dp,T2,marginVal,opt);
+    if(!r0||r0.t0===undefined) return null;
+    const out={cOpt:S.c,aOpt:S.a,dOpt:S.d,...r0};
+    out.tn=absT4At(out.b,out.t0,T2);
+    out.atBound=false; out.varBounds={};
+    return out;
+  }
+
+  // ③ 좌표강하
+  const snap={a:S.a,c:S.c,d:S.d};
+  const ranges={}; outer.forEach(k=>{ ranges[k]=optVarRange(k); });
+  const cur={a:S.a,c:S.c,d:S.d};
+  outer.forEach(k=>{ cur[k]=Math.max(ranges[k].lo,Math.min(ranges[k].hi,cur[k])); });
+
+  const memo=new Map();
+  const evalAt=st=>{
+    const key=[st.a,st.c,st.d].map(v=>Math.round(v*100)/100).join('|');
+    if(memo.has(key)) return memo.get(key);
+    let r=null;
+    S.a=st.a; S.c=st.c; S.d=st.d;
+    try{
+      r=optimizeForDelta(dm,dp,T2,marginVal,opt);
+      if(r&&r.t0!==undefined){ r.tn=absT4At(r.b,r.t0,T2); r={cOpt:st.c,aOpt:st.a,dOpt:st.d,...r}; }
+      else r=null;
+    } finally { S.a=snap.a; S.c=snap.c; S.d=snap.d; }
+    memo.set(key,r);
+    return r;
+  };
+
+  try{
+    const MAXPASS=4;
+    let best=evalAt(cur);
+    for(let pass=0; pass<MAXPASS; pass++){
+      let improved=false;
+      for(const k of outer){
+        const rg=ranges[k];
+        const step=(pass===0)?((outer.length>=2)?4:2):1;
+        const cand=[cur[k]];                       // 현재값을 항상 포함 → 후퇴 없음
+        if(pass===0){
+          for(let v=Math.ceil(rg.lo/step)*step; v<=rg.hi; v+=step) cand.push(v);
+          cand.push(rg.lo,rg.hi);
+        } else {
+          for(let dv=-3*step; dv<=3*step; dv+=step){
+            const v=cur[k]+dv;
+            if(v>=rg.lo&&v<=rg.hi) cand.push(v);
+          }
+        }
+        const results=[];
+        const seen=new Set();
+        for(const v0 of cand){
+          const v=Math.max(rg.lo,Math.min(rg.hi,Math.round(v0)));
+          if(seen.has(v)) continue;
+          seen.add(v);
+          const st={...cur}; st[k]=v;
+          const r=evalAt(st);
+          if(r) results.push({...r,_v:v});
+        }
+        if(!results.length) continue;
+        const pick=optSelect(results);
+        if(!pick) continue;
+        if(pick._v!==cur[k]){ cur[k]=pick._v; improved=true; }
+        best=pick;
+      }
+      if(!improved) break;
+    }
+    let fin0=evalAt(cur)||best;
+    // 수렴한 (a,d) 에서 c 를 전해상도(2mm 격자 + ±3mm 정밀)로 다시 훑는다.
+    // 좌표강하의 거친 c 격자 때문에 c 만 변수일 때보다 나빠지는 것을 막는다.
+    if(OPTVARS.c.v){
+      const cr=ranges.c||optVarRange('c');
+      S.a=cur.a; S.c=cur.c; S.d=cur.d;
+      let full=null;
+      try{ full=optimizeForDeltaWithC(dm,dp,T2,marginVal,cr.lo,cr.hi,opt); }
+      finally { S.a=snap.a; S.c=snap.c; S.d=snap.d; }
+      if(full){
+        full={aOpt:cur.a,dOpt:cur.d,...full};
+        if(full.tn===undefined){
+          S.a=cur.a; S.c=full.cOpt; S.d=cur.d;
+          try{ full.tn=absT4At(full.b,full.t0,T2); }
+          finally { S.a=snap.a; S.c=snap.c; S.d=snap.d; }
+        }
+        const pickF=fin0?optSelect([fin0,full]):full;
+        fin0=pickF; cur.c=fin0.cOpt;
+      }
+    }
+    if(!fin0) return null;
+    const fin={...fin0};
+    fin.varBounds={};
+    let anyBound=false;
+    for(const k of outer){
+      const rg=ranges[k];
+      const atB=(cur[k]<=rg.lo+1)||(cur[k]>=rg.hi-1);
+      fin.varBounds[k]=atB;
+      if(atB) anyBound=true;
+    }
+    fin.atBound=anyBound;
+    return fin;
+  } finally { S.a=snap.a; S.c=snap.c; S.d=snap.d; }
 }
 
 function optimizeForDeltaWithC(dm,dp,T2,marginVal,cMin,cMax,opt){
@@ -3666,18 +4077,7 @@ function optimizeForDeltaWithC(dm,dp,T2,marginVal,cMin,cMax,opt){
     tried.set(cv,r);
     return r;
   };
-  const tierOf=r=>r.fbType===''?0:(r.fbType==='imbal'?1:2);
-  const select=arr=>{
-    const bt=Math.min(...arr.map(tierOf));
-    const pool=arr.filter(r=>tierOf(r)===bt);
-    const S0=Math.max(...pool.map(r=>r.score));
-    let bb=null;
-    for(const r of pool){
-      if(r.score<S0*(1-OPT_SCORE_TOL)-1e-12) continue;
-      if(!bb||r.wmax>bb.wmax+1e-9||(Math.abs(r.wmax-bb.wmax)<=1e-9&&r.score>bb.score)) bb=r;
-    }
-    return{...bb,fallback:bt>0};
-  };
+  const tierOf=optTierOf, select=optSelect;
 
   // 절대 짝수 그리드 스캔 (범위 양끝은 항상 포함)
   for(let cv=2*Math.ceil(range.lo/2); cv<=range.hi; cv+=2) evalC(cv);
@@ -3717,20 +4117,22 @@ function runDeltaSweep(){
   // 현재 타각 모드가 비대칭이면 δ₋/δ₊ 비율을 보존한 채 x축(δ₊)만 스윕
   const df=getDeflect();
   const ratio=(df.sym||!(df.dp>0)||!(df.dm>0))?1:(df.dm/df.dp);
-  const optC=!!document.getElementById('dsOptC')?.checked;
+  // 스윕은 δ 점마다 최적화를 돌리므로 a·d 는 현재값 고정, c 는 설계 변수 설정을 따른다
+  const optC=(!!document.getElementById('dsOptC')?.checked)&&OPTVARS.c.v;
   const STEP=optC?1:0.5;   // c-모드는 계산량이 커서 1° 간격
   const deltas=[];
   for(let d=d0;d<=d1+1e-9;d+=STEP) deltas.push(+d.toFixed(2));
   _deltaSweepData={deltas,maxArr:[],minArr:[],fbArr:[],bArr:[],t0Arr:[],tnArr:[],
     cArr:optC?[]:null,optC,ratio,sym:df.sym,
     T2,margin:marginVal,a:S.a,c:S.c,d:S.d,sol:S.sol};
-  const cR=readCRange();
+  const cR=optVarRange('c');
   const sub=document.getElementById('dsSub');
   if(sub) sub.textContent='a='+S.a+(optC?', c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×d)':', c='+S.c)
     +', d='+S.d+' mm · T₂='+T2.toFixed(2)
     +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준'
     +(df.sym?' — x축 ±δ':' — x축 δ₊ (δ₋=δ₊×'+ratio.toFixed(2)+' 비율 보존, 여유율 균형)')
-    +' · 각 점마다 최적 ('+(optC?'c, ':'')+'b, θ₄₀) 재계산';
+    +(OPTVARS.b.v?'':' · b='+S.b+' 고정')
+    +' · 각 점마다 최적 ('+(optC?'c, ':'')+(OPTVARS.b.v?'b, ':'')+'θ₄₀) 재계산';
   _dsBusy=true;
   const runBtn=document.getElementById('dsRun');
   if(runBtn){ runBtn.disabled=true; runBtn.style.opacity='0.5'; }
@@ -4253,6 +4655,7 @@ window.addEventListener('load',()=>{
   useCurT4();  // 힌지모멘트 연동 중립각 초기값 = 현재 θ₄
   syncArmHole();  // 서보암 홀간거리 입력칸을 현재 크랭크 a 와 맞춤
   updateCSUI();   // 조종면 각도 δ 슬라이더 초기 범위·읽기값 세팅
+  updateOptVarUI();  // 설계 변수(고정/변수) 토글·자동 탐색범위·설명문 초기화
 });
 </script>
 </body>

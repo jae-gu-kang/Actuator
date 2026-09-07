@@ -10,6 +10,7 @@
 |---|---|
 | `build_merged.py` | 병합 빌드 스크립트 (표준 라이브러리만 사용) |
 | `test_merged.js` | puppeteer-core 기반 오프라인 검증 테스트 |
+| `test_optvars.js` | 4-Bar 설계 변수(고정/변수) 불변식 회귀 테스트 (브라우저 불필요) |
 | `libs/chart.umd.min.js` | Chart.js 4.4.0 (hinge·servo용, 오프라인 인라인) |
 | `libs/chart.umd.js` | Chart.js 4.4.1 (regression용, 오프라인 인라인) |
 | `libs/html2canvas.min.js` | html2canvas 1.4.1 (hinge 테이블 이미지 저장용) |
@@ -44,7 +45,7 @@ node build/test_merged.js
 > Chrome 경로는 `test_merged.js` 상단 `CHROME` 상수에서 조정할 수 있습니다.
 > (기본값: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`)
 
-### 검증 항목 (25종, 모두 통과)
+### 검증 항목 (26종, 모두 통과)
 - **셸**: 7개 탭 존재/전환
 - **오프라인**: 외부(http/https) 요청 **0건**, 상위 프레임 JS 오류 0건
 - **4-Bar**: 캔버스/결과 UI, 토크·기계이득 계산, AI 최적값 계산 실행,
@@ -57,8 +58,33 @@ node build/test_merged.js
 - **CS Rigging**: 조종면/JSON(FCA_RIG) 구조, 예시 → 회귀식 계산 결과
 - **매뉴얼**: 5개 섹션 + 검색 인덱스 74항목
 
+## 4-Bar 설계 변수 회귀 테스트 (`test_optvars.js`)
+
+`4-bar-linkage-torque.html` 의 옵티마이저는 네 링크(고정 d · 입력 a · 커플러 b · 출력 c)를
+각각 '고정/변수'로 지정할 수 있습니다. 이 테스트가 지키는 핵심 계약은
+
+> **기본 변수집합(c·b 변수, a·d 고정)에서 `optimizeForVars` 는
+> 기존 `optimizeForDeltaWithC` 와 완전히 같은 결과를 낸다.**
+
+두 함수를 같은 프로세스에서 직접 비교하므로 예전 빌드를 따로 보관할 필요가 없습니다.
+브라우저 없이 `<script>` 본문만 `vm` 으로 올려 실행합니다(약 40초).
+
+```bash
+node build/test_optvars.js            # 기본: ../4-bar-linkage-torque.html
+node build/test_optvars.js <파일경로>  # 다른 사본을 검사할 때
+```
+
+검증 항목 (10종): 기본 경로 동일성(비대칭 2-패스 실제 floor 포함) · 모든 조합에서 `S.a/b/c/d` 복원
+(편심 `offY`·cross 해 포함) · 최소 1개 고정 강제(스케일 불변) · 전부 고정 시 θ₄₀만 탐색 ·
+b 고정 시 b 불변 · 뒤집힌 탐색범위 자동 폴백 · 사용자 지정 범위 강제 ·
+**적용 경로 3종**(고정 링크 건너뜀 / 빈 칸이면 부분 적용 없이 전체 취소 / 범위 밖은 클램프 아닌 취소).
+
 ## 재빌드가 필요할 때
 도구 HTML(`*.html`) 을 수정하면 병합 파일을 다시 생성하세요:
 ```bash
 python3 build/build_merged.py && node build/test_merged.js
+```
+`4-bar-linkage-torque.html` 의 옵티마이저를 건드렸다면 추가로:
+```bash
+node build/test_optvars.js
 ```
