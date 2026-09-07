@@ -3584,6 +3584,9 @@ function scheduleOptRecalc(){
 
 // 주어진 (c, b, θ₄₀) 설계의 전체 지표 평가 (최적화가 아닌 단일 평가)
 function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
+  // t0 가 ±Infinity 면 아래 0.25° 스윕이 t+=0.25 로 전진하지 못해 무한루프 → UI 정지.
+  // 호출자(recalcOptCard)도 막지만 여기서 한 번 더 차단한다.
+  if(!isFinite(t0)||!isFinite(cv)||!isFinite(bv)) return{err:'값이 유효하지 않습니다 (유한한 숫자를 입력하세요)'};
   const sym=Math.abs(dm-dp)<1e-9;
   const sc=S.c, sa=S.a, sd=S.d;
   S.c=cv;
@@ -3684,7 +3687,7 @@ function recalcOptCard(){
         avR=get('optEditA'), dvR=get('optEditD');
   // 범위 검사는 '카드에서 고칠 수 있는 칸' 에만 적용 (아니면 지울 수 없는 오류배너에 갇힘)
   const bad=(v,lo,hi)=>v!==undefined&&(isNaN(v)||v<lo||v>hi);
-  if(t0===undefined||isNaN(t0)||bad(cvR,5,400)||bad(bvR,5,400)||bad(avR,5,400)||bad(dvR,10,400)){
+  if(t0===undefined||!isFinite(t0)||bad(cvR,5,400)||bad(bvR,5,400)||bad(avR,5,400)||bad(dvR,10,400)){
     mDiv.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;">⚠︎ 값을 확인하세요 (a·b·c: 5~400 mm, d: 10~400 mm)</div>';
     return;
   }
@@ -3851,8 +3854,9 @@ function optVarSummary(){
   return '고정 '+(fx.length?fx.join(', '):'—')+' · 변수 '+(vr.length?vr.join(', '):'θ₄₀ 만');
 }
 function optFixedCount(){ return OPTVAR_ORDER.filter(k=>!OPTVARS[k].v).length; }
-function showOptVarHint(msg){
+function showOptVarHint(msg,key){
   const h=document.getElementById('optVarHint'); if(!h) return;
+  if(h.dataset) h.dataset.hintKey=key||'';   // 어느 항목의 경고인지 (다른 항목이 지우지 않도록)
   h.textContent=msg; h.style.display='block';
   clearTimeout(showOptVarHint._t);
   showOptVarHint._t=setTimeout(()=>{ h.style.display='none'; },5000);
@@ -3879,8 +3883,10 @@ function onOptVarRange(key){
   OPTVARS[key].user=(isFinite(lo)&&isFinite(hi));   // 직접 입력한 범위만 탐색에 강제
   const h=document.getElementById('optVarHint');
   if(isFinite(lo)&&isFinite(hi)&&lo>hi)
-    showOptVarHint(key+' 탐색범위가 뒤집혀 있습니다 (최소>최대) — 자동 범위로 대체해 계산합니다.');
-  else if(h&&h.style.display==='block'){ h.style.display='none'; clearTimeout(showOptVarHint._t); }
+    showOptVarHint(key+' 탐색범위가 뒤집혀 있습니다 (최소>최대) — 자동 범위로 대체해 계산합니다.',key);
+  else if(h&&h.style.display==='block'&&h.dataset&&h.dataset.hintKey===key){
+    h.style.display='none'; clearTimeout(showOptVarHint._t);   // 이 항목의 경고만 해제
+  }
 }
 function updateOptVarUI(){
   for(const k of OPTVAR_ORDER){
@@ -3904,7 +3910,7 @@ function updateOptVarUI(){
   // 고정 링크는 카드에 편집칸이 없어 recalc 가 자동으로 안 돈다. a·c·d 가 바뀌는 모든 경로
   // (onLink·onArmHole·onServoOffset·endDrag·applyOpt)가 여기를 지나므로 여기서 한 번 걸어준다.
   // 안 걸면 카드가 '적용해도 나올 수 없는 설계' 의 지표를 계속 보여준다.
-  if(typeof _optCtx!=='undefined'&&_optCtx) scheduleOptRecalc();
+  if(_optCtx) scheduleOptRecalc();
 }
 // 옵티마이저 설명문 — 타각 모드(대칭/비대칭) + 현재 고정/변수 조합을 함께 반영
 function refreshOptDesc(){

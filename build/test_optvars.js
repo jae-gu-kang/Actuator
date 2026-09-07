@@ -62,6 +62,8 @@ function load(file){
     // applyOpt 는 draw() 까지 부르므로 캔버스 전역을 먼저 채워둔다
     + "initCanvas:()=>{cv=document.getElementById('__cv');ctx=cv.getContext('2d');W=800;H=600;},"
     + "setCtx:o=>{_optCtx=o;},"
+    + "evalDesign:(cv,bv,t0,dm,dp,T2,m,mode,av,dv)=>evalDesign(cv,bv,t0,dm,dp,T2,m,mode,av,dv),"
+    + "field:id=>{const e=document.getElementById(id);return e?e.value:null;},"
     + "applyFromCard:()=>applyOptFromCard()};";
   vm.runInNewContext(body+drv, ctx, {filename:file});
   ctx.__api.setAbsent = ids => { absent.clear(); (ids||[]).forEach(i=>absent.add(i)); };
@@ -223,7 +225,36 @@ const DEFL = [ {dm:25,dp:25}, {dm:40,dp:40}, {dm:30,dp:20} ];
   rec('적용: 범위 밖 값(c=500)은 클램프 아닌 전체 취소',
       !err && g3.b===BASE.b && g3.c===BASE.c,
       err ? ('예외: '+err) : ('b='+g3.b+' c='+g3.c+' (둘 다 불변)'));
+
+  // (d) a·d 도 렌더된 경우 — d 의 10mm 하한과 a 의 서보암 연동까지 실제로 태운다
+  A.resetVars(); A.setS(BASE); A.setCtx(CTX);
   A.setAbsent([]);
+  A.setField('optEditA',26); A.setField('optEditD',120);
+  A.setField('optEditC',45); A.setField('optEditB',105); A.setField('optEditT0',95);
+  err=null; try{ A.applyFromCard(); }catch(e){ err=e.message; }
+  const g4 = A.getS();
+  rec('적용: a·d 도 변수면 함께 반영되고 서보암 홀간거리가 연동됨',
+      !err && g4.a===26 && g4.d===120 && g4.c===45 && g4.b===105 && A.field('iArmHole')===26,
+      err ? ('예외: '+err) : ('a='+g4.a+' d='+g4.d+' c='+g4.c+' b='+g4.b+' arm='+A.field('iArmHole')));
+  A.setAbsent([]);
+}
+
+// ── 9) 비유한 θ₄₀ 는 evalDesign 이 즉시 거부 (0.25° 스윕이 t+=0.25 로 전진 못해 UI 정지) ──
+{
+  A.resetVars(); A.setS(BASE);          // 앞 테스트가 바꾼 S 를 되돌리고 시작
+  const t0s = [Infinity, -Infinity, NaN];
+  let allRejected = true, slow = null;
+  for(const t0 of t0s){
+    const st = Date.now();
+    const m = A.evalDesign(40, 100, t0, 25, 25, 3, 5, 'margin');
+    const ms = Date.now() - st;
+    if(!m || !m.err) allRejected = false;
+    if(ms > 500) slow = t0+' → '+ms+'ms';
+  }
+  const good = A.evalDesign(40, 100, 95, 25, 25, 3, 5, 'margin');
+  rec('비유한 θ₄₀(±Infinity·NaN)는 무한루프 없이 즉시 거부, 정상값은 계산됨',
+      allRejected && !slow && good && !good.err && isFinite(good.score),
+      slow ? ('느림: '+slow) : ('거부 3종 OK · 정상 score='+(good&&good.score!==undefined?(+good.score).toFixed(3):'—')));
 }
 
 const passed = results.filter(r=>r.pass).length;
