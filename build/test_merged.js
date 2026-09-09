@@ -220,6 +220,21 @@ async function clickByText(frame, txt){
               marker:big!==small, stable:big===big2};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 토크 그래프에 조종면 끝단(10° 버림) 마커 표시', pm.ok===true, JSON.stringify(pm));
+
+    // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
+    // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
+    const dax = await f.evaluate(()=>{ try{
+      const sig=t40=>{ setDeflectMode('asym');
+        document.getElementById('iDeflectP').value=8;      // 버림 0 → 끝단 마커 없음
+        document.getElementById('iDeflectM').value=8;
+        document.getElementById('iT4Neutral').value=t40;
+        updateCSUI(); drawTorquePlot();
+        return document.getElementById('torquePlot').toDataURL(); };
+      const a=sig(100), b=sig(90), a2=sig(100);
+      // θ₄₀ 만 바꿨는데 그래프가 달라져야 = δ 눈금이 중립각에 연동됨
+      return {ok: a!==b && a===a2, shifts:a!==b, stable:a===a2};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 토크 그래프 x축에 조종면 각도(δ) 눈금 — 중립각 연동', dax.ok===true, JSON.stringify(dax));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)

@@ -2347,7 +2347,7 @@ function drawTorquePlot(){
     .filter(e=>e.v>0).map(e=>({lab:e.lab, v:e.v, deg:_csT40+e.sgn*e.v}));
 
   // ── 범례 구성 (캔버스 안에 그림 → 복사/저장에 포함) ──
-  const PAD={t:22, b:86, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
+  const PAD={t:22, b:99, l:56, r:56};   // b: x축 눈금(θ₄+δ 2줄)+pill 라벨(최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
   const legItems=[{type:'line',color:'#ff453a',label:'T₄ 출력토크'}];
   if(_legHasMotor) legItems.push({type:'dash',color:'rgba(191,90,242,0.85)',label:'토크 요구도'});
@@ -2356,7 +2356,7 @@ function drawTorquePlot(){
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
 
-  const PH_CANVAS=308+LEG_H;
+  const PH_CANVAS=321+LEG_H;            // δ 줄 13px 추가 (IH 는 200 그대로)
   PAD.b+=LEG_H;                       // 범례 공간만큼 하단 패딩 확대 → 플롯 영역(IH)은 그대로 200px
 
   const DPR=plotDPR||window.devicePixelRatio||1;
@@ -2496,8 +2496,18 @@ function drawTorquePlot(){
     const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
     c2.fillText(deg+"°", x, PAD.t+IH+12);
   }
-  c2.fillStyle="rgba(200,60,50,0.6)"; c2.textAlign="right";
-  c2.fillText("θ₄ →", PAD.l+IW, PAD.t+IH+26); c2.textAlign="center";
+  // ── 둘째 줄: 같은 눈금이 조종면 각도 δ 로 몇 도인지 (δ = θ₄ − 중립각 θ₄₀) ──
+  c2.fillStyle="rgba(40,167,69,0.85)";
+  for(let deg=xLabelStart; deg<=T4_MAX; deg+=xStep){
+    const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
+    const dv=deg-_csT40;
+    c2.fillText((Math.abs(dv)<1e-9?'0':(dv>0?'+':'−')+Math.abs(dv))+"°", x, PAD.t+IH+25);
+  }
+  // 축 이름은 우측 여백에 두 줄로 (눈금과 겹치지 않게)
+  c2.textAlign="left";
+  c2.fillStyle="rgba(200,60,50,0.6)"; c2.fillText("θ₄", PAD.l+IW+18, PAD.t+IH+12);
+  c2.fillStyle="rgba(40,167,69,0.75)"; c2.fillText("δ",  PAD.l+IW+18, PAD.t+IH+25);
+  c2.textAlign="center";
 
   // ── 좌측 Y축 라벨 (T4) ──
   c2.textAlign="right";
@@ -2767,7 +2777,7 @@ function drawTorquePlot(){
       }
       rows.push(row);
     });
-    const BASE_Y=PAD.t+IH+32;
+    const BASE_Y=PAD.t+IH+45;   // θ₄·δ 두 줄 아래
     const ROW_H=15;
     xAxisLabels.forEach((lb,i)=>{
       const ly=BASE_Y+rows[i]*ROW_H;
