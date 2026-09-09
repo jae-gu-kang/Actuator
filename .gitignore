@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Node — 테스트 하니스(puppeteer-core) 전용 의존성
+node_modules/
+package.json
+package-lock.json
+
+# Claude Code 로컬 상태
+.claude/
