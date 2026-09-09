@@ -987,8 +987,12 @@ canvas.hover { cursor: grab; }
             </div>
             <div class="result-divider"></div>
             <div class="result-row">
-              <span class="result-key">전달각 μ</span>
+              <span class="result-key">전달각 μ <span style="color:var(--text3);font-weight:400;font-size:11px">출력측</span></span>
               <span class="result-val" style="color:var(--orange)" id="rMu">—</span>
+            </div>
+            <div class="result-row" title="크랭크 a ↔ 커플러 b 사이 각 — 참조값입니다. 최적화·가용범위 판정에는 출력측 μ 만 씁니다.">
+              <span class="result-key" style="color:var(--text3)">전달각 <span style="font-weight:400;font-size:11px">입력측 (참조)</span></span>
+              <span class="result-val" style="color:var(--text3)" id="rMuIn">—</span>
             </div>
           </div>
           <div class="no-sol-banner" id="noSol">⚠︎ 해당 각도에서 도달 불가</div>
@@ -2215,12 +2219,12 @@ function calcTorque(){
   const sin_out = Math.sin(t3r - t4r);
   const ma = (c/a) * sin_in * sin_out;
 
-  // Transmission angle μ: acute angle between coupler and follower
-  let mu = Math.abs(act.t3 - t4);
-  if(mu > 180) mu = 360 - mu;
-  if(mu > 90)  mu = 180 - mu;
+  // 전달각(접힌 예각, 0~90°)
+  const fold=deg=>{ let m=Math.abs(deg); if(m>180) m=360-m; if(m>90) m=180-m; return m; };
+  const mu   = fold(act.t3 - t4);        // 출력측: 커플러 b ↔ 출력링크 c (표준 전달각, 로직에 사용)
+  const muIn = fold(act.t3 - act.t2);    // 입력측: 크랭크 a ↔ 커플러 b (참조값 — 로직에는 미사용)
 
-  return { ma, mu };
+  return { ma, mu, muIn };
 }
 
 function updateTorqueUI(){
@@ -2233,6 +2237,7 @@ function updateTorqueUI(){
     document.getElementById('rT2torque').textContent='—';
     document.getElementById('rT4torque').textContent='—';
     document.getElementById('rMu').textContent='—';
+    const _mi0=document.getElementById('rMuIn'); if(_mi0) _mi0.textContent='—';
     return;
   }
   document.getElementById('torqueNoSol').style.display='none';
@@ -2242,6 +2247,9 @@ function updateTorqueUI(){
   document.getElementById('rT2torque').textContent=T2.toFixed(2)+' N·m';
   document.getElementById('rT4torque').textContent=Math.abs(T4).toFixed(2)+' N·m';
   document.getElementById('rMu').textContent=result.mu.toFixed(1)+'°'+(result.mu<40?' ⚠ 불량':'');
+  // 입력측은 참조값이라 경고를 붙이지 않는다(로직 판정은 출력측 μ 전담)
+  const _mi=document.getElementById('rMuIn');
+  if(_mi) _mi.textContent=(result.muIn!==undefined?result.muIn.toFixed(1)+'°':'—');
 
   // font-size for large values
   const el=document.getElementById('rT4torque');

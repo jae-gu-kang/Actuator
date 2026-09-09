@@ -235,6 +235,27 @@ async function clickByText(frame, txt){
       return {ok: a!==b && a===a2, shifts:a!==b, stable:a===a2};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 토크 그래프 x축에 조종면 각도(δ) 눈금 — 중립각 연동', dax.ok===true, JSON.stringify(dax));
+
+    // 입력측 전달각(크랭크 a ↔ 커플러 b) 참조 표시.
+    // |MA| = (c/a)·sin(μ입력)·sin(μ출력) 항등으로 정의가 맞는지 검증하고,
+    // 옵티마이저 제약에는 들어가지 않았는지(참조값 유지) 확인한다.
+    const mi = await f.evaluate(()=>{ try{
+      let worst=0;
+      for(const t4 of [80,95,110,125]){
+        setT4(t4); draw();
+        const t=calcTorque();
+        if(!t||t.muIn===undefined) return {err:'no-muIn at '+t4};
+        if(!(t.muIn>0&&t.muIn<=90)) return {err:'muIn out of range: '+t.muIn};
+        const pred=(S.c/S.a)*Math.sin(t.muIn*Math.PI/180)*Math.sin(t.mu*Math.PI/180);
+        worst=Math.max(worst, Math.abs(Math.abs(t.ma)-pred));
+      }
+      setT4(100); draw();
+      const shown=document.getElementById('rMuIn')?.textContent||'';
+      const src=optimizeForDelta.toString()+bestNeutralForB.toString()+optimizeForVars.toString();
+      return {ok: worst<1e-9 && /°/.test(shown) && !/muIn/.test(src),
+              worst:+worst.toExponential(1), shown, inOptimizer:/muIn/.test(src)};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 입력측 전달각 참조 표시 (MA 항등 검증 · 로직 미사용)', mi.ok===true, JSON.stringify(mi));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)
