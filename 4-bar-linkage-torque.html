@@ -962,25 +962,6 @@ canvas.hover { cursor: grab; }
 
       </div>
 
-      <!-- 조종면 각도 δ — 중립 0°, 상향(+)/하향(−) 입력 타각범위 내 구동 -->
-      <div class="angle-card" style="margin-top:6px">
-        <div class="angle-top">
-          <div class="angle-label">
-            <span class="angle-sym" style="background:rgba(52,199,89,.12);color:#28a745">δ</span>조종면 각도
-          </div>
-          <div style="text-align:right;line-height:1.12;">
-            <div class="angle-readout" style="color:#28a745" id="lCS">중립 0.0°</div>
-            <div id="lCST4" style="font-size:11.5px;font-weight:600;color:var(--follower);font-variant-numeric:tabular-nums;">T₄ —</div>
-          </div>
-        </div>
-        <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text3);margin-top:2px;">
-          <span id="lCSdn" style="color:var(--crank);font-weight:600;">▼ 하향 25°</span>
-          <button onclick="csSetNeutral()" title="현재 θ₄ 위치를 조종면 중립(δ=0°)으로 지정"
-            style="background:rgba(52,199,89,.12);color:#28a745;border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">중립 지정 (θ₄=<span id="lCSneutral">100</span>°)</button>
-          <span id="lCSup" style="color:var(--follower);font-weight:600;">상향 25° ▲</span>
-        </div>
-      </div>
     </div>
 
     <!-- Results + Torque (2열) -->
@@ -1100,6 +1081,28 @@ canvas.hover { cursor: grab; }
           style="width:100%;margin-top:8px;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
           타각범위별 토크 검토 (그래프) →</button>
         <div id="optResult" style="display:none;margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- 조종면 각도 δ — 최적 설계와 출력토크 사이에 배치 -->
+    <div class="s-sec">
+      <div class="angle-card" style="margin-bottom:0">
+        <div class="angle-top">
+          <div class="angle-label">
+            <span class="angle-sym" style="background:rgba(52,199,89,.12);color:#28a745">δ</span>조종면 각도
+          </div>
+          <div style="text-align:right;line-height:1.12;">
+            <div class="angle-readout" style="color:#28a745" id="lCS">중립 0.0°</div>
+            <div id="lCST4" style="font-size:11.5px;font-weight:600;color:var(--follower);font-variant-numeric:tabular-nums;">T₄ —</div>
+          </div>
+        </div>
+        <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text3);margin-top:2px;">
+          <span id="lCSdn" style="color:var(--crank);font-weight:600;">▼ 하향 25°</span>
+          <button onclick="csSetNeutral()" title="현재 θ₄ 위치를 조종면 중립(δ=0°)으로 지정"
+            style="background:rgba(52,199,89,.12);color:#28a745;border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">중립 지정 (θ₄=<span id="lCSneutral">100</span>°)</button>
+          <span id="lCSup" style="color:var(--follower);font-weight:600;">상향 25° ▲</span>
+        </div>
       </div>
     </div>
 
