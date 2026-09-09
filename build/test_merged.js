@@ -162,29 +162,44 @@ async function clickByText(frame, txt){
       setDeflectMode('asym');
       document.getElementById('iDeflectP').value=30;
       document.getElementById('iDeflectM').value=10; updateCSUI();
-      const box=document.getElementById('lCSsteps');
-      if(!box) return {err:'no-step-box'};
       nEl.value=100; csGo('zero');
       const t0=S.t4;                       // 중립
       up.click(); const tup=S.t4;          // 상향 최대 → +30
       dn.click(); const tdn=S.t4;          // 하향 최대 → −10
       z.click();  const tz=S.t4;           // 중립 → 0
-      // 10° 배수 위치 버튼: 상30/하10 이면 −10·+10·+20·+30 네 개가 생성된다
-      const keys=[...box.children].map(e=>+e.dataset.cs);
-      const hit=v=>{ const e=[...box.children].find(x=>+x.dataset.cs===v); if(e) e.click(); return S.t4; };
-      const s10=hit(10), s20=hit(20), s30=hit(30), sN10=hit(-10);
+      // 끝단이 10° 배수가 아니면 버림값으로 간다 — 상35/하26 → +30 / −20
+      document.getElementById('iDeflectP').value=35;
+      document.getElementById('iDeflectM').value=26; updateCSUI();
+      const lup=up.textContent, ldn=dn.textContent;
+      up.click(); const fup=S.t4;          // +30 → 130
+      dn.click(); const fdn=S.t4;          // −20 → 80
+      // 끝단이 10° 미만이면 버림값 0 → 버튼 숨김
+      document.getElementById('iDeflectP').value=8;
+      document.getElementById('iDeflectM').value=8; updateCSUI();
+      const hidden = up.style.display==='none' && dn.style.display==='none';
+      document.getElementById('iDeflectP').value=30;
+      document.getElementById('iDeflectM').value=10; updateCSUI();
+      // ±1° 트림: 중립 좌우 버튼으로 1°씩, 끝단에서 멈춤
+      const tm=document.getElementById('lCStrimM'), tp=document.getElementById('lCStrimP');
+      if(!tm||!tp) return {err:'no-trim'};
+      z.click(); tp.click(); const r1=S.t4;              // +1 → 101
+      tp.click(); tp.click(); const r3=S.t4;             // +3 → 103
+      tm.click(); const r2=S.t4;                         // +2 → 102
+      z.click(); for(let i=0;i<12;i++) tm.click();       // 하향 끝단(−10)에서 멈춤
+      const rMin=S.t4;
       z.click();
       up.click(); const before=S.t4;       // δ=+30 상태에서
       csSetNeutral();                      // 기준만 재정의 (θ₄ 불변)
       const afterT4=S.t4, afterN=+nEl.value;
       setDeflectMode('sym'); nEl.value=100; csGo('zero');
       return {ok: t0===100 && tup===130 && tdn===90 && tz===100
-                  && JSON.stringify(keys)===JSON.stringify([-10,10,20,30])
-                  && s10===110 && s20===120 && s30===130 && sN10===90
+                  && lup==='상향 30° ▲' && ldn==='▼ 하향 20°'   // 35/26 → 버림 30/20
+                  && fup===130 && fdn===80 && hidden
+                  && r1===101 && r3===103 && r2===102 && rMin===90
                   && afterT4===before && afterN===before,
-              t0,tup,tdn,tz,keys,s10,s20,s30,sN10,before,afterT4,afterN};
+              t0,tup,tdn,tz,lup,ldn,fup,fdn,hidden,r1,r3,r2,rMin,before,afterT4,afterN};
     }catch(e){ return {err:e.message}; } });
-    rec('linkage: 조종면 이동(하향/중립/상향 + 10° 배수 위치) + 중립 지정은 기준만 변경', cs.ok===true, JSON.stringify(cs));
+    rec('linkage: 조종면 이동(중립·10° 버림 최대/최소·±1° 트림) + 중립 지정은 기준만 변경', cs.ok===true, JSON.stringify(cs));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)
