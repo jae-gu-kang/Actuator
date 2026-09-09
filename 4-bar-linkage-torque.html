@@ -2339,12 +2339,20 @@ function drawTorquePlot(){
   const _legMotorV=parseFloat(_legMotorEl?.value);
   const _legHasMotor=!isNaN(_legMotorV)&&_legMotorEl.value.trim()!=="";
 
+  // 조종면 작동 끝단(10° 버림) — 조종면 각도 카드의 상향/하향 버튼이 가는 지점.
+  // θ₄ = 중립각 θ₄₀ ± 버림값. 카드와 같은 csFloor10 을 쓰므로 항상 일치한다.
+  const _csDf=getDeflect(), _csT40=csNeutralT4();
+  const csEnds=[{lab:'상향',sgn:1,v:csFloor10(_csDf.dp)},
+                {lab:'하향',sgn:-1,v:csFloor10(_csDf.dm)}]
+    .filter(e=>e.v>0).map(e=>({lab:e.lab, v:e.v, deg:_csT40+e.sgn*e.v}));
+
   // ── 범례 구성 (캔버스 안에 그림 → 복사/저장에 포함) ──
   const PAD={t:22, b:86, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
   const legItems=[{type:'line',color:'#ff453a',label:'T₄ 출력토크'}];
   if(_legHasMotor) legItems.push({type:'dash',color:'rgba(191,90,242,0.85)',label:'토크 요구도'});
   if(marginVal>0) legItems.push({type:'dash',color:'rgba(0,140,200,0.75)',label:'물리 가용 범위 경계'});
+  if(csEnds.length) legItems.push({type:'dot',color:'#5e5ce6',label:'조종면 상향·하향 (10° 버림)'});
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
 
@@ -2611,6 +2619,44 @@ function drawTorquePlot(){
     // 현재 출력각(θ₄) 값은 축 아래 알약 행에 표시 (max·교점 라벨과 겹침 자동 회피)
     xAxisLabels.push({x:cx, label:(T4_MIN+t4idx).toFixed(1)+"°",
       color:"#b06000", bg:"rgba(255,159,10,0.18)"});
+  }
+
+  // ── 조종면 작동 끝단(10° 버림) 마커 — 각도와 그 지점의 T₄ 를 함께 표시 ──
+  {
+    const inter2=(r1,r2)=>r1&&r2&&!(r1.x+r1.w<r2.x||r2.x+r2.w<r1.x||r1.y+r1.h<r2.y||r2.y+r2.h<r1.y);
+    const placed=[maxLabelRect].filter(Boolean);
+    for(const e of csEnds){
+      if(e.deg<T4_MIN||e.deg>T4_MAX) continue;
+      const idx=Math.round(e.deg-T4_MIN);
+      const tq=T4arr[idx];
+      if(tq===null||tq===undefined) continue;
+      const x=xp(idx), y=yp(tq);
+      c2.strokeStyle="rgba(94,92,230,0.38)"; c2.lineWidth=1; c2.setLineDash([4,3]);
+      c2.beginPath(); c2.moveTo(x,PAD.t); c2.lineTo(x,PAD.t+IH); c2.stroke();
+      c2.setLineDash([]);
+      c2.beginPath(); c2.arc(x,y,4,0,Math.PI*2);
+      c2.fillStyle="#5e5ce6"; c2.fill();
+      c2.strokeStyle="#fff"; c2.lineWidth=1.4; c2.stroke();
+      // 라벨: 어느 끝단인지 + 그 지점 토크
+      const lbl=e.lab+' '+e.v+'° · '+tq.toFixed(2)+' N·m';
+      c2.font="600 8px -apple-system,sans-serif";
+      const lw=c2.measureText(lbl).width;
+      const cands=[{x:x+8,y:y-8},{x:x-lw-10,y:y-8},{x:x+8,y:y+20},{x:x-lw-10,y:y+20}];
+      let lx=cands[0].x, ly=cands[0].y, rect=null;
+      for(const cd of cands){
+        const px=Math.min(Math.max(cd.x,PAD.l+2),PAD.l+IW-lw-8);
+        const py=Math.min(Math.max(cd.y,PAD.t+13),PAD.t+IH-4);
+        rect={x:px-3,y:py-10,w:lw+8,h:14}; lx=px; ly=py;
+        if(!placed.some(r=>inter2(rect,r))) break;
+      }
+      placed.push(rect);
+      c2.fillStyle="rgba(255,255,255,0.94)";
+      c2.beginPath(); c2.roundRect(lx-3,ly-10,lw+8,14,4); c2.fill();
+      c2.fillStyle="#4b49c4"; c2.textAlign="left";
+      c2.fillText(lbl, lx+1, ly);
+      xAxisLabels.push({x, label:e.deg.toFixed(1)+"°",
+        color:"#4b49c4", bg:"rgba(94,92,230,0.15)"});
+    }
   }
 
   // ── 토크 요구도 수평선 + 교점 ──

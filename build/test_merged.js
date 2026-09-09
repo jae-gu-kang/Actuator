@@ -200,6 +200,26 @@ async function clickByText(frame, txt){
               t0,tup,tdn,tz,lup,ldn,fup,fdn,hidden,r1,r3,r2,rMin,before,afterT4,afterN};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 조종면 이동(중립·10° 버림 최대/최소·±1° 트림) + 중립 지정은 기준만 변경', cs.ok===true, JSON.stringify(cs));
+
+    // 출력토크 그래프에 조종면 끝단(10° 버림) 마커가 그려지는가
+    const pm = await f.evaluate(()=>{ try{
+      const sig=(pv,mv)=>{ setDeflectMode('asym');
+        document.getElementById('iDeflectP').value=pv;
+        document.getElementById('iDeflectM').value=mv;
+        document.getElementById('iT4Neutral').value=100;
+        updateCSUI(); drawTorquePlot();
+        return document.getElementById('torquePlot').toDataURL(); };
+      const big=sig(35,26);                      // 버림 30/20 → 마커 2개
+      const small=sig(8,8);                      // 버림 0 → 마커 없음
+      const big2=sig(35,26);
+      const {a,b,c,sol}=S, d=gLen(), T2=+document.getElementById('iTorque').value;
+      const at=deg=>{const q=calcMAatT4(a,b,c,d,deg,sol); return q?+Math.abs(T2*q.ma).toFixed(2):null;};
+      return {ok: big!==small && big===big2 && csFloor10(35)===30 && csFloor10(26)===20
+                  && at(130)!==null && at(80)!==null,
+              fUp:csFloor10(35), fDn:csFloor10(26), tUp:at(130), tDn:at(80),
+              marker:big!==small, stable:big===big2};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 토크 그래프에 조종면 끝단(10° 버림) 마커 표시', pm.ok===true, JSON.stringify(pm));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)

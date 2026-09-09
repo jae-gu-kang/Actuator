@@ -45,7 +45,7 @@ node build/test_merged.js
 > Chrome 경로는 `test_merged.js` 상단 `CHROME` 상수에서 조정할 수 있습니다.
 > (기본값: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`)
 
-### 검증 항목 (29종, 모두 통과)
+### 검증 항목 (30종, 모두 통과)
 - **셸**: 7개 탭 존재/전환
 - **오프라인**: 외부(http/https) 요청 **0건**, 상위 프레임 JS 오류 0건
 - **4-Bar**: 캔버스/결과 UI, 토크·기계이득 계산, AI 최적값 계산 실행,
