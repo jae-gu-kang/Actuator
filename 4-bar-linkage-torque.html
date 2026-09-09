@@ -400,25 +400,26 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* 조종면 각도 카드 — 현재 위치의 파생값 3종(출력토크 T₄ · 전달각 μ 입력/출력).
-   상태 표시는 여기까지, 아래 슬라이더·버튼은 조작. 색 규약: T₄ 는 출력링크색 고정,
-   μ 는 값 자체가 판정이라 muFmt(OPT_MU_MIN/OPT_MU_BAD)가 초록·주황·빨강을 정한다. */
-.cs-metrics {
+/* 지표 스트립 — 한 줄에 2~3개의 파생값을 균등 분할로 보여준다.
+   쓰는 곳: 조종면 각도 카드(T₄ · 전달각 μ 입력/출력), 토크 해석(기계이득 MA · 출력토크 T₄).
+   색 규약: 크기값(T₄·MA)은 링크색 고정, μ 는 값 자체가 판정이라
+   muFmt(OPT_MU_MIN/OPT_MU_BAD)가 초록·주황·빨강을 정한다. */
+.mstrip {
   display: flex;
   margin: 0 0 7px;
   border-radius: 7px;
   background: rgba(118,118,128,0.055);
   overflow: hidden;
 }
-.cs-m {
+.mcell {
   flex: 1 1 0;
   min-width: 0;
   text-align: center;
   padding: 4px 2px 5px;
   overflow: hidden;          /* T₄ 가 커져도 옆 μ 칸으로 번지지 않게 */
 }
-.cs-m + .cs-m { border-left: 1px solid var(--border2); }
-.cs-m i {
+.mcell + .mcell { border-left: 1px solid var(--border2); }
+.mcell i {
   display: block;
   font-style: normal;
   font-size: 9px;
@@ -428,7 +429,7 @@ body {
   margin-bottom: 1px;
   white-space: nowrap;
 }
-.cs-m b {
+.mcell b {
   display: block;
   font-size: 12.5px;
   font-weight: 600;
@@ -436,11 +437,11 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   /* 잘림을 눈에 보이게 — 말줄임이 없으면 큰 T₄ 가 자리 숫자 경계에서 조용히 잘려
-     더 작은 '유효해 보이는 수' 로 읽힌다. 잘림 자체는 .cs-m 이 막지만 표식이 필요하다. */
+     더 작은 '유효해 보이는 수' 로 읽힌다. 잘림 자체는 .mcell 이 막지만 표식이 필요하다. */
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cs-m b u { font-size: 9px; font-weight: 500; color: var(--text3);
+.mcell b u { font-size: 9px; font-weight: 500; color: var(--text3);
             text-decoration: none; margin-left: 2px; }
 
 /* Apple-style slider */
@@ -964,117 +965,27 @@ canvas.hover { cursor: grab; }
       </div>
     </div>
 
-    <!-- Angles -->
+    <!-- 토크 해석 — '계산 결과' 카드는 각도 카드·캔버스 칩·δ 카드와 전부 중복이라 삭제했고,
+         2열 격자도 함께 없어져 전폭 단독 배치가 됐다. -->
     <div class="s-sec">
-      <div class="s-title">각도</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-
-      <!-- θ₄ -->
-      <div class="angle-card" style="margin-bottom:0">
-        <div class="angle-top">
-          <div class="angle-label">
-            <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력각
-          </div>
-          <div class="angle-readout" style="color:var(--follower)" id="lT4">100.0°</div>
+      <div class="s-title" style="margin-bottom:6px">토크 해석</div>
+      <div class="link-card" style="margin-bottom:6px">
+        <div class="link-pip" style="background:var(--crank)"></div>
+        <div class="link-meta">
+          <div class="link-name">입력 토크 <span style="color:var(--text3);font-weight:400">T₂</span></div>
+          <div class="link-sub">Crank Input</div>
         </div>
-        <input type="range" class="sl-t4" id="slT4" min="0" max="360" step="0.5" value="100" oninput="onT4(this.value)">
-        <div class="angle-num-row">
-          <div class="angle-num-field">
-            <input type="number" id="nT4" value="100" min="0" max="360" step="0.1" oninput="onT4num(this.value)" onblur="fmtOnBlur(this,S.t4)">
-            <span class="deg-tag">°</span>
-          </div>
+        <div class="link-field">
+          <input type="number" id="iTorque" value="3" min="-9999" max="9999" step="0.1" oninput="onTorque()">
+          <span class="u">N·m</span>
         </div>
       </div>
-
-      <!-- θ₂ -->
-      <div class="angle-card" style="margin-bottom:0">
-        <div class="angle-top">
-          <div class="angle-label">
-            <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">θ₂</span>입력각
-          </div>
-          <div class="angle-readout" style="color:var(--crank)" id="lT2">—</div>
-        </div>
-        <input type="range" class="sl-t2" id="slT2" min="0" max="360" step="0.5" value="0" oninput="onT2slider(this.value)">
-        <div class="angle-num-row">
-          <div class="angle-num-field">
-            <input type="number" id="nT2" placeholder="계산값" min="0" max="360" step="0.1" oninput="onT2num(this.value)" onblur="if(this.value!=='')fmtOnBlur(this,this.value)">
-            <span class="deg-tag">°</span>
-          </div>
-        </div>
+      <!-- δ 카드와 같은 스트립 언어. T₂ 는 바로 위 입력칸과 같은 값이라 싣지 않는다 -->
+      <div class="mstrip">
+        <div class="mcell"><i>기계이득 MA</i><b id="rMA" style="color:var(--purple)">—</b></div>
+        <div class="mcell"><i>출력토크 T₄</i><b id="rT4torque" style="color:var(--follower)">—</b></div>
       </div>
-
-      </div>
-
-    </div>
-
-    <!-- Results + Torque (2열) -->
-    <div class="s-sec">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">
-
-        <!-- 계산 결과 -->
-        <div>
-          <div class="s-title" style="margin-bottom:6px">계산 결과</div>
-          <div class="result-card" id="rContent">
-            <div class="result-row">
-              <span class="result-key">θ₄ 출력각</span>
-              <span class="result-val" style="color:var(--follower)" id="rT4">—</span>
-            </div>
-            <div class="result-divider"></div>
-            <div class="result-row">
-              <span class="result-key">θ₂ 입력각</span>
-              <span class="result-val" style="color:var(--crank)" id="rT2">—</span>
-            </div>
-            <div class="result-row">
-              <span class="result-key">θ₃ 커플러</span>
-              <span class="result-val" style="color:var(--coupler)" id="rT3">—</span>
-            </div>
-            <div class="result-divider"></div>
-            <div class="result-row" id="rowMuIn">
-              <span class="result-key">전달각 μ <span style="color:var(--text3);font-weight:400;font-size:11px">입력측</span></span>
-              <!-- 색은 muFmt 가 정한다(여기 인라인 색을 두면 규칙이 두 곳이 된다) -->
-              <span class="result-val" id="rMuIn">—</span>
-            </div>
-            <div class="result-row" id="rowMu">
-              <span class="result-key">전달각 μ <span style="color:var(--text3);font-weight:400;font-size:11px">출력측</span></span>
-              <span class="result-val" id="rMu">—</span>
-            </div>
-          </div>
-          <div class="no-sol-banner" id="noSol">⚠︎ 해당 각도에서 도달 불가</div>
-        </div>
-
-        <!-- 토크 해석 -->
-        <div>
-          <div class="s-title" style="margin-bottom:6px">토크 해석</div>
-          <div class="link-card" style="margin-bottom:4px">
-            <div class="link-pip" style="background:var(--crank)"></div>
-            <div class="link-meta">
-              <div class="link-name">입력 토크 <span style="color:var(--text3);font-weight:400">T₂</span></div>
-              <div class="link-sub">Crank Input</div>
-            </div>
-            <div class="link-field">
-              <input type="number" id="iTorque" value="3" min="-9999" max="9999" step="0.1" oninput="onTorque()">
-              <span class="u">N·m</span>
-            </div>
-          </div>
-          <div class="result-card" id="torqueCard">
-            <div class="result-row">
-              <span class="result-key">기계이득 MA</span>
-              <span class="result-val" style="color:var(--purple)" id="rMA">—</span>
-            </div>
-            <div class="result-divider"></div>
-            <div class="result-row">
-              <span class="result-key">T₂ 입력</span>
-              <span class="result-val" style="color:var(--crank)" id="rT2torque">—</span>
-            </div>
-            <div class="result-row">
-              <span class="result-key">T₄ 출력</span>
-              <span class="result-val" style="color:var(--follower)" id="rT4torque">—</span>
-            </div>
-            <div id="torqueNoSol" class="no-sol-banner" style="display:none">⚠︎ 계산 불가</div>
-          </div>
-        </div>
-
-      </div>
+      <div id="torqueNoSol" class="no-sol-banner" style="display:none;margin-top:6px">⚠︎ 계산 불가</div>
     </div>
 
     <!-- AI 최적 설계 추천 -->
@@ -1132,7 +1043,54 @@ canvas.hover { cursor: grab; }
       </div>
     </div>
 
-    <!-- 조종면 각도 δ — 최적 설계와 출력토크 사이에 배치 -->
+    <!-- Angles -->
+    <div class="s-sec">
+      <div class="s-title">각도</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+
+      <!-- θ₄ -->
+      <div class="angle-card" style="margin-bottom:0">
+        <div class="angle-top">
+          <div class="angle-label">
+            <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력각
+          </div>
+          <div class="angle-readout" style="color:var(--follower)" id="lT4">100.0°</div>
+        </div>
+        <input type="range" class="sl-t4" id="slT4" min="0" max="360" step="0.5" value="100" oninput="onT4(this.value)">
+        <div class="angle-num-row">
+          <div class="angle-num-field">
+            <input type="number" id="nT4" value="100" min="0" max="360" step="0.1" oninput="onT4num(this.value)" onblur="fmtOnBlur(this,S.t4)">
+            <span class="deg-tag">°</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- θ₂ -->
+      <div class="angle-card" style="margin-bottom:0">
+        <div class="angle-top">
+          <div class="angle-label">
+            <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">θ₂</span>입력각
+          </div>
+          <div class="angle-readout" style="color:var(--crank)" id="lT2">—</div>
+        </div>
+        <input type="range" class="sl-t2" id="slT2" min="0" max="360" step="0.5" value="0" oninput="onT2slider(this.value)">
+        <div class="angle-num-row">
+          <div class="angle-num-field">
+            <input type="number" id="nT2" placeholder="계산값" min="0" max="360" step="0.1" oninput="onT2num(this.value)" onblur="if(this.value!=='')fmtOnBlur(this,this.value)">
+            <span class="deg-tag">°</span>
+          </div>
+        </div>
+      </div>
+
+      </div>
+
+      <!-- 도달 불가 경고 — 삭제된 '계산 결과' 카드에 있던 것을, 원인이 되는 슬라이더 옆으로 옮겼다.
+           토크 해석의 '계산 불가' 배너는 재배치 후 한참 위라 여기서 보이지 않는다. -->
+      <div class="no-sol-banner" id="noSolAng" style="display:none;margin-top:6px">⚠︎ 해당 각도에서 도달 불가</div>
+
+    </div>
+
+    <!-- 조종면 각도 δ — 바로 위 각도(θ₄·θ₂) 카드와 함께 "자세 조작" 묶음 -->
     <div class="s-sec">
       <div class="angle-card" style="margin-bottom:0">
         <div class="angle-top">
@@ -1142,10 +1100,10 @@ canvas.hover { cursor: grab; }
           <div class="angle-readout" style="color:#28a745" id="lCS">중립 0.0°</div>
         </div>
         <!-- 현재 조종면 위치의 파생값 3종 — updateCSUI 가 δ 이동마다 함께 갱신 -->
-        <div class="cs-metrics">
-          <div class="cs-m"><i>출력토크 T₄</i><b id="lCST4" style="color:var(--follower)">—</b></div>
-          <div class="cs-m"><i>입력측 μ</i><b id="lCSMuIn">—</b></div>
-          <div class="cs-m"><i>출력측 μ</i><b id="lCSMuOut">—</b></div>
+        <div class="mstrip">
+          <div class="mcell"><i>출력토크 T₄</i><b id="lCST4" style="color:var(--follower)">—</b></div>
+          <div class="mcell" id="csCellIn"><i>입력측 μ</i><b id="lCSMuIn">—</b></div>
+          <div class="mcell" id="csCellOut"><i>출력측 μ</i><b id="lCSMuOut">—</b></div>
         </div>
         <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
         <!-- 이동 명령: 누르면 조종면이 그 위치로 간다 (아래 '중립 지정' 은 기준만 바꿈) -->
@@ -1352,7 +1310,7 @@ canvas.hover { cursor: grab; }
     </div>
     <label style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--text2);cursor:pointer;">
       <input type="checkbox" id="dsOptC" checked style="accent-color:#34c759;">
-      출력링크 c 도 함께 최적화 (자동 범위 0.2~0.8×d · δ 간격 1°) — 끄면 현재 c 고정으로 검토
+      출력링크 c 도 함께 최적화 (자동 범위 0.2~0.8×L · δ 간격 1°) — 끄면 현재 c 고정으로 검토
     </label>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
       <button class="copy-btn" onclick="copyPlotImage('deltaSweepPlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
@@ -1973,26 +1931,33 @@ function updateSliderTrack(id,pct){
 // ── UI ──
 function updateUI(sols){
   updateCSUI();   // θ₄ 변화(슬라이더·드래그·최적적용 등)를 조종면 각도 δ 읽기값에 동기화
-  const noSol=document.getElementById('noSol');
-  const rC=document.getElementById('rContent');
   if(!sols){
-    noSol.style.display='block'; rC.style.opacity='.4';
-    document.getElementById('rT2').textContent='—';
-    document.getElementById('rT3').textContent='—';
+    // '계산 결과' 카드가 없어진 뒤로 θ₂ 표시는 넷뿐이다 — 읽기값 lT2 · 입력칸 nT2 ·
+    // 슬라이더 slT2(손잡이+트랙) · 캔버스 칩. 하나라도 남기면 도달 불가 상태에서
+    // 그게 유일한 표시가 되어 거짓말을 한다. 가드는 아래 성공 분기와 같은 조건으로 맞춘다.
+    document.getElementById('lT2').textContent='—';
+    document.getElementById('noSolAng').style.display='block';
+    if(document.activeElement!==document.getElementById('nT2') &&
+       document.activeElement!==document.getElementById('slT2')){
+      document.getElementById('nT2').value='';
+      document.getElementById('slT2').value=0;
+      updateSliderTrack('slT2',0);
+    }
+    document.getElementById('overlay').innerHTML='';
     updateTorqueUI(); drawTorquePlot();
     return;
   }
-  noSol.style.display='none'; rC.style.opacity='1';
+  document.getElementById('noSolAng').style.display='none';
   const act=sols.find(s=>s.type===S.sol)||sols[0];
   setTimeout(()=>{updateTorqueUI();drawTorquePlot();},0);
-  document.getElementById('rT4').textContent=S.t4.toFixed(1)+'°';
-  document.getElementById('rT2').textContent=act.t2.toFixed(2)+'°';
-  document.getElementById('rT3').textContent=act.t3.toFixed(2)+'°';
+  // 판독값은 항상 실제 자세를 말한다 — 가드 안에 두면 사용자가 nT2/slT2 에 포커스를 둔 채
+  // draw() 가 한 번 돌 때(캔버스 hover 등) 배너만 꺼지고 도달 불가 값이 판독값에 남는다.
+  document.getElementById('lT2').textContent=act.t2.toFixed(1)+'°';
+  // 입력 위젯은 편집 중이면 건드리지 않는다(타이핑·드래그를 덮어쓰지 않기 위해).
   if(document.activeElement!==document.getElementById('nT2') &&
      document.activeElement!==document.getElementById('slT2')){
     document.getElementById('slT2').value=act.t2.toFixed(1);
     document.getElementById('nT2').value=act.t2.toFixed(2);
-    document.getElementById('lT2').textContent=act.t2.toFixed(1)+'°';
   }
 }
 
@@ -2240,7 +2205,12 @@ function applyT2(v){
   if(document.activeElement!==nT2) nT2.value=t2.toFixed(1);
   document.getElementById('lT2').textContent=t2.toFixed(1)+'°';
   const res=fwdSolveEx(S.a,S.b,S.c,gLen(),t2);
-  if(res===null) return;
+  if(res===null){
+    // 도달 불가한 θ₂ — 여기서 return 하면 draw()→updateUI 를 안 거쳐 배너 분기가 안 걸린다.
+    // 방금 입력한 값은 고칠 수 있게 그대로 두고 경고만 띄운다(성공하면 updateUI 가 숨긴다).
+    document.getElementById('noSolAng').style.display='block';
+    return;
+  }
   // 입력 θ₂ 가 현재 해 유형으로 도달 불가하고 반대 유형으로만 가능하면 자동 전환
   if(res.type!==S.sol && res.err<0.5) setSol(res.type);
   setT4(res.t4); draw();
@@ -2260,7 +2230,7 @@ function setSol(type){
 // Computed ANALYTICALLY from the velocity loop-closure equations (no numerical diff):
 //   a·sin(θ2-θ3)·ω2 = c·sin(θ4-θ3)·ω4  →  ω4/ω2 = a·sin(θ2-θ3) / (c·sin(θ4-θ3))
 //   T4/T2 = ω2/ω4  (power conservation, assuming η=1)
-// 전달각 μ 표시 — δ 카드(cs-metrics)와 토크 결과 카드가 같은 값에 같은 색·같은 배지를 쓰도록
+// 전달각 μ 표시 — δ 카드(mstrip)와 토크 결과 카드가 같은 값에 같은 색·같은 배지를 쓰도록
 // 여기 한 곳에서만 정한다. 판정은 반드시 **화면에 찍히는 반올림값**으로 한다 — raw 로 판정하면
 // 46.96° 가 "47.0°" 로 찍히면서 색은 미달(주황)이 되어 숫자와 색이 서로 다른 말을 한다.
 function muFmt(v){
@@ -2304,29 +2274,15 @@ function updateTorqueUI(){
   if(!result){
     document.getElementById('torqueNoSol').style.display='block';
     document.getElementById('rMA').textContent='—';
-    document.getElementById('rT2torque').textContent='—';
     document.getElementById('rT4torque').textContent='—';
-    for(const id of ['rMu','rMuIn']){ const el=document.getElementById(id);
-      if(el){ const f=muFmt(NaN); el.textContent=f.txt; el.style.color=f.color; } }
     return;
   }
   document.getElementById('torqueNoSol').style.display='none';
 
   const T4=T2*result.ma;
   document.getElementById('rMA').textContent=result.ma.toFixed(4);
-  document.getElementById('rT2torque').textContent=T2.toFixed(2)+' N·m';
-  document.getElementById('rT4torque').textContent=Math.abs(T4).toFixed(2)+' N·m';
-  // 입력측·출력측을 같은 격으로 표기 — 값·색·불량 배지 모두 muFmt 한 곳에서 결정
-  const _muSet=(id,v)=>{ const el=document.getElementById(id); if(!el) return;
-    const f=muFmt(v);
-    el.textContent=f.txt+(f.bad?' ⚠ 불량':'');
-    el.style.color=f.color; };
-  _muSet('rMu',   result.mu);
-  _muSet('rMuIn', result.muIn);
-
-  // font-size for large values
-  const el=document.getElementById('rT4torque');
-  el.style.fontSize = Math.abs(T4)>=100?'14px':'17px';
+  // 전달각 μ 는 조종면 각도(δ) 카드가 전담한다 — 여기 두면 같은 값이 두 곳에 뜬다
+  document.getElementById('rT4torque').innerHTML=Math.abs(T4).toFixed(2)+'<u>N·m</u>';
 }
 
 // updateCSUI() 필수 — 이 경로에는 draw() 가 없어서, 빼면 T₂ 를 바꿨을 때
@@ -2446,7 +2402,7 @@ function drawTorquePlot(){
   const legItems=[{type:'line',color:'#ff453a',label:'T₄ 출력토크'}];
   if(_legHasMotor) legItems.push({type:'dash',color:'rgba(191,90,242,0.85)',label:'토크 요구도'});
   if(marginVal>0) legItems.push({type:'dash',color:'rgba(0,140,200,0.75)',label:'물리 가용 범위 경계'});
-  if(csEnds.length) legItems.push({type:'dot',color:'#5e5ce6',label:'조종면 상향·하향 (10° 버림)'});
+  if(csEnds.length) legItems.push({type:'dot',color:'#5e5ce6',label:'조종면 상향·하향'});
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
 
@@ -3762,15 +3718,18 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     const contained=(t0-dm>=physLo-1e-9)&&(t0+dp<=physHi+1e-9);
     const tm=absT4At(bv,t0-dm,T2), tp=absT4At(bv,t0+dp,T2), tn=absT4At(bv,t0,T2);
     let wmax=-Infinity,warg=null,muMin=Infinity,gap=false;
-    let muInMin=Infinity, muOutMin=Infinity;   // 표시용 '실제 각도' (mu 는 합성값이라 못 씀)
+    // 표시용 '실제 각도'. 어느 δ 에서 최소가 되는지도 같이 남긴다 — 이 값은 작동범위
+    // 전체의 최솟값이라 중립(δ=0)의 조종면 각도 카드 값과 다른 게 정상이고,
+    // δ 를 그 지점으로 옮기면 두 화면이 정확히 같은 수를 가리킨다.
+    let muInMin=Infinity, muOutMin=Infinity, muInArg=null, muOutArg=null;
     for(let t=t0-dm;t<=t0+dp+1e-9;t+=0.25){
       const r=feasibleAt(S.a,bv,S.c,gLen(),t,S.sol);
       if(!r){gap=true;continue;}
       const v=Math.abs(T2*r.ma);
       if(v>wmax){wmax=v;warg=t;}
       if(r.mu<muMin) muMin=r.mu;
-      if(r.muIn<muInMin) muInMin=r.muIn;
-      if(r.muOut<muOutMin) muOutMin=r.muOut;
+      if(r.muIn<muInMin){ muInMin=r.muIn; muInArg=t-t0; }      // δ = θ₄ − θ₄₀
+      if(r.muOut<muOutMin){ muOutMin=r.muOut; muOutArg=t-t0; }
     }
     if(tm===null||tp===null||!isFinite(wmax)||gap)
       return{err:'작동범위 일부에서 기구 해가 없습니다 (θ₄₀·범위 확인)',physLo,physHi};
@@ -3778,7 +3737,7 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     const imbal=mx>1e-12?Math.abs(mm-mp)/mx:0;   // sym 이면 |T₋−T₊|/max 와 동일
     const minMgn=Math.min(mm,mp);
     const score=sym?(tm+tp+wmax):(mode==='torque'?tn:minMgn);
-    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,
+    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,muInArg,muOutArg,
       imbal,marginM:mm,marginP:mp,minMgn,
       score,physLo,physHi,contained};
   } finally { S.c=sc; S.a=sa; S.d=sd; }
@@ -3808,8 +3767,12 @@ function buildOptMetrics(m){
     const _rd=v=>v===null?null:+v.toFixed(1);
     const _okIn=_in===null||_rd(_in)>=OPT_MU_MIN, _okOut=_out===null||_rd(_out)>=OPT_MU_MIN;
     const _tx=v=>v===null?'—':_rd(v).toFixed(1)+'°';
-    s+=row('최소 전달각 μ <span style="color:var(--text3)">(입력·출력 · 최우선 필터)</span>',
-      '입력 '+_tx(_in)+' · 출력 '+_tx(_out)
+    // 최솟값이 나오는 δ 를 붙인다 — 조종면 각도 카드를 그 δ 로 옮기면 같은 수가 나온다
+    const _at=v=>(v===null||v===undefined||!isFinite(v))?''
+      :' <span style="color:var(--text3);font-weight:400">δ'+(v>=0?'+':'−')
+        +Math.abs(v).toFixed(Math.abs(v)%1?1:0)+'°</span>';
+    s+=row('작동범위 내 최소 전달각 μ <span style="color:var(--text3)">(입력·출력 · 최우선 필터)</span>',
+      '입력 '+_tx(_in)+_at(m.muInArg)+' · 출력 '+_tx(_out)+_at(m.muOutArg)
       +' <span style="color:var(--text3)">(둘 다 ≥'+OPT_MU_MIN+'° = '+OPT_MU_BASE+'+마진 '+OPT_MU_MARGIN+')</span>',
       (_okIn&&_okOut)?'#1a9c3e':'var(--red)');
   }
@@ -3975,7 +3938,7 @@ function optimizeForDelta(dm,dp,T2,marginVal,opt){
 //   · 최적이 범위 경계에 붙으면 atBound 플래그로 알림 (범위를 넓히면 더 좋은 해 가능)
 // 선택: 티어 우선(정상 > 불균형차선 > μ차선) → §3-1 준동률 규칙(합 → 최대토크)
 // c 허용범위는 설치 공간 스케일을 결정하는 고정링크 d 에 연동해 자동 산출:
-//   [0.2·d, 0.8·d]  (5~400mm 클램프, 최소 폭 10mm 보장)
+//   [0.2·L, 0.8·L]  (L=gLen()=√(d²+offY²), 5~400mm 클램프, 최소 폭 10mm 보장)
 // d 는 진짜 고정 설계 입력이므로, 임의 초기값 c₀ 나 별도 입력 없이도
 // 같은 d 에서는 항상 같은 범위 → 항상 같은 추천이 나온다.
 // ── 설계 변수(고정/변수) 헬퍼 ─────────────────────────────────────────────
@@ -4342,7 +4305,7 @@ function runDeltaSweep(){
     T2,margin:marginVal,a:S.a,c:S.c,d:S.d,sol:S.sol};
   const cR=optVarRange('c');
   const sub=document.getElementById('dsSub');
-  if(sub) sub.textContent='a='+S.a+(optC?', c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×d)':', c='+S.c)
+  if(sub) sub.textContent='a='+S.a+(optC?', c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×L)':', c='+S.c)
     +', d='+S.d+' mm · T₂='+T2.toFixed(2)
     +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준'
     +(df.sym?' — x축 ±δ':' — x축 δ₊ (δ₋=δ₊×'+ratio.toFixed(2)+' 비율 보존, 여유율 균형)')
@@ -4872,9 +4835,9 @@ window.addEventListener('load',()=>{
   // 여기만 옛 숫자로 남아 조용히 거짓말하는 걸 막는다.
   const _muTip=(id,txt)=>{ const el=document.getElementById(id);
     if(el) el.title=txt+' 최적화 제약은 입력측·출력측 둘 다 ≥'+OPT_MU_MIN+'° 이고, '
-                    +OPT_MU_BAD+'° 미만은 불량으로 표시합니다.'; };
-  _muTip('rowMuIn','크랭크 a ↔ 커플러 b 사이 각.');
-  _muTip('rowMu',  '커플러 b ↔ 출력링크 c 사이 각.');
+                    +OPT_MU_BAD+'° 미만이면 ⚠ 로 불량 표시합니다.'; };
+  _muTip('csCellIn', '크랭크 a ↔ 커플러 b 사이 각.');
+  _muTip('csCellOut','커플러 b ↔ 출력링크 c 사이 각.');
   updateCSUI();   // 조종면 각도 δ 슬라이더 초기 범위·읽기값 세팅
   updateOptVarUI();  // 설계 변수(고정/변수) 토글·자동 탐색범위·설명문 초기화
 });

@@ -94,7 +94,7 @@ async function clickByText(frame, txt){
   if(f){
     const info = await f.evaluate(()=>({
       cv: !!document.getElementById('cv'),
-      hasResults: !!document.getElementById('rMA') || !!document.getElementById('rMu'),
+      hasResults: !!document.getElementById('rMA') || !!document.getElementById('rT4torque'),
       optBtn: !!document.getElementById('btnOptimize'),
       sendHM: typeof window.sendToHM==='function' || !!document.getElementById('sendHM'),
       grashof: !!document.getElementById('gBadge')
@@ -236,9 +236,10 @@ async function clickByText(frame, txt){
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 토크 그래프 x축에 조종면 각도(δ) 눈금 — 중립각 연동', dax.ok===true, JSON.stringify(dax));
 
-    // 입력측 전달각(크랭크 a ↔ 커플러 b) 참조 표시.
+    // 입력측 전달각(크랭크 a ↔ 커플러 b).
     // |MA| = (c/a)·sin(μ입력)·sin(μ출력) 항등으로 정의가 맞는지 검증하고,
-    // 옵티마이저 제약에는 들어가지 않았는지(참조값 유지) 확인한다.
+    // 47/47 통일 이후 muIn 이 '참조값' 이 아니라 제약이라는 것(mu=min(입력,출력))과
+    // 조종면 각도(δ) 카드에 입력측·출력측이 함께 표시되는지 확인한다.
     const mi = await f.evaluate(()=>{ try{
       let worst=0;
       for(const t4 of [80,95,110,125]){
@@ -249,13 +250,28 @@ async function clickByText(frame, txt){
         const pred=(S.c/S.a)*Math.sin(t.muIn*Math.PI/180)*Math.sin(t.mu*Math.PI/180);
         worst=Math.max(worst, Math.abs(Math.abs(t.ma)-pred));
       }
+      // calcMAatT4 가 제약용 mu 를 두 측의 최소로 내는지 (옵티마이저가 그 mu 를 실제로
+      // 게이트에 쓰는지는 build/test_optvars.js 가 추천 결과의 muIn·muOut 로 따로 단언한다).
+      // 입력측이 더 나쁜 자세가 표본에 실제로 있어야 공허하지 않다
+      // 앞선 테스트가 남긴 기하에 기대지 않도록 명시적으로 세운다(끝나면 복원)
+      let minIsBoth=true, sawInBinding=false;
+      const _sv={a:S.a,b:S.b,c:S.c,d:S.d,offY:S.offY};
+      try{
+        S.a=20; S.b=100; S.c=30; S.d=100; S.offY=0;   // gLen() 이 offY 도 읽는다
+        for(let t4=75;t4<=135;t4+=10){
+          const r=calcMAatT4(S.a,S.b,S.c,gLen(),t4,S.sol);
+          if(!r||!isFinite(r.mu)) continue;
+          if(Math.abs(r.mu-Math.min(r.muIn,r.muOut))>1e-6) minIsBoth=false;
+          if(r.muIn<r.muOut-1e-6) sawInBinding=true;
+        }
+      } finally { Object.assign(S,_sv); }
       setT4(100); draw();
-      const shown=document.getElementById('rMuIn')?.textContent||'';
-      const src=optimizeForDelta.toString()+bestNeutralForB.toString()+optimizeForVars.toString();
-      return {ok: worst<1e-9 && /°/.test(shown) && !/muIn/.test(src),
-              worst:+worst.toExponential(1), shown, inOptimizer:/muIn/.test(src)};
+      const dIn =document.getElementById('lCSMuIn')?.textContent||'';
+      const dOut=document.getElementById('lCSMuOut')?.textContent||'';
+      return {ok: worst<1e-9 && /°/.test(dIn) && /°/.test(dOut) && minIsBoth && sawInBinding,
+              worst:+worst.toExponential(1), dIn, dOut, minIsBoth, sawInBinding};
     }catch(e){ return {err:e.message}; } });
-    rec('linkage: 입력측 전달각 참조 표시 (MA 항등 검증 · 로직 미사용)', mi.ok===true, JSON.stringify(mi));
+    rec('linkage: 입력측 전달각 — MA 항등 · calcMAatT4 의 mu=min(입력,출력) · δ 카드 표시', mi.ok===true, JSON.stringify(mi));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)

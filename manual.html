@@ -820,7 +820,7 @@ body {
             <div class="step-num">3</div>
             <div class="step-body">
               <h4>토크 해석</h4>
-              <p><strong>토크 해석</strong> 섹션에서 입력 토크 T₂를 입력하면, 가상일 원리에 의해 출력 토크 T₄와 기계적 이득(MA)이 자동 계산됩니다. 전달각 μ가 40° 미만이면 불량 경고가 표시됩니다.</p>
+              <p><strong>토크 해석</strong> 섹션에서 입력 토크 T₂를 입력하면, 가상일 원리에 의해 <strong>기계적 이득(MA)</strong>과 <strong>출력 토크 T₄</strong>가 자동 계산됩니다. 전달각 μ는 <strong>조종면 각도</strong> 카드에서 입력측·출력측을 함께 보여주며, 47° 이상이면 초록, 40° 이상이면 주황, 40° 미만이면 빨강에 ⚠ 표시가 붙습니다.</p>
             </div>
           </div>
           <div class="step">
@@ -855,9 +855,12 @@ body {
           <tr><td>d <span class="unit">mm</span></td><td>고정링크 (Ground Link) — O₂와 O₄ 사이의 거리</td><td>100</td><td>10 ~ 400</td></tr>
           <tr><td>a <span class="unit">mm</span></td><td>크랭크 (Crank) — 구동 링크. 실물은 서보암이며 길이 a = 서보암 <strong>홀간 거리</strong></td><td>20</td><td>5 ~ 400</td></tr>
           <tr><td>b <span class="unit">mm</span></td><td>커플러 (Coupler) — 크랭크와 팔로워 연결 링크</td><td>100</td><td>5 ~ 400</td></tr>
-          <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결. AI 최적화 시 c 허용범위는 <strong>0.2~0.8×d</strong>로 자동 연동됩니다</td><td>40</td><td>5 ~ 400</td></tr>
+          <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결. AI 최적화 시 c 허용범위는 <strong>0.2~0.8×L</strong>(L = 유효 지상링크 √(d²+e²), y오프셋 e=0 이면 d)로 자동 연동됩니다</td><td>40</td><td>5 ~ 400</td></tr>
           <tr><td>θ₄ <span class="unit">°</span></td><td>출력각 (팔로워) — 슬라이더 또는 숫자 입력</td><td>100</td><td>0 ~ 360</td></tr>
           <tr><td>θ₂ <span class="unit">°</span></td><td>입력각 (크랭크) — 입력하면 역해로 θ₄ 산출</td><td>계산값</td><td>0 ~ 360</td></tr>
+          <tr><td>δ <span class="unit">°</span></td><td>조종면 각도 — 중립 0°, 입력한 타각범위 안에서 상향(+)·하향(−). θ₄ = θ₄₀ + δ</td><td>0</td><td>−δ₋ ~ +δ₊</td></tr>
+          <tr><td>장착 기울기 <span class="unit">°</span></td><td>작동기 몸체 회전 (O₂ 고정) — <strong>도면 표시 전용</strong>, 계산 무관</td><td>180</td><td>0 ~ 360</td></tr>
+          <tr><td>y오프셋 <span class="unit">mm</span></td><td>작동기 편심 장착 (O₄ 고정, O₂ 승강) — <strong>실제 기하</strong>, L=√(d²+e²) 로 토크 재계산</td><td>0</td><td>−400 ~ 400</td></tr>
           <tr><td>T₂ <span class="unit">N·m</span></td><td>입력 토크 — 크랭크에 인가되는 모터 토크</td><td>3</td><td>−9999 ~ 9999</td></tr>
           <tr><td>타각 범위 ±δ <span class="unit">°</span></td><td>AI 최적화 목표 타각 범위 (θ₄₀ ± δ)</td><td>25</td><td>0.5 ~ 89</td></tr>
           <tr><td>토크 요구도 <span class="unit">N·m</span></td><td>출력토크·커플러 그래프의 요구 토크 기준선. 토크 가용각 판정에 사용</td><td>3</td><td>−9999 ~ 9999</td></tr>
@@ -870,12 +873,14 @@ body {
       <div class="card">
         <span id="anc-linkage-servo" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">액추에이터 / 서보암 렌더</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
-          좌측 <strong>"액추에이터 / 서보암"</strong> 패널의 <strong>표시</strong> 체크박스를 켜면, 추상 크랭크 막대 대신 실제 <strong>서보(작동기) 몸체</strong>와 <strong>서보암</strong>이 실측 mm 스케일로 그려집니다. 출력 샤프트(=회전축)가 입력 피벗 O₂ 에 오도록 서보 몸체를 <strong>도면 위치(한쪽 끝에서 14.9mm, 폭 중앙)에 구속</strong>해 눕혀 그리며, 서보암만 θ₂ 로 회전합니다. <strong>몸체는 프레임에 고정</strong>되어 링크 움직임(θ₄)과 무관하게 항상 같은 위치·방향을 유지합니다.
+          좌측 <strong>"액추에이터 / 서보암"</strong> 패널의 <strong>표시</strong> 체크박스를 켜면, 추상 크랭크 막대 대신 실제 <strong>서보(작동기) 몸체</strong>와 <strong>서보암</strong>이 실측 mm 스케일로 그려집니다. 출력 샤프트(=회전축)가 입력 피벗 O₂ 에 오도록 서보 몸체를 <strong>도면 위치(한쪽 끝에서 14.9mm, 폭 중앙)에 구속</strong>해 눕혀 그리며, 서보암만 θ₂ 로 회전합니다. <strong>몸체는 프레임에 고정</strong>되어 링크 움직임(θ₄)과 무관하며, 방향은 아래 <strong>장착 기울기</strong>로만 바뀝니다.
         </p>
         <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
           <li><strong>프리셋</strong> — Hitec MDD961WP(몸체 54.5×20mm, 마운트홀 Ø5)를 기본 제공하며, 몸체 길이·폭·샤프트 오프셋·마운트홀 등 치수를 직접 수정하면 자동으로 "직접 입력(커스텀)"으로 전환됩니다.</li>
           <li><strong>서보암 길이 = 크랭크 a</strong> — 서보암 홀간 거리(스플라인 허브 ↔ 푸시로드 M3 홀)는 크랭크 a 와 같은 치수라 <strong>링크 길이의 입력 a</strong> 한 곳에서만 입력합니다(1.0 in = 25.4 mm). 푸시로드 홀은 <strong>M3(Ø3)</strong> 고정입니다.</li>
-          <li><strong>표시 전용</strong> — 렌더링 토글일 뿐 기구·토크 계산은 링크 길이(특히 a)로만 이루어져 결과는 동일합니다. 기본값은 꺼짐입니다.</li>
+          <li><strong>장착 기울기</strong> — 회전축 O₂ 는 고정한 채 서보 몸체만 0~360° 회전시킵니다(기본 180°). <strong>도면 표시 전용</strong>이라 기구·토크 계산에는 영향이 없습니다.</li>
+          <li><strong>작동기 y오프셋</strong> — O₄ 는 고정하고 O₂ 를 위아래로 옮겨, 서보가 조종면 힌지보다 높거나 낮게 장착되는 <strong>편심 배치</strong>를 모델링합니다. 기울기와 달리 <strong>실제 기하 파라미터</strong>라 지상링크 유효길이가 <code>L = √(d² + e²)</code> 로 늘어나고 <strong>MA·토크·가용범위가 모두 재계산</strong>됩니다.</li>
+          <li><strong>표시 체크박스는 렌더링 토글</strong> — 체크박스 자체는 그림만 바꿉니다(기본 꺼짐). 다만 위의 <strong>y오프셋은 체크박스와 무관하게 항상 계산에 반영</strong>되므로, 표시를 꺼도 값이 0 이 아니면 결과가 달라집니다.</li>
         </ul>
         <div class="tip-box" style="margin-top:14px;">표시를 켜면 <strong>서보 몸체·서보암·커플러·출력혼</strong>과 <strong>4개 연결부 볼트(O₂·A·B·O₄)</strong>가 평면(flat) 도식으로 함께 그려집니다. 끄면 분석용 추상 스키매틱으로 돌아갑니다.</div>
       </div>
@@ -884,7 +889,7 @@ body {
       <div class="card">
         <span id="anc-linkage-ai" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">AI 최적 설계 추천</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;">
-          좌측 <strong>AI 최적 설계 추천</strong> 패널에 <strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 현재 <strong>고정 d · 입력 a</strong>는 고정한 채 타각 범위 전체를 물리 가용범위 안에 수용하도록 <strong>커플러 b · 출력링크 c · 중립 출력각 θ₄₀</strong>를 자동으로 탐색합니다. 결과 카드의 값은 직접 편집해 즉시 재평가할 수 있으며, <strong>"이 값 적용 (c · b · θ₄₀ · 중립각)"</strong>으로 기구에 반영합니다.
+          좌측 <strong>AI 최적 설계 추천</strong> 패널에 <strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 타각 범위 전체를 물리 가용범위 안에 수용하도록 링크 길이와 <strong>중립 출력각 θ₄₀</strong>를 자동으로 탐색합니다. 어떤 링크를 탐색할지는 <strong>링크 길이 카드의 자물쇠 버튼</strong>으로 고릅니다 — 잠금=고정, 열림=변수이고 변수로 바꾸면 그 자리에 탐색범위 입력칸이 펼쳐집니다(비우면 자동 산정). 기본값은 <strong>커플러 b · 출력 c 가 변수</strong>, 고정 d · 입력 a 가 고정입니다. 네 링크를 전부 변수로 둘 수는 없습니다 — a:b:c:d 를 같은 배율로 키우면 MA 와 모든 각도가 그대로라 해가 무한히 축퇴하므로, <strong>최소 하나는 고정</strong>이어야 합니다. 결과 카드의 값은 직접 편집해 즉시 재평가할 수 있으며, 적용 버튼으로 기구에 반영합니다(버튼 라벨은 변수로 고른 항목에 맞춰 바뀝니다).
         </p>
 
         <div class="eq-card" style="margin-top:16px;">
@@ -908,13 +913,13 @@ body {
           </div>
           <div class="eq-legend">
             <div class="eq-legend-item"><span class="eq-legend-sym var-blue">①</span>작동범위 [θ₄₀−δ, θ₄₀+δ] ⊆ 물리 가용범위(끝단 마진 제외)</div>
-            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">②</span>작동범위 내 최소 전달각 μ ≥ 50°</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">②</span>작동범위 내 최소 전달각 μ ≥ 47° (입력측·출력측 모두)</div>
             <div class="eq-legend-item"><span class="eq-legend-sym var-red">③</span>양끝단 토크 불균형 ≤ 10%</div>
           </div>
         </div>
 
         <p style="font-size:13.5px;color:var(--text2);line-height:1.7;margin-top:14px;">
-          제약을 모두 만족하는 정상해가 없으면 <strong>차선(fallback) 해</strong>를 주황 배너로 안내합니다 — <strong>불균형 차선</strong>(끝단 토크 불균형을 최소화) 또는 <strong>전달각 차선</strong>(최소 전달각을 최대화). 출력링크 c의 탐색 범위는 고정링크 d에 자동 연동되어 <strong>0.2×d ~ 0.8×d</strong>로 설정되며(별도 입력 불필요), 최적 c가 경계에 붙으면 "d를 키우면 더 좋은 해가 있음"을 안내합니다.
+          제약을 모두 만족하는 정상해가 없으면 <strong>차선(fallback) 해</strong>를 주황 배너로 안내합니다 — <strong>불균형 차선</strong>(끝단 토크 불균형을 최소화) 또는 <strong>전달각 차선</strong>(최소 전달각을 최대화). 정상해가 있더라도 불균형 차선의 목적함수 점수(양끝단+피크 토크 합)가 <strong>20% 넘게</strong> 높으면 그쪽을 채택하고 파란 배너로 이유를 밝힙니다(전달각 차선은 승격 대상이 아닙니다). 출력링크 c의 탐색 범위는 유효 지상링크 L=√(d²+e²)에 자동 연동되어 <strong>0.2×L ~ 0.8×L</strong>로 설정되며(자물쇠로 직접 입력도 가능), 최적값이 탐색범위 경계에 붙으면 "해당 범위를 넓히면 더 좋은 해가 있을 수 있음"을 안내합니다(c 뿐 아니라 변수로 고른 a·d 도 같이 봅니다).
         </p>
         <div class="tip-box" style="margin-top:12px;">
           <div class="tip-icon">💡</div>
@@ -936,7 +941,7 @@ body {
         </table>
         <div class="tip-box" style="margin-top:14px;">
           <div class="tip-icon">📐</div>
-          <div class="tip-text"><strong>물리(기계적) 가용 각도</strong>는 유효 해가 존재하고 전달각 μ ≥ 50°인 최장 연속구간에서 끝단 마진을 뺀 범위이고, <strong>토크 가용 각도</strong>는 |T₄| ≥ 토크 요구도인 θ₄ 구간의 총 각도입니다. 두 값은 출력토크 그래프 아래 박스에 각각 표시됩니다.</div>
+          <div class="tip-text"><strong>물리(기계적) 가용 각도</strong>는 유효 해가 존재하고 전달각 μ ≥ 47°(입력측·출력측 모두)인 최장 연속구간에서 끝단 마진을 뺀 범위이고, <strong>토크 가용 각도</strong>는 |T₄| ≥ 토크 요구도인 θ₄ 구간의 총 각도입니다. 두 값은 출력토크 그래프 아래 박스에 각각 표시됩니다.</div>
         </div>
       </div>
 
@@ -984,7 +989,7 @@ body {
             <span id="anc-phys-span"></span><div class="term-name">물리(기계적) 가용 각도
               <span class="term-symbol">Mechanical Span</span>
             </div>
-            <div class="term-desc">유효한 해가 존재하고 전달각 μ가 기준(최적화 시 50°) 이상으로 유지되는 최장 연속 출력각 구간에서, 양끝단 마진을 제외한 실제 사용 가능한 각도 범위입니다.</div>
+            <div class="term-desc">유효한 해가 존재하고 전달각 μ가 기준(최적화 시 47°) 이상으로 유지되는 최장 연속 출력각 구간에서, 양끝단 마진을 제외한 실제 사용 가능한 각도 범위입니다.</div>
           </div>
           <div class="term-row">
             <span id="anc-torque-span"></span><div class="term-name">토크 가용 각도
@@ -1014,7 +1019,7 @@ body {
             <span id="anc-transmission-angle"></span><div class="term-name">전달각 (Transmission Angle)
               <span class="term-symbol">μ</span>
             </div>
-            <div class="term-desc">커플러와 팔로워 사이의 각도. 토크가 얼마나 효율적으로 전달되는지를 나타내는 지표로, <code>μ = 90°</code>일 때 전달 효율이 최대입니다. 일반적으로 <strong>μ &gt; 40°</strong>를 유지해야 기구가 정상적으로 동작합니다.</div>
+            <div class="term-desc">링크 사이에서 힘이 전달되는 각도. <code>μ = 90°</code>일 때 전달 효율이 최대이고, 일반적으로 <strong>μ &gt; 40°</strong>를 유지해야 기구가 정상 동작합니다. 이 도구는 <strong>출력측</strong>(커플러 b ↔ 출력링크 c, 표준 전달각)과 <strong>입력측</strong>(크랭크 a ↔ 커플러 b)을 모두 표시하며, 최적화 제약은 <strong>둘 다 47° 이상</strong>입니다.</div>
           </div>
           <div class="term-row">
             <span id="anc-ma"></span><div class="term-name">기계적 이득 (MA)
@@ -2415,8 +2420,8 @@ const SEARCH_INDEX = [
   { id:'linkage', anchor:'anc-loop-closure',        title:'루프 폐합 방정식',                  keywords:'loop closure equation 루프 폐합 방정식 θ₂ θ₃ θ₄ cos sin a b c d X Y방향' },
   { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 토크 해석 플롯 슬라이더 드래그 개방형 교차형 θ₂ 역해 AI 최적화 그래프 힌지모멘트 리깅 연동' },
   { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ θ₂ T₂ 타각범위 토크요구도 끝단마진 중립각 기본값 고정링크 크랭크 커플러 팔로워 각도 범위 자동연동' },
-  { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 d' },
-  { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암 렌더',           keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 암길이 M3 스플라인 허브 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 자동 배치 표시 토글 금속 렌더링 inch 25.4 mm' },
+  { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 승격 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 설계변수 고정 변수 자물쇠 탐색범위 대칭 비대칭' },
+  { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암 렌더',           keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 암길이 M3 스플라인 허브 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 자동 배치 표시 토글 금속 렌더링 inch 25.4 mm 장착 기울기 tilt 180 360 y오프셋 편심 offY 지상링크' },
   { id:'linkage', anchor:'anc-linkage-graphs',      title:'출력토크·커플러·타각 스윕 그래프',  keywords:'출력토크 변화 커플러 길이 영향 타각범위 스윕 역설계 그래프 T₄ 물리 가용 토크 가용 각도 μ반영 토크 요구도 끝단마진 그래프 복사 저장 png' },
   { id:'linkage', anchor:'anc-linkage-link',        title:'도구 간 연동 — 힌지모멘트·리깅',    keywords:'힌지모멘트 계산기로 보내기 조종면 리깅 계산기로 보내기 개방형 교차형 중립각 θ₄₀ 타각 δ+ 방향 |T₄(δ)| MA localStorage 연동' },
   { id:'linkage', anchor:'anc-crank',               title:'크랭크 (Crank)',                    keywords:'크랭크 crank 링크 a 구동 모터 360 로커 rocker Grashof' },
@@ -2424,9 +2429,9 @@ const SEARCH_INDEX = [
   { id:'linkage', anchor:'anc-follower',            title:'팔로워 (Follower)',                 keywords:'팔로워 follower 링크 c 출력 θ₄ 조종면 아암 레버' },
   { id:'linkage', anchor:'anc-solution-type',       title:'개방형 / 교차형 (Open/Cross)',      keywords:'개방형 교차형 open cross 조립 형태 분기해 세그먼트 자세' },
   { id:'linkage', anchor:'anc-neutral-angle',       title:'중립각 θ₄₀ (Neutral Angle)',        keywords:'중립각 neutral θ₄₀ 타각 delta 0 기준 출력각 뉴트럴 작동범위 힌지모멘트 리깅 기준' },
-  { id:'linkage', anchor:'anc-phys-span',           title:'물리(기계적) 가용 각도',            keywords:'물리 기계적 가용 각도 mechanical span 전달각 μ 50 끝단 마진 연속구간 유효해' },
+  { id:'linkage', anchor:'anc-phys-span',           title:'물리(기계적) 가용 각도',            keywords:'물리 기계적 가용 각도 mechanical span 전달각 μ 47 끝단 마진 연속구간 유효해' },
   { id:'linkage', anchor:'anc-torque-span',         title:'토크 가용 각도',                    keywords:'토크 가용 각도 torque span T₄ 토크 요구도 하중 감당 범위' },
-  { id:'linkage', anchor:'anc-transmission-angle',  title:'전달각 (Transmission Angle)',       keywords:'전달각 μ 40도 50도 90도 전달효율 커플러 팔로워 transmission angle 최적화' },
+  { id:'linkage', anchor:'anc-transmission-angle',  title:'전달각 (Transmission Angle)',       keywords:'전달각 μ 40도 47도 90도 전달효율 커플러 팔로워 입력측 출력측 transmission angle 최적화' },
   { id:'linkage', anchor:'anc-ma',                  title:'기계적 이득 (MA)',                  keywords:'기계적이득 MA mechanical advantage T₄ T₂ ω₂ ω₄ 가상일 virtual work 힘증폭 속도증폭' },
   { id:'linkage', anchor:'anc-grashof',             title:'Grashof 조건',                     keywords:'Grashof 조건 s l p q 완전회전 크랭크 로커 최단 최장' },
   { id:'linkage', anchor:'anc-loop-term',           title:'루프 폐합 방정식 (용어)',            keywords:'루프 폐합 loop closure Freudenstein 벡터 합 영 기하학적 해' },
