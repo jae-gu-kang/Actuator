@@ -2280,10 +2280,16 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   const sin_in  = Math.sin(t3 - t2r);
   const sin_out = Math.sin(t3 - t4);
   const ma = (c/a) * sin_in * sin_out;
-  let mu=Math.abs(t3*DEG - norm(t4d));
-  if(mu>180) mu=360-mu;
-  if(mu>90)  mu=180-mu;
-  return{ma, t2, mu};
+  // 전달각 두 측 (접힌 예각 0~90°)
+  //   muOut = 커플러 b ↔ 출력링크 c  ·  muIn = 크랭크 a ↔ 커플러 b
+  // MA = (c/a)·sin(muIn)·sin(muOut) 이라 어느 한쪽만 나빠도 토크 전달이 무너진다.
+  const _fold=deg=>{ let m=Math.abs(deg); if(m>180) m=360-m; if(m>90) m=180-m; return m; };
+  const muOut=_fold(t3*DEG - norm(t4d));
+  const muIn =_fold(t3*DEG - t2);
+  // 옵티마이저·가용범위 판정이 쓰는 mu 는 '두 측 중 나쁜 쪽'.
+  // 이렇게 두면 기존 mu>=OPT_MU_MIN 검사가 그대로 입력·출력 양측 조건이 된다.
+  const mu=Math.min(muOut,muIn);
+  return{ma, t2, mu, muOut, muIn};
 }
 
 // ── 캔버스 내부 범례 ──
@@ -2920,7 +2926,7 @@ function drawCouplerPlot(){
   const PAD={t:54, b:84, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
   const legItems=[{type:'line',color:'#ff453a',label:'최대 T₄'}];
-  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (전달각 μ≥'+OPT_MU_MIN+'° 반영)'});
+  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (입력·출력 전달각 μ≥'+OPT_MU_MIN+'° 반영)'});
   if(showTorque) legItems.push({type:'line',color:'#bf5af2',label:'토크 가용 각도'});
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
@@ -3275,6 +3281,7 @@ const OPT_IMBAL_LIMIT=0.10;   // 양끝단 토크 불균형 허용치 (10%)
 const OPT_SCORE_TOL=0.03;     // 세 토크 합 준동률 허용폭 (3%) — 이 범위 안에선 최대토크 우선
 const OPT_RELAX_TOL=0.05;     // 차선 모드 불균형 준동률 폭 (5%p) — 이 범위 안에선 §3-1 규칙 적용
 const OPT_MU_BASE=45;         // 전달각 기준 하한 (§2-4): 고하중·고속 권장값 (측하중 cot(45°)=1.0 경계)
+                              // 입력측(크랭크–커플러)·출력측(커플러–출력링크) 양쪽에 동일 적용
 const OPT_MU_MARGIN=5;        // 해석-실물 불확실성 마진: 링크 공차·핀 유격·변형에 의한 μ 편차 (3~5°)
 const OPT_MU_MIN=OPT_MU_BASE+OPT_MU_MARGIN;   // 공칭 μ 제약: 접힌 μ′=min(μ,180−μ) ≥ 50°
 // 비대칭 '토크 최우선' 모드: 절대 토크(중립)를 최대화하되 최소 안전여유가 이 비율 아래로는
@@ -3583,7 +3590,7 @@ function doOptimize(){
     ?'<div style="background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.25);border-radius:8px;'
      +'padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:#a05800;font-weight:600;line-height:1.5;">'
      +(fbType==='mu'
-       ?'⚠︎ c 탐색 범위 내에서도 전달각 μ ≥'+OPT_MU_MIN+'° 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+       ?'⚠︎ c 탐색 범위 내에서도 <b>입력·출력 전달각</b> μ ≥'+OPT_MU_MIN+'° 를 동시에 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>(전달각 최대화 우선 — 달성 μ '+best.muMin.toFixed(1)+'°)'
        :'⚠︎ '+(sym?'':'여유율 ')+'불균형 ≤'+(optImbalLimit(dm,dp)*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>('+(sym?'':'여유율 ')+'불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
@@ -3697,7 +3704,7 @@ function buildOptMetrics(m){
   let s='';
   s+=row('작동 범위',(m.t0-dm).toFixed(1)+'° ~ '+(m.t0+dp).toFixed(1)+'° ('+rangeLbl+')',
     m.contained?'var(--text)':'var(--red)');
-  s+=row('최소 전달각 μ <span style="color:var(--text3)">(최우선 필터)</span>',
+  s+=row('최소 전달각 μ <span style="color:var(--text3)">(입력·출력 중 나쁜 쪽 · 최우선 필터)</span>',
     m.muMin.toFixed(1)+'° (≥'+OPT_MU_MIN+'° = 기준 '+OPT_MU_BASE+'°+마진 '+OPT_MU_MARGIN+'°)',
     m.muMin>=OPT_MU_MIN?'#1a9c3e':'var(--red)');
   s+='<div class="result-divider"></div>';
@@ -3995,10 +4002,10 @@ function refreshOptDesc(){
   const head='<b>'+(fixed.length?fixed.join(' · '):'—')+'</b> 를 고정한 채, <b>'
            +(vars.length?vars.join(' · ')+' · ':'')+'중립 출력각 θ₄₀</b> 를 탐색합니다. ';
   desc.innerHTML=head+(asym
-    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b> · μ≥50° · '
+    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b> · <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> · '
       +'<b>최소 안전여유 하한(달성 최대의 90%)</b> 을 제약으로 두고 그 안에서 <b>절대 토크(중립)를 최대화</b>합니다. (힌지모멘트 입력 불필요)'
-    : '입력한 <b>타각 범위</b> 를 물리 가용범위(양끝단 마진 제외) 안에 수용하고 <b>양끝단 토크 불균형 ≤ 10%</b> 를 '
-      +'만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 탐색합니다.');
+    : '입력한 <b>타각 범위</b> 를 물리 가용범위(양끝단 마진 제외) 안에 수용하고, <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> 와 '
+      +'<b>양끝단 토크 불균형 ≤ 10%</b> 를 만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 탐색합니다.');
 }
 
 function readCRange(){

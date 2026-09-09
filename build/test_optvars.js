@@ -65,6 +65,11 @@ function load(file){
     + "setCtx:o=>{_optCtx=o;},"
     + "evalDesign:(cv,bv,t0,dm,dp,T2,m,mode,av,dv)=>evalDesign(cv,bv,t0,dm,dp,T2,m,mode,av,dv),"
     + "field:id=>{const e=document.getElementById(id);return e?e.value:null;},"
+    + "muScan:(cv,bv,t0,dm,dp)=>{const sc=S.c;S.c=cv;try{let i=Infinity,o=Infinity;"
+    +   "for(let t=t0-dm;t<=t0+dp+1e-9;t+=0.05){const r=calcMAatT4(S.a,bv,S.c,gLen(),t,S.sol);"
+    +   "if(!r)continue; if(r.muIn<i)i=r.muIn; if(r.muOut<o)o=r.muOut;}"
+    +   "return{muIn:i,muOut:o};}finally{S.c=sc;}},"
+    + "MU_BASE:OPT_MU_BASE, MU_MIN:OPT_MU_MIN,"
     + "applyFromCard:()=>applyOptFromCard()};";
   vm.runInNewContext(body+drv, ctx, {filename:file});
   ctx.__api.setAbsent = ids => { absent.clear(); (ids||[]).forEach(i=>absent.add(i)); };
@@ -256,6 +261,36 @@ const DEFL = [ {dm:25,dp:25}, {dm:40,dp:40}, {dm:30,dp:20} ];
   rec('비유한 θ₄₀(±Infinity·NaN)는 무한루프 없이 즉시 거부, 정상값은 계산됨',
       allRejected && !slow && good && !good.err && isFinite(good.score),
       slow ? ('느림: '+slow) : ('거부 3종 OK · 정상 score='+(good&&good.score!==undefined?(+good.score).toFixed(3):'—')));
+}
+
+// ── 10) 전달각 제약이 입력·출력 양측에 걸리는가 ──
+//     예전엔 출력측만 검사해서 추천안의 입력측이 30° 안팎으로 방치됐다.
+{
+  A.resetVars(); A.setS(BASE);
+  const cases=[['대칭 ±25',25,25],['대칭 ±30',30,30],['비대칭 상30/하10',10,30]];
+  let bad=null, detail=[];
+  for(const [nm,dm,dp] of cases){
+    A.resetVars(); A.setS(BASE);
+    const r=A.vars(dm,dp,3,5);
+    if(!r){ bad=nm+': 해 없음'; break; }
+    const q=A.muScan(r.cOpt, r.b, r.t0, dm, dp);
+    detail.push(nm+' 입력 '+q.muIn.toFixed(1)+'°/출력 '+q.muOut.toFixed(1)+'°');
+    // 실제 요구치(45°)를 양측 모두 만족해야 한다 (0.05° 정밀 스캔)
+    if(!(q.muIn>=A.MU_BASE && q.muOut>=A.MU_BASE)){
+      bad=nm+' → 입력 '+q.muIn.toFixed(2)+'° / 출력 '+q.muOut.toFixed(2)+'°'; break;
+    }
+  }
+  rec('전달각 제약이 입력·출력 양측에 적용됨 (양측 ≥'+A.MU_BASE+'°)',
+      !bad, bad || detail.join(' · '));
+}
+
+// ── 11) calcMAatT4 의 mu 는 두 측 중 나쁜 쪽이어야 (제약이 양측을 강제하는 근거) ──
+{
+  A.resetVars(); A.setS(BASE);
+  const r=A.muScan(BASE.c, BASE.b, 100, 25, 25);
+  const ok = r.muIn>0 && r.muOut>0;
+  rec('calcMAatT4 가 muIn·muOut 을 모두 제공',
+      ok, '입력 '+r.muIn.toFixed(1)+'° / 출력 '+r.muOut.toFixed(1)+'°');
 }
 
 const passed = results.filter(r=>r.pass).length;
