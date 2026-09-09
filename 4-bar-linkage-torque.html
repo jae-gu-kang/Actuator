@@ -2619,7 +2619,10 @@ function drawTorquePlot(){
     c2.beginPath(); c2.arc(cx,cy,5,0,Math.PI*2);
     c2.fillStyle="#ff9f0a"; c2.fill();
     c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
-    const lbl=T4arr[t4idx].toFixed(2)+" N·m";
+    // 조종면기준 각도 δ = θ₄ − 중립각 θ₄₀ (상향/하향 끝단 노드와 같은 표기: 방향 + 크기)
+    const _dCur=clampedT4-_csT40;
+    const _dTxt=Math.abs(_dCur)<0.05 ? '중립' : (_dCur>0?'상향':'하향')+' '+Math.abs(_dCur).toFixed(1)+'°';
+    const lbl=_dTxt+' · '+T4arr[t4idx].toFixed(2)+" N·m";
     c2.font="600 9px -apple-system,sans-serif";
     const lw=c2.measureText(lbl).width;
     // 위치 후보: 우상 → 좌상 → 우하 → 좌하 순으로 최대값 라벨과 겹치지 않는 곳 선택
