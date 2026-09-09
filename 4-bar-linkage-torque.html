@@ -2286,9 +2286,11 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   const _fold=deg=>{ let m=Math.abs(deg); if(m>180) m=360-m; if(m>90) m=180-m; return m; };
   const muOut=_fold(t3*DEG - norm(t4d));
   const muIn =_fold(t3*DEG - t2);
-  // 옵티마이저·가용범위 판정이 쓰는 mu 는 '두 측 중 나쁜 쪽'.
-  // 이렇게 두면 기존 mu>=OPT_MU_MIN 검사가 그대로 입력·출력 양측 조건이 된다.
-  const mu=Math.min(muOut,muIn);
+  // 옵티마이저·가용범위 판정이 쓰는 mu. 입력측을 (OPT_MU_MIN−OPT_MU_IN_MIN) 만큼 올려 합성하면
+  //   mu >= OPT_MU_MIN  ⟺  muOut >= OPT_MU_MIN(50°)  AND  muIn >= OPT_MU_IN_MIN(45°)
+  // 이 되어 기존의 모든 mu>=OPT_MU_MIN 검사가 두 임계값을 한 번에 건다.
+  // 주의: mu 는 더 이상 '실제 각도' 가 아니다 — 화면 표시는 muOut/muIn 을 따로 써야 한다.
+  const mu=Math.min(muOut, muIn+(OPT_MU_MIN-OPT_MU_IN_MIN));
   return{ma, t2, mu, muOut, muIn};
 }
 
@@ -2926,7 +2928,7 @@ function drawCouplerPlot(){
   const PAD={t:54, b:84, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
   const legItems=[{type:'line',color:'#ff453a',label:'최대 T₄'}];
-  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (입력·출력 전달각 μ≥'+OPT_MU_MIN+'° 반영)'});
+  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (전달각 입력 μ≥'+OPT_MU_IN_MIN+'°·출력 μ≥'+OPT_MU_MIN+'° 반영)'});
   if(showTorque) legItems.push({type:'line',color:'#bf5af2',label:'토크 가용 각도'});
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
@@ -3283,7 +3285,11 @@ const OPT_RELAX_TOL=0.05;     // 차선 모드 불균형 준동률 폭 (5%p) —
 const OPT_MU_BASE=45;         // 전달각 기준 하한 (§2-4): 고하중·고속 권장값 (측하중 cot(45°)=1.0 경계)
                               // 입력측(크랭크–커플러)·출력측(커플러–출력링크) 양쪽에 동일 적용
 const OPT_MU_MARGIN=5;        // 해석-실물 불확실성 마진: 링크 공차·핀 유격·변형에 의한 μ 편차 (3~5°)
-const OPT_MU_MIN=OPT_MU_BASE+OPT_MU_MARGIN;   // 공칭 μ 제약: 접힌 μ′=min(μ,180−μ) ≥ 50°
+const OPT_MU_MIN=OPT_MU_BASE+OPT_MU_MARGIN;
+// 입력측(크랭크–커플러) 기준은 요구치 45° 그대로. 출력측만 마진 5° 를 얹어 50° 로 둔다.
+// 입력측에도 50° 를 걸면 좋은 해가 '불균형 차선' 티어로 밀려 select() 가 티어 우선으로
+// 더 낮은 토크의 정상해를 고르게 된다(실측 −4.5%). 45° 로 두면 정상 티어로 복귀한다.
+const OPT_MU_IN_MIN=OPT_MU_BASE;   // 공칭 μ 제약: 접힌 μ′=min(μ,180−μ) ≥ 50°
 // 비대칭 '토크 최우선' 모드: 절대 토크(중립)를 최대화하되 최소 안전여유가 이 비율 아래로는
 // 못 내려가게 하는 하한. floor = ASYM_MARGIN_FLOOR × M*(달성 가능한 최대 최소여유). (2-패스)
 const ASYM_MARGIN_FLOOR=0.90;
@@ -3590,8 +3596,8 @@ function doOptimize(){
     ?'<div style="background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.25);border-radius:8px;'
      +'padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:#a05800;font-weight:600;line-height:1.5;">'
      +(fbType==='mu'
-       ?'⚠︎ c 탐색 범위 내에서도 <b>입력·출력 전달각</b> μ ≥'+OPT_MU_MIN+'° 를 동시에 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
-        +'<br>(전달각 최대화 우선 — 달성 μ '+best.muMin.toFixed(1)+'°)'
+       ?'⚠︎ c 탐색 범위 내에서도 <b>입력 μ≥'+OPT_MU_IN_MIN+'° · 출력 μ≥'+OPT_MU_MIN+'°</b> 를 동시에 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+        +'<br>(전달각 최대화 우선 — 아래 최소 전달각 행에서 입력·출력 실제 각도를 확인하세요)'
        :'⚠︎ '+(sym?'':'여유율 ')+'불균형 ≤'+(optImbalLimit(dm,dp)*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>('+(sym?'':'여유율 ')+'불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
      +'</div>'
@@ -3671,12 +3677,15 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     const contained=(t0-dm>=physLo-1e-9)&&(t0+dp<=physHi+1e-9);
     const tm=absT4At(bv,t0-dm,T2), tp=absT4At(bv,t0+dp,T2), tn=absT4At(bv,t0,T2);
     let wmax=-Infinity,warg=null,muMin=Infinity,gap=false;
+    let muInMin=Infinity, muOutMin=Infinity;   // 표시용 '실제 각도' (mu 는 합성값이라 못 씀)
     for(let t=t0-dm;t<=t0+dp+1e-9;t+=0.25){
       const r=feasibleAt(S.a,bv,S.c,gLen(),t,S.sol);
       if(!r){gap=true;continue;}
       const v=Math.abs(T2*r.ma);
       if(v>wmax){wmax=v;warg=t;}
       if(r.mu<muMin) muMin=r.mu;
+      if(r.muIn<muInMin) muInMin=r.muIn;
+      if(r.muOut<muOutMin) muOutMin=r.muOut;
     }
     if(tm===null||tp===null||!isFinite(wmax)||gap)
       return{err:'작동범위 일부에서 기구 해가 없습니다 (θ₄₀·범위 확인)',physLo,physHi};
@@ -3684,7 +3693,8 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     const imbal=mx>1e-12?Math.abs(mm-mp)/mx:0;   // sym 이면 |T₋−T₊|/max 와 동일
     const minMgn=Math.min(mm,mp);
     const score=sym?(tm+tp+wmax):(mode==='torque'?tn:minMgn);
-    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,imbal,marginM:mm,marginP:mp,minMgn,
+    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,
+      imbal,marginM:mm,marginP:mp,minMgn,
       score,physLo,physHi,contained};
   } finally { S.c=sc; S.a=sa; S.d=sd; }
 }
@@ -3704,9 +3714,17 @@ function buildOptMetrics(m){
   let s='';
   s+=row('작동 범위',(m.t0-dm).toFixed(1)+'° ~ '+(m.t0+dp).toFixed(1)+'° ('+rangeLbl+')',
     m.contained?'var(--text)':'var(--red)');
-  s+=row('최소 전달각 μ <span style="color:var(--text3)">(입력·출력 중 나쁜 쪽 · 최우선 필터)</span>',
-    m.muMin.toFixed(1)+'° (≥'+OPT_MU_MIN+'° = 기준 '+OPT_MU_BASE+'°+마진 '+OPT_MU_MARGIN+'°)',
-    m.muMin>=OPT_MU_MIN?'#1a9c3e':'var(--red)');
+  {
+    // mu 는 임계값 합성치라 각도로 못 읽는다 → 실제 muIn/muOut 최솟값을 보여준다
+    const _in=(m.muInMin!==undefined&&isFinite(m.muInMin))?m.muInMin:null;
+    const _out=(m.muOutMin!==undefined&&isFinite(m.muOutMin))?m.muOutMin:null;
+    const _okIn=_in===null||_in>=OPT_MU_IN_MIN-1e-9, _okOut=_out===null||_out>=OPT_MU_MIN-1e-9;
+    const _tx=v=>v===null?'—':v.toFixed(1)+'°';
+    s+=row('최소 전달각 μ <span style="color:var(--text3)">(최우선 필터)</span>',
+      '입력 '+_tx(_in)+' <span style="color:var(--text3)">(≥'+OPT_MU_IN_MIN+'°)</span>'
+      +' · 출력 '+_tx(_out)+' <span style="color:var(--text3)">(≥'+OPT_MU_MIN+'° = '+OPT_MU_BASE+'+마진 '+OPT_MU_MARGIN+')</span>',
+      (_okIn&&_okOut)?'#1a9c3e':'var(--red)');
+  }
   s+='<div class="result-divider"></div>';
   if(sym){
     s+=row('|T₄| @ −δ 끝단',m.tm.toFixed(2)+' N·m','var(--follower)');
@@ -4002,9 +4020,9 @@ function refreshOptDesc(){
   const head='<b>'+(fixed.length?fixed.join(' · '):'—')+'</b> 를 고정한 채, <b>'
            +(vars.length?vars.join(' · ')+' · ':'')+'중립 출력각 θ₄₀</b> 를 탐색합니다. ';
   desc.innerHTML=head+(asym
-    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b> · <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> · '
+    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b> · <b>전달각 입력 μ≥'+OPT_MU_IN_MIN+'° · 출력 μ≥'+OPT_MU_MIN+'°</b> · '
       +'<b>최소 안전여유 하한(달성 최대의 90%)</b> 을 제약으로 두고 그 안에서 <b>절대 토크(중립)를 최대화</b>합니다. (힌지모멘트 입력 불필요)'
-    : '입력한 <b>타각 범위</b> 를 물리 가용범위(양끝단 마진 제외) 안에 수용하고, <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> 와 '
+    : '입력한 <b>타각 범위</b> 를 물리 가용범위(양끝단 마진 제외) 안에 수용하고, <b>전달각 입력 μ≥'+OPT_MU_IN_MIN+'° · 출력 μ≥'+OPT_MU_MIN+'°</b> 와 '
       +'<b>양끝단 토크 불균형 ≤ 10%</b> 를 만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 탐색합니다.');
 }
 
