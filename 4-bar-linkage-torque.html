@@ -2286,11 +2286,9 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   const _fold=deg=>{ let m=Math.abs(deg); if(m>180) m=360-m; if(m>90) m=180-m; return m; };
   const muOut=_fold(t3*DEG - norm(t4d));
   const muIn =_fold(t3*DEG - t2);
-  // 옵티마이저·가용범위 판정이 쓰는 mu. 입력측을 (OPT_MU_MIN−OPT_MU_IN_MIN) 만큼 올려 합성하면
-  //   mu >= OPT_MU_MIN  ⟺  muOut >= OPT_MU_MIN(50°)  AND  muIn >= OPT_MU_IN_MIN(45°)
-  // 이 되어 기존의 모든 mu>=OPT_MU_MIN 검사가 두 임계값을 한 번에 건다.
-  // 주의: mu 는 더 이상 '실제 각도' 가 아니다 — 화면 표시는 muOut/muIn 을 따로 써야 한다.
-  const mu=Math.min(muOut, muIn+(OPT_MU_MIN-OPT_MU_IN_MIN));
+  // 제약용 mu = 두 측 중 나쁜 쪽. 입력·출력 기준이 같은 값(OPT_MU_MIN)이라
+  // 기존의 모든 mu>=OPT_MU_MIN 검사가 그대로 양측 조건이 되고, mu 는 실제 각도다.
+  const mu=Math.min(muOut,muIn);
   return{ma, t2, mu, muOut, muIn};
 }
 
@@ -2361,9 +2359,14 @@ function drawTorquePlot(){
   const csEnds=[{lab:'상향',sgn:1,v:csFloor10(_csDf.dp)},
                 {lab:'하향',sgn:-1,v:csFloor10(_csDf.dm)}]
     .filter(e=>e.v>0).map(e=>({lab:e.lab, v:e.v, deg:_csT40+e.sgn*e.v}));
+  // 노드별 조종면기준 각도 δ = (노드 θ₄) − 중립각 θ₄₀  (부호: +상향 / −하향).
+  // 정의역(x축)에 균일 눈금으로 쓰지 않고, 각 노드 알약 아래줄에 그 노드 위치의 δ 로 표시.
+  const csDegStr=deg=>{ let dv=Math.round((deg-_csT40)*10)/10;
+    if(Math.abs(dv)<0.05) return '0°';
+    const m=Math.abs(dv); return (dv>0?'+':'−')+(m%1===0?m.toFixed(0):m.toFixed(1))+'°'; };
 
   // ── 범례 구성 (캔버스 안에 그림 → 복사/저장에 포함) ──
-  const PAD={t:22, b:99, l:56, r:56};   // b: x축 눈금(θ₄+δ 2줄)+pill 라벨(최대 4행)+범례 여유
+  const PAD={t:22, b:110, l:56, r:56};   // b: x축 눈금(θ₄)+노드 알약(θ₄/δ 2줄, 최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
   const legItems=[{type:'line',color:'#ff453a',label:'T₄ 출력토크'}];
   if(_legHasMotor) legItems.push({type:'dash',color:'rgba(191,90,242,0.85)',label:'토크 요구도'});
@@ -2372,7 +2375,7 @@ function drawTorquePlot(){
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
 
-  const PH_CANVAS=321+LEG_H;            // δ 줄 13px 추가 (IH 는 200 그대로)
+  const PH_CANVAS=332+LEG_H;            // 노드 알약 2줄(θ₄/δ)만큼 하단 확대 (IH 는 200 그대로)
   PAD.b+=LEG_H;                       // 범례 공간만큼 하단 패딩 확대 → 플롯 영역(IH)은 그대로 200px
 
   const DPR=plotDPR||window.devicePixelRatio||1;
@@ -2512,17 +2515,10 @@ function drawTorquePlot(){
     const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
     c2.fillText(deg+"°", x, PAD.t+IH+12);
   }
-  // ── 둘째 줄: 같은 눈금이 조종면 각도 δ 로 몇 도인지 (δ = θ₄ − 중립각 θ₄₀) ──
-  c2.fillStyle="rgba(40,167,69,0.85)";
-  for(let deg=xLabelStart; deg<=T4_MAX; deg+=xStep){
-    const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
-    const dv=deg-_csT40;
-    c2.fillText((Math.abs(dv)<1e-9?'0':(dv>0?'+':'−')+Math.abs(dv))+"°", x, PAD.t+IH+25);
-  }
-  // 축 이름은 우측 여백에 두 줄로 (눈금과 겹치지 않게)
+  // δ 는 정의역(x축)에 균일 눈금으로 쓰지 않는다 — 각 노드 알약 아래줄에 노드별 δ 로 표시.
+  // 축 이름(θ₄)만 우측 여백에.
   c2.textAlign="left";
   c2.fillStyle="rgba(200,60,50,0.6)"; c2.fillText("θ₄", PAD.l+IW+18, PAD.t+IH+12);
-  c2.fillStyle="rgba(40,167,69,0.75)"; c2.fillText("δ",  PAD.l+IW+18, PAD.t+IH+25);
   c2.textAlign="center";
 
   // ── 좌측 Y축 라벨 (T4) ──
@@ -2604,7 +2600,7 @@ function drawTorquePlot(){
   // 최대값 X축 라벨을 xAxisLabels 배열에 등록
   const xAxisLabels=[]; // {x, label, color, bg}
   if(maxIdx>=0){
-    xAxisLabels.push({x:xp(maxIdx), label:(T4_MIN+maxIdx).toFixed(1)+"°",
+    xAxisLabels.push({x:xp(maxIdx), label:(T4_MIN+maxIdx).toFixed(1)+"°", sub:csDegStr(T4_MIN+maxIdx),
       color:"rgba(20,130,40,0.95)", bg:"rgba(50,215,75,0.15)"});
   }
 
@@ -2619,10 +2615,7 @@ function drawTorquePlot(){
     c2.beginPath(); c2.arc(cx,cy,5,0,Math.PI*2);
     c2.fillStyle="#ff9f0a"; c2.fill();
     c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
-    // 조종면기준 각도 δ = θ₄ − 중립각 θ₄₀ (상향/하향 끝단 노드와 같은 표기: 방향 + 크기)
-    const _dCur=clampedT4-_csT40;
-    const _dTxt=Math.abs(_dCur)<0.05 ? '중립' : (_dCur>0?'상향':'하향')+' '+Math.abs(_dCur).toFixed(1)+'°';
-    const lbl=_dTxt+' · '+T4arr[t4idx].toFixed(2)+" N·m";
+    const lbl=T4arr[t4idx].toFixed(2)+" N·m";   // δ 는 아래 알약(노드별)에 표시
     c2.font="600 9px -apple-system,sans-serif";
     const lw=c2.measureText(lbl).width;
     // 위치 후보: 우상 → 좌상 → 우하 → 좌하 순으로 최대값 라벨과 겹치지 않는 곳 선택
@@ -2645,8 +2638,8 @@ function drawTorquePlot(){
     c2.beginPath(); c2.roundRect(lx-3,ly-10,lw+8,14,4); c2.fill();
     c2.fillStyle="#b06000"; c2.textAlign="left";
     c2.fillText(lbl, lx+1, ly);
-    // 현재 출력각(θ₄) 값은 축 아래 알약 행에 표시 (max·교점 라벨과 겹침 자동 회피)
-    xAxisLabels.push({x:cx, label:(T4_MIN+t4idx).toFixed(1)+"°",
+    // 현재 출력각(θ₄)+조종면기준 각도(δ)를 축 아래 알약에 두 줄로 (max·교점 라벨과 겹침 자동 회피)
+    xAxisLabels.push({x:cx, label:(T4_MIN+t4idx).toFixed(1)+"°", sub:csDegStr(clampedT4),
       color:"#b06000", bg:"rgba(255,159,10,0.18)"});
   }
 
@@ -2683,7 +2676,7 @@ function drawTorquePlot(){
       c2.beginPath(); c2.roundRect(lx-3,ly-10,lw+8,14,4); c2.fill();
       c2.fillStyle="#4b49c4"; c2.textAlign="left";
       c2.fillText(lbl, lx+1, ly);
-      xAxisLabels.push({x, label:e.deg.toFixed(1)+"°",
+      xAxisLabels.push({x, label:e.deg.toFixed(1)+"°", sub:csDegStr(e.deg),
         color:"#4b49c4", bg:"rgba(94,92,230,0.15)"});
     }
   }
@@ -2768,7 +2761,7 @@ function drawTorquePlot(){
         c2.setLineDash([]);
 
         // 교점 X라벨을 xAxisLabels 배열에 등록
-        xAxisLabels.push({x:xi, label:t4cross.toFixed(1)+"°",
+        xAxisLabels.push({x:xi, label:t4cross.toFixed(1)+"°", sub:csDegStr(t4cross),
           color:"rgba(130,30,200,0.95)", bg:"rgba(191,90,242,0.15)"});
         c2.restore();
     });
@@ -2779,8 +2772,8 @@ function drawTorquePlot(){
     c2.font="700 9px -apple-system,sans-serif";
     // x 좌표 기준 정렬
     xAxisLabels.sort((a,b)=>a.x-b.x);
-    // 각 라벨 너비 계산
-    const pillW=xAxisLabels.map(l=>c2.measureText(l.label).width+10);
+    // 각 라벨 너비 계산 (θ₄ 줄과 δ 줄 중 넓은 쪽 기준)
+    const pillW=xAxisLabels.map(l=>Math.max(c2.measureText(l.label).width, l.sub?c2.measureText(l.sub).width:0)+10);
     // 행 배정: 이전 라벨과 겹치면 다음 행
     const rows=[];
     xAxisLabels.forEach((lb,i)=>{
@@ -2796,15 +2789,18 @@ function drawTorquePlot(){
       }
       rows.push(row);
     });
-    const BASE_Y=PAD.t+IH+45;   // θ₄·δ 두 줄 아래
-    const ROW_H=15;
+    const BASE_Y=PAD.t+IH+26;   // 축 눈금(θ₄) 한 줄 아래
+    const ROW_H=24;             // 두 줄(θ₄/δ) 알약 높이 확보
     xAxisLabels.forEach((lb,i)=>{
       const ly=BASE_Y+rows[i]*ROW_H;
       const pw=pillW[i];
       c2.fillStyle=lb.bg;
-      c2.beginPath(); c2.roundRect(lb.x-pw/2, ly-10, pw, 13, 4); c2.fill();
+      c2.beginPath(); c2.roundRect(lb.x-pw/2, ly-10, pw, lb.sub?22:13, 4); c2.fill();
       c2.fillStyle=lb.color; c2.textAlign="center";
-      c2.fillText(lb.label, lb.x, ly);
+      c2.font="700 9px -apple-system,sans-serif";
+      c2.fillText(lb.label, lb.x, ly);            // 윗줄: 출력각 θ₄
+      if(lb.sub){ c2.font="600 8px -apple-system,sans-serif";
+        c2.fillText(lb.sub, lb.x, ly+10); }       // 아랫줄: 조종면기준 각도 δ
     });
   }
 
@@ -2931,7 +2927,7 @@ function drawCouplerPlot(){
   const PAD={t:54, b:84, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
   const legItems=[{type:'line',color:'#ff453a',label:'최대 T₄'}];
-  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (전달각 입력 μ≥'+OPT_MU_IN_MIN+'°·출력 μ≥'+OPT_MU_MIN+'° 반영)'});
+  if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (입력·출력 전달각 μ≥'+OPT_MU_MIN+'° 반영)'});
   if(showTorque) legItems.push({type:'line',color:'#bf5af2',label:'토크 가용 각도'});
   const legRows=layoutLegend(legItems, IW);
   const LEG_H=legendHeight(legRows);
@@ -3283,16 +3279,15 @@ function absT4At(bVal,deg,T2){
 // 제약: 양끝단 토크 불균형 |T₋−T₊| / max(T₋,T₊) ≤ 10%
 // 목적: maximize [ |T₄(θ₄₀−δ)| + |T₄(θ₄₀+δ)| + max|T₄|(작동범위 내) ]  — 세 토크의 합
 const OPT_IMBAL_LIMIT=0.10;   // 양끝단 토크 불균형 허용치 (10%)
+const OPT_TIER_GAIN=0.20;     // 불균형 차선이 정상해보다 점수 20% 이상 높으면 차선을 채택
 const OPT_SCORE_TOL=0.03;     // 세 토크 합 준동률 허용폭 (3%) — 이 범위 안에선 최대토크 우선
 const OPT_RELAX_TOL=0.05;     // 차선 모드 불균형 준동률 폭 (5%p) — 이 범위 안에선 §3-1 규칙 적용
 const OPT_MU_BASE=45;         // 전달각 기준 하한 (§2-4): 고하중·고속 권장값 (측하중 cot(45°)=1.0 경계)
-                              // 입력측(크랭크–커플러)·출력측(커플러–출력링크) 양쪽에 동일 적용
-const OPT_MU_MARGIN=5;        // 해석-실물 불확실성 마진: 링크 공차·핀 유격·변형에 의한 μ 편차 (3~5°)
+const OPT_MU_MARGIN=2;        // 해석-실물 불확실성 마진: 링크 공차·핀 유격·변형에 의한 μ 편차
+// 공칭 μ 제약 47° — 입력측(크랭크–커플러)·출력측(커플러–출력링크)에 같은 값을 쓴다.
+// 접힌 μ′=min(μ,180−μ) 기준. 25개 형상 실측상 45/50 대비 세 토크 합 −2.8% 로,
+// 기준을 하나로 묶어 얻는 단순함(제약용 mu 가 다시 '실제 각도')이 그 값을 상회한다.
 const OPT_MU_MIN=OPT_MU_BASE+OPT_MU_MARGIN;
-// 입력측(크랭크–커플러) 기준은 요구치 45° 그대로. 출력측만 마진 5° 를 얹어 50° 로 둔다.
-// 입력측에도 50° 를 걸면 좋은 해가 '불균형 차선' 티어로 밀려 select() 가 티어 우선으로
-// 더 낮은 토크의 정상해를 고르게 된다(실측 −4.5%). 45° 로 두면 정상 티어로 복귀한다.
-const OPT_MU_IN_MIN=OPT_MU_BASE;   // 공칭 μ 제약: 접힌 μ′=min(μ,180−μ) ≥ 50°
 // 비대칭 '토크 최우선' 모드: 절대 토크(중립)를 최대화하되 최소 안전여유가 이 비율 아래로는
 // 못 내려가게 하는 하한. floor = ASYM_MARGIN_FLOOR × M*(달성 가능한 최대 최소여유). (2-패스)
 const ASYM_MARGIN_FLOOR=0.90;
@@ -3584,7 +3579,8 @@ function doOptimize(){
             t0:q.t0,tm:q.tm,tp:q.tp,worst:q.worst,wmax:q.wmax,wargDeg:q.wargDeg,
             tn:(q.tn!==undefined?q.tn:absT4At(bv,q.t0,T2)),
             imbal:q.imbal,muMin:q.muMin,score:q.score,physLo:q.physLo,physHi:q.physHi,
-            atBound:res.atBound,varBounds:res.varBounds};
+            atBound:res.atBound,varBounds:res.varBounds,
+            promoted:res.promoted,normScore:res.normScore};
       }
     } finally { S.c=sc; S.a=sa; S.d=sd; }
   }
@@ -3595,14 +3591,22 @@ function doOptimize(){
     a0:S.a,d0:S.d};
 
   const rho=best.cOpt/(best.aOpt||S.a), wFac=Math.min(1.5,Math.max(0.5,rho/2));
+  const _promo=!!best.promoted&&fbType==='imbal';
   const banner=fallback
-    ?'<div style="background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.25);border-radius:8px;'
-     +'padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:#a05800;font-weight:600;line-height:1.5;">'
+    ?'<div style="background:'+(_promo?'rgba(0,113,227,0.08)':'rgba(255,159,10,0.12)')
+     +';border:1px solid '+(_promo?'rgba(0,113,227,0.2)':'rgba(255,159,10,0.25)')+';border-radius:8px;'
+     +'padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:'+(_promo?'#0058b0':'#a05800')
+     +';font-weight:600;line-height:1.5;">'
      +(fbType==='mu'
-       ?'⚠︎ c 탐색 범위 내에서도 <b>입력 μ≥'+OPT_MU_IN_MIN+'° · 출력 μ≥'+OPT_MU_MIN+'°</b> 를 동시에 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+       ?'⚠︎ c 탐색 범위 내에서도 <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> 를 동시에 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>(전달각 최대화 우선 — 아래 최소 전달각 행에서 입력·출력 실제 각도를 확인하세요)'
-       :'⚠︎ '+(sym?'':'여유율 ')+'불균형 ≤'+(optImbalLimit(dm,dp)*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
-        +'<br>('+(sym?'':'여유율 ')+'불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
+       : best.promoted
+         // 정상해가 있었지만 토크가 확실히 높아 불균형 차선을 고른 경우 — '해가 없음' 이 아니다
+         ? 'ⓘ '+(sym?'':'여유율 ')+'불균형 기준(≤'+(optImbalLimit(dm,dp)*100).toFixed(0)+'%)을 넘지만 '
+           +'<b>토크가 '+(best.normScore>0?((best.score/best.normScore-1)*100).toFixed(0):'—')+'% 높아</b> 이 해를 선택했습니다'
+           +'<br>(달성 '+(sym?'':'여유율 ')+'불균형 '+(best.imbal*100).toFixed(1)+'% — 기준을 지키려면 타각범위나 탐색범위를 조정하세요)'
+         : '⚠︎ '+(sym?'':'여유율 ')+'불균형 ≤'+(optImbalLimit(dm,dp)*100).toFixed(0)+'% 를 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+           +'<br>('+(sym?'':'여유율 ')+'불균형 최소화 우선 — 달성 '+(best.imbal*100).toFixed(1)+'%)')
      +'</div>'
     :'';
 
@@ -3721,11 +3725,11 @@ function buildOptMetrics(m){
     // mu 는 임계값 합성치라 각도로 못 읽는다 → 실제 muIn/muOut 최솟값을 보여준다
     const _in=(m.muInMin!==undefined&&isFinite(m.muInMin))?m.muInMin:null;
     const _out=(m.muOutMin!==undefined&&isFinite(m.muOutMin))?m.muOutMin:null;
-    const _okIn=_in===null||_in>=OPT_MU_IN_MIN-1e-9, _okOut=_out===null||_out>=OPT_MU_MIN-1e-9;
+    const _okIn=_in===null||_in>=OPT_MU_MIN-1e-9, _okOut=_out===null||_out>=OPT_MU_MIN-1e-9;
     const _tx=v=>v===null?'—':v.toFixed(1)+'°';
-    s+=row('최소 전달각 μ <span style="color:var(--text3)">(최우선 필터)</span>',
-      '입력 '+_tx(_in)+' <span style="color:var(--text3)">(≥'+OPT_MU_IN_MIN+'°)</span>'
-      +' · 출력 '+_tx(_out)+' <span style="color:var(--text3)">(≥'+OPT_MU_MIN+'° = '+OPT_MU_BASE+'+마진 '+OPT_MU_MARGIN+')</span>',
+    s+=row('최소 전달각 μ <span style="color:var(--text3)">(입력·출력 · 최우선 필터)</span>',
+      '입력 '+_tx(_in)+' · 출력 '+_tx(_out)
+      +' <span style="color:var(--text3)">(둘 다 ≥'+OPT_MU_MIN+'° = '+OPT_MU_BASE+'+마진 '+OPT_MU_MARGIN+')</span>',
       (_okIn&&_okOut)?'#1a9c3e':'var(--red)');
   }
   s+='<div class="result-divider"></div>';
@@ -3848,25 +3852,27 @@ function optimizeForDelta(dm,dp,T2,marginVal,opt){
     cands.push({b:bv,...r});
   }
   const TOL=optTols();   // 링크비 기반 유효 준동률 (§3-3)
-  if(cands.length){
-    const S0=Math.max(...cands.map(c=>c.score));
+  const pick=(pool)=>{
+    if(!pool.length) return null;
+    const S0=Math.max(...pool.map(c=>c.score));
     let bb=null;
-    for(const c of cands){
+    for(const c of pool){
       if(c.score<S0*(1-TOL.score)-1e-12) continue;
       if(!bb||c.wmax>bb.wmax+1e-9||(Math.abs(c.wmax-bb.wmax)<=1e-9&&c.score>bb.score)) bb=c;
     }
-    return{...bb,fallback:false,fbType:''};
-  }
+    return bb;
+  };
+  // 정상해가 있어도 불균형 차선을 함께 평가한다 — b 사이에서도 같은 티어 절벽이 생긴다
+  const bNorm=pick(cands);
+  let bImbal=null;
   if(relaxCands.length){
     const m0=Math.min(...relaxCands.map(c=>c.imbal));
-    const band=relaxCands.filter(c=>c.imbal<=m0+TOL.relax);
-    const S0=Math.max(...band.map(c=>c.score));
-    let bb=null;
-    for(const c of band){
-      if(c.score<S0*(1-TOL.score)-1e-12) continue;
-      if(!bb||c.wmax>bb.wmax+1e-9||(Math.abs(c.wmax-bb.wmax)<=1e-9&&c.score>bb.score)) bb=c;
-    }
-    return{...bb,fallback:true,fbType:'imbal'};
+    bImbal=pick(relaxCands.filter(c=>c.imbal<=m0+TOL.relax));
+  }
+  if(bNorm||bImbal){
+    const win=optPromote(bNorm,bImbal);
+    const isImbal=(win===bImbal)||win.promoted===true;
+    return{...win,fallback:isImbal,fbType:isImbal?'imbal':''};
   }
   if(muCands.length){
     const m1=Math.max(...muCands.map(c=>c.muMin));
@@ -4023,9 +4029,9 @@ function refreshOptDesc(){
   const head='<b>'+(fixed.length?fixed.join(' · '):'—')+'</b> 를 고정한 채, <b>'
            +(vars.length?vars.join(' · ')+' · ':'')+'중립 출력각 θ₄₀</b> 를 탐색합니다. ';
   desc.innerHTML=head+(asym
-    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b> · <b>전달각 입력 μ≥'+OPT_MU_IN_MIN+'° · 출력 μ≥'+OPT_MU_MIN+'°</b> · '
+    ? '비대칭 타각(<b>요구 힌지모멘트 ∝ 타각</b> 가정): <b>상향·하향 토크비 = 타각비</b> · <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> · '
       +'<b>최소 안전여유 하한(달성 최대의 90%)</b> 을 제약으로 두고 그 안에서 <b>절대 토크(중립)를 최대화</b>합니다. (힌지모멘트 입력 불필요)'
-    : '입력한 <b>타각 범위</b> 를 물리 가용범위(양끝단 마진 제외) 안에 수용하고, <b>전달각 입력 μ≥'+OPT_MU_IN_MIN+'° · 출력 μ≥'+OPT_MU_MIN+'°</b> 와 '
+    : '입력한 <b>타각 범위</b> 를 물리 가용범위(양끝단 마진 제외) 안에 수용하고, <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> 와 '
       +'<b>양끝단 토크 불균형 ≤ 10%</b> 를 만족하면서, <b>양끝단 + 최대 토크 세 값의 합이 최대</b>가 되도록 탐색합니다.');
 }
 
@@ -4040,16 +4046,36 @@ function readCRange(){
 // 티어(정상 > 불균형차선 > μ차선) 우선 → §3-1 준동률 안에서 최대토크 우선
 // (optimizeForDeltaWithC 의 지역 클로저였던 것을 optimizeForVars 와 공유하려고 승격)
 function optTierOf(r){ return r.fbType===''?0:(r.fbType==='imbal'?1:2); }
-function optSelect(arr){
-  const bt=Math.min(...arr.map(optTierOf));
-  const pool=arr.filter(r=>optTierOf(r)===bt);
+// 같은 티어 안에서의 기존 선택 규칙 (준동률 3% 안에서 최대토크 우선)
+function optPickIn(pool){
+  if(!pool.length) return null;
   const S0=Math.max(...pool.map(r=>r.score));
   let bb=null;
   for(const r of pool){
     if(r.score<S0*(1-OPT_SCORE_TOL)-1e-12) continue;
     if(!bb||r.wmax>bb.wmax+1e-9||(Math.abs(r.wmax-bb.wmax)<=1e-9&&r.score>bb.score)) bb=r;
   }
-  return{...bb,fallback:bt>0};
+  return bb;
+}
+// 티어 승격: 불균형 차선이 정상해보다 점수가 확실히 높으면 그쪽을 쓴다.
+// 티어를 절대 우선하면 점수가 50% 낮은 정상해가 이겨 토크가 절벽처럼 떨어진다
+// (실측: 임계값 2° 변화에 −38%). 승격은 0↔1 사이에서만 — μ 차선(2)은 전달각이
+// 하드 요구조건이라 점수가 아무리 높아도 채택하지 않는다.
+function optPromote(norm,imbal){
+  if(!imbal) return norm;
+  if(!norm)  return imbal;
+  return imbal.score>norm.score*(1+OPT_TIER_GAIN)
+    ? {...imbal, promoted:true, normScore:norm.score}
+    : norm;
+}
+function optSelect(arr){
+  const t0=optPickIn(arr.filter(r=>optTierOf(r)===0));
+  const t1=optPickIn(arr.filter(r=>optTierOf(r)===1));
+  const win=optPromote(t0,t1);
+  if(win) return{...win,fallback:optTierOf(win)>0};
+  // 정상·불균형 모두 없음 → μ 차선
+  const t2=optPickIn(arr.filter(r=>optTierOf(r)===2));
+  return t2?{...t2,fallback:true}:{...arr[0],fallback:true};
 }
 
 // ── 설계 변수 조합에 따른 최적화 (좌표강하) ────────────────────────────────

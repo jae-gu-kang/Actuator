@@ -69,7 +69,9 @@ function load(file){
     +   "for(let t=t0-dm;t<=t0+dp+1e-9;t+=0.05){const r=calcMAatT4(S.a,bv,S.c,gLen(),t,S.sol);"
     +   "if(!r)continue; if(r.muIn<i)i=r.muIn; if(r.muOut<o)o=r.muOut;}"
     +   "return{muIn:i,muOut:o};}finally{S.c=sc;}},"
-    + "MU_BASE:OPT_MU_BASE, MU_MIN:OPT_MU_MIN, MU_IN:OPT_MU_IN_MIN,"
+    + "MU_BASE:OPT_MU_BASE, MU_MIN:OPT_MU_MIN, GAIN:OPT_TIER_GAIN,"
+    + "promote:(a,b)=>optPromote(a,b), tierOf:r=>optTierOf(r),"
+    + "sel:arr=>optSelect(arr),"
     + "applyFromCard:()=>applyOptFromCard()};";
   vm.runInNewContext(body+drv, ctx, {filename:file});
   ctx.__api.setAbsent = ids => { absent.clear(); (ids||[]).forEach(i=>absent.add(i)); };
@@ -275,14 +277,14 @@ const DEFL = [ {dm:25,dp:25}, {dm:40,dp:40}, {dm:30,dp:20} ];
     if(!r){ bad=nm+': 해 없음'; break; }
     const q=A.muScan(r.cOpt, r.b, r.t0, dm, dp);
     detail.push(nm+' 입력 '+q.muIn.toFixed(1)+'°/출력 '+q.muOut.toFixed(1)+'°');
-    // 입력측은 OPT_MU_IN_MIN(45°), 출력측은 OPT_MU_MIN(50°) 기준.
-    // μ 검사가 0.25° 격자라 창 경계에서 최대 ~0.5° 밑돌 수 있어 그만큼 허용한다.
+    // 입력·출력 같은 기준(OPT_MU_MIN). μ 검사가 0.25° 격자라 창 경계에서
+    // 최대 ~0.5° 밑돌 수 있어 그만큼 허용한다.
     const TOL=0.5;
-    if(!(q.muIn>=A.MU_IN-TOL && q.muOut>=A.MU_MIN-TOL)){
-      bad=nm+' → 입력 '+q.muIn.toFixed(2)+'°(≥'+A.MU_IN+') / 출력 '+q.muOut.toFixed(2)+'°(≥'+A.MU_MIN+')'; break;
+    if(!(q.muIn>=A.MU_MIN-TOL && q.muOut>=A.MU_MIN-TOL)){
+      bad=nm+' → 입력 '+q.muIn.toFixed(2)+'° / 출력 '+q.muOut.toFixed(2)+'° (기준 '+A.MU_MIN+')'; break;
     }
   }
-  rec('전달각 제약: 입력 ≥'+A.MU_IN+'° · 출력 ≥'+A.MU_MIN+'° 를 양측 동시 적용',
+  rec('전달각 제약: 입력·출력 모두 ≥'+A.MU_MIN+'°',
       !bad, bad || detail.join(' · '));
 }
 
@@ -293,6 +295,45 @@ const DEFL = [ {dm:25,dp:25}, {dm:40,dp:40}, {dm:30,dp:20} ];
   const ok = r.muIn>0 && r.muOut>0;
   rec('calcMAatT4 가 muIn·muOut 을 모두 제공',
       ok, '입력 '+r.muIn.toFixed(1)+'° / 출력 '+r.muOut.toFixed(1)+'°');
+}
+
+// ── 12) 티어 승격: 불균형 차선이 확실히 좋으면 채택 (토크 절벽 방지) ──
+//     a20·d80 상35/하15 는 티어 절대우선일 때 정상해(저토크)가 뽑혀 −38% 로 무너지던 사례.
+{
+  A.resetVars(); A.setS({a:20,b:100,c:40,d:80,offY:0,sol:'open',t4:100});
+  const r=A.vars(15,35,3,5);
+  let detail='해 없음', ok=false;
+  if(r){
+    const q=A.muScan(r.cOpt,r.b,r.t0,15,35);
+    const sum=(()=>{ const s2=A.muScan(r.cOpt,r.b,r.t0,15,35); return s2; })();
+    ok = r.score>0.10 && q.muIn>=A.MU_MIN-0.5 && q.muOut>=A.MU_MIN-0.5;
+    detail='score='+(+r.score).toFixed(3)+' tier='+(r.fbType||'정상')
+      +' promoted='+(!!r.promoted)+' μ '+q.muIn.toFixed(1)+'/'+q.muOut.toFixed(1);
+  }
+  rec('티어 승격: 저토크 정상해로 무너지지 않음 (a20·d80 상35/하15)', ok, detail);
+}
+
+// ── 13) 승격 규칙 자체의 경계 동작 + μ 차선은 승격 대상 아님 ──
+{
+  const mk=(t,score,wmax)=>({fbType:t,score,wmax:wmax===undefined?score:wmax,cOpt:1,b:1,t0:1});
+  const G=A.GAIN;
+  const big  =A.promote(mk('',1.0), mk('imbal',1.0*(1+G)+0.01));  // 임계 초과 → 승격
+  const small=A.promote(mk('',1.0), mk('imbal',1.0*(1+G)-0.01));  // 임계 미만 → 정상 유지
+  const onlyI=A.promote(null,        mk('imbal',0.5));
+  const onlyN=A.promote(mk('',0.5),  null);
+  // μ 차선은 optSelect 가 티어 0·1 이 하나도 없을 때만 고르고, 승격 표시가 붙지 않아야 한다
+  const muOnly=A.sel([mk('mu',99)]);
+  const muVsNorm=A.sel([mk('',0.1), mk('mu',99)]);   // 점수 99 여도 정상해가 이겨야
+  const ok = big.fbType==='imbal' && big.promoted===true
+          && small.fbType==='' && !small.promoted
+          && onlyI.fbType==='imbal' && onlyN.fbType===''
+          && A.tierOf(mk('mu',1))===2
+          && muOnly.fbType==='mu' && !muOnly.promoted
+          && muVsNorm.fbType==='';
+  rec('승격 규칙: 임계 초과만 승격 · μ 차선은 점수 무관하게 승격 안 됨',
+      ok, '임계('+(G*100).toFixed(0)+'%) 초과→'+big.fbType+'(promoted='+!!big.promoted+')'
+        +' 미만→'+(small.fbType||'정상')
+        +' · μ차선 단독→'+muOnly.fbType+' · μ차선 vs 정상→'+(muVsNorm.fbType||'정상'));
 }
 
 const passed = results.filter(r=>r.pass).length;
