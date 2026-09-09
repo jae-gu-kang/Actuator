@@ -1098,14 +1098,16 @@ canvas.hover { cursor: grab; }
         </div>
         <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
         <!-- 이동 명령: 누르면 조종면이 그 위치로 간다 (아래 '중립 지정' 은 기준만 바꿈) -->
-        <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
+        <div style="display:flex;align-items:center;gap:4px;margin-top:3px;flex-wrap:wrap;">
           <button id="lCSdn" onclick="csGo('min')" title="조종면을 하향 최대로 이동"
-            style="flex:1;background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">▼ 하향 25°</button>
+            style="flex:1 1 60px;background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">▼ 하향 25°</button>
           <button id="lCSzero" onclick="csGo('zero')" title="조종면을 중립(δ=0°)으로 이동"
             style="flex:0 0 auto;background:rgba(52,199,89,.14);color:#28a745;border:none;border-radius:6px;padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">중립</button>
           <button id="lCSup" onclick="csGo('max')" title="조종면을 상향 최대로 이동"
-            style="flex:1;background:rgba(255,69,58,0.10);color:var(--follower);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">상향 25° ▲</button>
+            style="flex:1 1 60px;background:rgba(255,69,58,0.10);color:var(--follower);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">상향 25° ▲</button>
         </div>
+        <!-- 10° 배수 위치로 바로 이동 (타각범위에 맞춰 updateCSUI 가 생성) -->
+        <div id="lCSsteps" style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;flex-wrap:wrap;"></div>
         <!-- 기준 설정: 조종면을 움직이지 않고 '지금 위치를 0°로' 재정의 -->
         <div style="display:flex;justify-content:center;margin-top:4px;">
           <button onclick="csSetNeutral()" title="조종면을 움직이지 않고, 현재 θ₄ 위치를 δ=0° 기준으로 재정의합니다 (위 '중립' 버튼은 반대로 δ=0° 위치로 이동)"
@@ -2121,6 +2123,27 @@ function onCSAngle(v){
   setT4(csNeutralT4()+d);
   draw();                                      // draw → updateUI → updateCSUI 로 읽기값 동기화
 }
+// 타각범위 안의 10° 배수 위치 버튼(−20°·−10°·+10°·+20°…)을 만든다.
+// updateCSUI 는 매 draw 마다 불리므로 범위가 바뀔 때만 다시 그린다(드래그 중 innerHTML 재생성 방지).
+let _csStepsSig='';
+function buildCSSteps(dm,dp){
+  const box=document.getElementById('lCSsteps'); if(!box) return;
+  const sig=dm+'|'+dp; if(sig===_csStepsSig) return;
+  _csStepsSig=sig;
+  const st="background:rgba(118,118,128,0.14);border:none;border-radius:6px;padding:3px 7px;"
+          +"font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;";
+  const out=[];
+  for(let v=-Math.floor(dm/10)*10; v<=Math.floor(dp/10)*10+1e-9; v+=10){
+    if(Math.abs(v)<1e-9) continue;                    // 0 은 '중립' 버튼이 담당
+    const up=v>0, col=up?'var(--follower)':'var(--crank)';
+    out.push('<button data-cs="'+v+'" onclick="onCSAngle('+v+')" style="'+st+'color:'+col+';" '
+      +'title="조종면을 '+(up?'상향':'하향')+' '+Math.abs(v)+'° 로 이동">'
+      +(up?'+':'−')+Math.abs(v)+'°</button>');
+  }
+  box.innerHTML=out.join('');
+  box.style.display=out.length?'flex':'none';
+}
+
 // 조종면 이동 명령 — 'min'=하향 최대(−dm), 'zero'=중립(0), 'max'=상향 최대(+dp).
 // onCSAngle 이 범위 클램프·setT4·draw·읽기값 동기화를 모두 처리한다.
 function csGo(kind){
@@ -2141,6 +2164,12 @@ function updateCSUI(){
   if(document.activeElement!==sl) sl.value=dc.toFixed(1);
   const span=(dm+dp)||1;
   updateSliderTrack('slCS', (dc+dm)/span*100);
+  buildCSSteps(dm,dp);                                  // 범위 바뀌면 10° 배수 버튼 재생성
+  const stepBox=document.getElementById('lCSsteps');     // 현재 위치와 일치하는 버튼 강조
+  if(stepBox) for(const btn of stepBox.children){
+    const on=Math.abs(parseFloat(btn.dataset.cs)-d)<0.05;
+    btn.style.background = on?'rgba(52,199,89,.18)':'rgba(118,118,128,0.14)';
+  }
   const up=document.getElementById('lCSup'), dn=document.getElementById('lCSdn'),
         nt=document.getElementById('lCSneutral'), rd=document.getElementById('lCS');
   if(up) up.textContent='상향 '+(+dp)+'° ▲';

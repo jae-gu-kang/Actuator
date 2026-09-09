@@ -30,7 +30,8 @@ function load(file){
       getContext:()=>mk(), addEventListener(){},
       getBoundingClientRect:()=>({left:0,top:0,width:800,height:600}),
       width:800, height:600, offsetWidth:800, checked:false,
-      innerHTML:'', textContent:'', dataset:{}, disabled:false };
+      innerHTML:'', textContent:'', dataset:{}, disabled:false,
+      children:[] };   // 실제 DOM 의 HTMLCollection 은 항상 순회 가능 — 스텁도 맞춰둔다
     return new Proxy(o,{
       get:(t,p)=>p==='value'?t._v:(p in t?t[p]:(typeof p==='string'?()=>{}:undefined)),
       set:(t,p,v)=>{ if(p==='value') t._v=v; else t[p]=v; return true; } });

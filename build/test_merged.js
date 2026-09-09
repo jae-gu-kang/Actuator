@@ -162,19 +162,29 @@ async function clickByText(frame, txt){
       setDeflectMode('asym');
       document.getElementById('iDeflectP').value=30;
       document.getElementById('iDeflectM').value=10; updateCSUI();
+      const box=document.getElementById('lCSsteps');
+      if(!box) return {err:'no-step-box'};
       nEl.value=100; csGo('zero');
       const t0=S.t4;                       // 중립
       up.click(); const tup=S.t4;          // 상향 최대 → +30
       dn.click(); const tdn=S.t4;          // 하향 최대 → −10
       z.click();  const tz=S.t4;           // 중립 → 0
+      // 10° 배수 위치 버튼: 상30/하10 이면 −10·+10·+20·+30 네 개가 생성된다
+      const keys=[...box.children].map(e=>+e.dataset.cs);
+      const hit=v=>{ const e=[...box.children].find(x=>+x.dataset.cs===v); if(e) e.click(); return S.t4; };
+      const s10=hit(10), s20=hit(20), s30=hit(30), sN10=hit(-10);
+      z.click();
       up.click(); const before=S.t4;       // δ=+30 상태에서
       csSetNeutral();                      // 기준만 재정의 (θ₄ 불변)
       const afterT4=S.t4, afterN=+nEl.value;
       setDeflectMode('sym'); nEl.value=100; csGo('zero');
       return {ok: t0===100 && tup===130 && tdn===90 && tz===100
-                  && afterT4===before && afterN===before, t0,tup,tdn,tz,before,afterT4,afterN};
+                  && JSON.stringify(keys)===JSON.stringify([-10,10,20,30])
+                  && s10===110 && s20===120 && s30===130 && sN10===90
+                  && afterT4===before && afterN===before,
+              t0,tup,tdn,tz,keys,s10,s20,s30,sN10,before,afterT4,afterN};
     }catch(e){ return {err:e.message}; } });
-    rec('linkage: 조종면 이동 명령(하향/중립/상향) + 중립 지정은 기준만 변경', cs.ok===true, JSON.stringify(cs));
+    rec('linkage: 조종면 이동(하향/중립/상향 + 10° 배수 위치) + 중립 지정은 기준만 변경', cs.ok===true, JSON.stringify(cs));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)
