@@ -139,6 +139,20 @@ async function clickByText(frame, txt){
               glyph:[g0,g1], on:[c0,c1], range:[d0,d1]};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 링크 카드 고정/변수 자물쇠 토글', lk.ok===true, JSON.stringify(lk));
+
+    // 작동기 장착각: 기본 180°(몸체 뒤집힌 형상) · 0~360 전 범위(예전엔 ±90 클램프)
+    const tl = await f.evaluate(()=>{ try{
+      const i=document.getElementById('iServoTilt'); if(!i) return {err:'no-tilt'};
+      const def=SERVO.tilt, mn=i.min, mx=i.max;
+      const set=v=>{ i.value=v; onServoTilt(); return SERVO.tilt; };
+      const r={def, mn, mx, a270:set(270), a135:set(135), a359:set(359),
+               wrap360:set(360), wrapNeg:set(-10), wrapBig:set(540)};
+      set(def);
+      return {ok: def===180 && mn==='0' && mx==='360'
+                  && r.a270===270 && r.a135===135 && r.a359===359      // 90° 넘어도 클램프 없음
+                  && r.wrap360===0 && r.wrapNeg===350 && r.wrapBig===180, ...r};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 장착각 기본 180° + 0~360 전 범위(90° 클램프 없음)', tl.ok===true, JSON.stringify(tl));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)

@@ -886,10 +886,10 @@ canvas.hover { cursor: grab; }
           <div class="link-pip" style="background:var(--text3)"></div>
           <div class="link-meta">
             <div class="link-name">장착 기울기 <span style="color:var(--text3);font-weight:400">몸체 회전</span></div>
-            <div class="link-sub">회전축 O₂ 고정 · 몸체만 기움 (θ₄ 무관, CCW +)</div>
+            <div class="link-sub">회전축 O₂ 고정 · 몸체만 회전 (θ₄ 무관, CCW +, 0~360°, 기본 180°)</div>
           </div>
           <div class="link-field">
-            <input type="number" id="iServoTilt" value="0" min="-90" max="90" step="1" oninput="onServoTilt()">
+            <input type="number" id="iServoTilt" value="180" min="0" max="360" step="1" oninput="onServoTilt()">
             <span class="u">°</span>
           </div>
         </div>
@@ -1325,12 +1325,15 @@ const SERVO_PRESETS = {
   MDD961WP: { name:'Hitec MDD961WP', bodyLen:54.5, bodyCore:40.0, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 },
   custom:   { name:'직접 입력',       bodyLen:54.5, bodyCore:40.0, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0 }
 };
+// 기본 장착각 180° = 몸체가 O₄ 반대쪽으로 뻗는 형상(실제 장착에서 흔한 배치).
+// 도면의 기울기 호는 이 값을 기준선으로 삼아 '기본 대비 얼마나 돌렸는지'를 보여준다.
+const SERVO_TILT_DEFAULT = 180;
 const SERVO = {
   show:false, preset:'MDD961WP',
   bodyLen:54.5, bodyCore:40.0, bodyWid:20.0, shaftFromEnd:14.9, mountHoleDia:5.0,  // 전체·본체·폭·샤프트·홀
   // 암 길이(홀간 거리)는 크랭크 a 와 동일 → 단일 진리원 S.a 사용 (여기 중복 저장 안 함)
   armWidth:9.0, hubDia:11.0, m3Dia:3.0,                               // 암 형상 (M3 홀 Ø3)
-  tilt:0                        // 장착 기울기(°): 회전축 O₂ 는 고정, 몸체만 이만큼 회전(CCW+)
+  tilt:SERVO_TILT_DEFAULT       // 장착 기울기(°): 회전축 O₂ 고정, 몸체만 이만큼 회전(CCW+, 0~360)
 };
 // 선명한 색 팔레트 — 링키지 아이덴티티 색(커플러=퍼플, 출력혼=레드) 복원, 볼트=밝은 스틸.
 // flat 렌더는 base 단색으로 칠하고 stroke 로 외곽선. (grad stops 는 폴백용으로만 유지)
@@ -1567,18 +1570,23 @@ function drawMech(sol,main){
   // 작동기 장착 기울기 — 서보 몸체를 그릴 때만, 0 이 아닐 때만.
   // 기준선은 '월드 수평'. drawServoBody 가 partFrame(...,[cos(tr),sin(tr)]) 로 월드 기준
   // 회전시키므로 θ₄·프레임기울기(gPhi)와 무관하다 — θ₂/θ₄ 호가 base=gPhi() 를 쓰는 것과 대비.
-  if(servo && SERVO.tilt){
-    // 기준선을 −x(180°)로 잡는 이유: offY=0 이면 +x 가 지상링크와 정확히 겹쳐 구분이 안 되고,
-    // 같은 O₂ 중심의 θ₂ 호(r=44)·라벨과도 부딪힌다. 몸체 로컬 −x 의 월드각이 tr+180° 이므로
-    // 180°에서 tr 만큼 스윕하면 각도 크기는 동일하다(호가 몸체 축 위에서 닫힘).
-    // 주의: −x 쪽은 몸체(xFar=shaftFromEnd−bodyLen)가 덮고 있다 — R 을 키워도 비워지지 않으므로
-    // 가독성은 arcAng 의 라벨 pill 배경에 의존한다.
-    const cx=wx(O2[0]), cy=wy(O2[1]), tr=SERVO.tilt*RAD, R=64, B=Math.PI;
-    ctx.save();                       // 기준선 — arcAng 은 기준선을 그리지 않는다
-    ctx.strokeStyle=hexAlpha(C.ground,0.45); ctx.lineWidth=1; ctx.setLineDash([4,3]);
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx-R,cy); ctx.stroke();
-    ctx.restore();
-    arcAng(cx,cy,tr,R,C.ground,`장착 기울기 = ${SERVO.tilt.toFixed(1)}°`,B);
+  {
+    // 기준선은 '기본 장착각'(SERVO_TILT_DEFAULT=180°, 월드 −x). 호는 거기서 얼마나 돌렸는지,
+    // 라벨은 입력칸과 같은 절대 각도를 보여준다. 편차를 (−180,180] 로 접어 호가 반바퀴를
+    // 넘지 않게 한다(예: 350° → 기본 대비 +170°, 10° → −170°).
+    // −x 를 기준으로 잡은 이유: offY=0 이면 +x 가 지상링크와 정확히 겹쳐 구분이 안 되고,
+    // 같은 O₂ 중심의 θ₂ 호(r=44)·라벨과도 부딪힌다.
+    // 주의: −x 쪽은 몸체(xFar=shaftFromEnd−bodyLen)가 덮고 있어 R 을 키워도 비워지지 않는다
+    // — 가독성은 arcAng 의 라벨 pill 배경에 의존한다.
+    const dev=((SERVO.tilt-SERVO_TILT_DEFAULT)%360+540)%360-180;
+    if(servo && Math.abs(dev)>0.05){
+      const cx=wx(O2[0]), cy=wy(O2[1]), R=64, B=Math.PI;
+      ctx.save();                     // 기준선 — arcAng 은 기준선을 그리지 않는다
+      ctx.strokeStyle=hexAlpha(C.ground,0.45); ctx.lineWidth=1; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx-R,cy); ctx.stroke();
+      ctx.restore();
+      arcAng(cx,cy,dev*RAD,R,C.ground,`장착 기울기 = ${SERVO.tilt.toFixed(1)}°`,B);
+    }
   }
 }
 
@@ -2063,7 +2071,9 @@ function onServoDim(){
 // 장착 기울기 전용 (0·음수 허용, 프리셋 유지, 재fit 안 함 — 몸체만 회전)
 function onServoTilt(){
   const tv=+document.getElementById('iServoTilt')?.value;
-  if(isFinite(tv)) SERVO.tilt=Math.max(-90,Math.min(90,tv));
+  // 360° 전 범위 허용. 음수·360 초과도 norm() 으로 [0,360) 에 접어 넣는다
+  // (입력칸 값은 되쓰지 않음 — 타이핑 중 '-1'→'359' 로 바뀌어 싸우는 것 방지)
+  if(isFinite(tv)) SERVO.tilt=norm(tv);
   draw();
 }
 // 작동기 y오프셋(편심 지상링크): O₂ 를 [0,offY] 로 이동 → L·φ 변화. 길이변경과 동일하게 전체 재계산.
