@@ -1097,11 +1097,19 @@ canvas.hover { cursor: grab; }
           </div>
         </div>
         <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text3);margin-top:2px;">
-          <span id="lCSdn" style="color:var(--crank);font-weight:600;">▼ 하향 25°</span>
-          <button onclick="csSetNeutral()" title="현재 θ₄ 위치를 조종면 중립(δ=0°)으로 지정"
-            style="background:rgba(52,199,89,.12);color:#28a745;border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">중립 지정 (θ₄=<span id="lCSneutral">100</span>°)</button>
-          <span id="lCSup" style="color:var(--follower);font-weight:600;">상향 25° ▲</span>
+        <!-- 이동 명령: 누르면 조종면이 그 위치로 간다 (아래 '중립 지정' 은 기준만 바꿈) -->
+        <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
+          <button id="lCSdn" onclick="csGo('min')" title="조종면을 하향 최대로 이동"
+            style="flex:1;background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">▼ 하향 25°</button>
+          <button id="lCSzero" onclick="csGo('zero')" title="조종면을 중립(δ=0°)으로 이동"
+            style="flex:0 0 auto;background:rgba(52,199,89,.14);color:#28a745;border:none;border-radius:6px;padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">중립</button>
+          <button id="lCSup" onclick="csGo('max')" title="조종면을 상향 최대로 이동"
+            style="flex:1;background:rgba(255,69,58,0.10);color:var(--follower);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">상향 25° ▲</button>
+        </div>
+        <!-- 기준 설정: 조종면을 움직이지 않고 '지금 위치를 0°로' 재정의 -->
+        <div style="display:flex;justify-content:center;margin-top:4px;">
+          <button onclick="csSetNeutral()" title="조종면을 움직이지 않고, 현재 θ₄ 위치를 δ=0° 기준으로 재정의합니다 (위 '중립' 버튼은 반대로 δ=0° 위치로 이동)"
+            style="background:transparent;color:var(--text3);border:none;padding:2px 8px;font-size:10px;font-weight:500;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:2px;">중립 지정 (현재 θ₄=<span id="lCSneutral">100</span>° 를 0°로)</button>
         </div>
       </div>
     </div>
@@ -2112,6 +2120,13 @@ function onCSAngle(v){
   d=Math.max(-dm, Math.min(dp, d));            // 입력 타각범위로 클램프
   setT4(csNeutralT4()+d);
   draw();                                      // draw → updateUI → updateCSUI 로 읽기값 동기화
+}
+// 조종면 이동 명령 — 'min'=하향 최대(−dm), 'zero'=중립(0), 'max'=상향 최대(+dp).
+// onCSAngle 이 범위 클램프·setT4·draw·읽기값 동기화를 모두 처리한다.
+function csGo(kind){
+  const df=getDeflect();
+  const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
+  onCSAngle(kind==='max'? dp : (kind==='min'? -dm : 0));
 }
 function csSetNeutral(){                        // 현재 θ₄ 를 조종면 중립(δ=0)으로 지정
   const el=document.getElementById('iT4Neutral'); if(el) el.value=(+S.t4).toFixed(1);

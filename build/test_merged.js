@@ -153,6 +153,28 @@ async function clickByText(frame, txt){
                   && r.wrap360===0 && r.wrapNeg===350 && r.wrapBig===180, ...r};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 장착각 기본 180° + 0~360 전 범위(90° 클램프 없음)', tl.ok===true, JSON.stringify(tl));
+
+    // 조종면 이동 명령: 하향 최대 / 중립 / 상향 최대 (+ '중립 지정' 은 이동이 아니라 기준 변경)
+    const cs = await f.evaluate(()=>{ try{
+      const dn=document.getElementById('lCSdn'), z=document.getElementById('lCSzero'),
+            up=document.getElementById('lCSup'), nEl=document.getElementById('iT4Neutral');
+      if(!dn||!z||!up) return {err:'no-cs-buttons'};
+      setDeflectMode('asym');
+      document.getElementById('iDeflectP').value=30;
+      document.getElementById('iDeflectM').value=10; updateCSUI();
+      nEl.value=100; csGo('zero');
+      const t0=S.t4;                       // 중립
+      up.click(); const tup=S.t4;          // 상향 최대 → +30
+      dn.click(); const tdn=S.t4;          // 하향 최대 → −10
+      z.click();  const tz=S.t4;           // 중립 → 0
+      up.click(); const before=S.t4;       // δ=+30 상태에서
+      csSetNeutral();                      // 기준만 재정의 (θ₄ 불변)
+      const afterT4=S.t4, afterN=+nEl.value;
+      setDeflectMode('sym'); nEl.value=100; csGo('zero');
+      return {ok: t0===100 && tup===130 && tdn===90 && tz===100
+                  && afterT4===before && afterN===before, t0,tup,tdn,tz,before,afterT4,afterN};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 조종면 이동 명령(하향/중립/상향) + 중립 지정은 기준만 변경', cs.ok===true, JSON.stringify(cs));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)
