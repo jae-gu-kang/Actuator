@@ -415,6 +415,9 @@ async function clickByText(frame, txt){
       await new Promise(r=>setTimeout(r,1200));
       const kept=(S.a===33&&S.b===77&&+g('ia').value===33&&+g('ib').value===77);
       const busyAfter=_dsBusy;
+      // 중단하면 잘린 곡선을 버려야 한다 — 안 버리면 '완료' 처럼 그려지고 재오픈해도 재계산 안 됨
+      const cleared=(_deltaSweepData===null);
+      openDeltaSweep(); const autoRan=_dsBusy; closeDeltaSweep();
       // (3) 정상 스윕 — 데이터가 채워지고 S 가 복원되는가
       g('ia').value=20; g('ib').value=100; onLink();
       // 취소하면 데이터를 비우므로 재오픈은 항상 자동 실행된다 — 먼저 끝내고 시작한다
@@ -431,9 +434,10 @@ async function clickByText(frame, txt){
       const restored=(S.a===20&&S.b===100&&S.c===40&&S.d===100&&OPTVARS.c.v===true);
       closeDeltaSweep();
       return {ok: opts===vars && busy0===true && busyAfter===false && kept
+                  && cleared && autoRan
                   && !!filled && restored && D.key==='c',
-              opts, vars, busy0, busyAfter, kept, filled:!!filled, restored, key:D&&D.key,
-              n:D&&D.xs.length};
+              opts, vars, busy0, busyAfter, kept, cleared, autoRan,
+              filled:!!filled, restored, key:D&&D.key, n:D&&D.xs.length};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
       closeDeltaSweep();
@@ -447,28 +451,37 @@ async function clickByText(frame, txt){
     const lbl = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d,off:S.offY}; try{
       const g=id=>document.getElementById(id);
       const hit=(A,B)=>A.x<B.x+B.w&&B.x<A.x+A.w&&A.y<B.y+B.h&&B.y<A.y+A.h;
-      let worst=0, at=null, n=0;
+      let worst=0, at=null, n=0, minRects=1e9, thin=null;
       for(const [a,b,c,d] of [[20,100,40,100],[16,110,25,120],[30,60,60,80],[50,150,120,200]]){
         g('ia').value=a; g('ib').value=b; g('ic').value=c; g('id').value=d; onLink();
-        for(const off of [0,40]){
-          g('iServoOffY').value=off; onServoOffset();
-          zoomReset();
-          for(let z=0;z<7;z++){
-            draw(); n++;
-            const R=_lblRects;
-            let hits=0;
-            for(let i=0;i<R.length;i++) for(let j=i+1;j<R.length;j++) if(hit(R[i],R[j])) hits++;
-            if(hits>worst){ worst=hits; at={a,b,c,d,off,scale:+scale.toFixed(2)}; }
-            zoomBy(0.82);
+        for(const servo of [false,true]){        // 서보 ON 은 partLabel(후보 4개, 가장 약한 배치기)
+          g('cbServo').checked=servo; onServoToggle();
+          for(const off of [0,40]){
+            g('iServoOffY').value=off; onServoOffset();
+            zoomReset();
+            for(let z=0;z<7;z++){
+              draw(); n++;
+              const R=_lblRects;
+              // 장부가 비면 '겹침 0' 이 공허해진다 — 배치기를 안 거친 라벨을 여기서 잡는다.
+              // 단 해가 없는 프레임은 기구 자체를 안 그리므로(drawNoSol) 라벨이 0 이 정상.
+              if(S.solutions&&R.length<minRects){
+                minRects=R.length; thin={a,b,c,d,servo,off,scale:+scale.toFixed(2)}; }
+              let hits=0;
+              for(let i=0;i<R.length;i++) for(let j=i+1;j<R.length;j++) if(hit(R[i],R[j])) hits++;
+              if(hits>worst){ worst=hits; at={a,b,c,d,servo,off,scale:+scale.toFixed(2)}; }
+              zoomBy(0.82);
+            }
           }
         }
       }
-      return {ok: worst===0, 검사:n, 최대겹침:worst, 지점:at};
+      return {ok: worst===0 && minRects>=10 && minRects<1e9, 검사:n, 최대겹침:worst, 지점:at,
+              최소예약:minRects, 최소지점:thin};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
+      g('cbServo').checked=false; onServoToggle();
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
       g('iServoOffY').value=_sv.off; onLink(); onServoOffset(); zoomReset(); draw(); } });
-    rec('linkage: 캔버스 라벨이 어떤 줌 배율에서도 서로 겹치지 않음', lbl.ok===true, JSON.stringify(lbl));
+    rec('linkage: 캔버스 라벨이 어떤 줌 배율에서도 서로 겹치지 않음(서보 on/off · 예약 누락 포함)', lbl.ok===true, JSON.stringify(lbl));
 
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.

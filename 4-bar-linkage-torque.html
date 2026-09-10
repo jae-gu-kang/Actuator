@@ -1758,6 +1758,23 @@ function midLabel(p1,p2,text,color){
     }
   }
   const pp=lblPlace(cands,bw,bh);
+  // 겹침을 피하느라 라벨이 자기 링크에서 멀어지면 '어느 링크의 숫자인지' 가 흔들린다
+  // (실측: 크랭크 a 는 짧아서 240프레임 중 103회 링크 밖, y오프셋 치수선은 최대 40px).
+  // CAD 치수 관행대로 지시선을 그어 귀속을 유지한다 — 멀리 밀어낼 자유도도 함께 생긴다.
+  const cxp=pp.x+bw/2, cyp=pp.y+bh/2;
+  const dist=Math.hypot(cxp-mx,cyp-my);
+  if(dist>20){
+    ctx.save();
+    ctx.strokeStyle=hexAlpha(color,0.35); ctx.lineWidth=1; ctx.setLineDash([]);
+    // 알약 가장자리에서 링크 중점까지 (알약 안쪽으로 파고들지 않게 조금 물러선다)
+    const ux2=(mx-cxp)/dist, uy2=(my-cyp)/dist;
+    const edge=Math.min(bw/2/Math.max(Math.abs(ux2),1e-6), bh/2/Math.max(Math.abs(uy2),1e-6));
+    ctx.beginPath();
+    ctx.moveTo(cxp+ux2*edge, cyp+uy2*edge);
+    ctx.lineTo(mx,my);
+    ctx.stroke();
+    ctx.restore();
+  }
   ctx.fillStyle='rgba(255,255,255,0.75)';
   ctx.beginPath();
   roundRect(ctx,pp.x,pp.y,bw,bh,7);
@@ -3627,6 +3644,17 @@ function setOptApply(html){
   el.innerHTML=html||''; el.style.display=html?'block':'none';
 }
 
+// 대칭/비대칭 최적화 정책 — doOptimize 와 설계변수 스윕이 **같은 규칙**을 쓰도록
+// 여기서만 정한다. 두 벌로 두면 어긋나는 순간 '곡선이 최적값 계산과 같은 뜻' 이라는
+// 스윕의 존재 이유가 무너지는데, 어긋나도 아무도 못 잡는다(스윕 회귀는 대칭만 탄다).
+function optimizeByPolicy(dm,dp,T2,marginVal,sym){
+  if(sym) return {res:optimizeForVars(dm,dp,T2,marginVal), Mstar:null, optUsed:undefined};
+  const passA=optimizeForVars(dm,dp,T2,marginVal,{mode:'margin'});
+  if(!passA) return {res:null, Mstar:null, optUsed:undefined};
+  const optUsed={mode:'torque', floor:ASYM_MARGIN_FLOOR*passA.score};
+  return {res:optimizeForVars(dm,dp,T2,marginVal,optUsed)||passA, Mstar:passA.score, optUsed};
+}
+
 function doOptimize(){
   const T2=parseFloat(document.getElementById('iTorque')?.value)||0;
   const marginVal=Math.max(0,parseFloat(document.getElementById('iMarginAngle')?.value)||0);
@@ -3653,18 +3681,10 @@ function doOptimize(){
   //    비대칭: 토크 최우선 2-패스 — 패스A(margin)로 달성 가능한 최대 최소여유 M* 를 구하고
   //            하한 = 0.9·M* 을 걸어 패스B(torque)에서 그 아래로 안 내려가게 하며 중립 토크 최대화.
   //    (b·c 를 토크가 커지는 쪽으로 몰되 μ≥50°·불균형≤10%·여유하한은 지킴)
-  let res, optUsed, floorAbs=0, Mstar=null;
-  if(sym){
-    res=optimizeForVars(dm,dp,T2,marginVal);
-  } else {
-    const passA=optimizeForVars(dm,dp,T2,marginVal,{mode:'margin'});
-    if(passA){
-      Mstar=passA.score;                       // score(margin) = 최소 안전여유 M*
-      floorAbs=ASYM_MARGIN_FLOOR*Mstar;
-      optUsed={mode:'torque',floor:floorAbs};
-      res=optimizeForVars(dm,dp,T2,marginVal,optUsed)||passA;
-    }
-  }
+  // 정책은 optimizeByPolicy 한 곳에서만 — 스윕도 같은 함수를 쓴다
+  const _pol=optimizeByPolicy(dm,dp,T2,marginVal,sym);
+  let res=_pol.res, optUsed=_pol.optUsed;
+  const Mstar=_pol.Mstar, floorAbs=Mstar!==null?ASYM_MARGIN_FLOOR*Mstar:0;
   if(!res){
     showMsg('⚠︎ 현재 설계 변수 설정('+optVarSummary()+') 안에서 타각 범위 '+defLbl
       +' 를 수용하는 조합이 없습니다.<br>타각 범위·끝단 마진·탐색범위를 조정해 보세요.');
@@ -4475,12 +4495,14 @@ function dsOnVarChange(keepIfEdited){
   if(!f||!t) return;
   // 사용자가 직접 고친 값만 지킨다. dataset.key 만 보면 자동 채움과 수동 입력을
   // 구분하지 못해, d 를 바꿔 c 자동범위가 움직여도 스윕 범위만 옛 값에 얼어붙는다.
-  const edited=(f.dataset.user==='1'||t.dataset.user==='1')&&f.dataset.key===k;
-  if(!keepIfEdited||!edited){
-    f.value=rg.lo; t.value=rg.hi;
-    f.dataset.key=k; t.dataset.key=k;
-    delete f.dataset.user; delete t.dataset.user;
-  }
+  // 칸별로 판정한다 — 묶어서 보면 한 칸만 고쳐도 다른 칸이 옛 형상의 자동값에 얼어붙는다.
+  // 빈 칸은 '고쳤다' 로 치지 않는다(지운 채 두면 자동 복구가 영영 안 걸린다).
+  const same=(f.dataset.key===k&&t.dataset.key===k);
+  const fEd=same&&f.dataset.user==='1'&&f.value!=='';
+  const tEd=same&&t.dataset.user==='1'&&t.value!=='';
+  if(!keepIfEdited||!fEd){ f.value=rg.lo; delete f.dataset.user; }
+  if(!keepIfEdited||!tEd){ t.value=rg.hi; delete t.dataset.user; }
+  f.dataset.key=k; t.dataset.key=k;
   const lim=OPTVAR_META[k].min;
   f.min=lim; t.min=lim; f.max=400; t.max=400;
 }
@@ -4559,13 +4581,7 @@ function runDeltaSweep(){
         // doOptimize 와 같은 목적함수를 써야 곡선이 '최적값 계산' 결과와 같은 뜻이 된다.
         // 비대칭은 2-패스(패스A margin → 하한 → 패스B torque) — opt 없이 부르면 margin
         // 모드로 풀려 중립토크가 계통적으로 낮게 나온다.
-        if(df.sym){
-          r=optimizeForVars(df.dm,df.dp,T2,marginVal);
-        } else {
-          const passA=optimizeForVars(df.dm,df.dp,T2,marginVal,{mode:'margin'});
-          r=passA?(optimizeForVars(df.dm,df.dp,T2,marginVal,
-                     {mode:'torque',floor:ASYM_MARGIN_FLOOR*passA.score})||passA):null;
-        }
+        r=optimizeByPolicy(df.dm,df.dp,T2,marginVal,df.sym).res;
         if(r&&r.t0!==undefined){
           const cc=r.cOpt!==undefined?r.cOpt:S.c, aa=r.aOpt!==undefined?r.aOpt:S.a,
                 dd=r.dOpt!==undefined?r.dOpt:S.d;
