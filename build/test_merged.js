@@ -94,15 +94,15 @@ async function clickByText(frame, txt){
   if(f){
     const info = await f.evaluate(()=>({
       cv: !!document.getElementById('cv'),
-      hasResults: !!document.getElementById('rMA') || !!document.getElementById('rT4torque'),
+      hasResults: !!document.getElementById('lCST4') || !!document.getElementById('lCSMuOut'),
       optBtn: !!document.getElementById('btnOptimize'),
       sendHM: typeof window.sendToHM==='function' || !!document.getElementById('sendHM'),
       grashof: !!document.getElementById('gBadge')
     }));
     rec('linkage: 캔버스/결과/최적화·연동 UI', info.cv && info.hasResults && info.optBtn && info.sendHM, JSON.stringify(info));
     // torque result numeric
-    const t = await f.evaluate(()=>{ const e=document.getElementById('rMA')||document.getElementById('rT4torque'); return e?e.textContent.trim():''; });
-    rec('linkage: 토크/기계이득 계산값 출력', /[0-9]/.test(t), 'MA/T4="'+t+'"');
+    const t = await f.evaluate(()=>{ const e=document.getElementById('lCST4'); return e?e.textContent.trim():''; });
+    rec('linkage: 출력토크 T₄ 계산값 출력(조종면 각도 카드)', /[0-9]/.test(t), 'T4="'+t+'"');
     // AI optimizer runs without throwing
     const optRes = await f.evaluate(()=>{ try{ if(typeof runOptimizer==='function'){ runOptimizer(); return 'ran'; } return 'no-fn'; }catch(e){ return 'ERR:'+e.message; } });
     rec('linkage: AI 최적값 계산 실행', optRes==='ran'||optRes==='no-fn', optRes);
@@ -272,6 +272,30 @@ async function clickByText(frame, txt){
               worst:+worst.toExponential(1), dIn, dOut, minIsBoth, sawInBinding};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 입력측 전달각 — MA 항등 · calcMAatT4 의 mu=min(입력,출력) · δ 카드 표시', mi.ok===true, JSON.stringify(mi));
+
+    // 불변식: '도달 불가 경고가 꺼져 있으면 θ₂ 판독값은 실제 자세와 일치'.
+    // lT2 갱신이 포커스 가드 안에 있으면, 도달 불가 값을 친 채 draw() 가 한 번 돌 때
+    // 배너만 꺼지고 거짓 각도가 판독값에 남는다(캔버스 hover 만으로 재현).
+    const rd = await f.evaluate(()=>{ try{
+      const g=id=>document.getElementById(id);
+      g('ia').value=100; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      setT4(100); draw();
+      if(!S.solutions) return {err:'기준 자세에 해가 없음'};
+      const real=(S.solutions.find(x=>x.type===S.sol)||S.solutions[0]).t2;
+      // 이 형상에서 도달 불가한 θ₂ 를 찾아, 포커스를 쥔 채 입력한다
+      let bad=null;
+      for(let t=0;t<360;t+=1) if(fwdSolveEx(S.a,S.b,S.c,gLen(),t)===null){ bad=t; break; }
+      if(bad===null) return {err:'도달 불가 θ₂ 가 없는 형상'};
+      g('nT2').focus(); g('nT2').value=String(bad); onT2num(bad);
+      const warned=getComputedStyle(g('noSolAng')).display==='block';
+      draw();                                   // 포커스를 유지한 채 리드로
+      const off=getComputedStyle(g('noSolAng')).display!=='block';
+      const shown=parseFloat(g('lT2').textContent);
+      g('nT2').blur();
+      return {ok: warned && (!off || Math.abs(shown-real)<0.15),
+              bad, real:+real.toFixed(2), shown, warned, bannerOff:off, kept:g('nT2').value};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 도달 불가 θ₂ — 경고 표시 · 경고가 꺼지면 판독값은 실제 자세', rd.ok===true, JSON.stringify(rd));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)

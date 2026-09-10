@@ -401,7 +401,7 @@ body {
 }
 
 /* 지표 스트립 — 한 줄에 2~3개의 파생값을 균등 분할로 보여준다.
-   쓰는 곳: 조종면 각도 카드(T₄ · 전달각 μ 입력/출력), 토크 해석(기계이득 MA · 출력토크 T₄).
+   쓰는 곳: 조종면 각도 카드(T₄ · 전달각 μ 입력/출력).
    색 규약: 크기값(T₄·MA)은 링크색 고정, μ 는 값 자체가 판정이라
    muFmt(OPT_MU_MIN/OPT_MU_BAD)가 초록·주황·빨강을 정한다. */
 .mstrip {
@@ -915,7 +915,21 @@ canvas.hover { cursor: grab; }
         </label>
       </div>
 
-      <div id="servoBox" style="display:none;">
+      <!-- 입력 토크 T₂ — 작동기가 내는 토크라 여기 둔다. '표시' 체크박스로 접히는
+           servoBox 밖에 있어야 한다(껐을 때 같이 숨으면 안 되는 상시 입력). -->
+      <div class="link-card" style="margin-bottom:0">
+        <div class="link-pip" style="background:var(--crank)"></div>
+        <div class="link-meta">
+          <div class="link-name">입력 토크 <span style="color:var(--text3);font-weight:400">T₂</span></div>
+          <div class="link-sub">Crank Input</div>
+        </div>
+        <div class="link-field">
+          <input type="number" id="iTorque" value="3" min="-9999" max="9999" step="0.1" oninput="onTorque()">
+          <span class="u">N·m</span>
+        </div>
+      </div>
+
+      <div id="servoBox" style="display:none;margin-top:8px;">
         <!-- 프리셋 -->
         <select id="servoPreset" onchange="applyServoPreset()"
           style="width:100%;padding:6px 8px;margin-bottom:8px;font-size:12px;font-weight:600;
@@ -963,29 +977,6 @@ canvas.hover { cursor: grab; }
         </div>
         <div class="link-sub" style="margin-top:6px;color:var(--text3);">푸시로드 홀 <b style="color:var(--text2)">M3</b> (Ø3 고정) · 회전축(O₂)=출력샤프트가 몸체 정위치(도면 14.9mm)에 구속 · 몸체는 <b style="color:var(--text2)">장착 기울기</b>만큼만 회전(θ₄ 무관) · 켜면 <b style="color:var(--text2)">링크·연결 볼트</b>도 함께 표시</div>
       </div>
-    </div>
-
-    <!-- 토크 해석 — '계산 결과' 카드는 각도 카드·캔버스 칩·δ 카드와 전부 중복이라 삭제했고,
-         2열 격자도 함께 없어져 전폭 단독 배치가 됐다. -->
-    <div class="s-sec">
-      <div class="s-title" style="margin-bottom:6px">토크 해석</div>
-      <div class="link-card" style="margin-bottom:6px">
-        <div class="link-pip" style="background:var(--crank)"></div>
-        <div class="link-meta">
-          <div class="link-name">입력 토크 <span style="color:var(--text3);font-weight:400">T₂</span></div>
-          <div class="link-sub">Crank Input</div>
-        </div>
-        <div class="link-field">
-          <input type="number" id="iTorque" value="3" min="-9999" max="9999" step="0.1" oninput="onTorque()">
-          <span class="u">N·m</span>
-        </div>
-      </div>
-      <!-- δ 카드와 같은 스트립 언어. T₂ 는 바로 위 입력칸과 같은 값이라 싣지 않는다 -->
-      <div class="mstrip">
-        <div class="mcell"><i>기계이득 MA</i><b id="rMA" style="color:var(--purple)">—</b></div>
-        <div class="mcell"><i>출력토크 T₄</i><b id="rT4torque" style="color:var(--follower)">—</b></div>
-      </div>
-      <div id="torqueNoSol" class="no-sol-banner" style="display:none;margin-top:6px">⚠︎ 계산 불가</div>
     </div>
 
     <!-- AI 최적 설계 추천 -->
@@ -1085,7 +1076,7 @@ canvas.hover { cursor: grab; }
       </div>
 
       <!-- 도달 불가 경고 — 삭제된 '계산 결과' 카드에 있던 것을, 원인이 되는 슬라이더 옆으로 옮겼다.
-           토크 해석의 '계산 불가' 배너는 재배치 후 한참 위라 여기서 보이지 않는다. -->
+           도구 전체에서 이 상태를 알리는 유일한 배너다. -->
       <div class="no-sol-banner" id="noSolAng" style="display:none;margin-top:6px">⚠︎ 해당 각도에서 도달 불가</div>
 
     </div>
@@ -1944,12 +1935,12 @@ function updateUI(sols){
       updateSliderTrack('slT2',0);
     }
     document.getElementById('overlay').innerHTML='';
-    updateTorqueUI(); drawTorquePlot();
+    drawTorquePlot();
     return;
   }
   document.getElementById('noSolAng').style.display='none';
   const act=sols.find(s=>s.type===S.sol)||sols[0];
-  setTimeout(()=>{updateTorqueUI();drawTorquePlot();},0);
+  setTimeout(()=>{drawTorquePlot();},0);
   // 판독값은 항상 실제 자세를 말한다 — 가드 안에 두면 사용자가 nT2/slT2 에 포커스를 둔 채
   // draw() 가 한 번 돌 때(캔버스 hover 등) 배너만 꺼지고 도달 불가 값이 판독값에 남는다.
   document.getElementById('lT2').textContent=act.t2.toFixed(1)+'°';
@@ -2267,27 +2258,9 @@ function calcTorque(){
   return { ma, mu, muIn };
 }
 
-function updateTorqueUI(){
-  const result=calcTorque();
-  const T2=parseFloat(document.getElementById('iTorque').value)||0;
-
-  if(!result){
-    document.getElementById('torqueNoSol').style.display='block';
-    document.getElementById('rMA').textContent='—';
-    document.getElementById('rT4torque').textContent='—';
-    return;
-  }
-  document.getElementById('torqueNoSol').style.display='none';
-
-  const T4=T2*result.ma;
-  document.getElementById('rMA').textContent=result.ma.toFixed(4);
-  // 전달각 μ 는 조종면 각도(δ) 카드가 전담한다 — 여기 두면 같은 값이 두 곳에 뜬다
-  document.getElementById('rT4torque').innerHTML=Math.abs(T4).toFixed(2)+'<u>N·m</u>';
-}
-
-// updateCSUI() 필수 — 이 경로에는 draw() 가 없어서, 빼면 T₂ 를 바꿨을 때
-// δ 카드의 T₄(=T₂·MA)만 옛 값으로 남아 토크 카드와 화면에서 동시에 다른 값을 보여준다.
-function onTorque(){ updateTorqueUI(); updateCSUI(); drawTorquePlot(); scheduleCouplerPlot(); }
+// updateCSUI() 필수 — 이 경로에는 draw() 가 없다. 빼면 T₂ 를 바꿔도 δ 카드의
+// T₄(=T₂·MA)가 옛 값으로 남는다. (기계이득·출력토크 지표 카드는 삭제됨 — δ 카드가 전담)
+function onTorque(){ updateCSUI(); drawTorquePlot(); scheduleCouplerPlot(); }
 
 // ── TORQUE PLOT ──
 // solve() 와 완전히 동일한 경로: θ₄ → θ₂, θ₃ 계산
@@ -2314,9 +2287,13 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   // 전달각 두 측 (접힌 예각 0~90°)
   //   muOut = 커플러 b ↔ 출력링크 c  ·  muIn = 크랭크 a ↔ 커플러 b
   // MA = (c/a)·sin(muIn)·sin(muOut) 이라 어느 한쪽만 나빠도 토크 전달이 무너진다.
+  // _fold 는 |인자|≤360 에서만 맞다. t3 는 atan2 원본 (−180,180] 인데 t4d·t2 는 [0,360) 라
+  // 그냥 빼면 −540 까지 내려가 음수 μ 가 나온다(θ₄>180 자세에서만 발현, 실측 2233건).
+  // norm 을 거치면 두 항이 모두 [0,360) 이라 |차|<360 이 보장된다. θ₄≤180 결과는 불변(오차 5.7e-14).
   const _fold=deg=>{ let m=Math.abs(deg); if(m>180) m=360-m; if(m>90) m=180-m; return m; };
-  const muOut=_fold(t3*DEG - norm(t4d));
-  const muIn =_fold(t3*DEG - t2);
+  const _t3=norm(t3*DEG);
+  const muOut=_fold(_t3 - norm(t4d));
+  const muIn =_fold(_t3 - t2);
   // 제약용 mu = 두 측 중 나쁜 쪽. 입력·출력 기준이 같은 값(OPT_MU_MIN)이라
   // 기존의 모든 mu>=OPT_MU_MIN 검사가 그대로 양측 조건이 되고, mu 는 실제 각도다.
   const mu=Math.min(muOut,muIn);
@@ -3767,11 +3744,13 @@ function buildOptMetrics(m){
     const _rd=v=>v===null?null:+v.toFixed(1);
     const _okIn=_in===null||_rd(_in)>=OPT_MU_MIN, _okOut=_out===null||_rd(_out)>=OPT_MU_MIN;
     const _tx=v=>v===null?'—':_rd(v).toFixed(1)+'°';
-    // 최솟값이 나오는 δ 를 붙인다 — 조종면 각도 카드를 그 δ 로 옮기면 같은 수가 나온다
+    // 최솟값이 나오는 δ 를 붙인다. 단 이 값은 **추천 형상** 기준이라, '적용' 전에는
+    // 조종면 각도 카드(현재 형상·현재 중립각)와 다른 수가 나온다 — 라벨에 그렇게 적는다.
     const _at=v=>(v===null||v===undefined||!isFinite(v))?''
       :' <span style="color:var(--text3);font-weight:400">δ'+(v>=0?'+':'−')
         +Math.abs(v).toFixed(Math.abs(v)%1?1:0)+'°</span>';
-    s+=row('작동범위 내 최소 전달각 μ <span style="color:var(--text3)">(입력·출력 · 최우선 필터)</span>',
+    s+=row('작동범위 내 최소 전달각 μ <span style="color:var(--text3)">(입력·출력 · 최우선 필터)</span>'
+      +'<div style="font-size:10px;color:var(--text3);font-weight:400;margin-top:1px">δ 는 최솟값 지점 · 적용 후 조종면 각도 카드와 대조</div>',
       '입력 '+_tx(_in)+_at(m.muInArg)+' · 출력 '+_tx(_out)+_at(m.muOutArg)
       +' <span style="color:var(--text3)">(둘 다 ≥'+OPT_MU_MIN+'° = '+OPT_MU_BASE+'+마진 '+OPT_MU_MARGIN+')</span>',
       (_okIn&&_okOut)?'#1a9c3e':'var(--red)');
@@ -3794,7 +3773,7 @@ function buildOptMetrics(m){
   }
   const isObjNeutral=!sym&&mode==='torque';
   s+=row('최대 |T₄| <span style="color:var(--text3)">(범위 내)</span>',
-    m.wmax.toFixed(2)+' N·m @ '+m.warg.toFixed(1)+'°','var(--follower)');
+    m.wmax.toFixed(2)+' N·m @ θ₄ '+m.warg.toFixed(1)+'°','var(--follower)');
   if(m.tn!==null) s+=row('|T₄| @ 중립각'+(isObjNeutral?' <span style="color:var(--text3)">(목적함수)</span>':''),
     m.tn.toFixed(2)+' N·m',isObjNeutral?'var(--purple)':'var(--text2)');
   if(sym){

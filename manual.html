@@ -819,8 +819,8 @@ body {
           <div class="step">
             <div class="step-num">3</div>
             <div class="step-body">
-              <h4>토크 해석</h4>
-              <p><strong>토크 해석</strong> 섹션에서 입력 토크 T₂를 입력하면, 가상일 원리에 의해 <strong>기계적 이득(MA)</strong>과 <strong>출력 토크 T₄</strong>가 자동 계산됩니다. 전달각 μ는 <strong>조종면 각도</strong> 카드에서 입력측·출력측을 함께 보여주며, 47° 이상이면 초록, 40° 이상이면 주황, 40° 미만이면 빨강에 ⚠ 표시가 붙습니다.</p>
+              <h4>입력 토크와 결과 읽기</h4>
+              <p><strong>액추에이터 / 서보암</strong> 섹션의 <strong>입력 토크 T₂</strong>에 작동기 토크를 넣으면, 가상일 원리로 출력 토크 <code>T₄ = T₂ × MA</code>가 계산됩니다. 결과는 <strong>조종면 각도</strong> 카드가 현재 자세 기준으로 <strong>출력토크 T₄ · 입력측 μ · 출력측 μ</strong> 세 값을 함께 보여주고, 전 범위 곡선은 <strong>출력토크 변화</strong> 그래프에서 확인합니다. 전달각 μ는 47° 이상이면 초록, 40° 이상이면 주황, 40° 미만이면 빨강에 ⚠ 표시가 붙습니다.</p>
             </div>
           </div>
           <div class="step">
@@ -2418,7 +2418,7 @@ const SEARCH_INDEX = [
   // ── 4-BAR LINKAGE ──
   { id:'linkage', anchor:'anc-linkage-overview',   title:'4-Bar Linkage — 도구 개요',        keywords:'4절 링크 기구 기구학 kinematics 크랭크 커플러 팔로워 고정링크 액추에이터 서스펜션 AI 최적설계 역설계 워크벤치' },
   { id:'linkage', anchor:'anc-loop-closure',        title:'루프 폐합 방정식',                  keywords:'loop closure equation 루프 폐합 방정식 θ₂ θ₃ θ₄ cos sin a b c d X Y방향' },
-  { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 토크 해석 플롯 슬라이더 드래그 개방형 교차형 θ₂ 역해 AI 최적화 그래프 힌지모멘트 리깅 연동' },
+  { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 입력 토크 T₂ 조종면 각도 전달각 플롯 슬라이더 드래그 개방형 교차형 θ₂ 역해 AI 최적화 그래프 힌지모멘트 리깅 연동' },
   { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ θ₂ T₂ 타각범위 토크요구도 끝단마진 중립각 기본값 고정링크 크랭크 커플러 팔로워 각도 범위 자동연동' },
   { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 승격 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 설계변수 고정 변수 자물쇠 탐색범위 대칭 비대칭' },
   { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암 렌더',           keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 암길이 M3 스플라인 허브 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 자동 배치 표시 토글 금속 렌더링 inch 25.4 mm 장착 기울기 tilt 180 360 y오프셋 편심 offY 지상링크' },
