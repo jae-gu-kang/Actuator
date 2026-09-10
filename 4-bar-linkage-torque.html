@@ -1940,11 +1940,22 @@ function drawArcs(sol){
   // 각(θ₂·θ₄)은 캐노니컬(지상링크 기준). 프레임 기울기 φ 만큼 기준선을 회전해 월드에 그림.
   const t2r=sol.t2*RAD,t4r=S.t4*RAD, ph=gPhi();
   const O2=toWorld(0,0), O4=toWorld(gLen(),0);
-  arcAng(wx(O2[0]),wy(O2[1]),t2r,44,C.crank,`θ₂ = ${sol.t2.toFixed(1)}°`,ph);
-  arcAng(wx(O4[0]),wy(O4[1]),t4r,44,C.follower,`θ₄ = ${S.t4.toFixed(1)}°`,ph);
+  // 고정링크의 법선 두 방향 중 **기구(커플러 중점)의 반대쪽** = 늘 비어 있는 '아래'.
+  // 화면 좌표 기준이라 y오프셋으로 링크가 기울어도 따라간다.
+  const gx=wx(O4[0])-wx(O2[0]), gy=wy(O4[1])-wy(O2[1]);
+  const glen=Math.hypot(gx,gy)||1;
+  let bx=-gy/glen, by=gx/glen;                       // 법선
+  const midG={x:(wx(O2[0])+wx(O4[0]))/2, y:(wy(O2[1])+wy(O4[1]))/2};
+  const _A=toWorld(sol.Ax,sol.Ay), _B=toWorld(sol.Bx,sol.By);   // 캐노니컬 → 월드
+  const midM={x:(wx(_A[0])+wx(_B[0]))/2, y:(wy(_A[1])+wy(_B[1]))/2};
+  if((midM.x-midG.x)*bx+(midM.y-midG.y)*by > 0){ bx=-bx; by=-by; }   // 기구 쪽이면 뒤집는다
+  const below={x:bx,y:by};
+  arcAng(wx(O2[0]),wy(O2[1]),t2r,44,C.crank,`θ₂ = ${sol.t2.toFixed(1)}°`,ph,below);
+  arcAng(wx(O4[0]),wy(O4[1]),t4r,44,C.follower,`θ₄ = ${S.t4.toFixed(1)}°`,ph,below);
 }
 
-function arcAng(cx,cy,angle,r,color,label,base){
+// below: {x,y} 화면 단위벡터 — 고정링크 기준 '기구 반대쪽'. 주면 그쪽을 먼저 시도한다.
+function arcAng(cx,cy,angle,r,color,label,base,below){
   base=base||0;                       // 기준선 각(math). base=0 → 기존 동작과 동일
   ctx.save();
   // Arc fill
@@ -1968,13 +1979,32 @@ function arcAng(cx,cy,angle,r,color,label,base){
   const mid=base+angle/2;
   ctx.font='500 10px -apple-system,sans-serif';
   const tw=ctx.measureText(label).width, bw2=tw+10, bh2=14;
-  // 호 바깥으로 밀어내며, 각도도 조금씩 틀어 빈자리를 찾는다
   const cands=[];
+  // 고정링크 아래는 기구가 없어 늘 비어 있다 — 각도 라벨을 먼저 그쪽으로 보낸다.
+  // (호 둘레에 붙이면 크랭크·커플러·관절 라벨과 자리를 다툰다)
+  if(below){
+    for(const dd of [r+16, r+30, r+46, r+64]){
+      cands.push({x:cx+below.x*dd-bw2/2, y:cy+below.y*dd-8});
+    }
+  }
+  // 폴백: 호 바깥으로 밀어내며 각도도 틀어 빈자리를 찾는다
   for(const dr of [18,30,44,60]) for(const da of [0,0.22,-0.22,0.45,-0.45]){
     const ang=-(mid+da), rr=r+dr;
     cands.push({x:cx+rr*Math.cos(ang)-bw2/2, y:cy+rr*Math.sin(ang)-8});
   }
   const pp=lblPlace(cands,bw2,bh2);
+  // 라벨이 호에서 멀어지면 어느 관절의 각인지 흐려진다 → 호 끝으로 지시선
+  const acx=pp.x+bw2/2, acy=pp.y+bh2/2;
+  const ax=cx+r*Math.cos(-mid), ay=cy+r*Math.sin(-mid);   // 호 중앙점
+  const adist=Math.hypot(acx-ax,acy-ay);
+  if(adist>22){
+    ctx.save();
+    ctx.strokeStyle=hexAlpha(color,0.35); ctx.lineWidth=1; ctx.setLineDash([]);
+    const ux3=(ax-acx)/adist, uy3=(ay-acy)/adist;
+    const edge3=Math.min(bw2/2/Math.max(Math.abs(ux3),1e-6), bh2/2/Math.max(Math.abs(uy3),1e-6));
+    ctx.beginPath(); ctx.moveTo(acx+ux3*edge3, acy+uy3*edge3); ctx.lineTo(ax,ay); ctx.stroke();
+    ctx.restore();
+  }
   ctx.fillStyle='rgba(255,255,255,0.85)';
   ctx.setLineDash([]);
   ctx.beginPath(); roundRect(ctx,pp.x,pp.y,bw2,bh2,7); ctx.fill();

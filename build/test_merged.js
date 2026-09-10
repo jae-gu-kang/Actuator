@@ -452,6 +452,10 @@ async function clickByText(frame, txt){
       const g=id=>document.getElementById(id);
       const hit=(A,B)=>A.x<B.x+B.w&&B.x<A.x+A.w&&A.y<B.y+B.h&&B.y<A.y+A.h;
       let worst=0, at=null, n=0, minRects=1e9, thin=null;
+      // 각도 라벨(θ₂·θ₄)은 고정링크 '아래'(기구 반대쪽)에 놓여야 한다 — 그쪽이 늘 비어 있어
+      // 자리싸움이 없다. 위로 올라오면 커플러·관절 라벨과 다투기 시작한다.
+      let angTot=0, angBelow=0;
+      const ctx2=document.getElementById('cv').getContext('2d');
       for(const [a,b,c,d] of [[20,100,40,100],[16,110,25,120],[30,60,60,80],[50,150,120,200]]){
         g('ia').value=a; g('ib').value=b; g('ic').value=c; g('id').value=d; onLink();
         for(const servo of [false,true]){        // 서보 ON 은 partLabel(후보 4개, 가장 약한 배치기)
@@ -460,7 +464,25 @@ async function clickByText(frame, txt){
             g('iServoOffY').value=off; onServoOffset();
             zoomReset();
             for(let z=0;z<7;z++){
-              draw(); n++;
+              const seen=[]; const _of=ctx2.fillText.bind(ctx2);
+              ctx2.fillText=function(t,x,y){ seen.push({t:String(t),x,y}); return _of(t,x,y); };
+              draw();
+              ctx2.fillText=_of;
+              n++;
+              if(S.solutions){
+                const O2=toWorld(0,0), O4=toWorld(gLen(),0);
+                const gxx=wx(O4[0])-wx(O2[0]), gyy=wy(O4[1])-wy(O2[1]), gll=Math.hypot(gxx,gyy)||1;
+                let nbx=-gyy/gll, nby=gxx/gll;
+                const sl=S.solutions.find(x=>x.type===S.sol)||S.solutions[0];
+                const PA=toWorld(sl.Ax,sl.Ay), PB=toWorld(sl.Bx,sl.By);
+                const mg={x:(wx(O2[0])+wx(O4[0]))/2,y:(wy(O2[1])+wy(O4[1]))/2};
+                const mm={x:(wx(PA[0])+wx(PB[0]))/2,y:(wy(PA[1])+wy(PB[1]))/2};
+                if((mm.x-mg.x)*nbx+(mm.y-mg.y)*nby>0){ nbx=-nbx; nby=-nby; }
+                for(const L of seen) if(/^θ[₂₄]/.test(L.t)){
+                  angTot++;
+                  if((L.x-mg.x)*nbx+(L.y-mg.y)*nby>0) angBelow++;
+                }
+              }
               const R=_lblRects;
               // 장부가 비면 '겹침 0' 이 공허해진다 — 배치기를 안 거친 라벨을 여기서 잡는다.
               // 단 해가 없는 프레임은 기구 자체를 안 그리므로(drawNoSol) 라벨이 0 이 정상.
@@ -474,14 +496,16 @@ async function clickByText(frame, txt){
           }
         }
       }
-      return {ok: worst===0 && minRects>=10 && minRects<1e9, 검사:n, 최대겹침:worst, 지점:at,
-              최소예약:minRects, 최소지점:thin};
+      return {ok: worst===0 && minRects>=10 && minRects<1e9
+                  && angTot>0 && angBelow===angTot,
+              검사:n, 최대겹침:worst, 지점:at, 최소예약:minRects, 최소지점:thin,
+              각도라벨:angTot, 고정링크아래:angBelow};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
       g('cbServo').checked=false; onServoToggle();
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
       g('iServoOffY').value=_sv.off; onLink(); onServoOffset(); zoomReset(); draw(); } });
-    rec('linkage: 캔버스 라벨이 어떤 줌 배율에서도 서로 겹치지 않음(서보 on/off · 예약 누락 포함)', lbl.ok===true, JSON.stringify(lbl));
+    rec('linkage: 캔버스 라벨 — 겹침 0 · 예약 누락 없음 · 각도는 고정링크 아래', lbl.ok===true, JSON.stringify(lbl));
 
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
