@@ -154,7 +154,7 @@ async function clickByText(frame, txt){
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 장착각 기본 180° + 0~360 전 범위(90° 클램프 없음)', tl.ok===true, JSON.stringify(tl));
 
-    // 조종면 이동 명령: 하향 최대 / 중립 / 상향 최대 (+ '중립 지정' 은 이동이 아니라 기준 변경)
+    // 조종면 이동 명령: 상향 최대(−δ) / 중립 / 하향 최대(+δ) (+ '중립 지정' 은 기준 변경)
     const cs = await f.evaluate(()=>{ try{
       const dn=document.getElementById('lCSdn'), z=document.getElementById('lCSzero'),
             up=document.getElementById('lCSup'), nEl=document.getElementById('iT4Neutral');
@@ -164,15 +164,17 @@ async function clickByText(frame, txt){
       document.getElementById('iDeflectM').value=10; updateCSUI();
       nEl.value=100; csGo('zero');
       const t0=S.t4;                       // 중립
-      up.click(); const tup=S.t4;          // 상향 최대 → +30
-      dn.click(); const tdn=S.t4;          // 하향 최대 → −10
+      up.click(); const tup=S.t4;          // 상향 최대 (δ=−30) → θ₄ 130
+      const dUp=csDelta();                 // 부호 규약: 상향은 음수여야 한다
+      dn.click(); const tdn=S.t4;          // 하향 최대 (δ=+10) → θ₄ 90
+      const dDn=csDelta();                 //            하향은 양수
       z.click();  const tz=S.t4;           // 중립 → 0
-      // 끝단이 10° 배수가 아니면 버림값으로 간다 — 상35/하26 → +30 / −20
+      // 끝단이 10° 배수가 아니면 버림값으로 간다 — 상35/하26 → 상향 30 / 하향 20
       document.getElementById('iDeflectP').value=35;
       document.getElementById('iDeflectM').value=26; updateCSUI();
       const lup=up.textContent, ldn=dn.textContent;
-      up.click(); const fup=S.t4;          // +30 → 130
-      dn.click(); const fdn=S.t4;          // −20 → 80
+      up.click(); const fup=S.t4;          // 상향 30 → 130
+      dn.click(); const fdn=S.t4;          // 하향 20 → 80
       // 끝단이 10° 미만이면 버림값 0 → 버튼 숨김
       document.getElementById('iDeflectP').value=8;
       document.getElementById('iDeflectM').value=8; updateCSUI();
@@ -182,24 +184,26 @@ async function clickByText(frame, txt){
       // ±1° 트림: 중립 좌우 버튼으로 1°씩, 끝단에서 멈춤
       const tm=document.getElementById('lCStrimM'), tp=document.getElementById('lCStrimP');
       if(!tm||!tp) return {err:'no-trim'};
-      z.click(); tp.click(); const r1=S.t4;              // +1 → 101
-      tp.click(); tp.click(); const r3=S.t4;             // +3 → 103
-      tm.click(); const r2=S.t4;                         // +2 → 102
-      z.click(); for(let i=0;i<12;i++) tm.click();       // 하향 끝단(−10)에서 멈춤
+      // +1° 트림 = δ 증가 = 조종면 하향 = θ₄ 감소 (부호 규약)
+      z.click(); tp.click(); const r1=S.t4;              // δ+1 → θ₄ 99
+      tp.click(); tp.click(); const r3=S.t4;             // δ+3 → θ₄ 97
+      tm.click(); const r2=S.t4;                         // δ+2 → θ₄ 98
+      z.click(); for(let i=0;i<12;i++) tp.click();       // 하향 끝단(δ=+10)에서 멈춤
       const rMin=S.t4;
       z.click();
-      up.click(); const before=S.t4;       // δ=+30 상태에서
+      up.click(); const before=S.t4;       // δ=−30(상향 최대) 상태에서
       csSetNeutral();                      // 기준만 재정의 (θ₄ 불변)
       const afterT4=S.t4, afterN=+nEl.value;
       setDeflectMode('sym'); nEl.value=100; csGo('zero');
       return {ok: t0===100 && tup===130 && tdn===90 && tz===100
-                  && lup==='상향 30° ▲' && ldn==='▼ 하향 20°'   // 35/26 → 버림 30/20
+                  && dUp===-30 && dDn===10                      // 상향 −, 하향 + (부호 규약)
+                  && lup==='▲ 상향 −30°' && ldn==='하향 +20° ▼'  // 35/26 → 버림 30/20
                   && fup===130 && fdn===80 && hidden
-                  && r1===101 && r3===103 && r2===102 && rMin===90
+                  && r1===99 && r3===97 && r2===98 && rMin===90
                   && afterT4===before && afterN===before,
-              t0,tup,tdn,tz,lup,ldn,fup,fdn,hidden,r1,r3,r2,rMin,before,afterT4,afterN};
+              t0,tup,tdn,tz,dUp,dDn,lup,ldn,fup,fdn,hidden,r1,r3,r2,rMin,before,afterT4,afterN};
     }catch(e){ return {err:e.message}; } });
-    rec('linkage: 조종면 이동(중립·10° 버림 최대/최소·±1° 트림) + 중립 지정은 기준만 변경', cs.ok===true, JSON.stringify(cs));
+    rec('linkage: 조종면 이동·트림·중립지정 + 부호 규약(상향 −/하향 +)', cs.ok===true, JSON.stringify(cs));
 
     // 출력토크 그래프에 조종면 끝단(10° 버림) 마커가 그려지는가
     const pm = await f.evaluate(()=>{ try{
@@ -276,7 +280,7 @@ async function clickByText(frame, txt){
     // 불변식: '도달 불가 경고가 꺼져 있으면 θ₂ 판독값은 실제 자세와 일치'.
     // lT2 갱신이 포커스 가드 안에 있으면, 도달 불가 값을 친 채 draw() 가 한 번 돌 때
     // 배너만 꺼지고 거짓 각도가 판독값에 남는다(캔버스 hover 만으로 재현).
-    const rd = await f.evaluate(()=>{ try{
+    const rd = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
       const g=id=>document.getElementById(id);
       g('ia').value=100; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
       setT4(100); draw();
@@ -292,9 +296,12 @@ async function clickByText(frame, txt){
       const off=getComputedStyle(g('noSolAng')).display!=='block';
       const shown=parseFloat(g('lT2').textContent);
       g('nT2').blur();
-      return {ok: warned && (!off || Math.abs(shown-real)<0.15),
+      return {ok: warned && off && Math.abs(shown-real)<0.15,
               bad, real:+real.toFixed(2), shown, warned, bannerOff:off, kept:g('nT2').value};
-    }catch(e){ return {err:e.message}; } });
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=id=>document.getElementById(id);
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      onLink(); setT4(100); draw(); } });
     rec('linkage: 도달 불가 θ₂ — 경고 표시 · 경고가 꺼지면 판독값은 실제 자세', rd.ok===true, JSON.stringify(rd));
   } else rec('linkage: 프레임 로드', false);
 
@@ -306,6 +313,12 @@ async function clickByText(frame, txt){
     const cur = await page.evaluate(()=>{ const fr=document.querySelector('iframe.active'); return fr?fr.getAttribute('data-name'):'?'; });
     const ls  = await page.evaluate(()=>localStorage.getItem('hm_linkage_v1'));
     rec('연동: 4-Bar→힌지 window.open이 부모 탭전환', cur==='hinge', 'sent='+sent+' activeTool='+cur);
+    // dir 은 UI 가 사라져 이제 부호 규약(δ+ = 하향 = θ₄ 감소)의 유일한 표현식이다.
+    // ls.length>2 만으로는 +1 로 뒤집혀도 통과하므로 값 자체를 고정한다.
+    try{ const _p=ls?JSON.parse(ls):null;
+      rec('연동: 페이로드 dir=−1 (δ+ = 하향 = θ₄ 감소) · t4n 전달',
+          !!_p && _p.dir===-1 && isFinite(_p.t4n), ls);
+    }catch(e){ rec('연동: 페이로드 dir=−1 (δ+ = 하향 = θ₄ 감소) · t4n 전달', false, String(e)); }
     rec('연동: localStorage(hm_linkage_v1) 기록', !!ls && ls.length>2, ls?('len '+ls.length):'null');
   }
 

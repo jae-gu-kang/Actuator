@@ -811,7 +811,7 @@ canvas.hover { cursor: grab; }
           <button class="lock-btn" id="btnVarLock_d" onclick="toggleOptVar('d')"
             title="고정 d — 고정: 입력값 유지 (누르면 변수) · 유효 지상링크 L=√(d²+e²) (y오프셋 반영)">🔒</button>
           <div id="varRange_d" style="display:none;width:100%;gap:4px;align-items:center;">
-            <span style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
+            <span id="varRangeLbl_d" style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
               <input type="number" id="iVarMin_d" min="10" max="400" step="1" oninput="onOptVarRange('d')"
                 style="width:100%;padding:2px 4px;font-size:11px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
@@ -837,7 +837,7 @@ canvas.hover { cursor: grab; }
           <button class="lock-btn" id="btnVarLock_a" onclick="toggleOptVar('a')"
             title="입력 a — 고정: 입력값 유지 (누르면 변수) · 토크 ∝ 1/a → 하한에 붙기 쉬움">🔒</button>
           <div id="varRange_a" style="display:none;width:100%;gap:4px;align-items:center;">
-            <span style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
+            <span id="varRangeLbl_a" style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
               <input type="number" id="iVarMin_a" min="5" max="400" step="1" oninput="onOptVarRange('a')"
                 style="width:100%;padding:2px 4px;font-size:11px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
@@ -863,7 +863,7 @@ canvas.hover { cursor: grab; }
           <button class="lock-btn on" id="btnVarLock_b" onclick="toggleOptVar('b')"
             title="커플러 b — 변수: 옵티마이저가 탐색 (누르면 고정) · 조립조건 [L−a−c, L+a+c] 자동 반영">🔓</button>
           <div id="varRange_b" style="display:flex;width:100%;gap:4px;align-items:center;">
-            <span style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
+            <span id="varRangeLbl_b" style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
               <input type="number" id="iVarMin_b" min="5" max="400" step="1" oninput="onOptVarRange('b')"
                 style="width:100%;padding:2px 4px;font-size:11px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
@@ -889,7 +889,7 @@ canvas.hover { cursor: grab; }
           <button class="lock-btn on" id="btnVarLock_c" onclick="toggleOptVar('c')"
             title="출력 c — 변수: 옵티마이저가 탐색 (누르면 고정) · 자동범위 0.2~0.8×L">🔓</button>
           <div id="varRange_c" style="display:flex;width:100%;gap:4px;align-items:center;">
-            <span style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
+            <span id="varRangeLbl_c" style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
               <input type="number" id="iVarMin_c" min="5" max="400" step="1" oninput="onOptVarRange('c')"
                 style="width:100%;padding:2px 4px;font-size:11px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
@@ -1008,15 +1008,15 @@ canvas.hover { cursor: grab; }
               <span style="padding:3px 8px 3px 2px;font-size:10px;color:var(--text3);">°</span>
             </div>
           </div>
-          <!-- 비대칭: 조종면 상향(+δ₊) / 하향(−δ₋) 두 칸 -->
+          <!-- 비대칭: 조종면 상향(−δ) / 하향(+δ) 두 칸 — 값은 크기(양수)로 입력 -->
           <div id="deflectAsymRow" style="display:none;grid-template-columns:1fr 1fr;gap:6px;">
-            <div class="link-field" style="border-radius:7px;" title="조종면 상향 타각 (θ₄ + 방향)">
+            <div class="link-field" style="border-radius:7px;" title="조종면 상향 타각 — 부호 규약상 δ 는 음수(−), 기구상 θ₄ 증가 방향">
               <span style="padding:3px 1px 3px 7px;font-size:10.5px;color:var(--follower);font-weight:600;white-space:nowrap;">상향</span>
               <input type="number" id="iDeflectP" value="20" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
                 style="width:100%;padding:3px 3px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
               <span style="padding:3px 7px 3px 1px;font-size:10px;color:var(--text3);">°</span>
             </div>
-            <div class="link-field" style="border-radius:7px;" title="조종면 하향 타각 (θ₄ − 방향)">
+            <div class="link-field" style="border-radius:7px;" title="조종면 하향 타각 — 부호 규약상 δ 는 양수(+), 기구상 θ₄ 감소 방향">
               <span style="padding:3px 1px 3px 7px;font-size:10.5px;color:var(--crank);font-weight:600;white-space:nowrap;">하향</span>
               <input type="number" id="iDeflectM" value="30" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
                 style="width:100%;padding:3px 3px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
@@ -1099,16 +1099,16 @@ canvas.hover { cursor: grab; }
         <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
         <!-- 이동 명령: 누르면 조종면이 그 위치로 간다 (아래 '중립 지정' 은 기준만 바꿈) -->
         <div style="display:flex;align-items:center;gap:4px;margin-top:3px;flex-wrap:wrap;">
-          <button id="lCSdn" onclick="csGo('min')" title="조종면을 하향 최대로 이동"
-            style="flex:1 1 60px;background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">▼ 하향 25°</button>
-          <button id="lCStrimM" onclick="csTrim(-1)" title="하향으로 1° 트림 (타각범위 끝에서 멈춤)"
+          <button id="lCSup" onclick="csGo('up')" title="조종면을 상향 최대로 이동 (상향 = −)"
+            style="flex:1 1 60px;background:rgba(255,69,58,0.10);color:var(--follower);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">▲ 상향 −25°</button>
+          <button id="lCStrimM" onclick="csTrim(-1)" title="상향으로 1° 트림 (타각범위 끝에서 멈춤)"
             style="background:rgba(118,118,128,0.14);color:var(--text2);border:none;border-radius:5px;padding:4px 5px;font-size:9.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex:0 0 auto;">−1°</button>
           <button id="lCSzero" onclick="csGo('zero')" title="조종면을 중립(δ=0°)으로 이동"
             style="flex:0 0 auto;background:rgba(52,199,89,.14);color:#28a745;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">중립</button>
-          <button id="lCStrimP" onclick="csTrim(1)" title="상향으로 1° 트림 (타각범위 끝에서 멈춤)"
+          <button id="lCStrimP" onclick="csTrim(1)" title="하향으로 1° 트림 (타각범위 끝에서 멈춤)"
             style="background:rgba(118,118,128,0.14);color:var(--text2);border:none;border-radius:5px;padding:4px 5px;font-size:9.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex:0 0 auto;">+1°</button>
-          <button id="lCSup" onclick="csGo('max')" title="조종면을 상향 최대로 이동"
-            style="flex:1 1 60px;background:rgba(255,69,58,0.10);color:var(--follower);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">상향 25° ▲</button>
+          <button id="lCSdn" onclick="csGo('down')" title="조종면을 하향 최대로 이동 (하향 = +)"
+            style="flex:1 1 60px;background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">하향 +25° ▼</button>
         </div>
         <!-- 기준 설정: 조종면을 움직이지 않고 '지금 위치를 0°로' 재정의 -->
         <div style="display:flex;justify-content:center;margin-top:4px;">
@@ -1188,23 +1188,10 @@ canvas.hover { cursor: grab; }
     <div class="s-sec">
       <div class="s-title" style="margin-bottom:6px">힌지모멘트 계산기 연동</div>
       <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:12px;margin-bottom:6px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">중립각 θ₄ <span style="color:var(--text3);font-weight:400">(타각 δ=0°)</span></div>
-          <div class="link-field" style="border-radius:7px;">
-            <input type="number" id="iT4Neutral" value="100" min="0" max="360" step="0.1" oninput="updateCSUI()"
-              style="width:56px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);">
-            <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">°</span>
-          </div>
-          <button onclick="useCurT4()"
-            style="background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">현재값</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-          <div style="flex:1;font-size:11px;color:var(--text2);font-weight:500;">타각 δ+ 방향</div>
-          <div class="seg-ctrl">
-            <button class="seg-btn" id="hmDirUp" onclick="setHMDir(1)" style="padding:4px 10px;font-size:11px;">θ₄ 증가</button>
-            <button class="seg-btn active" id="hmDirDn" onclick="setHMDir(-1)" style="padding:4px 10px;font-size:11px;">θ₄ 감소</button>
-          </div>
-        </div>
+        <!-- 중립각 θ₄₀ 의 단일 진리원. 조종면 각도 카드의 '중립 지정' 과 최적화 '적용' 이
+             여기에 쓰고 csNeutralT4() 가 읽는다. 연동 카드에서 따로 편집할 이유가 없어
+             입력 UI 는 없앴지만, 값 보관처라 요소 자체는 hidden 으로 남긴다. -->
+        <input type="hidden" id="iT4Neutral" value="100">
         <button id="sendHM" onclick="sendToHM()"
           style="width:100%;background:linear-gradient(135deg,#0071e3,#3b82f6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,113,227,.25);">
           힌지모멘트 계산기로 보내기 →</button>
@@ -1215,8 +1202,9 @@ canvas.hover { cursor: grab; }
         <div id="sendRigmsg" style="display:none;margin-top:8px;font-size:10.5px;color:#1a9c3e;font-weight:600;text-align:center;"></div>
       </div>
       <div style="font-size:10px;color:var(--text3);line-height:1.5;padding:0 2px;">
-        링크 치수 a·b·c·d, 해 유형, 입력토크 T₂, 중립각 θ₄₀·방향을 전달합니다.
-        힌지모멘트 계산기의 속도 × 타각 테이블에서 한계값이 타각별 가용 토크 |T₄(δ)| = |T₂ × MA(θ₄₀ ± δ)| 로 자동 계산됩니다.
+        링크 치수 a·b·c·d, 해 유형, 입력토크 T₂ 와 함께 <b>중립각 θ₄₀</b>(조종면 각도 카드의 '중립 지정'·최적화 적용값)와
+        <b>타각 방향</b>을 함께 전달합니다. 방향은 고르는 값이 아니라 이 도구의 부호 규약에서 나옵니다 — δ+ = 조종면 하향 = θ₄ 감소.
+        힌지모멘트 계산기의 속도 × 타각 테이블에서 한계값이 타각별 가용 토크 |T₄(δ)| = |T₂ × MA(θ₄₀ − δ)| 로 자동 계산됩니다.
         리깅 계산기로 보내면 이론 검증 탭에서 동일 기하로 이론 3차식과 단조성 판정이 자동 계산됩니다.
       </div>
     </div>
@@ -2119,17 +2107,20 @@ function onT4(v){setT4(v);draw();}
 function onT4num(v){setT4(v);draw();}
 function fmtOnBlur(el,val){ el.value=(+val).toFixed(1); }
 
-// ── 조종면 각도 δ (중립 0° = 중립각 θ₄₀, +상향/−하향) ──────────────────────────
-// 규약: θ₄ = θ₄₀ + δ  (상향 dp ⇒ θ₄₀+dp, 하향 dm ⇒ θ₄₀−dm — 타각 입력·옵티마이저와 동일).
-// θ₄₀ 는 기존 '중립각 θ₄(δ=0)' 필드(iT4Neutral). δ 범위 = 입력 타각 [−dm, +dp].
+// ── 조종면 각도 δ (중립 0° = 중립각 θ₄₀, −상향/+하향) ──────────────────────────
+// 부호 규약: **조종면 상향 = 마이너스, 하향 = 플러스**  ⇒  δ = −(θ₄ − θ₄₀), θ₄ = θ₄₀ − δ.
+// 기구는 그대로다 — 상향은 여전히 θ₄ 증가(θ₄₀+dp), 하향은 θ₄ 감소(θ₄₀−dm)이고
+// 옵티마이저·타각 입력(dp=상향 크기, dm=하향 크기)도 손대지 않는다. 바뀐 건 δ 의 부호뿐.
+// 따라서 δ 범위는 [−dp(상향 최대), +dm(하향 최대)] 이다.
+// θ₄₀ 는 '중립각 θ₄(δ=0)' 값(iT4Neutral).
 function csNeutralT4(){ const v=parseFloat(document.getElementById('iT4Neutral')?.value); return isFinite(v)?v:S.t4; }
-function csDelta(){ let r=S.t4-csNeutralT4(); r=((r+180)%360+360)%360-180; return r; }   // 부호 δ, [-180,180]
+function csDelta(){ let r=csNeutralT4()-S.t4; r=((r+180)%360+360)%360-180; return r; }   // δ=−(θ₄−θ₄₀), [-180,180]
 function onCSAngle(v){
   const df=getDeflect();
   const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
   let d=parseFloat(v); if(!isFinite(d)) d=0;
-  d=Math.max(-dm, Math.min(dp, d));            // 입력 타각범위로 클램프
-  setT4(csNeutralT4()+d);
+  d=Math.max(-dp, Math.min(dm, d));            // δ 범위 [−상향, +하향] 로 클램프
+  setT4(csNeutralT4()-d);                      // θ₄ = θ₄₀ − δ
   draw();                                      // draw → updateUI → updateCSUI 로 읽기값 동기화
 }
 // 트림 — 현재 δ 에서 step(°) 만큼 상대 이동. onCSAngle 이 타각범위로 클램프하므로
@@ -2139,36 +2130,38 @@ function csTrim(step){ onCSAngle(csDelta()+step); }
 // 타각 끝단을 10° 단위로 버림 — 딱 떨어지는 각도로 가려고. 상향 35° → 30°, 하향 26° → 20°.
 function csFloor10(v){ return isFinite(v)&&v>0 ? Math.floor(v/10)*10 : 0; }
 
-// 조종면 이동 명령 — 'min'=하향 버림값(−), 'zero'=중립(0), 'max'=상향 버림값(+).
+// 조종면 이동 명령 — 'up'=상향 버림값(−δ), 'zero'=중립(0), 'down'=하향 버림값(+δ).
 // onCSAngle 이 범위 클램프·setT4·draw·읽기값 동기화를 모두 처리한다.
 function csGo(kind){
   const df=getDeflect();
-  onCSAngle(kind==='max'? csFloor10(df.dp) : (kind==='min'? -csFloor10(df.dm) : 0));
+  onCSAngle(kind==='up'? -csFloor10(df.dp) : (kind==='down'? csFloor10(df.dm) : 0));
 }
 function csSetNeutral(){                        // 현재 θ₄ 를 조종면 중립(δ=0)으로 지정
   const el=document.getElementById('iT4Neutral'); if(el) el.value=(+S.t4).toFixed(1);
-  updateCSUI();
+  // draw() 로 가야 한다 — 토크 그래프의 δ 눈금(csDegStr)과 상향/하향 끝단 마커가
+  // csNeutralT4() 에 물려 있어서, updateCSUI 만 부르면 그래프가 옛 θ₄₀ 기준으로 남는다.
+  draw();
 }
 function updateCSUI(){
   const sl=document.getElementById('slCS'); if(!sl) return;
   const df=getDeflect();
   const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
-  sl.min=(-dm); sl.max=(dp);
-  const d=csDelta(), dc=Math.max(-dm, Math.min(dp, d));
+  sl.min=(-dp); sl.max=(dm);                   // 왼쪽 끝 = 상향(−), 오른쪽 끝 = 하향(+)
+  const d=csDelta(), dc=Math.max(-dp, Math.min(dm, d));
   if(document.activeElement!==sl) sl.value=dc.toFixed(1);
   const span=(dm+dp)||1;
-  updateSliderTrack('slCS', (dc+dm)/span*100);
+  updateSliderTrack('slCS', (dc+dp)/span*100);
   const up=document.getElementById('lCSup'), dn=document.getElementById('lCSdn'),
         nt=document.getElementById('lCSneutral'), rd=document.getElementById('lCS');
   // 버튼은 '갈 수 있는 각도'(10° 버림)를 보여준다. 버림값이 0 이면 중립과 같아 숨긴다.
   const fUp=csFloor10(dp), fDn=csFloor10(dm);
-  if(up){ up.textContent='상향 '+fUp+'° ▲'; up.style.display=fUp>0?'':'none'; }
-  if(dn){ dn.textContent='▼ 하향 '+fDn+'°'; dn.style.display=fDn>0?'':'none'; }
+  if(up){ up.textContent='▲ 상향 −'+fUp+'°'; up.style.display=fUp>0?'':'none'; }
+  if(dn){ dn.textContent='하향 +'+fDn+'° ▼'; dn.style.display=fDn>0?'':'none'; }
   if(nt) nt.textContent=(+csNeutralT4()).toFixed(0);
   if(rd){
-    const a=Math.abs(d), over=(d>dp+1e-6||d<-dm-1e-6)?' ⚠':'';
+    const a=Math.abs(d), over=(d>dm+1e-6||d<-dp-1e-6)?' ⚠':'';
     rd.textContent = a<0.05 ? '중립 0.0°'
-      : (d>0 ? '상향 +'+d.toFixed(1)+'°'+over : '하향 −'+a.toFixed(1)+'°'+over);
+      : (d<0 ? '상향 −'+a.toFixed(1)+'°'+over : '하향 +'+d.toFixed(1)+'°'+over);
   }
   // 현재 조종면 위치의 파생값 3종 — 출력토크 T₄(=T₂·MA) 와 전달각 μ(입력·출력).
   // calcTorque() 가 {ma, mu=출력측, muIn=입력측} 을 모두 주므로 여기서 재계산하지 않는다.
@@ -2249,7 +2242,7 @@ function calcTorque(){
   const ma = (c/a) * sin_in * sin_out;
 
   // 전달각(접힌 예각, 0~90°)
-  const fold=deg=>{ let m=Math.abs(deg); if(m>180) m=360-m; if(m>90) m=180-m; return m; };
+  const fold=deg=>{ let m=Math.abs(deg)%360; if(m>180) m=360-m; if(m>90) m=180-m; return m; };
   const mu   = fold(act.t3 - t4);        // 출력측: 커플러 b ↔ 출력링크 c (표준 전달각)
   const muIn = fold(act.t3 - act.t2);    // 입력측: 크랭크 a ↔ 커플러 b
   // 여기 두 값은 **화면 표시 전용**이다. 옵티마이저 제약은 feasibleAt/calcMAatT4 가 따로 계산한
@@ -2258,9 +2251,11 @@ function calcTorque(){
   return { ma, mu, muIn };
 }
 
-// updateCSUI() 필수 — 이 경로에는 draw() 가 없다. 빼면 T₂ 를 바꿔도 δ 카드의
-// T₄(=T₂·MA)가 옛 값으로 남는다. (기계이득·출력토크 지표 카드는 삭제됨 — δ 카드가 전담)
-function onTorque(){ updateCSUI(); drawTorquePlot(); scheduleCouplerPlot(); }
+// draw() 를 거쳐야 한다 — T₄ 는 δ 카드(updateCSUI)와 **캔버스 칩**(updateOverlay) 두 곳에
+// 뜨는데, updateOverlay 는 draw() 에서만 불린다. updateCSUI 만 부르면 T₂ 를 바꿨을 때
+// 사이드바와 도면이 서로 다른 T₄ 를 보여준다(다음 리드로 전까지).
+// draw()→updateUI 가 이미 drawTorquePlot 을 예약하므로 여기서 또 부르지 않는다.
+function onTorque(){ draw(); scheduleCouplerPlot(); }
 
 // ── TORQUE PLOT ──
 // solve() 와 완전히 동일한 경로: θ₄ → θ₂, θ₃ 계산
@@ -2287,13 +2282,12 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   // 전달각 두 측 (접힌 예각 0~90°)
   //   muOut = 커플러 b ↔ 출력링크 c  ·  muIn = 크랭크 a ↔ 커플러 b
   // MA = (c/a)·sin(muIn)·sin(muOut) 이라 어느 한쪽만 나빠도 토크 전달이 무너진다.
-  // _fold 는 |인자|≤360 에서만 맞다. t3 는 atan2 원본 (−180,180] 인데 t4d·t2 는 [0,360) 라
-  // 그냥 빼면 −540 까지 내려가 음수 μ 가 나온다(θ₄>180 자세에서만 발현, 실측 2233건).
-  // norm 을 거치면 두 항이 모두 [0,360) 이라 |차|<360 이 보장된다. θ₄≤180 결과는 불변(오차 5.7e-14).
-  const _fold=deg=>{ let m=Math.abs(deg); if(m>180) m=360-m; if(m>90) m=180-m; return m; };
-  const _t3=norm(t3*DEG);
-  const muOut=_fold(_t3 - norm(t4d));
-  const muIn =_fold(_t3 - t2);
+  // %360 으로 자기정규화한다 — 이걸 빼면 호출부가 인자를 미리 norm 해야 한다는 숨은 전제가
+  // 생기고, 실제로 t3(atan2 원본, (−180,180])를 t4d·t2([0,360))와 빼면서 −540 까지 내려가
+  // 음수 μ 가 나왔다(θ₄>180 자세, 실측 2233건 → 0건). θ₄≤180 결과는 불변.
+  const _fold=deg=>{ let m=Math.abs(deg)%360; if(m>180) m=360-m; if(m>90) m=180-m; return m; };
+  const muOut=_fold(t3*DEG - norm(t4d));
+  const muIn =_fold(t3*DEG - t2);
   // 제약용 mu = 두 측 중 나쁜 쪽. 입력·출력 기준이 같은 값(OPT_MU_MIN)이라
   // 기존의 모든 mu>=OPT_MU_MIN 검사가 그대로 양측 조건이 되고, mu 는 실제 각도다.
   const mu=Math.min(muOut,muIn);
@@ -2362,14 +2356,15 @@ function drawTorquePlot(){
   const _legHasMotor=!isNaN(_legMotorV)&&_legMotorEl.value.trim()!=="";
 
   // 조종면 작동 끝단(10° 버림) — 조종면 각도 카드의 상향/하향 버튼이 가는 지점.
-  // θ₄ = 중립각 θ₄₀ ± 버림값. 카드와 같은 csFloor10 을 쓰므로 항상 일치한다.
+  // 기구 위치라 sgn 은 그대로다(상향 = θ₄ 증가). 부호 규약(상향 −/하향 +)은 표시용 δ 에만 적용되고,
+  // 그 표시는 csDegStr 가 담당한다. 카드와 같은 csFloor10 을 쓰므로 끝단은 항상 일치한다.
   const _csDf=getDeflect(), _csT40=csNeutralT4();
   const csEnds=[{lab:'상향',sgn:1,v:csFloor10(_csDf.dp)},
                 {lab:'하향',sgn:-1,v:csFloor10(_csDf.dm)}]
     .filter(e=>e.v>0).map(e=>({lab:e.lab, v:e.v, deg:_csT40+e.sgn*e.v}));
-  // 노드별 조종면기준 각도 δ = (노드 θ₄) − 중립각 θ₄₀  (부호: +상향 / −하향).
+  // 노드별 조종면기준 각도 δ = −((노드 θ₄) − 중립각 θ₄₀)  (부호 규약: −상향 / +하향).
   // 정의역(x축)에 균일 눈금으로 쓰지 않고, 각 노드 알약 아래줄에 그 노드 위치의 δ 로 표시.
-  const csDegStr=deg=>{ let dv=Math.round((deg-_csT40)*10)/10;
+  const csDegStr=deg=>{ let dv=Math.round((_csT40-deg)*10)/10;
     if(Math.abs(dv)<0.05) return '0°';
     const m=Math.abs(dv); return (dv>0?'+':'−')+(m%1===0?m.toFixed(0):m.toFixed(1))+'°'; };
 
@@ -3705,8 +3700,8 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
       const v=Math.abs(T2*r.ma);
       if(v>wmax){wmax=v;warg=t;}
       if(r.mu<muMin) muMin=r.mu;
-      if(r.muIn<muInMin){ muInMin=r.muIn; muInArg=t-t0; }      // δ = θ₄ − θ₄₀
-      if(r.muOut<muOutMin){ muOutMin=r.muOut; muOutArg=t-t0; }
+      if(r.muIn<muInMin){ muInMin=r.muIn; muInArg=t0-t; }      // δ = −(θ₄ − θ₄₀), 상향 −/하향 +
+      if(r.muOut<muOutMin){ muOutMin=r.muOut; muOutArg=t0-t; }
     }
     if(tm===null||tp===null||!isFinite(wmax)||gap)
       return{err:'작동범위 일부에서 기구 해가 없습니다 (θ₄₀·범위 확인)',physLo,physHi};
@@ -3757,8 +3752,12 @@ function buildOptMetrics(m){
   }
   s+='<div class="result-divider"></div>';
   if(sym){
-    s+=row('|T₄| @ −δ 끝단',m.tm.toFixed(2)+' N·m','var(--follower)');
-    s+=row('|T₄| @ +δ 끝단',m.tp.toFixed(2)+' N·m','var(--follower)');
+    // tp = absT4At(t0+dp) = 상향 끝단 → 부호 규약상 δ = −dp
+    // tm = absT4At(t0−dm) = 하향 끝단 → δ = +dm   (라벨을 반대로 달면 카드끼리 어긋난다)
+    s+=row('|T₄| @ 상향 끝단 <span style="color:var(--text3)">(δ −'+dp.toFixed(0)+'°)</span>',
+      m.tp.toFixed(2)+' N·m','var(--follower)');
+    s+=row('|T₄| @ 하향 끝단 <span style="color:var(--text3)">(δ +'+dm.toFixed(0)+'°)</span>',
+      m.tm.toFixed(2)+' N·m','var(--crank)');
     s+=row('끝단 불균형 <span style="color:var(--text3)">(≤10%)</span>',(m.imbal*100).toFixed(1)+' %',
       m.imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
   }else{
@@ -4013,6 +4012,9 @@ function onOptVarRange(key){
   else if(h&&h.style.display==='block'&&h.dataset&&h.dataset.hintKey===key){
     h.style.display='none'; clearTimeout(showOptVarHint._t);   // 이 항목의 경고만 해제
   }
+  // user 플래그가 방금 바뀌었으므로 '탐색 자동/지정' 표시를 즉시 반영한다.
+  // (updateOptVarUI 는 편집 중인 칸을 activeElement 가드로 건드리지 않는다 — 타이핑 안전)
+  updateOptVarUI();
 }
 function updateOptVarUI(){
   for(const k of OPTVAR_ORDER){
@@ -4027,12 +4029,23 @@ function updateOptVarUI(){
                + (OPTVAR_META[k].note||'');
     }
     if(rg) rg.style.display=v?'flex':'none';
-    if(v&&!OPTVARS[k].user){              // 자동 범위는 항상 현재 a·c·d 기준으로 다시 표시
+    // 자동 범위는 현재 링크값(특히 고정 d)에서 파생된다 — d 를 바꾸면 d·a·b·c 의 자동범위가
+    // 전부 따라 움직여 최적 결과가 달라진다. 값이 그냥 채워져 있으면 '내가 입력한 범위' 로
+    // 오해하기 쉬우므로, 자동인지 직접 지정인지를 라벨과 글자색으로 구분해 보여준다.
+    const lbl=document.getElementById('varRangeLbl_'+k),
+          mn=document.getElementById('iVarMin_'+k), mx=document.getElementById('iVarMax_'+k);
+    if(v&&!OPTVARS[k].user){
       const r=autoVarRange(k);
       OPTVARS[k].lo=r.lo; OPTVARS[k].hi=r.hi;
-      const mn=document.getElementById('iVarMin_'+k), mx=document.getElementById('iVarMax_'+k);
       if(mn&&document.activeElement!==mn) mn.value=r.lo;
       if(mx&&document.activeElement!==mx) mx.value=r.hi;
+      if(lbl){ lbl.textContent='탐색 자동'; lbl.style.color='var(--text3)';
+        lbl.title='현재 링크값에서 자동 산정 — 고정 d 를 바꾸면 이 범위도 함께 움직여 최적 결과가 달라집니다. 숫자를 직접 입력하면 그 범위로 고정됩니다.'; }
+      for(const el of [mn,mx]) if(el) el.style.color='var(--text3)';
+    } else if(v){
+      if(lbl){ lbl.textContent='탐색 지정'; lbl.style.color='var(--crank)';
+        lbl.title='직접 입력한 범위 — 다른 링크값이 바뀌어도 이 범위는 그대로입니다. 비우면 자동으로 돌아갑니다.'; }
+      for(const el of [mn,mx]) if(el) el.style.color='var(--text)';
     }
   }
   const ds=document.getElementById('dsOptC');
@@ -4514,17 +4527,12 @@ function drawDeltaSweepPlot(){
 
 // ── 힌지모멘트 계산기 연동 ──────────────────────────────────────────────────
 // 링키지 데이터를 hinge_moment_calculator.html 로 전달 (동일 오리진 localStorage + URL 해시 이중화)
-let hmDir = -1;   // 타각 δ+ 가 θ₄ 증가(+1) / 감소(-1) 방향인지 (기본: 감소)
-
-function setHMDir(v){
-  hmDir = v;
-  document.getElementById('hmDirUp').classList.toggle('active', v === 1);
-  document.getElementById('hmDirDn').classList.toggle('active', v === -1);
-}
-
-function useCurT4(){
-  document.getElementById('iT4Neutral').value = (+S.t4).toFixed(1);
-}
+// 타각 δ+ 방향은 고를 값이 아니라 이 도구의 부호 규약에서 나온다 —
+// 조종면 상향 = −δ, 하향 = +δ 이고 상향이 기구상 θ₄ 증가이므로 δ = −(θ₄−θ₄₀),
+// 즉 'δ+ = 조종면 하향 = θ₄ 감소' → −1 이 유일하게 맞는 값이다.
+// 수신 도구는 t4 = t4n + dir·δ 로 재현하므로 θ₄ = θ₄₀ − δ 가 되어 여기와 일치한다.
+// 실물 장착이 반대인 경우엔 수신 도구 쪽 'δ+ 방향' 칸에서 바꾸면 된다(그쪽은 편집 가능).
+const HM_DIR = -1;
 
 function sendToHM(){
   const T2  = parseFloat(document.getElementById('iTorque').value) || 0;
@@ -4537,7 +4545,7 @@ function sendToHM(){
     sol: S.sol,                           // 'open' | 'cross'
     T2: T2,                               // 크랭크 입력토크 (서보 출력) N·m
     t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
-    dir: hmDir,                           // δ+ → θ₄ 증가(+1)/감소(-1)
+    dir: HM_DIR,                          // δ+ → θ₄ 증가 (이 도구 규약)
     ts: Date.now()
   };
   const json = JSON.stringify(payload);
@@ -4566,7 +4574,7 @@ function sendToRig(){
     a: S.a, b: S.b, c: S.c, d: gLen(),   // 링크 길이: 입력 크랭크, 커플러, 출력 혼, 유효 지상링크 L=√(d²+offY²)(편심 반영)
     sol: S.sol,                           // 'open' | 'cross'
     t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
-    dir: hmDir,                           // δ+ → θ₄ 증가(+1)/감소(-1)
+    dir: HM_DIR,                          // δ+ → θ₄ 증가 (이 도구 규약)
     ts: Date.now()
   };
   const json = JSON.stringify(payload);
@@ -4809,7 +4817,7 @@ window.addEventListener('load',()=>{
   initResizer();
   initPlotKeyboard();
   updateGrashof(); resize(); setT4(100);
-  useCurT4();  // 힌지모멘트 연동 중립각 초기값 = 현재 θ₄
+  document.getElementById('iT4Neutral').value=(+S.t4).toFixed(1);  // 중립각 초기값 = 현재 θ₄
   // 전달각 두 행의 툴팁은 상수에서 조립한다 — OPT_MU_BASE/MARGIN 을 조정했을 때
   // 여기만 옛 숫자로 남아 조용히 거짓말하는 걸 막는다.
   const _muTip=(id,txt)=>{ const el=document.getElementById(id);
