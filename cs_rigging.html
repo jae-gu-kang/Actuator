@@ -1309,15 +1309,17 @@
           <div class="theory-field">
             <label>타각 δ+ 방향</label>
             <div class="mode-btn-group" style="margin-bottom:0;">
-              <button class="mode-btn"        id="th-dir-up" onclick="theorySetDir(1)">θ₄ 증가</button>
-              <button class="mode-btn active" id="th-dir-dn" onclick="theorySetDir(-1)">θ₄ 감소</button>
+              <button class="mode-btn"        id="th-dir-up" onclick="theorySetDir(1)"
+                title="δ+ 가 θ₄ 증가 방향 — 이 경우 +δ=상향, −δ=하향">θ₄ 증가</button>
+              <button class="mode-btn active" id="th-dir-dn" onclick="theorySetDir(-1)"
+                title="δ+ 가 θ₄ 감소 방향 — 링크 해석기 기본 규약(상향 −, 하향 +)과 같다">θ₄ 감소</button>
             </div>
           </div>
           <div class="theory-field" title="운용 범위 (타각 δ)">
             <label>운용 범위 (타각 δ)</label>
             <div class="mode-btn-group" style="margin-bottom:6px;">
               <button class="mode-btn active" id="th-rng-sym"  onclick="theorySetRangeMode('sym')">대칭 ±δ</button>
-              <button class="mode-btn"        id="th-rng-asym" onclick="theorySetRangeMode('asym')">비대칭 +δ₊·−δ₋</button>
+              <button class="mode-btn"        id="th-rng-asym" onclick="theorySetRangeMode('asym')">비대칭 +δ·−δ</button>
             </div>
             <!-- 대칭: ±δ 한 칸 -->
             <div class="theory-input-unit" id="th-range-sym-wrap">
@@ -1326,13 +1328,19 @@
             </div>
             <!-- 비대칭: +δ / −δ 두 칸 (δ+ 방향은 위 '타각 δ+ 방향' 설정 기준) -->
             <div id="th-range-asym-wrap" style="display:none;gap:8px;">
-              <div class="theory-input-unit" style="flex:1;" title="+δ 방향 타각 크기 (δ+ 방향은 위 '타각 δ+ 방향' 설정 기준)">
-                <input type="text" inputmode="decimal" id="th-range-p" value="20" onchange="theoryCompute()">
-                <span>+δ°</span>
+              <div style="flex:1;min-width:0;" id="th-range-p-wrap" title="+δ 방향 타각 크기">
+                <div class="theory-input-unit">
+                  <input type="text" inputmode="decimal" id="th-range-p" value="20" onchange="theoryCompute()">
+                  <span>+δ°</span>
+                </div>
+                <div id="th-range-p-lbl" style="font-size:10.5px;color:var(--text-secondary);margin-top:3px;text-align:center;white-space:nowrap;">—</div>
               </div>
-              <div class="theory-input-unit" style="flex:1;" title="−δ 방향 타각 크기">
-                <input type="text" inputmode="decimal" id="th-range-m" value="30" onchange="theoryCompute()">
-                <span>−δ°</span>
+              <div style="flex:1;min-width:0;" id="th-range-m-wrap" title="−δ 방향 타각 크기">
+                <div class="theory-input-unit">
+                  <input type="text" inputmode="decimal" id="th-range-m" value="30" onchange="theoryCompute()">
+                  <span>−δ°</span>
+                </div>
+                <div id="th-range-m-lbl" style="font-size:10.5px;color:var(--text-secondary);margin-top:3px;text-align:center;white-space:nowrap;">—</div>
               </div>
             </div>
           </div>
@@ -3919,7 +3927,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 const TH_RAD = Math.PI / 180, TH_DEG = 180 / Math.PI;
 let thSol = 'open';   // 해 유형
 let thDir = -1;       // δ+ → θ₄ 증가(+1) / 감소(-1)
-let thRangeMode = 'sym';   // 운용 범위: 대칭 ±δ / 비대칭 +δ₊·−δ₋
+let thRangeMode = 'sym';   // 운용 범위: 대칭 ±δ / 비대칭 +δ·−δ (각 칸의 조종면 방향은 thDir 이 정한다)
 
 // 운용 범위 모드 전환 (대칭 ↔ 비대칭). 링크해석기에서 수신 시에도 이 함수로 세팅.
 function theorySetRangeMode(mode) {
@@ -3928,6 +3936,7 @@ function theorySetRangeMode(mode) {
   document.getElementById('th-rng-asym').classList.toggle('active', thRangeMode === 'asym');
   document.getElementById('th-range-sym-wrap').style.display  = thRangeMode === 'sym'  ? '' : 'none';
   document.getElementById('th-range-asym-wrap').style.display = thRangeMode === 'asym' ? 'flex' : 'none';
+  theorySyncRangeLabels();
   theoryCompute();
 }
 // 현재 운용 범위를 {dp(+측), dm(−측), sym} 로 반환 (둘 다 양수 크기). 유효하지 않으면 기본값.
@@ -4009,10 +4018,38 @@ function theorySetSol(s) {
   theoryCompute();
 }
 
+// '+δ / −δ 가 조종면 어느 쪽인가' 는 thDir 이 정한다 — 한 곳에서만 답한다.
+// (θ₄ = t4n + thDir·δ, 송신측 기구 규약은 상향 = θ₄ 증가)
+function thDirLabels(){
+  return (thDir === -1) ? { p:'하향', m:'상향' } : { p:'상향', m:'하향' };
+}
+function theorySyncRangeLabels(){
+  const p=document.getElementById('th-range-p-lbl'), m=document.getElementById('th-range-m-lbl');
+  const pw=document.getElementById('th-range-p-wrap'), mw=document.getElementById('th-range-m-wrap');
+  if(!p||!m) return;
+  const { p: pDir, m: mDir } = thDirLabels();
+  p.textContent = '조종면 ' + pDir;
+  m.textContent = '조종면 ' + mDir;
+  if(pw) pw.title = '+δ 방향 타각 크기 — 현재 설정에서 조종면 ' + pDir;
+  if(mw) mw.title = '−δ 방향 타각 크기 — 현재 설정에서 조종면 ' + mDir;
+}
+
 function theorySetDir(v) {
+  const prev = thDir;
   thDir = v;
+  // 방향이 바뀌면 +δ/−δ 칸이 가리키는 조종면 방향이 서로 뒤바뀐다. 값을 그대로 두면
+  // '상향 35' 로 받은 것이 토글 한 번에 '상향 15' 가 되어 화면과 계산이 같이 틀어진다
+  // (라벨·계산이 서로는 일관돼 경고가 안 뜬다). 물리 배치를 보존하도록 값도 스왑한다.
+  // 대칭 모드에서도 스왑한다 — 비대칭 칸 값은 모드를 바꿔도 남아 있어서,
+  // '대칭 → 방향 토글 → 비대칭' 세 클릭이면 같은 반전이 그대로 재현된다.
+  // (대칭 칸은 ±δ 하나뿐이라 항상 스왑해도 무해)
+  if (v !== prev) {
+    const pe = document.getElementById('th-range-p'), me = document.getElementById('th-range-m');
+    if (pe && me) { const t = pe.value; pe.value = me.value; me.value = t; }
+  }
   document.getElementById('th-dir-up').classList.toggle('active', v === 1);
   document.getElementById('th-dir-dn').classList.toggle('active', v === -1);
+  theorySyncRangeLabels();
   theoryCompute();
 }
 
@@ -4035,6 +4072,7 @@ function theoryApplyLinkage(p) {
     thDir = p.dir;
     document.getElementById('th-dir-up').classList.toggle('active', thDir === 1);
     document.getElementById('th-dir-dn').classList.toggle('active', thDir === -1);
+    theorySyncRangeLabels();
   }
   // 운용 범위(타각) 수신 — 대칭이면 ±δ 한 칸, 비대칭이면 +δ/−δ 두 칸에 반영.
   // 송신측 규약: dp=상향(θ₄ 증가), dm=하향(θ₄ 감소). 수신측 δ 는 thDir 로 θ₄ 에 매핑되므로
@@ -4081,6 +4119,8 @@ function theoryBootstrapFromLink() {
   } catch (e) {}
 }
 window.addEventListener('DOMContentLoaded', theoryBootstrapFromLink);
+// 링크 수신이 없어도 ± 칸 라벨은 현재 thDir 기준으로 맞춰 둔다
+window.addEventListener('DOMContentLoaded', theorySyncRangeLabels);
 
 function theoryRefreshCompareList() {
   const sel = document.getElementById('th-compare');
@@ -4148,8 +4188,11 @@ function theoryCompute() {
   const t4n   = parseFloat(document.getElementById('th-t4n').value);
   const _rng = theoryGetRange();
   const dHi = _rng.dp, dLo = _rng.dm;     // +측 상한 / −측 하한 크기 (둘 다 양수)
+  // 입력칸에서 없앤 '머릿속 매핑' 이 결과 요약에서 부활하지 않도록 방향을 함께 적는다
+  const { p: _pDir, m: _mDir } = thDirLabels();
   const rangeTxt = _rng.sym ? ('±' + theoryFmt(dHi, 1) + '°')
-                            : ('+' + theoryFmt(dHi, 1) + '° / −' + theoryFmt(dLo, 1) + '°');
+                            : ('+' + theoryFmt(dHi, 1) + '°(' + _pDir + ') / −'
+                               + theoryFmt(dLo, 1) + '°(' + _mDir + ')');
 
   const badge   = document.getElementById('th-badge');
   const summary = document.getElementById('th-summary');

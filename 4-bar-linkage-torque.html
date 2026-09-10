@@ -3403,6 +3403,14 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
   // 작동범위 [t0−δ₋, t0+δ₊] 내 최소 전달각 (그리드 스캔, 정밀 재탐색용)
   function winMuAt(t0){
     let mn=Infinity;
+    // 창의 양 끝점은 격자에 안 걸릴 수 있다 — 0.05° 정밀 재탐색이 t0 를 physLo 격자 밖으로
+    // 옮기기 때문이다. 그런데 μ 최솟값은 대개 그 끝단(타각 최대점)에서 나온다. 격자 점만
+    // 보면 통과시킨 해가 실제로는 제약 미달이 되고, 결과 카드(끝점 포함 평가)와 어긋난다.
+    for(const e of [t0-dm, t0+dp]){
+      const r=feasibleAt(S.a,bVal,S.c,gLen(),e,S.sol);
+      const v=r?r.mu:0;            // 해 없음 → 0 (제약 위반 취급, muV 와 동일 규약)
+      if(v<mn) mn=v;
+    }
     const i0=Math.max(0,Math.ceil((t0-dm-physLo)/G-1e-9));
     const i1=Math.min(n-1,Math.floor((t0+dp-physLo)/G+1e-9));
     for(let i=i0;i<=i1;i++){ const v=muV(i); if(v<mn) mn=v; }
@@ -3413,6 +3421,12 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
     if(tm===null||tp===null) return null;
     const wmx=winMaxAt(t0);
     if(!wmx) return null;
+    // 창 끝점이 격자에 없으면 winMaxAt 이 그 값을 놓쳐 wmax 가 과소평가된다(안전한 방향이지만
+    // 0.05° 정밀해에 불리한 랭킹 편향이 된다). tm·tp 는 이미 정확값이라 그대로 반영하되,
+    // **지점(ma)도 함께 옮긴다** — 값만 올리면 '그 토크가 나지 않는 각도' 와 짝지어져
+    // 나중에 결과 카드의 '최대 |T₄| @ θ₄' 행에 연결될 때 거짓을 찍게 된다.
+    if(tm>wmx.mx){ wmx.mx=tm; wmx.ma=t0-dm; }
+    if(tp>wmx.mx){ wmx.mx=tp; wmx.ma=t0+dp; }
     const muMin=winMuAt(t0);
     if(muMin<OPT_MU_MIN) return null;   // 전달각 제약 (§2-4)
     const tn=torque?absT4At(bVal,t0,T2):0;
@@ -3637,7 +3651,7 @@ function doOptimize(){
      +'padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:'+(_promo?'#0058b0':'#a05800')
      +';font-weight:600;line-height:1.5;">'
      +(fbType==='mu'
-       ?'⚠︎ c 탐색 범위 내에서도 <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> 를 동시에 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
+       ?'⚠︎ 현재 설계 변수 설정('+optVarSummary()+') 안에서 <b>입력·출력 전달각 μ≥'+OPT_MU_MIN+'°</b> 를 동시에 만족하는 해가 없어 <b>차선 결과</b>를 표시합니다'
         +'<br>(전달각 최대화 우선 — 아래 최소 전달각 행에서 입력·출력 실제 각도를 확인하세요)'
        : best.promoted
          // 정상해가 있었지만 토크가 확실히 높아 불균형 차선을 고른 경우 — '해가 없음' 이 아니다
@@ -3729,7 +3743,11 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     // 전체의 최솟값이라 중립(δ=0)의 조종면 각도 카드 값과 다른 게 정상이고,
     // δ 를 그 지점으로 옮기면 두 화면이 정확히 같은 수를 가리킨다.
     let muInMin=Infinity, muOutMin=Infinity, muInArg=null, muOutArg=null;
-    for(let t=t0-dm;t<=t0+dp+1e-9;t+=0.25){
+    // 끝점을 명시적으로 포함한다 — t += 0.25 는 (dm+dp) 가 0.25 의 배수일 때만 상단
+    // 끝점에 정확히 닿는다(타각 입력은 step 0.5 지만 20.1 같은 값을 막지 않는다).
+    // μ 최솟값은 대개 끝단에 있어, 빠뜨리면 옵티마이저가 거부한 설계를 카드가 통과시킨다.
+    const _ts=[]; for(let t=t0-dm;t<=t0+dp-1e-9;t+=0.25) _ts.push(t); _ts.push(t0+dp);
+    for(const t of _ts){
       const r=feasibleAt(S.a,bv,S.c,gLen(),t,S.sol);
       if(!r){gap=true;continue;}
       const v=Math.abs(T2*r.ma);
@@ -3952,13 +3970,7 @@ function optimizeForDelta(dm,dp,T2,marginVal,opt){
     return{...win,fallback:isImbal,fbType:isImbal?'imbal':''};
   }
   if(muCands.length){
-    const m1=Math.max(...muCands.map(c=>c.muMin));
-    const band=muCands.filter(c=>c.muMin>=m1-0.5);   // 전달각 최우선: 엄격 최대화
-
-    let bb=null;
-    for(const c of band){
-      if(!bb||c.imbal<bb.imbal-1e-9||(c.imbal<=bb.imbal+1e-9&&c.score>bb.score)) bb=c;
-    }
+    const bb=muBandPick(muCands);                    // 전달각 최우선: 엄격 최대화
     return{...bb,fallback:true,fbType:'mu'};
   }
   return null;
@@ -4165,13 +4177,34 @@ function optPromote(norm,imbal){
     ? {...imbal, promoted:true, normScore:norm.score}
     : norm;
 }
+// μ 차선 티어의 약속은 '전달각 최대화' 다(배너 문구도 그렇게 말한다). 그런데 optPickIn 은
+// 점수(토크) 기준이라, 바깥 변수(a·c·d)에서는 μ 를 전혀 개선하지 않았다 — 'd 만 변수' 에서
+// d=100 의 32.1° 를 내놓고 d=86 의 43.6° 를 놓치던 원인. 안쪽 optimizeForDelta 의 muCands
+// 선택(0.5° 밴드 + 불균형·점수 타이브레이크)과 같은 규칙을 바깥에도 쓴다.
+// μ 차선 선택 규칙 — 최대 muMin 의 OPT_MU_BAND 안에서 불균형·점수 순.
+// 안쪽(optimizeForDelta 의 b 후보)과 바깥(optSelect 의 a·c·d 후보)이 **같은 규칙**을 써야 한다.
+// 두 벌로 두면 밴드 폭 상수와 가드가 따로 놀기 시작한다(실제로 그랬다).
+const OPT_MU_BAND=0.5;
+function muBandPick(pool){
+  if(!pool.length) return null;
+  const m1=Math.max(...pool.map(r=>isFinite(r.muMin)?r.muMin:-Infinity));
+  if(!isFinite(m1)) return null;
+  const band=pool.filter(r=>isFinite(r.muMin)&&r.muMin>=m1-OPT_MU_BAND);
+  let bb=null;
+  for(const r of band)
+    if(!bb||r.imbal<bb.imbal-1e-9||(r.imbal<=bb.imbal+1e-9&&r.score>bb.score)) bb=r;
+  return bb;
+}
+function optPickMu(pool){
+  return muBandPick(pool) || optPickIn(pool);      // muMin 정보가 없으면 기존 규칙으로
+}
 function optSelect(arr){
   const t0=optPickIn(arr.filter(r=>optTierOf(r)===0));
   const t1=optPickIn(arr.filter(r=>optTierOf(r)===1));
   const win=optPromote(t0,t1);
   if(win) return{...win,fallback:optTierOf(win)>0};
   // 정상·불균형 모두 없음 → μ 차선
-  const t2=optPickIn(arr.filter(r=>optTierOf(r)===2));
+  const t2=optPickMu(arr.filter(r=>optTierOf(r)===2));
   return t2?{...t2,fallback:true}:{...arr[0],fallback:true};
 }
 

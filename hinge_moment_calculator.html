@@ -799,7 +799,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         <div class="lk-field"><label>해 유형</label><select id="lke-sol"><option value="open">개방형</option><option value="cross">교차형</option></select></div>
         <div class="lk-field"><label>T₂ (서보 토크)</label><input type="number" id="lke-t2" step="0.1" min="0"><span class="lk-u">N·m</span></div>
         <div class="lk-field"><label>θ₄₀ (중립각)</label><input type="number" id="lke-t4n" step="0.5"><span class="lk-u">°</span></div>
-        <div class="lk-field"><label>δ+ 방향</label><select id="lke-dir"><option value="1">θ₄ 증가</option><option value="-1">θ₄ 감소</option></select></div>
+        <div class="lk-field" title="타각 δ 의 + 방향이 출력각 θ₄ 의 어느 쪽인지. 링크 해석기 기본 규약은 '조종면 상향 = −δ, 하향 = +δ' 이고, 상향이 기구상 θ₄ 증가이므로 θ₄ 감소(−1)가 기본이다."><label>δ+ 방향</label><select id="lke-dir"><option value="1">θ₄ 증가 (+δ=상향)</option><option value="-1">θ₄ 감소 (+δ=하향)</option></select></div>
       </div>
     </div>
     <div style="font-size:10.5px;color:var(--text3)">

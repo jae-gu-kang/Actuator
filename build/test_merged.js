@@ -316,6 +316,85 @@ async function clickByText(frame, txt){
       g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
     rec('linkage: AI 패널 접기 — 적용은 항상 보이고 실패 사유는 묻히지 않음', fold.ok===true, JSON.stringify(fold));
 
+    // 옵티마이저가 통과시킨 해의 μ 가 결과 카드 평가와 일치하는가.
+    // winMuAt 이 physLo 격자 점만 보면, 0.05° 재탐색으로 t0 가 격자를 벗어났을 때
+    // 창의 양 끝단(μ 최솟값이 대개 여기 있다)을 건너뛰어 미달 해를 통과시킨다.
+    const muend = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=id=>document.getElementById(id);
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      setDeflectMode('sym'); g('iDeflect').value=25;
+      setOptVar('b',false); setOptVar('d',true);      // a·b 고정 · c·d 변수
+      doOptimize();
+      const gv=i=>{const e=g(i); return e?parseFloat(e.value):null;};
+      const t0=gv('optEditT0'), c=gv('optEditC'), d=gv('optEditD');
+      const okn=v=>v!==null&&Number.isFinite(v);   // isFinite(null)===true 주의
+      const cc=okn(c)?c:S.c, dv=okn(d)?d:S.d, av=S.a, bv=S.b;
+      const df=getDeflect();
+      // 차선 배너 없이 통과했다면, 창 끝점 포함 실측 μ 가 기준을 만족해야 한다
+      const fb=/차선 결과/.test(g('optResult').textContent);
+      const sa=S.a,sc=S.c,sd=S.d; let lo=1e9;
+      try{ S.a=av; S.c=cc; S.d=dv;
+        for(let t=t0-df.dm;t<=t0+df.dp+1e-9;t+=0.05){
+          const q=calcMAatT4(av,bv,cc,gLen(),t,S.sol);
+          if(q&&isFinite(q.mu)&&q.mu<lo) lo=q.mu;
+        }
+      } finally { S.a=sa; S.c=sc; S.d=sd; }
+      // 'fb ||' 로 두면 이 조합이 차선으로 밀릴 때 단언이 공허해진다(핀의 전제가
+      // '통과한 해의 μ 가 진짜인가' 이므로 차선행 자체가 회귀다). lo<1e8 은 표본 0건
+      // (isFinite(null)===true 로 cc 가 null 이 되는 경우) 통과를 막는다.
+      return {ok: !fb && lo<1e8 && lo>=OPT_MU_MIN-1e-6, 차선:fb, 실측최소μ:+lo.toFixed(2),
+              기준:OPT_MU_MIN, t0, c:cc, d:dv};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=id=>document.getElementById(id);
+      setOptVar('b',true); setOptVar('d',false);
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      g('iDeflect').value=25; onLink(); setT4(100); draw(); } });
+    rec('linkage: 통과한 해의 μ 가 창 끝단 포함 실측과 일치 (a·b 고정·c·d 변수)', muend.ok===true, JSON.stringify(muend));
+
+    // μ 차선 티어에서 배너가 약속한 '전달각 최대화' 가 바깥 변수(a·c·d)에도 적용되는가.
+    // optSelect 가 점수(토크)로 고르면 d 를 안 움직여 32.1° 를 내놓는다(무차별 최적 43.6°).
+    const mumax = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=id=>document.getElementById(id);
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      setDeflectMode('sym'); g('iDeflect').value=25; g('iT4Neutral').value=100; updateCSUI();
+      for(const k of ['d','a','b','c']) setOptVar(k,false);
+      setOptVar('d',true);                       // d 만 변수 → μ 차선 확정 조합
+      doOptimize();
+      const gv=i=>{const e=g(i); return e&&e.value!==''?parseFloat(e.value):null;};
+      const dRec=gv('optEditD'), t0=gv('optEditT0');
+      const fb=/차선 결과/.test(g('optResult').textContent);
+      // 추천 지점의 실제 최소 μ
+      const df=getDeflect(); const sa=S.a,sc=S.c,sd=S.d;
+      const muAt=(d,t0)=>{ let mn=1e9; S.d=d;
+        for(let t=t0-df.dm;t<=t0+df.dp+1e-9;t+=0.25){
+          const q=calcMAatT4(S.a,S.b,S.c,gLen(),t,S.sol);
+          if(!q||!isFinite(q.mu)) return -1; if(q.mu<mn) mn=q.mu; }
+        return mn; };
+      let got=-1, bestBrute=-1;
+      try{
+        got=muAt(dRec,t0);
+        const rd=optVarRange('d');
+        for(let d=rd.lo; d<=rd.hi; d+=1){
+          const fr=(S.d=d, feasibleRangeOf(S.b)); if(!fr) continue;
+          const m=Math.max(0,parseFloat(g('iMarginAngle').value)||0);
+          const lo=Math.ceil(fr.lo)+m, hi=Math.floor(fr.hi)-m;
+          for(let tt=lo+df.dm; tt<=hi-df.dp; tt+=0.5){
+            const v=muAt(d,tt); if(v>bestBrute) bestBrute=v; }
+        }
+      } finally { S.a=sa; S.c=sc; S.d=sd; }
+      // 차선이면 무차별 최대 μ 의 0.6° 안에 들어야 한다(밴드 0.5° + 격자 여유)
+      // 양쪽 다 센티넬 통과를 막는다 — bestBrute 는 −1(표본 0건), got 는 1e9(muAt 루프 미실행).
+      // 형제 핀의 lo<1e8 과 같은 이유로, 한쪽만 막으면 나머지로 조용히 통과한다.
+      return {ok: fb && got>0 && got<1e8 && bestBrute>0 && got>=bestBrute-0.6,
+              차선:fb, dRec, t0, 추천μ:+got.toFixed(2), 무차별최대μ:+bestBrute.toFixed(2)};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=id=>document.getElementById(id);
+      for(const k of ['d','a']) setOptVar(k,false);
+      setOptVar('b',true); setOptVar('c',true);
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
+    rec('linkage: μ 차선에서 바깥 변수도 전달각 최대화 (d 만 변수)', mumax.ok===true, JSON.stringify(mumax));
+
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
     const dax = await f.evaluate(()=>{ try{
@@ -408,7 +487,8 @@ async function clickByText(frame, txt){
     // ls.length>2 만으로는 +1 로 뒤집혀도 통과하므로 값 자체를 고정한다.
     try{ const _p=ls?JSON.parse(ls):null;
       rec('연동: 페이로드 dir=−1 (δ+ = 하향 = θ₄ 감소) · t4n 전달',
-          !!_p && _p.dir===-1 && isFinite(_p.t4n), ls);
+          !!_p && _p.dir===-1
+          && typeof _p.t4n==='number' && Number.isFinite(_p.t4n), ls);   // JSON 은 NaN 을 null 로 쓴다
     }catch(e){ rec('연동: 페이로드 dir=−1 (δ+ = 하향 = θ₄ 감소) · t4n 전달', false, String(e)); }
     rec('연동: localStorage(hm_linkage_v1) 기록', !!ls && ls.length>2, ls?('len '+ls.length):'null');
   }
