@@ -448,39 +448,85 @@ async function clickByText(frame, txt){
     // 링키지 캔버스 라벨이 줌 배율과 무관하게 서로 겹치지 않는가.
     // 라벨은 화면 픽셀 고정 오프셋이라, 줌아웃하면 기구만 작아져 그대로 포개진다.
     // 텍스트 폭이 아니라 배치기가 예약한 사각형(알약 배경 포함)으로 판정한다.
-    const lbl = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d,off:S.offY}; try{
+    const lbl = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d,off:S.offY,t4:S.t4}; try{
       const g=id=>document.getElementById(id);
       const hit=(A,B)=>A.x<B.x+B.w&&B.x<A.x+A.w&&A.y<B.y+B.h&&B.y<A.y+A.h;
       let worst=0, at=null, n=0, minRects=1e9, thin=null;
       // 각도 라벨(θ₂·θ₄)은 고정링크 '아래'(기구 반대쪽)에 놓여야 한다 — 그쪽이 늘 비어 있어
       // 자리싸움이 없다. 위로 올라오면 커플러·관절 라벨과 다투기 시작한다.
       let angTot=0, angBelow=0;
+      // 각도 라벨 지시선은 관절에서 끝나야 하고 링크를 가로지르면 안 된다. 판정은 구현의
+      // 목표점 계산을 베끼지 않고 '실제로 그려진 선분'으로 한다.
+      let leadN=0, leadOff=0, leadCross=0, leadAt=null;
       const ctx2=document.getElementById('cv').getContext('2d');
-      for(const [a,b,c,d] of [[20,100,40,100],[16,110,25,120],[30,60,60,80],[50,150,120,200]]){
-        g('ia').value=a; g('ib').value=b; g('ic').value=c; g('id').value=d; onLink();
+      // 캔버스는 strokeStyle 을 정규화해 되돌려 준다('rgba(255,59,48,0.35)' → 'rgba(255, 59, 48, 0.35)').
+      // 비교 전에 같은 방식으로 정규화한다.
+      const _tc=document.createElement('canvas').getContext('2d');
+      const cnorm=v=>{ _tc.strokeStyle=v; return String(_tc.strokeStyle); };
+      const cr3=(o,u,v)=>(u.x-o.x)*(v.y-o.y)-(u.y-o.y)*(v.x-o.x);
+      const xseg=(p1,p2,p3,p4)=>{                 // 끝점 접촉(E)은 교차로 세지 않는다
+        const E=1e-7, d1=cr3(p3,p4,p1), d2=cr3(p3,p4,p2), d3=cr3(p1,p2,p3), d4=cr3(p1,p2,p4);
+        return ((d1>E&&d2<-E)||(d1<-E&&d2>E)) && ((d3>E&&d4<-E)||(d3<-E&&d4>E));
+      };
+      // 형상마다 해가 풀리는 θ₄ 를 함께 준다. 공통 100° 로 두면 뒤 두 형상은 전 줌단계에서
+      // 해가 없어(drawNoSol) 라벨을 한 개도 안 만든다 — 목록만 4개고 실측은 2개가 된다.
+      const SHAPES=[[20,100,40,100,100],[16,110,25,120,100],[30,60,60,80,120],[50,150,120,200,120]];
+      const perShape=SHAPES.map(()=>0);
+      SHAPES.forEach(([a,b,c,d,t4],si)=>{
+        g('ia').value=a; g('ib').value=b; g('ic').value=c; g('id').value=d; onLink(); setT4(t4);
         for(const servo of [false,true]){        // 서보 ON 은 partLabel(후보 4개, 가장 약한 배치기)
           g('cbServo').checked=servo; onServoToggle();
           for(const off of [0,40]){
             g('iServoOffY').value=off; onServoOffset();
             zoomReset();
             for(let z=0;z<7;z++){
-              const seen=[]; const _of=ctx2.fillText.bind(ctx2);
+              const seen=[], segs=[]; let path=[];
+              const _of=ctx2.fillText.bind(ctx2), _bp=ctx2.beginPath.bind(ctx2),
+                    _mv=ctx2.moveTo.bind(ctx2), _ln=ctx2.lineTo.bind(ctx2), _st=ctx2.stroke.bind(ctx2);
               ctx2.fillText=function(t,x,y){ seen.push({t:String(t),x,y}); return _of(t,x,y); };
-              draw();
-              ctx2.fillText=_of;
+              ctx2.beginPath=function(){ path=[]; return _bp(); };
+              ctx2.moveTo=function(x,y){ path.push({m:1,x,y}); return _mv(x,y); };
+              ctx2.lineTo=function(x,y){ path.push({m:0,x,y}); return _ln(x,y); };
+              ctx2.stroke=function(){
+                const sc=String(ctx2.strokeStyle);
+                for(let i=1;i<path.length;i++) if(!path[i].m) segs.push([path[i-1],path[i],sc]);
+                return _st(); };
+              // draw() 가 던져도 패치를 반드시 되돌린다 — 안 그러면 이후 모든 테스트의
+              // 캔버스 호출이 죽은 배열에 계속 쌓인다.
+              try{ draw(); }
+              finally{ ctx2.fillText=_of; ctx2.beginPath=_bp; ctx2.moveTo=_mv;
+                       ctx2.lineTo=_ln; ctx2.stroke=_st; }
               n++;
               if(S.solutions){
+                // 판정은 '고정링크 직선을 사이에 두고 라벨과 커플러가 반대편인가' 하나뿐.
+                // 구현이 아래쪽을 어떻게 고르는지는 베끼지 않는다 — 베끼면 부호를 뒤집는
+                // 변이가 오라클까지 같이 뒤집어 통과해 버린다.
                 const O2=toWorld(0,0), O4=toWorld(gLen(),0);
-                const gxx=wx(O4[0])-wx(O2[0]), gyy=wy(O4[1])-wy(O2[1]), gll=Math.hypot(gxx,gyy)||1;
-                let nbx=-gyy/gll, nby=gxx/gll;
+                const P2={x:wx(O2[0]),y:wy(O2[1])}, P4={x:wx(O4[0]),y:wy(O4[1])};
+                const side=(px,py)=>(px-P2.x)*(P4.y-P2.y)-(py-P2.y)*(P4.x-P2.x);
                 const sl=S.solutions.find(x=>x.type===S.sol)||S.solutions[0];
                 const PA=toWorld(sl.Ax,sl.Ay), PB=toWorld(sl.Bx,sl.By);
-                const mg={x:(wx(O2[0])+wx(O4[0]))/2,y:(wy(O2[1])+wy(O4[1]))/2};
-                const mm={x:(wx(PA[0])+wx(PB[0]))/2,y:(wy(PA[1])+wy(PB[1]))/2};
-                if((mm.x-mg.x)*nbx+(mm.y-mg.y)*nby>0){ nbx=-nbx; nby=-nby; }
+                const sMech=side((wx(PA[0])+wx(PB[0]))/2,(wy(PA[1])+wy(PB[1]))/2);
+                const links=[[P2,{x:wx(PA[0]),y:wy(PA[1])}],
+                             [{x:wx(PA[0]),y:wy(PA[1])},{x:wx(PB[0]),y:wy(PB[1])}],
+                             [{x:wx(PB[0]),y:wy(PB[1])},P4]];
+                const pills=[];
+                _tc.font='500 10px -apple-system,sans-serif';    // arcAng 과 같은 폰트로 폭 복원
                 for(const L of seen) if(/^θ[₂₄]/.test(L.t)){
-                  angTot++;
-                  if((L.x-mg.x)*nbx+(L.y-mg.y)*nby>0) angBelow++;
+                  angTot++; perShape[si]++;
+                  if(side(L.x,L.y)*sMech<0) angBelow++;
+                  pills.push({x:L.x-5,y:L.y-10,w:_tc.measureText(L.t).width+10,h:14});
+                }
+                // 지시선 = 'θ 알약 안에서 시작' + '그 각의 색 35% 투명'. 알약 위치만으로 고르면
+                // 알약을 지나가는 y오프셋 치수선(회색 35%, O₂ 에서 끝남)까지 딸려 온다.
+                const LEAD=[cnorm(hexAlpha(C.crank,0.35)), cnorm(hexAlpha(C.follower,0.35))];
+                for(const [u,v,sc] of segs){
+                  if(!LEAD.includes(sc)) continue;
+                  if(!pills.some(q=>u.x>=q.x-0.6&&u.x<=q.x+q.w+0.6&&u.y>=q.y-0.6&&u.y<=q.y+q.h+0.6)) continue;
+                  leadN++;
+                  if(Math.min(Math.hypot(v.x-P2.x,v.y-P2.y),Math.hypot(v.x-P4.x,v.y-P4.y))>=0.5) leadOff++;
+                  for(const [k,l] of links) if(xseg(u,v,k,l)){
+                    leadCross++; leadAt={a,b,c,d,servo,off,scale:+scale.toFixed(2)}; break; }
                 }
               }
               const R=_lblRects;
@@ -495,17 +541,21 @@ async function clickByText(frame, txt){
             }
           }
         }
-      }
+      });
       return {ok: worst===0 && minRects>=10 && minRects<1e9
-                  && angTot>0 && angBelow===angTot,
+                  && angTot>0 && angBelow===angTot
+                  && perShape.every(v=>v>0)           // 형상 4개가 전부 라벨을 냈는가
+                  // 각도 라벨마다 지시선이 하나씩, 전부 관절에서 끝나고, 링크를 안 가로지름
+                  && leadN===angTot && leadOff===0 && leadCross===0,
               검사:n, 최대겹침:worst, 지점:at, 최소예약:minRects, 최소지점:thin,
-              각도라벨:angTot, 고정링크아래:angBelow};
+              각도라벨:angTot, 고정링크아래:angBelow, 형상별:perShape,
+              지시선:leadN, 관절밖끝남:leadOff, 링크교차:leadCross, 교차지점:leadAt};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
       g('cbServo').checked=false; onServoToggle();
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
-      g('iServoOffY').value=_sv.off; onLink(); onServoOffset(); zoomReset(); draw(); } });
-    rec('linkage: 캔버스 라벨 — 겹침 0 · 예약 누락 없음 · 각도는 고정링크 아래', lbl.ok===true, JSON.stringify(lbl));
+      g('iServoOffY').value=_sv.off; onLink(); onServoOffset(); setT4(_sv.t4); zoomReset(); draw(); } });
+    rec('linkage: 캔버스 라벨 — 겹침 0 · 예약 누락 없음 · 각도는 고정링크 아래 · 지시선 링크 미교차', lbl.ok===true, JSON.stringify(lbl));
 
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
