@@ -1271,7 +1271,7 @@ canvas.hover { cursor: grab; }
 </div>
 
 
-<!-- 타각범위 스윕 검토 모달 -->
+<!-- 설계변수 스윕 검토 모달 -->
 <div id="dsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:100;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeDeltaSweep()">
   <div style="background:#fff;border-radius:16px;max-width:660px;width:100%;max-height:92vh;overflow-y:auto;padding:16px 16px 14px;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
@@ -1289,12 +1289,12 @@ canvas.hover { cursor: grab; }
         style="padding:4px 8px;font-size:11.5px;font-weight:600;border:1px solid var(--border2);
                border-radius:7px;background:var(--card);color:var(--text);font-family:inherit;outline:none;cursor:pointer;"></select>
       <div class="link-field" style="border-radius:7px;">
-        <input type="number" id="dsFrom" step="1" style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
+        <input type="number" id="dsFrom" step="1" oninput="this.dataset.user='1'" style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
         <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">mm</span>
       </div>
       <span style="font-size:11px;color:var(--text3);">~</span>
       <div class="link-field" style="border-radius:7px;">
-        <input type="number" id="dsTo" step="1" style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
+        <input type="number" id="dsTo" step="1" oninput="this.dataset.user='1'" style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
         <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">mm</span>
       </div>
       <button id="dsRun" onclick="runDeltaSweep()" style="background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">계산</button>
@@ -1453,6 +1453,33 @@ function zoomReset(){
   userZoom=1; panX=0; panY=0;
   setTransform(); updateZoomPct(); draw();
 }
+// ── 캔버스 라벨 겹침 방지 ───────────────────────────────────────────────────
+// 링키지 라벨(관절명·링크 길이·각도)은 전부 '화면 픽셀 고정 오프셋' 으로 놓인다.
+// 줌아웃하면 기구만 작아지고 라벨 크기는 그대로라 서로 겹친다(실측: 기본 배율 1쌍,
+// 최대 축소 3쌍). 그린 라벨의 사각형을 모아두고, 새 라벨은 후보 자리를 순서대로
+// 시도해 안 겹치는 곳에 놓는다. 전부 겹치면 겹침 넓이가 가장 작은 곳을 고른다.
+let _lblRects=[];
+function lblReset(){ _lblRects.length=0; }
+function lblArea(a,b){
+  const ox2=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x);
+  const oy2=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
+  return (ox2>0&&oy2>0)?ox2*oy2:0;
+}
+// cands: [{x,y}...] 왼쪽 위 기준. 반환도 같은 형식.
+function lblPlace(cands,w,h){
+  let best=cands[0], bestPen=Infinity;
+  for(const c of cands){
+    const r={x:c.x,y:c.y,w,h};
+    let pen=0;
+    for(const q of _lblRects) pen+=lblArea(r,q);
+    if(r.x<2||r.y<2||r.x+w>W-2||r.y+h>H-2) pen+=1e5;   // 화면 밖은 강한 벌점
+    if(pen===0){ _lblRects.push(r); return c; }
+    if(pen<bestPen){ bestPen=pen; best=c; }
+  }
+  _lblRects.push({x:best.x,y:best.y,w,h});
+  return best;
+}
+
 const wx=x=>ox+x*scale;
 const wy=y=>oy-y*scale;
 const sx=px=>(px-ox)/scale;
@@ -1485,6 +1512,7 @@ function draw(){
 
   const sols=solve(S.a,S.b,S.c,gLen(),S.t4);
   S.solutions=sols;
+  lblReset();          // 이 프레임의 라벨 배치를 새로 시작
   updateUI(sols);
   if(!sols){drawNoSol();return;}
 
@@ -1688,10 +1716,21 @@ function drawJoint(p,color,r,label,movable){
     ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2); ctx.fill();
   }
 
-  // Label
+  // Label — 네 사분면 중 안 겹치는 자리에
   ctx.fillStyle=color;
   ctx.font=`600 11px -apple-system,sans-serif`;
-  ctx.fillText(label,px+r+5,py-r+2);
+  const _jw=ctx.measureText(label).width, _jh=12;
+  // 관절 둘레를 방사형으로 훑는다 — 우상단(기본)부터 시계방향, 반지름 2단계.
+  // 4사분면만으로는 링크가 짧고 라벨이 긴 형상(예: a16·c25·오프셋)에서 자리가 없었다.
+  const _jc=[];
+  for(const _rad of [r+9, r+22, r+36]){
+    for(const _a of [-0.7, -1.6, 0.2, -2.5, 1.0, 2.4, 1.8, 3.1]){
+      _jc.push({x:px+_rad*Math.cos(_a)-(_a>Math.PI/2||_a<-Math.PI/2?_jw:0),
+                y:py+_rad*Math.sin(_a)-6});
+    }
+  }
+  const _jp=lblPlace(_jc,_jw,_jh);
+  ctx.fillText(label,_jp.x,_jp.y+9);
   ctx.restore();
 }
 
@@ -1704,14 +1743,27 @@ function midLabel(p1,p2,text,color){
   ctx.save();
   // Pill background
   ctx.font='500 10px -apple-system,sans-serif';
-  const tw=ctx.measureText(text).width;
-  const bx=mx+nx-tw/2-5,by=my+ny-8,bw=tw+10,bh=14;
+  const tw=ctx.measureText(text).width, bw=tw+10, bh=14;
+  // 법선 양쪽(가까운 곳→먼 곳) × 링크를 따라 미끄러지기.
+  // 관절 라벨이 먼저 놓이므로, 법선 방향만으로는 빡빡한 형상에서 자리가 없다.
+  const ux=nx/16, uy=ny/16;                       // 단위 법선 (nx,ny 는 16px 길이)
+  const tx=dx/len, ty=dy/len;                     // 링크 방향 단위벡터
+  // 짧은 치수선(y오프셋 등)은 len/2 가 라벨보다 작아 half 가 음수가 된다 → 바깥까지 허용
+  const half=Math.max(len/2-bw/2-4, bw*0.6);
+  const cands=[];
+  for(const k of [1,-1,1.9,-1.9,2.8,-2.8,4,-4,5.5,-5.5]){
+    for(const t of [0,0.35,-0.35,0.65,-0.65,1,-1]){
+      const sl=Math.max(-half,Math.min(half,half*t));
+      cands.push({x:mx+ux*16*k+tx*sl-bw/2, y:my+uy*16*k+ty*sl-8});
+    }
+  }
+  const pp=lblPlace(cands,bw,bh);
   ctx.fillStyle='rgba(255,255,255,0.75)';
   ctx.beginPath();
-  roundRect(ctx,bx,by,bw,bh,7);
+  roundRect(ctx,pp.x,pp.y,bw,bh,7);
   ctx.fill();
   ctx.fillStyle=color;
-  ctx.fillText(text,mx+nx-tw/2,my+ny+2);
+  ctx.fillText(text,pp.x+5,pp.y+10);
   ctx.restore();
 }
 
@@ -1858,7 +1910,12 @@ function partLabel(p,text,color){
   const px=wx(p[0]),py=wy(p[1]);
   ctx.save();
   ctx.fillStyle=color; ctx.font='600 11px -apple-system,sans-serif';
-  ctx.fillText(text,px+9,py-9);
+  const _pw=ctx.measureText(text).width, _ph=12;
+  const _pp=lblPlace([
+    {x:px+9,      y:py-18}, {x:px-9-_pw, y:py-18},
+    {x:px+9,      y:py+6},  {x:px-9-_pw, y:py+6},
+  ],_pw,_ph);
+  ctx.fillText(text,_pp.x,_pp.y+9);
   ctx.restore();
 }
 
@@ -1892,14 +1949,20 @@ function arcAng(cx,cy,angle,r,color,label,base){
 
   // Label pill
   const mid=base+angle/2;
-  const lx=cx+(r+18)*Math.cos(-mid),ly=cy+(r+18)*Math.sin(-mid);
   ctx.font='500 10px -apple-system,sans-serif';
-  const tw=ctx.measureText(label).width;
+  const tw=ctx.measureText(label).width, bw2=tw+10, bh2=14;
+  // 호 바깥으로 밀어내며, 각도도 조금씩 틀어 빈자리를 찾는다
+  const cands=[];
+  for(const dr of [18,30,44,60]) for(const da of [0,0.22,-0.22,0.45,-0.45]){
+    const ang=-(mid+da), rr=r+dr;
+    cands.push({x:cx+rr*Math.cos(ang)-bw2/2, y:cy+rr*Math.sin(ang)-8});
+  }
+  const pp=lblPlace(cands,bw2,bh2);
   ctx.fillStyle='rgba(255,255,255,0.85)';
   ctx.setLineDash([]);
-  ctx.beginPath(); roundRect(ctx,lx-tw/2-5,ly-8,tw+10,14,7); ctx.fill();
+  ctx.beginPath(); roundRect(ctx,pp.x,pp.y,bw2,bh2,7); ctx.fill();
   ctx.fillStyle=color;
-  ctx.fillText(label,lx-tw/2,ly+2);
+  ctx.fillText(label,pp.x+5,pp.y+10);
   ctx.restore();
 }
 
@@ -3922,10 +3985,13 @@ function applyOpt(bVal,t4Val,cVal,aVal,dVal){
   draw(); scheduleCouplerPlot();
 }
 
-// ── 타각범위 스윕 검토 (팝업) ───────────────────────────────────────────────
-// δ 를 스윕하며 각 δ 에서 doOptimize 와 동일한 선택 규칙(§3-1 준동률, §3-2 차선)으로
-// 최적 (b, θ₄₀) 를 계산 → 작동범위 내 최대토크(wmax)·최소토크(끝단 worst) 변화를 그래프로 표시
-let _deltaSweepData=null, _dsBusy=false;
+// ── 설계변수 스윕 검토 (팝업) ───────────────────────────────────────────────
+// 타각은 입력값으로 고정하고, **변수 링크 하나를 골라 그 값을 강제**하며 훑는다.
+// 매 지점마다 나머지 변수 + θ₄₀ 를 doOptimize 와 같은 목적함수로 다시 최적화하므로,
+// 곡선은 "이 값으로 못박았을 때 나머지를 최선으로 맞추면 어디까지 되는가" 를 뜻한다.
+// (재최적화를 빼면 '임의의 출발점' 이 섞여 곡선의 의미가 무너진다 — 이 규약이 핵심)
+// y: 좌축 토크(최대·끝단·중립) / 우축 작동범위 내 최소 전달각 μ(입력·출력) + 47° 기준선
+let _deltaSweepData=null, _dsBusy=false, _dsGen=0;
 
 // 단일 δ 에 대한 최적화 (doOptimize 의 선택 규칙과 동일, ±1mm 정밀 재탐색은 생략)
 function optimizeForDelta(dm,dp,T2,marginVal,opt){
@@ -4364,7 +4430,25 @@ function openDeltaSweep(){
   drawDeltaSweepPlot();
   if(!_deltaSweepData&&!_dsBusy) runDeltaSweep();
 }
-function closeDeltaSweep(){ document.getElementById('dsModal').style.display='none'; }
+// 모달을 닫으면 진행 중인 스윕을 **반드시 취소**한다. 안 하면 매 틱의 finally 가
+// 낡은 스냅으로 S 를 계속 되돌려, 닫은 뒤 사용자가 고친 링크값이 조용히 뒤집히고
+// 입력칸과 S 가 영구히 어긋난다(열자마자 닫으면 바로 걸린다 — 첫 열림은 자동 실행).
+function closeDeltaSweep(){
+  document.getElementById('dsModal').style.display='none';
+  dsCancel();
+}
+function dsCancel(){
+  _dsGen++;                       // 진행 중인 틱 체인을 무효화
+  // 중단된 곡선은 버린다 — 남겨두면 잘린 곡선이 '완료된 것' 처럼 그려지고,
+  // openDeltaSweep 이 데이터가 있다고 보아 재오픈해도 다시 계산하지 않는다.
+  _deltaSweepData=null;
+  if(!_dsBusy) return;
+  _dsBusy=false;
+  const runBtn=document.getElementById('dsRun');
+  if(runBtn){ runBtn.disabled=false; runBtn.style.opacity=''; }
+  const st=document.getElementById('dsStatus');
+  if(st) st.textContent='중단됨';
+}
 
 // 스윕 대상 셀렉트 — 지금 '변수' 인 링크만 고를 수 있다(고정 링크는 훑을 값이 없다).
 function dsSyncVarSelect(){
@@ -4389,8 +4473,13 @@ function dsOnVarChange(keepIfEdited){
   const k=sel.value, rg=optVarRange(k);
   const f=document.getElementById('dsFrom'), t=document.getElementById('dsTo');
   if(!f||!t) return;
-  if(!keepIfEdited||f.value===''||t.value===''||f.dataset.key!==k){
-    f.value=rg.lo; t.value=rg.hi; f.dataset.key=k; t.dataset.key=k;
+  // 사용자가 직접 고친 값만 지킨다. dataset.key 만 보면 자동 채움과 수동 입력을
+  // 구분하지 못해, d 를 바꿔 c 자동범위가 움직여도 스윕 범위만 옛 값에 얼어붙는다.
+  const edited=(f.dataset.user==='1'||t.dataset.user==='1')&&f.dataset.key===k;
+  if(!keepIfEdited||!edited){
+    f.value=rg.lo; t.value=rg.hi;
+    f.dataset.key=k; t.dataset.key=k;
+    delete f.dataset.user; delete t.dataset.user;
   }
   const lim=OPTVAR_META[k].min;
   f.min=lim; t.min=lim; f.max=400; t.max=400;
@@ -4398,6 +4487,7 @@ function dsOnVarChange(keepIfEdited){
 
 function runDeltaSweep(){
   if(_dsBusy) return;
+  _dsGen++;                       // 남아있을 수 있는 옛 틱 체인 무효화
   const status=document.getElementById('dsStatus');
   const sel=document.getElementById('dsVar');
   const key=sel?sel.value:'';
@@ -4444,10 +4534,14 @@ function runDeltaSweep(){
   const runBtn=document.getElementById('dsRun');
   if(runBtn){ runBtn.disabled=true; runBtn.style.opacity='0.5'; }
   const snap={a:S.a,b:S.b,c:S.c,d:S.d}, wasVar=OPTVARS[key].v;
+  const restore=()=>{ S.a=snap.a; S.b=snap.b; S.c=snap.c; S.d=snap.d; OPTVARS[key].v=wasVar; };
+  const myGen=++_dsGen;           // 이 런의 세대 — 취소·재실행되면 즉시 손을 뗀다
+  const myData=_deltaSweepData;
   let i=0;
   (function next(){
+    if(myGen!==_dsGen||myData!==_deltaSweepData) return;   // 취소됨: 복원도 하지 않는다
     if(i>=xs.length){
-      S.a=snap.a; S.b=snap.b; S.c=snap.c; S.d=snap.d; OPTVARS[key].v=wasVar;
+      restore();
       _dsBusy=false;
       if(runBtn){ runBtn.disabled=false; runBtn.style.opacity=''; }
       if(status) status.textContent='완료 ('+xs.length+'점)';
@@ -4456,26 +4550,37 @@ function runDeltaSweep(){
     }
     if(status) status.textContent='계산 중… '+(i+1)+'/'+xs.length;
     setTimeout(()=>{
+      // 취소된 런은 S 를 건드리지도, 복원하지도 않는다 — 사용자가 그 사이 바꾼 값이 정답이다
+      if(myGen!==_dsGen||myData!==_deltaSweepData) return;
       let r=null, m=null;
       try{
         // 대상은 이 값으로 못박고(변수 해제), 나머지 변수만 최적화한다
         S[key]=xs[i]; OPTVARS[key].v=false;
-        r=optimizeForVars(df.dm,df.dp,T2,marginVal);
+        // doOptimize 와 같은 목적함수를 써야 곡선이 '최적값 계산' 결과와 같은 뜻이 된다.
+        // 비대칭은 2-패스(패스A margin → 하한 → 패스B torque) — opt 없이 부르면 margin
+        // 모드로 풀려 중립토크가 계통적으로 낮게 나온다.
+        if(df.sym){
+          r=optimizeForVars(df.dm,df.dp,T2,marginVal);
+        } else {
+          const passA=optimizeForVars(df.dm,df.dp,T2,marginVal,{mode:'margin'});
+          r=passA?(optimizeForVars(df.dm,df.dp,T2,marginVal,
+                     {mode:'torque',floor:ASYM_MARGIN_FLOOR*passA.score})||passA):null;
+        }
         if(r&&r.t0!==undefined){
           const cc=r.cOpt!==undefined?r.cOpt:S.c, aa=r.aOpt!==undefined?r.aOpt:S.a,
                 dd=r.dOpt!==undefined?r.dOpt:S.d;
           m=evalDesign(cc,r.b,r.t0,df.dm,df.dp,T2,marginVal,'',aa,dd);
         }
       }catch(e){ console.warn('varSweep:',e); }
-      finally{ S.a=snap.a; S.b=snap.b; S.c=snap.c; S.d=snap.d; OPTVARS[key].v=wasVar; }
+      finally{ restore(); }
       const ok=m&&!m.err;
       const tn=ok?m.tn:null;
-      _deltaSweepData.maxArr.push(ok?Math.max(m.wmax, tn??-Infinity):null);
-      _deltaSweepData.minArr.push(ok?Math.min(m.tm,m.tp):null);
-      _deltaSweepData.tnArr.push(tn);
-      _deltaSweepData.fbArr.push(r?!!r.fallback:null);
-      _deltaSweepData.muInArr.push(ok&&isFinite(m.muInMin)?m.muInMin:null);
-      _deltaSweepData.muOutArr.push(ok&&isFinite(m.muOutMin)?m.muOutMin:null);
+      myData.maxArr.push(ok?Math.max(m.wmax, tn??-Infinity):null);
+      myData.minArr.push(ok?Math.min(m.tm,m.tp):null);
+      myData.tnArr.push(tn);
+      myData.fbArr.push(r?!!r.fallback:null);
+      myData.muInArr.push(ok&&isFinite(m.muInMin)?m.muInMin:null);
+      myData.muOutArr.push(ok&&isFinite(m.muOutMin)?m.muOutMin:null);
       i++;
       drawDeltaSweepPlot();
       next();
@@ -4491,7 +4596,8 @@ function drawDeltaSweepPlot(){
 
   const D=_deltaSweepData;
   const hasFB=!!(D&&D.fbArr.some(v=>v===true));
-  const hasMu=!!(D&&D.muInArr&&D.muInArr.some(v=>v!==null));
+  const hasMu=!!(D&&((D.muInArr&&D.muInArr.some(v=>v!==null))
+                   ||(D.muOutArr&&D.muOutArr.some(v=>v!==null))));
   const legItems=[
     {type:'line',color:'#ff453a',label:'최대 |T₄| (작동범위 내)'},
     {type:'line',color:'#0071e3',label:'최소 |T₄| (끝단 worst)'},
@@ -4587,7 +4693,7 @@ function drawDeltaSweepPlot(){
   });
 
   // ── 격자 ──
-  const xTick=[0.5,1,2,5].find(s=>(x1-x0)/s<=10)||5;
+  const xTick=[0.5,1,2,5,10,20,50,100].find(s=>(x1-x0)/s<=10)||100;   // x 는 이제 mm
   for(let d=Math.ceil(x0/xTick)*xTick; d<=x1+1e-9; d+=xTick){
     const x=xp(d);
     c2.strokeStyle='rgba(60,60,67,0.07)'; c2.lineWidth=0.7;

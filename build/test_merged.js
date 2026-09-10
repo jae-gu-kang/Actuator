@@ -395,6 +395,81 @@ async function clickByText(frame, txt){
       g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
     rec('linkage: μ 차선에서 바깥 변수도 전달각 최대화 (d 만 변수)', mumax.ok===true, JSON.stringify(mumax));
 
+    // 설계변수 스윕 — 대상만 못박고 나머지를 재최적화하는 규약, 그리고 **취소 안전성**.
+    // 모달을 닫아도 틱 체인이 살아 있으면 낡은 스냅으로 S 를 되돌려, 사용자가 그 뒤
+    // 고친 링크값이 조용히 뒤집히고 입력칸과 S 가 영구히 어긋난다.
+    const sw = await f.evaluate(async()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=id=>document.getElementById(id);
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      setDeflectMode('sym'); g('iDeflect').value=25; updateCSUI();
+      // (1) 셀렉트는 '변수' 링크만
+      dsSyncVarSelect();
+      const opts=[...g('dsVar').options].map(o=>o.value).sort().join(',');
+      const vars=['d','a','b','c'].filter(k=>OPTVARS[k].v).sort().join(',');
+      // (2) 취소 안전성 — 열자마자(자동 실행) 닫고 링크를 바꾼다
+      _deltaSweepData=null;
+      openDeltaSweep();
+      const busy0=_dsBusy;
+      closeDeltaSweep();
+      g('ia').value=33; g('ib').value=77; onLink();
+      await new Promise(r=>setTimeout(r,1200));
+      const kept=(S.a===33&&S.b===77&&+g('ia').value===33&&+g('ib').value===77);
+      const busyAfter=_dsBusy;
+      // (3) 정상 스윕 — 데이터가 채워지고 S 가 복원되는가
+      g('ia').value=20; g('ib').value=100; onLink();
+      // 취소하면 데이터를 비우므로 재오픈은 항상 자동 실행된다 — 먼저 끝내고 시작한다
+      openDeltaSweep();
+      for(let i=0;i<300&&_dsBusy;i++) await new Promise(r=>setTimeout(r,60));
+      g('dsVar').value='c'; dsOnVarChange();
+      g('dsFrom').value=28; g('dsTo').value=52; runDeltaSweep();
+      for(let i=0;i<300&&_dsBusy;i++) await new Promise(r=>setTimeout(r,60));
+      const D=_deltaSweepData;
+      const filled=D&&D.muInArr.filter(v=>v!==null).length>5
+                    &&D.tnArr.filter(v=>v!==null).length>5;
+      // restore() 는 OPTVARS[key].v 도 되돌린다. S 만 보면 '변수가 조용히 고정으로
+      // 강등되는' 변이를 놓친다(그 링크가 #dsVar 목록과 옵티마이저 탐색에서 사라진다).
+      const restored=(S.a===20&&S.b===100&&S.c===40&&S.d===100&&OPTVARS.c.v===true);
+      closeDeltaSweep();
+      return {ok: opts===vars && busy0===true && busyAfter===false && kept
+                  && !!filled && restored && D.key==='c',
+              opts, vars, busy0, busyAfter, kept, filled:!!filled, restored, key:D&&D.key,
+              n:D&&D.xs.length};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=id=>document.getElementById(id);
+      closeDeltaSweep();
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      onLink(); setT4(100); draw(); } });
+    rec('linkage: 설계변수 스윕 — 대상만 고정·나머지 재최적화 · 닫으면 취소(S 안 되돌림)', sw.ok===true, JSON.stringify(sw));
+
+    // 링키지 캔버스 라벨이 줌 배율과 무관하게 서로 겹치지 않는가.
+    // 라벨은 화면 픽셀 고정 오프셋이라, 줌아웃하면 기구만 작아져 그대로 포개진다.
+    // 텍스트 폭이 아니라 배치기가 예약한 사각형(알약 배경 포함)으로 판정한다.
+    const lbl = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d,off:S.offY}; try{
+      const g=id=>document.getElementById(id);
+      const hit=(A,B)=>A.x<B.x+B.w&&B.x<A.x+A.w&&A.y<B.y+B.h&&B.y<A.y+A.h;
+      let worst=0, at=null, n=0;
+      for(const [a,b,c,d] of [[20,100,40,100],[16,110,25,120],[30,60,60,80],[50,150,120,200]]){
+        g('ia').value=a; g('ib').value=b; g('ic').value=c; g('id').value=d; onLink();
+        for(const off of [0,40]){
+          g('iServoOffY').value=off; onServoOffset();
+          zoomReset();
+          for(let z=0;z<7;z++){
+            draw(); n++;
+            const R=_lblRects;
+            let hits=0;
+            for(let i=0;i<R.length;i++) for(let j=i+1;j<R.length;j++) if(hit(R[i],R[j])) hits++;
+            if(hits>worst){ worst=hits; at={a,b,c,d,off,scale:+scale.toFixed(2)}; }
+            zoomBy(0.82);
+          }
+        }
+      }
+      return {ok: worst===0, 검사:n, 최대겹침:worst, 지점:at};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=id=>document.getElementById(id);
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      g('iServoOffY').value=_sv.off; onLink(); onServoOffset(); zoomReset(); draw(); } });
+    rec('linkage: 캔버스 라벨이 어떤 줌 배율에서도 서로 겹치지 않음', lbl.ok===true, JSON.stringify(lbl));
+
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
     const dax = await f.evaluate(()=>{ try{

@@ -643,7 +643,7 @@ body {
           4-Bar Linkage 해석기는 4개의 링크(크랭크, 커플러, 팔로워, 고정링크)로 구성된 기구학적 메커니즘의 위치, 각도, 토크를 분석합니다. 항공기 조종면 액추에이터, 로봇 팔, 자동차 서스펜션 등 다양한 분야에서 활용되는 기초 기구학 해석 도구입니다.
         </p>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-top:10px;">
-          위치·토크 해석에 더해, 이 도구는 <strong>AI 최적 설계 추천</strong>(타각 범위를 만족하며 토크가 최대가 되도록 커플러 b·출력링크 c·중립각 θ₄₀ 자동 탐색), <strong>타각범위 스윕 역설계 검토</strong>, <strong>출력토크·커플러·타각별 그래프</strong>, 그리고 <strong>힌지모멘트·조종면 리깅 계산기로의 연동</strong>까지 지원하는 통합 액추에이터 설계 워크벤치입니다.
+          위치·토크 해석에 더해, 이 도구는 <strong>AI 최적 설계 추천</strong>(타각 범위를 만족하며 토크가 최대가 되도록 커플러 b·출력링크 c·중립각 θ₄₀ 자동 탐색), <strong>설계변수 스윕 검토</strong>, <strong>출력토크·커플러·타각별 그래프</strong>, 그리고 <strong>힌지모멘트·조종면 리깅 계산기로의 연동</strong>까지 지원하는 통합 액추에이터 설계 워크벤치입니다.
         </p>
         <div class="eq-card" style="margin-top:16px;">
           <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
@@ -951,7 +951,7 @@ body {
 
       <!-- 그래프 & 가용 각도 -->
       <div class="card">
-        <span id="anc-linkage-graphs" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">출력토크 · 커플러 · 타각 스윕 그래프</div>
+        <span id="anc-linkage-graphs" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">출력토크 · 커플러 · 설계변수 스윕 그래프</div>
         <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">
           세 종류의 그래프로 링크 설계를 검토합니다. 모든 그래프는 <strong>"그래프 복사" / "그래프 저장"</strong>으로 고해상도 PNG 내보내기가 가능하며, 그래프를 클릭해 포커스한 뒤 <kbd>←</kbd>/<kbd>→</kbd> 키로 현재 위치(θ₄ 또는 b)를 미세 이동할 수 있습니다.
         </p>
@@ -959,7 +959,7 @@ body {
           <tr><th>그래프</th><th>X축</th><th>내용</th></tr>
           <tr><td><strong>출력토크 변화</strong></td><td>θ₄ (°)</td><td>출력각 전 범위의 T₄ = |T₂ × MA(θ₄)| 곡선. 최대값·현재 위치 마커, <strong>토크 요구도</strong> 수평선과 교점, 끝단 마진 음영·물리 가용범위 경계 표시</td></tr>
           <tr><td><strong>커플러 길이 영향</strong></td><td>커플러 b (mm)</td><td>조립 가능한 b 범위에서 최대 T₄(좌축)와 가용 각도(우축) 변화. <strong>가용각 (μ반영)</strong>·<strong>토크 가용</strong> 체크박스로 곡선 표시를 토글. 최고토크·가용각·현재 b 마커 표시</td></tr>
-          <tr><td><strong>타각범위 스윕</strong><br>(역설계 검토)</td><td>타각범위 ±δ (°)</td><td>모달 창. 각 δ마다 최적 (c, b, θ₄₀)를 재계산해 작동범위 내 최대·최소 |T₄|와 최적 c(우축)의 변화를 보여줌 → 토크 최적화에 따른 <strong>커플러·출력링크 길이 역설계</strong> 검토</td></tr>
+          <tr><td><strong>설계변수 스윕</strong><br>(역설계 검토)</td><td>변수 링크 1개 + 그 범위 (mm)<br><span class="unit">타각은 입력값으로 고정</span></td><td>모달 창. 고른 링크를 그 값으로 <strong>강제</strong>하면서, 매 지점마다 <strong>나머지 변수와 θ₄₀ 를 다시 최적화</strong>해 좌축에 토크(최대·끝단·중립), 우축에 <strong>작동범위 내 최소 전달각 μ</strong>(입력·출력)와 47° 기준선을 그림 → "이 값으로 못박으면 어디까지 되는가" 를 읽어 <strong>링크 길이 역설계</strong> 검토</td></tr>
         </table>
         <div class="tip-box" style="margin-top:14px;">
           <div class="tip-icon">📐</div>
@@ -2445,7 +2445,7 @@ const SEARCH_INDEX = [
   { id:'linkage', anchor:'anc-linkage-cs',          title:'조종면 각도 (δ) 카드',              keywords:'조종면 각도 δ 타각 부호 규약 상향 마이너스 하향 플러스 중립 지정 트림 1도 일의자리 버림 상향 하향 버튼 출력토크 T₄ 입력측 출력측 전달각 μ 47 40 슬라이더' },
   { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 승격 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 설계변수 고정 변수 자물쇠 탐색범위 대칭 비대칭 상세 접기 펼치기' },
   { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암 렌더',           keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 암길이 M3 스플라인 허브 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 자동 배치 표시 토글 금속 렌더링 inch 25.4 mm 장착 기울기 tilt 180 360 y오프셋 편심 offY 지상링크' },
-  { id:'linkage', anchor:'anc-linkage-graphs',      title:'출력토크·커플러·타각 스윕 그래프',  keywords:'출력토크 변화 커플러 길이 영향 타각범위 스윕 역설계 그래프 T₄ 물리 가용 토크 가용 각도 μ반영 토크 요구도 끝단마진 그래프 복사 저장 png' },
+  { id:'linkage', anchor:'anc-linkage-graphs',      title:'출력토크·커플러·설계변수 스윕 그래프',  keywords:'출력토크 변화 커플러 길이 영향 설계변수 스윕 역설계 전달각 47 기준선 그래프 T₄ 물리 가용 토크 가용 각도 μ반영 토크 요구도 끝단마진 그래프 복사 저장 png' },
   { id:'linkage', anchor:'anc-linkage-link',        title:'도구 간 연동 — 힌지모멘트·리깅',    keywords:'힌지모멘트 계산기로 보내기 조종면 리깅 계산기로 보내기 개방형 교차형 중립각 θ₄₀ 중립 지정 부호 규약 상향 마이너스 하향 플러스 |T₄(δ)| MA localStorage 연동' },
   { id:'linkage', anchor:'anc-crank',               title:'크랭크 (Crank)',                    keywords:'크랭크 crank 링크 a 구동 모터 360 로커 rocker Grashof' },
   { id:'linkage', anchor:'anc-coupler',             title:'커플러 (Coupler)',                  keywords:'커플러 coupler 링크 b 커플러곡선 coupler curve 중간링크' },
