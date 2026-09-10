@@ -3754,9 +3754,9 @@ function buildOptMetrics(m){
   if(sym){
     // tp = absT4At(t0+dp) = 상향 끝단 → 부호 규약상 δ = −dp
     // tm = absT4At(t0−dm) = 하향 끝단 → δ = +dm   (라벨을 반대로 달면 카드끼리 어긋난다)
-    s+=row('|T₄| @ 상향 끝단 <span style="color:var(--text3)">(δ −'+dp.toFixed(0)+'°)</span>',
+    s+=row('|T₄| @ 상향 끝단 <span style="color:var(--text3)">(δ −'+dp.toFixed(1)+'°)</span>',
       m.tp.toFixed(2)+' N·m','var(--follower)');
-    s+=row('|T₄| @ 하향 끝단 <span style="color:var(--text3)">(δ +'+dm.toFixed(0)+'°)</span>',
+    s+=row('|T₄| @ 하향 끝단 <span style="color:var(--text3)">(δ +'+dm.toFixed(1)+'°)</span>',
       m.tm.toFixed(2)+' N·m','var(--crank)');
     s+=row('끝단 불균형 <span style="color:var(--text3)">(≤10%)</span>',(m.imbal*100).toFixed(1)+' %',
       m.imbal<=OPT_IMBAL_LIMIT?'#1a9c3e':'var(--orange)');
@@ -4034,18 +4034,24 @@ function updateOptVarUI(){
     // 오해하기 쉬우므로, 자동인지 직접 지정인지를 라벨과 글자색으로 구분해 보여준다.
     const lbl=document.getElementById('varRangeLbl_'+k),
           mn=document.getElementById('iVarMin_'+k), mx=document.getElementById('iVarMax_'+k);
+    // 두 칸은 한 쌍이다. 자기 칸만 가드하면, 한 칸을 비워 user=false 가 된 순간
+    // 자동값이 '편집 중이 아닌 반대편 칸'을 덮어써 방금 입력한 값이 사라진다.
+    const editing=(document.activeElement===mn||document.activeElement===mx);
     if(v&&!OPTVARS[k].user){
       const r=autoVarRange(k);
       OPTVARS[k].lo=r.lo; OPTVARS[k].hi=r.hi;
-      if(mn&&document.activeElement!==mn) mn.value=r.lo;
-      if(mx&&document.activeElement!==mx) mx.value=r.hi;
+      if(!editing){ if(mn) mn.value=r.lo; if(mx) mx.value=r.hi; }
       if(lbl){ lbl.textContent='탐색 자동'; lbl.style.color='var(--text3)';
         lbl.title='현재 링크값에서 자동 산정 — 고정 d 를 바꾸면 이 범위도 함께 움직여 최적 결과가 달라집니다. 숫자를 직접 입력하면 그 범위로 고정됩니다.'; }
       for(const el of [mn,mx]) if(el) el.style.color='var(--text3)';
     } else if(v){
-      if(lbl){ lbl.textContent='탐색 지정'; lbl.style.color='var(--crank)';
-        lbl.title='직접 입력한 범위 — 다른 링크값이 바뀌어도 이 범위는 그대로입니다. 비우면 자동으로 돌아갑니다.'; }
-      for(const el of [mn,mx]) if(el) el.style.color='var(--text)';
+      // 역전 범위(최소>최대)는 optVarRange 가 자동으로 폴백한다 → 라벨도 그렇게 말해야 한다
+      const o=OPTVARS[k], live=(isFinite(o.lo)&&isFinite(o.hi)&&o.hi>=o.lo);
+      if(lbl){ lbl.textContent=live?'탐색 지정':'탐색 자동(범위 역전)';
+        lbl.style.color=live?'var(--crank)':'var(--orange)';
+        lbl.title=live?'직접 입력한 범위 — 다른 링크값이 바뀌어도 이 범위는 그대로입니다. 비우면 자동으로 돌아갑니다.'
+                      :'최소>최대라 이 범위는 쓰이지 않고 자동 범위로 탐색합니다.'; }
+      for(const el of [mn,mx]) if(el) el.style.color=live?'var(--text)':'var(--orange)';
     }
   }
   const ds=document.getElementById('dsOptC');
@@ -4545,7 +4551,7 @@ function sendToHM(){
     sol: S.sol,                           // 'open' | 'cross'
     T2: T2,                               // 크랭크 입력토크 (서보 출력) N·m
     t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
-    dir: HM_DIR,                          // δ+ → θ₄ 증가 (이 도구 규약)
+    dir: HM_DIR,                          // δ+ = 조종면 하향 → θ₄ 감소 (−1, 이 도구 규약)
     ts: Date.now()
   };
   const json = JSON.stringify(payload);
@@ -4574,7 +4580,7 @@ function sendToRig(){
     a: S.a, b: S.b, c: S.c, d: gLen(),   // 링크 길이: 입력 크랭크, 커플러, 출력 혼, 유효 지상링크 L=√(d²+offY²)(편심 반영)
     sol: S.sol,                           // 'open' | 'cross'
     t4n: t4n,                             // δ=0° 에 해당하는 θ₄ 중립각
-    dir: HM_DIR,                          // δ+ → θ₄ 증가 (이 도구 규약)
+    dir: HM_DIR,                          // δ+ = 조종면 하향 → θ₄ 감소 (−1, 이 도구 규약)
     ts: Date.now()
   };
   const json = JSON.stringify(payload);
