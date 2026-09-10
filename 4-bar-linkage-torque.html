@@ -1045,67 +1045,36 @@ canvas.hover { cursor: grab; }
       </div>
     </div>
 
-    <!-- Angles -->
+    <!-- 자세 — 같은 1자유도를 입력(서보)·출력(조종면) 두 축으로 보여준다.
+         값은 한 곳에만 둔다: 서보 회전량은 서보 카드, 토크·전달각은 조종면 카드.
+         원시 각 θ₂·θ₄ 는 이 두 값으로 다 읽히므로 기본은 접어 둔다. -->
     <div class="s-sec">
-      <div class="s-title">각도</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div class="s-title">자세</div>
 
-      <!-- θ₄ -->
-      <div class="angle-card" style="margin-bottom:0">
+      <!-- 서보각도 Δθ₂ — 조종면 중립(δ=0)에서의 크랭크각 θ₂₀ 를 0° 로 잡은 실제 서보 회전량 -->
+      <div class="angle-card" style="margin-bottom:6px">
         <div class="angle-top">
           <div class="angle-label">
-            <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력각
+            <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">Δθ₂</span>서보각도
           </div>
-          <div class="angle-readout" style="color:var(--follower)" id="lT4">100.0°</div>
+          <div class="angle-readout" style="color:var(--crank)" id="lSV">—</div>
         </div>
-        <input type="range" class="sl-t4" id="slT4" min="0" max="360" step="0.5" value="100" oninput="onT4(this.value)">
-        <div class="angle-num-row">
-          <div class="angle-num-field">
-            <input type="number" id="nT4" value="100" min="0" max="360" step="0.1" oninput="onT4num(this.value)" onblur="fmtOnBlur(this,S.t4)">
-            <span class="deg-tag">°</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- θ₂ -->
-      <div class="angle-card" style="margin-bottom:0">
-        <div class="angle-top">
-          <div class="angle-label">
-            <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">θ₂</span>입력각
-          </div>
-          <div class="angle-readout" style="color:var(--crank)" id="lT2">—</div>
-        </div>
-        <input type="range" class="sl-t2" id="slT2" min="0" max="360" step="0.5" value="0" oninput="onT2slider(this.value)">
-        <div class="angle-num-row">
-          <div class="angle-num-field">
-            <input type="number" id="nT2" placeholder="계산값" min="0" max="360" step="0.1" oninput="onT2num(this.value)" onblur="if(this.value!=='')fmtOnBlur(this,this.value)">
-            <span class="deg-tag">°</span>
-          </div>
+        <!-- 서보 선정에 그대로 쓰는 수 3개. 양 끝 부호가 '어느 쪽으로 돌리면 조종면이
+             내려가는가' 를 그대로 말해 준다 — 색은 조종면 카드의 상향/하향 버튼과 맞춘다. -->
+        <div class="mstrip" style="margin-bottom:0">
+          <div class="mcell"><i>상향 끝</i><b id="lSVup" style="color:var(--follower)">—</b></div>
+          <div class="mcell"><i>총 행정</i><b id="lSVtravel">—</b></div>
+          <div class="mcell"><i>하향 끝</i><b id="lSVdn" style="color:var(--crank)">—</b></div>
         </div>
       </div>
 
-      </div>
-
-      <!-- 도달 불가 경고 — 삭제된 '계산 결과' 카드에 있던 것을, 원인이 되는 슬라이더 옆으로 옮겼다.
-           도구 전체에서 이 상태를 알리는 유일한 배너다. -->
-      <div class="no-sol-banner" id="noSolAng" style="display:none;margin-top:6px">⚠︎ 해당 각도에서 도달 불가</div>
-
-    </div>
-
-    <!-- 조종면 각도 δ — 바로 위 각도(θ₄·θ₂) 카드와 함께 "자세 조작" 묶음 -->
-    <div class="s-sec">
+      <!-- 조종면 각도 δ — 이 도구에서 유일한 자세 조작 슬라이더 -->
       <div class="angle-card" style="margin-bottom:0">
         <div class="angle-top">
           <div class="angle-label">
             <span class="angle-sym" style="background:rgba(52,199,89,.12);color:#28a745">δ</span>조종면 각도
           </div>
           <div class="angle-readout" style="color:#28a745" id="lCS">중립 0.0°</div>
-        </div>
-        <!-- 현재 조종면 위치의 파생값 3종 — updateCSUI 가 δ 이동마다 함께 갱신 -->
-        <div class="mstrip">
-          <div class="mcell"><i>출력토크 T₄</i><b id="lCST4" style="color:var(--follower)">—</b></div>
-          <div class="mcell" id="csCellIn"><i>입력측 μ</i><b id="lCSMuIn">—</b></div>
-          <div class="mcell" id="csCellOut"><i>출력측 μ</i><b id="lCSMuOut">—</b></div>
         </div>
         <input type="range" class="sl-cs" id="slCS" min="-25" max="25" step="0.5" value="0" oninput="onCSAngle(this.value)">
         <!-- 이동 명령: 누르면 조종면이 그 위치로 간다 (아래 '중립 지정' 은 기준만 바꿈) -->
@@ -1121,10 +1090,84 @@ canvas.hover { cursor: grab; }
           <button id="lCSdn" onclick="csGo('down')" title="조종면을 하향 최대로 이동 (하향 = +)"
             style="flex:1 1 60px;background:rgba(0,113,227,0.10);color:var(--crank);border:none;border-radius:6px;padding:4px 4px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">하향 +25° ▼</button>
         </div>
+        <!-- 현재 조종면 위치의 파생값 3종 — 조작(슬라이더·버튼) 아래에 두어 끌면서 읽게 한다 -->
+        <div class="mstrip" style="margin:7px 0 0">
+          <div class="mcell"><i>출력토크 T₄</i><b id="lCST4" style="color:var(--follower)">—</b></div>
+          <div class="mcell" id="csCellIn"><i>입력측 μ</i><b id="lCSMuIn">—</b></div>
+          <div class="mcell" id="csCellOut"><i>출력측 μ</i><b id="lCSMuOut">—</b></div>
+        </div>
         <!-- 기준 설정: 조종면을 움직이지 않고 '지금 위치를 0°로' 재정의 -->
         <div style="display:flex;justify-content:center;margin-top:4px;">
           <button onclick="csSetNeutral()" title="조종면을 움직이지 않고, 현재 θ₄ 위치를 δ=0° 기준으로 재정의합니다 (위 '중립' 버튼은 반대로 δ=0° 위치로 이동)"
             style="background:transparent;color:var(--text3);border:none;padding:2px 8px;font-size:10px;font-weight:500;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:2px;">중립 지정 (현재 θ₄=<span id="lCSneutral">100</span>° 를 0°로)</button>
+        </div>
+      </div>
+
+      <!-- 서보각도 ↔ 조종면 각도 대응 그래프 — 두 카드가 각각 '지금 값' 을 말한다면
+           여기는 '범위 전체에서 어떻게 대응하는지' 를 말한다. 기본은 접어 둔다. -->
+      <button id="btnSVPlot" onclick="toggleSVPlot()"
+        style="width:100%;margin-top:6px;background:transparent;color:var(--text3);border:none;
+               padding:3px 0;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;
+               display:flex;align-items:center;justify-content:center;gap:4px;">
+        <span>서보각도 ↔ 조종면 각도 그래프</span><span id="icoSVPlot">▼</span></button>
+      <div id="svPlotFold" style="display:none;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <button class="copy-btn" onclick="copyPlotImage('svPlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
+          <button class="copy-btn" onclick="downloadPlotImage('svPlot',this)" title="그래프를 이미지로 저장"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M4.5 6.5 8 10l3.5-3.5"/><path d="M3 13h10"/></svg>그래프 저장</button>
+        </div>
+        <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:10px 10px 6px;">
+          <canvas id="svPlot" height="200" style="width:100%;display:block;border-radius:6px;"></canvas>
+        </div>
+      </div>
+
+      <!-- 도달 불가 경고 — 접이 영역 **밖**에 둔다. 안에 넣으면 접힌 상태에서 통째로 묻힌다.
+           도구 전체에서 이 상태를 알리는 유일한 배너다. -->
+      <div class="no-sol-banner" id="noSolAng" style="display:none;margin-top:6px">⚠︎ 해당 각도에서 도달 불가</div>
+
+      <!-- 원시 각 θ₂·θ₄ — 위 두 값으로 다 읽히므로 평소엔 접어 둔다. 없애지 않은 이유는
+           중립을 다시 잡을 때 타각범위 밖으로 나가야 하는데, 그건 δ 슬라이더로는 못 하기 때문. -->
+      <button id="btnRawAng" onclick="toggleRawAng()"
+        style="width:100%;margin-top:6px;background:transparent;color:var(--text3);border:none;
+               padding:3px 0;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;
+               display:flex;align-items:center;justify-content:center;gap:4px;">
+        <span>원시 각 θ₂ · θ₄ 직접 입력</span><span id="icoRawAng">▼</span></button>
+      <div id="rawAngFold" style="display:none;margin-top:4px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+
+        <!-- θ₄ -->
+        <div class="angle-card" style="margin-bottom:0">
+          <div class="angle-top">
+            <div class="angle-label">
+              <span class="angle-sym" style="background:rgba(255,69,58,.1);color:var(--follower)">θ₄</span>출력각
+            </div>
+            <div class="angle-readout" style="color:var(--follower)" id="lT4">100.0°</div>
+          </div>
+          <input type="range" class="sl-t4" id="slT4" min="0" max="360" step="0.5" value="100" oninput="onT4(this.value)">
+          <div class="angle-num-row">
+            <div class="angle-num-field">
+              <input type="number" id="nT4" value="100" min="0" max="360" step="0.1" oninput="onT4num(this.value)" onblur="fmtOnBlur(this,S.t4)">
+              <span class="deg-tag">°</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- θ₂ -->
+        <div class="angle-card" style="margin-bottom:0">
+          <div class="angle-top">
+            <div class="angle-label">
+              <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">θ₂</span>입력각
+            </div>
+            <div class="angle-readout" style="color:var(--crank)" id="lT2">—</div>
+          </div>
+          <input type="range" class="sl-t2" id="slT2" min="0" max="360" step="0.5" value="0" oninput="onT2slider(this.value)">
+          <div class="angle-num-row">
+            <div class="angle-num-field">
+              <input type="number" id="nT2" placeholder="계산값" min="0" max="360" step="0.1" oninput="onT2num(this.value)" onblur="if(this.value!=='')fmtOnBlur(this,this.value)">
+              <span class="deg-tag">°</span>
+            </div>
+          </div>
+        </div>
+
         </div>
       </div>
     </div>
@@ -2268,6 +2311,164 @@ function csSetNeutral(){                        // 현재 θ₄ 를 조종면 �
   // csNeutralT4() 에 물려 있어서, updateCSUI 만 부르면 그래프가 옛 θ₄₀ 기준으로 남는다.
   draw();
 }
+// ── 서보각도 Δθ₂ (중립 0° = 조종면 중립 θ₄₀ 에서의 크랭크각 θ₂₀) ────────────────
+// 서보가 실제로 도는 각 = 크랭크 회전량이다. 부호는 θ₂ 규약 그대로(반시계 +)라 조종면
+// 부호(−상향/+하향)와 반드시 같지 않다 — 그 어긋남 자체가 '어느 쪽으로 돌려야 조종면이
+// 내려가는가' 라는 정보라서 억지로 맞추지 않는다.
+// 프레임 기울기 gPhi() 는 상수라 차값 Δθ₂ 에서 상쇄된다 — 캐노니컬 θ₂ 로 계산해도 같다.
+function svT2At(t4){                              // 주어진 θ₄ 에서 '현재 해 유형' 의 θ₂
+  const r=solve(S.a,S.b,S.c,gLen(),t4);
+  if(!r) return null;
+  const x=r.find(q=>q.type===S.sol)||r[0];
+  return x?x.t2:null;
+}
+function svAngles(){
+  const t40=csNeutralT4(), z=svT2At(t40);
+  if(z===null) return null;                       // 중립 자체가 도달 불가 → 기준이 없다
+  const rel=t4=>{ const t=svT2At(t4); return t===null?null:(((t-z+180)%360+360)%360-180); };
+  const df=getDeflect();
+  const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
+  const up=rel(t40+dp), dn=rel(t40-dm);           // 상향 = θ₄ 증가, 하향 = θ₄ 감소
+  // 행정은 양 끝 차가 아니라 구간의 최대−최소다. 범위 안에 θ₂ 정지점(크랭크가 되돌아가는
+  // 자세)이 있으면 끝점만 봐서는 실제 회전량보다 작게 나온다.
+  let lo=Infinity, hi=-Infinity, gap=false;
+  for(let t=-dm; t<dp+1e-9; t+=1){
+    const v=rel(t40+t);
+    if(v===null){ gap=true; continue; }
+    if(v<lo) lo=v; if(v>hi) hi=v;
+  }
+  for(const v of [up,dn]){
+    if(v===null){ gap=true; continue; }
+    if(v<lo) lo=v; if(v>hi) hi=v;
+  }
+  return {cur:rel(S.t4), up, dn, travel:(hi>=lo)?hi-lo:null, gap};
+}
+// 원시 각 카드는 기본 접힘 — 서보각도·조종면 각도로 다 읽히기 때문.
+let _rawAngFolded=true;
+function toggleRawAng(){
+  _rawAngFolded=!_rawAngFolded;
+  const box=document.getElementById('rawAngFold'), ico=document.getElementById('icoRawAng');
+  if(box) box.style.display=_rawAngFolded?'none':'';
+  if(ico) ico.textContent=_rawAngFolded?'▼':'▲';
+}
+
+// ── 서보각도 ↔ 조종면 각도 대응 그래프 ────────────────────────────────────────
+// x = δ(조종면, 왼쪽이 상향 −  ← δ 슬라이더와 같은 방향), y = Δθ₂(서보).
+// 점선은 양 끝을 잇는 직선 — 곡선이 그 선에서 벌어지는 정도가 곧 리깅 비선형성이고,
+// 조종면 리깅 계산기가 3차식을 쓰는 이유이기도 하다. 최대 편차를 캔버스 안에 적는다.
+let _svPlotFolded=true;
+function toggleSVPlot(){
+  _svPlotFolded=!_svPlotFolded;
+  const box=document.getElementById('svPlotFold'), ico=document.getElementById('icoSVPlot');
+  if(box) box.style.display=_svPlotFolded?'none':'';
+  if(ico) ico.textContent=_svPlotFolded?'▼':'▲';
+  if(!_svPlotFolded) drawSVPlot();       // 접힌 동안은 offsetWidth=0 이라 그리지 않는다
+}
+function svTick(span){                   // 축 눈금 간격 — 1·2·5·10·20·50…
+  const raw=span/4, p=Math.pow(10,Math.floor(Math.log10(raw||1))), n=raw/p;
+  return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;
+}
+function drawSVPlot(){
+ try{
+  const pc=document.getElementById('svPlot'); if(!pc||_svPlotFolded) return;
+  const W2=pc.offsetWidth||220, PH=200;
+  const PAD={t:14,b:36,l:46,r:14}, IW=W2-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
+  const DPR=plotDPR||window.devicePixelRatio||1;
+  pc.width=W2*DPR; pc.height=PH*DPR; pc.style.width='100%'; pc.style.height=PH+'px';
+  const g=pc.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.scale(DPR,DPR);
+  g.clearRect(0,0,W2,PH);
+  const note=m=>{ g.fillStyle='#8e8e93';     // 캔버스는 CSS 변수를 못 받는다 — 리터럴로
+    g.font='500 11px -apple-system,sans-serif'; g.textAlign='center';
+    g.fillText(m, W2/2, PH/2); };
+
+  const df=getDeflect();
+  const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
+  const t40=csNeutralT4(), z=svT2At(t40);
+  if(z===null){ note('중립 자세의 해가 없어 그릴 수 없습니다'); return; }
+  if(dp+dm<=0){ note('타각 범위가 0 입니다'); return; }
+
+  // δ 를 상향(−dp) → 하향(+dm) 으로 훑는다. θ₄ = θ₄₀ − δ.
+  const N=Math.max(80, Math.min(400, Math.round((dp+dm)*4)));
+  const pts=[];
+  for(let i=0;i<=N;i++){
+    const d=-dp+(dp+dm)*i/N, t=svT2At(t40-d);
+    pts.push({d, v: t===null ? null : (((t-z+180)%360+360)%360-180)});
+  }
+  const good=pts.filter(q=>q.v!==null);
+  if(good.length<2){ note('작동범위에서 기구 해가 없습니다'); return; }
+
+  const x0=-dp, x1=dm;
+  let y0=Math.min(0,...good.map(q=>q.v)), y1=Math.max(0,...good.map(q=>q.v));
+  if(y1-y0<1e-6){ y0-=1; y1+=1; }
+  const yPad=(y1-y0)*0.12; y0-=yPad; y1+=yPad;
+  const X=d=>PAD.l+(d-x0)/(x1-x0)*IW, Y=v=>PAD.t+(y1-v)/(y1-y0)*IH;
+
+  // 격자 + 눈금
+  g.font='500 9px -apple-system,sans-serif';
+  const xt=svTick(x1-x0), yt=svTick(y1-y0);
+  g.strokeStyle='rgba(118,118,128,0.16)'; g.lineWidth=1; g.setLineDash([]);
+  g.textAlign='center'; g.textBaseline='top';
+  for(let v=Math.ceil(x0/xt)*xt; v<=x1+1e-9; v+=xt){
+    g.beginPath(); g.moveTo(X(v),PAD.t); g.lineTo(X(v),PAD.t+IH); g.stroke();
+    g.fillStyle='#8e8e93';
+    g.fillText((v>0?'+':v<0?'−':'')+Math.abs(+v.toFixed(1)), X(v), PAD.t+IH+5);
+  }
+  g.textAlign='right'; g.textBaseline='middle';
+  for(let v=Math.ceil(y0/yt)*yt; v<=y1+1e-9; v+=yt){
+    g.beginPath(); g.moveTo(PAD.l,Y(v)); g.lineTo(PAD.l+IW,Y(v)); g.stroke();
+    g.fillStyle='#8e8e93';
+    g.fillText((v>0?'+':v<0?'−':'')+Math.abs(+v.toFixed(1)), PAD.l-5, Y(v));
+  }
+  // 중립 십자선 — δ=0 과 서보 0° 가 만나는 지점이 기준이다
+  g.strokeStyle='rgba(52,199,89,0.55)'; g.setLineDash([3,3]);
+  g.beginPath(); g.moveTo(X(0),PAD.t); g.lineTo(X(0),PAD.t+IH); g.stroke();
+  g.beginPath(); g.moveTo(PAD.l,Y(0)); g.lineTo(PAD.l+IW,Y(0)); g.stroke();
+
+  // 양 끝을 잇는 직선(이상적 선형) — 곡선과의 벌어짐이 비선형성
+  const A=good[0], B=good[good.length-1];
+  const lin=d=>A.v+(B.v-A.v)*(d-A.d)/((B.d-A.d)||1);
+  g.strokeStyle='rgba(142,142,147,0.75)'; g.lineWidth=1; g.setLineDash([4,3]);
+  g.beginPath(); g.moveTo(X(A.d),Y(A.v)); g.lineTo(X(B.d),Y(B.v)); g.stroke();
+
+  // 대응 곡선 — 해가 끊기면 선도 끊는다
+  g.setLineDash([]); g.strokeStyle=C.crank; g.lineWidth=2;
+  g.lineJoin='round'; g.lineCap='round';
+  let pen=false;
+  g.beginPath();
+  for(const q of pts){
+    if(q.v===null){ pen=false; continue; }
+    if(!pen){ g.moveTo(X(q.d),Y(q.v)); pen=true; } else g.lineTo(X(q.d),Y(q.v));
+  }
+  g.stroke();
+
+  // 현재 위치
+  const cur=csDelta(), curV=(()=>{ const t=svT2At(S.t4);
+    return t===null?null:(((t-z+180)%360+360)%360-180); })();
+  if(curV!==null && cur>=x0-1e-6 && cur<=x1+1e-6){
+    g.fillStyle='#34c759'; g.strokeStyle='#fff'; g.lineWidth=2;
+    g.beginPath(); g.arc(X(cur),Y(curV),4.5,0,7); g.fill(); g.stroke();
+  }
+
+  // 축 이름 + 비선형성
+  g.setLineDash([]); g.fillStyle='#8e8e93'; g.font='500 9.5px -apple-system,sans-serif';
+  g.textAlign='right'; g.textBaseline='bottom';
+  g.fillText('조종면 δ (°)  →  하향 +', PAD.l+IW, PH-2);
+  g.textAlign='left';
+  g.fillText('상향 −', PAD.l, PH-2);
+  g.save(); g.translate(11, PAD.t+IH/2); g.rotate(-Math.PI/2);
+  g.textAlign='center'; g.textBaseline='top'; g.fillText('서보 Δθ₂ (°)', 0, 0); g.restore();
+
+  let dev=0; for(const q of good) dev=Math.max(dev, Math.abs(q.v-lin(q.d)));
+  const gap=pts.some(q=>q.v===null);
+  g.textBaseline='top'; g.font='600 9.5px -apple-system,sans-serif'; g.fillStyle=C.crank;
+  // 곡선이 좌상→우하면 위쪽은 오른쪽이, 좌하→우상이면 왼쪽이 빈다 — 빈 쪽 모서리에 붙인다
+  const down=B.v<A.v;
+  g.textAlign=down?'right':'left';
+  g.fillText('직선 대비 최대 '+dev.toFixed(1)+'°'+(gap?' (해 없는 구간 제외)':''),
+             down?PAD.l+IW-4:PAD.l+4, PAD.t+3);
+ }catch(e){}
+}
+
 function updateCSUI(){
   const sl=document.getElementById('slCS'); if(!sl) return;
   const df=getDeflect();
@@ -2289,6 +2490,21 @@ function updateCSUI(){
     rd.textContent = a<0.05 ? '중립 0.0°'
       : (d<0 ? '상향 −'+a.toFixed(1)+'°'+over : '하향 +'+d.toFixed(1)+'°'+over);
   }
+  // 서보각도 카드 — δ 와 같은 자세를 입력측에서 본 값. 부호를 항상 붙여 회전 방향을 남긴다.
+  const svSet=(id,v,suf)=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.textContent = (v===null||!isFinite(v)) ? '—'
+      : ((suf==='abs'?'':(v>=0?'+':'−'))+Math.abs(v).toFixed(1)+'°');
+  };
+  const sv=svAngles();
+  svSet('lSV',      sv?sv.cur:null);
+  svSet('lSVup',    sv?sv.up:null);
+  svSet('lSVdn',    sv?sv.dn:null);
+  svSet('lSVtravel',sv?sv.travel:null,'abs');
+  const svT=document.getElementById('lSVtravel');
+  // 범위 일부에서 해가 없으면 행정은 '적어도 이만큼' 이지 확정값이 아니다 — 그렇게 적는다.
+  if(svT&&sv&&sv.gap&&sv.travel!==null) svT.textContent='≥'+svT.textContent;
+
   // 현재 조종면 위치의 파생값 3종 — 출력토크 T₄(=T₂·MA) 와 전달각 μ(입력·출력).
   // calcTorque() 가 {ma, mu=출력측, muIn=입력측} 을 모두 주므로 여기서 재계산하지 않는다.
   let tr=null; try{ tr=calcTorque(); }catch(e){}
@@ -2306,6 +2522,7 @@ function updateCSUI(){
   };
   setMu('lCSMuIn',  tr?tr.muIn:NaN);
   setMu('lCSMuOut', tr?tr.mu  :NaN);
+  drawSVPlot();                 // 펼쳐져 있을 때만 실제로 그린다
 }
 
 function applyT2(v){
@@ -4953,6 +5170,7 @@ function redrawPlotById(id){
   if(id==='torquePlot') drawTorquePlot();
   else if(id==='couplerPlot') drawCouplerPlot();
   else if(id==='deltaSweepPlot') drawDeltaSweepPlot();
+  else if(id==='svPlot') drawSVPlot();
 }
 
 function plotBtnFeedback(btn, text){

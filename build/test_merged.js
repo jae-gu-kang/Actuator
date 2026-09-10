@@ -205,6 +205,115 @@ async function clickByText(frame, txt){
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 조종면 이동·트림·중립지정 + 부호 규약(상향 −/하향 +)', cs.ok===true, JSON.stringify(cs));
 
+    // 서보각도 카드 — 조종면 중립에서 0°, 양 끝은 실제 크랭크 회전량. 조종면 각도와
+    // 같은 1자유도를 입력측에서 본 값이라, 끝으로 보내면 판독값이 끝 칸과 일치해야 한다.
+    const svc = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=i=>document.getElementById(i), tx=i=>g(i)?g(i).textContent.trim():null;
+      setDeflectMode('asym'); g('iDeflectP').value=30; g('iDeflectM').value=20; updateCSUI();
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      csGo('zero'); draw();
+      const zero=tx('lSV'), cUp=tx('lSVup'), cDn=tx('lSVdn'), cTr=tx('lSVtravel');
+      onCSAngle(-30); draw(); const atUp=tx('lSV');
+      onCSAngle(20);  draw(); const atDn=tx('lSV');
+      // 독립 검산: θ₂₀+Δθ₂ 를 순방향으로 풀면 같은 θ₄ 가 나와야 한다 (표시값이 아니라 기구가 근거)
+      csGo('zero'); draw();
+      const t40=csNeutralT4();
+      const z=(solve(S.a,S.b,S.c,gLen(),t40)||[]).find(x=>x.type===S.sol);
+      let worst=0, n=0;
+      if(z) for(const d of [-30,-15,0,7.5,20]){
+        onCSAngle(d); draw();
+        const a=svAngles(); if(!a||a.cur===null) continue;
+        const bk=fwdSolveEx(S.a,S.b,S.c,gLen(),((z.t2+a.cur)%360+360)%360);
+        if(bk){ n++; worst=Math.max(worst,Math.abs(bk.t4-S.t4)); }
+      }
+      // 해 분기를 바꾸면 서보가 도는 방향이 뒤집힌다 — 카드가 그걸 따라가야 한다
+      csGo('zero'); draw(); const upOpen=tx('lSVup');
+      setSol(S.sol==='open'?'cross':'open'); draw(); const upCross=tx('lSVup');
+      setSol('open'); draw();
+      // 원시 각 카드는 기본 접힘이고, 도달 불가 배너는 그 접이 영역 **밖**에 있어야 한다
+      const foldHidden=g('rawAngFold').style.display==='none';
+      const bannerOut=!!g('noSolAng') && !g('rawAngFold').contains(g('noSolAng'));
+      // 중복 금지 — 토크·전달각은 조종면 카드에만, 서보 카드에는 없어야 한다
+      const svCard=g('lSV').closest('.angle-card');
+      const noDup=!svCard.querySelector('#lCST4,#lCSMuIn,#lCSMuOut');
+      return {ok: zero==='+0.0°' && atUp===cUp && atDn===cDn
+                  && cUp!==cDn && cUp!=='—' && cDn!=='—' && cTr!=='—'
+                  && n===5 && worst<0.01
+                  && upOpen!==upCross && upCross!=='—'
+                  && foldHidden && bannerOut && noDup,
+              zero,cUp,cDn,cTr,atUp,atDn,역산건수:n,역산최대오차:+worst.toFixed(4),
+              upOpen,upCross,foldHidden,bannerOut,noDup};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=i=>document.getElementById(i);
+      setSol('open');
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      onLink(); csGo('zero'); draw(); } });
+    rec('linkage: 서보각도 카드 — 중립 0° · 양 끝 일치 · 순방향 역산 · 중복 없음', svc.ok===true, JSON.stringify(svc));
+
+    // 서보각도 ↔ 조종면 각도 대응 그래프 — 실제로 그려진 폴리라인을 잡아 카드와 대조한다.
+    const svp = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=i=>document.getElementById(i);
+      const cap=()=>{                       // drawSVPlot 이 낸 선·글자·원을 그대로 받아 적는다
+        const c=g('svPlot').getContext('2d');
+        const segs=[],texts=[],arcs=[]; let path=[];
+        const _bp=c.beginPath.bind(c),_mv=c.moveTo.bind(c),_ln=c.lineTo.bind(c),
+              _st=c.stroke.bind(c),_ft=c.fillText.bind(c),_ar=c.arc.bind(c);
+        c.beginPath=function(){path=[];return _bp();};
+        c.moveTo=function(x,y){path.push({x,y});return _mv(x,y);};
+        c.lineTo=function(x,y){path.push({x,y});return _ln(x,y);};
+        c.arc=function(x,y,r,a1,a2,cc){arcs.push({x,y,r});return _ar(x,y,r,a1,a2,cc);};
+        c.stroke=function(){ if(path.length>1) segs.push(path.slice()); return _st(); };
+        c.fillText=function(t,x,y){texts.push(String(t));return _ft(t,x,y);};
+        try{ drawSVPlot(); }
+        finally{ c.beginPath=_bp;c.moveTo=_mv;c.lineTo=_ln;c.stroke=_st;c.fillText=_ft;c.arc=_ar; }
+        return {segs,texts,arcs};
+      };
+      setDeflectMode('asym'); g('iDeflectP').value=30; g('iDeflectM').value=20; updateCSUI();
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      csGo('zero'); draw();
+      const foldHidden=g('svPlotFold').style.display==='none';
+      const drawnWhileFolded=cap().segs.length;     // 접혀 있으면 offsetWidth=0 → 그리면 안 된다
+      toggleSVPlot(); onCSAngle(-12); draw();
+      const C=cap();
+      const curve=C.segs.slice().sort((x,y)=>y.length-x.length)[0]||[];
+      const xs=curve.map(q=>q.x), mono=xs.length>1&&xs.every((v,i)=>i===0||v>xs[i-1]);
+      const a=svAngles();
+      // 곡선이 내려가면(서보각 감소) 화면 y 는 커진다 — 카드의 양 끝 부호와 방향이 맞아야 한다
+      const dirOK = !!a && curve.length>1 &&
+                    ((a.up>a.dn) === (curve[curve.length-1].y>curve[0].y));
+      // 캡션의 비선형성을 독립 계산과 대조 (표시값이 아니라 기구가 근거)
+      const t40=csNeutralT4(), z=svT2At(t40), dp=30, dm=20;
+      const rel=t4=>{ const t=svT2At(t4); return t===null?null:(((t-z+180)%360+360)%360-180); };
+      const A=rel(t40+dp), B=rel(t40-dm);
+      let mx=0;
+      for(let i=0;i<=400;i++){ const d=-dp+(dp+dm)*i/400, v=rel(t40-d);
+        if(v===null) continue;
+        mx=Math.max(mx, Math.abs(v-(A+(B-A)*(d+dp)/(dp+dm)))); }
+      const capTxt=C.texts.find(t=>t.indexOf('직선 대비 최대')===0)||'';
+      const devOK = capTxt==='직선 대비 최대 '+mx.toFixed(1)+'°';
+      // 현재 위치 마커 — 곡선 위에 있는 것만으로는 부족하다(중립점도 곡선 위다).
+      // 곡선 양 끝이 δ=−dp·+dm 이므로, 마커의 x 가 현재 δ 자리인지까지 본다.
+      const mk=C.arcs.find(q=>q.r>3&&q.r<6);
+      let dy=null, dx=null;
+      if(mk&&curve.length>1){
+        const b=Math.min(...curve.map(q=>Math.abs(q.x-mk.x)));
+        dy=Math.min(...curve.filter(q=>Math.abs(q.x-mk.x)<=b+0.51).map(q=>Math.abs(q.y-mk.y)));
+        const xL=curve[0].x, xR=curve[curve.length-1].x;
+        dx=Math.abs(mk.x-(xL+(csDelta()+dp)/(dp+dm)*(xR-xL)));
+      }
+      return {ok: foldHidden && drawnWhileFolded===0 && g('svPlotFold').style.display===''
+                  && curve.length>=80 && mono && dirOK && devOK
+                  && !!mk && dy!==null && dy<1 && dx!==null && dx<1,
+              foldHidden, drawnWhileFolded, 점수:curve.length, mono, dirOK,
+              캡션:capTxt, 독립:+mx.toFixed(1),
+              마커y차:dy===null?null:+dy.toFixed(2), 마커x차:dx===null?null:+dx.toFixed(2)};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=i=>document.getElementById(i);
+      if(g('svPlotFold').style.display!=='none') toggleSVPlot();
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      onLink(); csGo('zero'); draw(); } });
+    rec('linkage: 서보↔조종면 대응 그래프 — 기본 접힘 · 곡선 방향·비선형성이 카드와 일치', svp.ok===true, JSON.stringify(svp));
+
     // 출력토크 그래프에 조종면 끝단(10° 버림) 마커가 그려지는가
     const pm = await f.evaluate(()=>{ try{
       const sig=(pv,mv)=>{ setDeflectMode('asym');
@@ -633,19 +742,28 @@ async function clickByText(frame, txt){
       let bad=null;
       for(let t=0;t<360;t+=1) if(fwdSolveEx(S.a,S.b,S.c,gLen(),t)===null){ bad=t; break; }
       if(bad===null) return {err:'도달 불가 θ₂ 가 없는 형상'};
-      g('nT2').focus(); g('nT2').value=String(bad); onT2num(bad);
+      // nT2 는 '원시 각' 접이 안에 있다. 숨겨진 요소는 포커스를 못 받아 activeElement 가
+      // body 로 남고, 그러면 타이핑 보호 가드가 아예 안 걸린 채로 통과해 버린다 — 펼치고
+      // 포커스가 정말 걸렸는지까지 단언한다.
+      if(document.getElementById('rawAngFold').style.display==='none') toggleRawAng();
+      g('nT2').focus();
+      const focused=document.activeElement===g('nT2');
+      g('nT2').value=String(bad); onT2num(bad);
       const warned=getComputedStyle(g('noSolAng')).display==='block';
       draw();                                   // 포커스를 유지한 채 리드로
       const off=getComputedStyle(g('noSolAng')).display!=='block';
       const shown=parseFloat(g('lT2').textContent);
+      const kept=g('nT2').value;
       g('nT2').blur();
-      return {ok: warned && off && Math.abs(shown-real)<0.15,
-              bad, real:+real.toFixed(2), shown, warned, bannerOff:off, kept:g('nT2').value};
+      return {ok: warned && off && Math.abs(shown-real)<0.15
+                  && focused && kept===String(bad),   // 편집 중인 칸을 덮어쓰지 않는다
+              bad, real:+real.toFixed(2), shown, warned, bannerOff:off, focused, kept};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
+      if(g('rawAngFold').style.display!=='none') toggleRawAng();
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
       onLink(); setT4(100); draw(); } });
-    rec('linkage: 도달 불가 θ₂ — 경고 표시 · 경고가 꺼지면 판독값은 실제 자세', rd.ok===true, JSON.stringify(rd));
+    rec('linkage: 도달 불가 θ₂ — 경고 · 판독값은 실제 자세 · 편집 중인 칸 보호', rd.ok===true, JSON.stringify(rd));
   } else rec('linkage: 프레임 로드', false);
 
   // 4) CROSS-TOOL: linkage -> hinge handoff (window.open shim + localStorage)
