@@ -248,7 +248,7 @@ async function clickByText(frame, txt){
       const curPlot=drawn.filter(t=>/^[\d.]+ N·m$/.test(t)).pop();
       // 알약 윗줄(θ₄)도 격자가 아닌 실제 각도여야 한다 — 아랫줄 δ 와 모순되면 안 된다
       const pill=drawn.filter(t=>/^[\d.]+°$/.test(t)).map(t=>parseFloat(t));
-      const curPill=pill.some(v=>Math.abs(v-S.t4)<0.051);
+      const curPill=pill.some(v=>Math.abs(v-S.t4)<0.051), pillT4=+S.t4.toFixed(2);
       drawn.length=0;
       csGo('up');    drawTorquePlot();
       const upCard=num(g('lCST4').textContent);
@@ -256,10 +256,10 @@ async function clickByText(frame, txt){
       const upPlotVal=upPlot?num(upPlot.split('·')[1]):null;
       return {ok: Math.abs(curCard-num(curPlot))<0.005 && upPlotVal!==null
                   && Math.abs(upCard-upPlotVal)<0.005 && curPill,
-              θ40:99.6, curCard, curPlot, upCard, upPlot, θ4:+S.t4.toFixed(2), curPill};
+              θ40:99.6, curCard, curPlot, upCard, upPlot, pillT4, curPill};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
-      if(_ctx&&_orig) _ctx.fillText=_orig;      // 예외가 나도 몽키패치를 반드시 되돌린다
+      if(_ctx&&_orig) delete _ctx.fillText;     // 예외가 나도 몽키패치를 반드시 되돌린다(프로토타입 복귀)
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
       g('iDeflectP').value=_sv.dp; g('iDeflectM').value=_sv.dm;
       setDeflectMode('sym'); g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });

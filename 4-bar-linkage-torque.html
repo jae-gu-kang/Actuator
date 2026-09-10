@@ -3521,7 +3521,7 @@ function runOptimizer(){
     catch(e){
       console.warn('optimize:',e);
       // 에러를 화면에 노출해 원인 파악이 가능하게 함
-      if(box){ box.style.display='block'; setOptApply('');
+      if(box){ unfoldOptForMsg(); box.style.display='block'; setOptApply('');
         box.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;line-height:1.5;">'
           +'⚠︎ 계산 중 오류가 발생했습니다:<br><code style="font-size:10px;">'
           +String(e&&e.message||e).replace(/</g,'&lt;')+'</code></div>'; }
@@ -3542,6 +3542,9 @@ function applyOptFold(){
   if(ico) ico.textContent=_optFolded?'▼':'▲';
 }
 // 적용바는 결과가 있을 때만 — 로딩·경고·오류 상태에서는 비운다(이전 결과의 버튼이 남으면 안 된다)
+// 실패 사유를 접이 영역 안에 넣어두면 접힌 상태에서 통째로 묻힌다.
+// (버튼이 '계산 중…' 이었다 돌아올 뿐 화면 변화가 0 이 된다) — 강제로 펼친다.
+function unfoldOptForMsg(){ if(_optFolded){ _optFolded=false; applyOptFold(); } }
 function setOptApply(html){
   const el=document.getElementById('optApply'); if(!el) return;
   el.innerHTML=html||''; el.style.display=html?'block':'none';
@@ -3555,7 +3558,7 @@ function doOptimize(){
   const hasMotor=!isNaN(motorVal)&&motorEl.value.trim()!=='';
   const {dm,dp,sym}=getDeflect();
   const box=document.getElementById('optResult');
-  const showMsg=t=>{box.style.display='block'; setOptApply('');
+  const showMsg=t=>{unfoldOptForMsg(); box.style.display='block'; setOptApply('');
     box.innerHTML='<div style="font-size:11px;color:#a05800;font-weight:500;line-height:1.5;">'+t+'</div>';};
 
   // 타각 범위는 필수 입력
@@ -3856,10 +3859,12 @@ function applyOptFromCard(){
                   const v=parseFloat(e.value); return isNaN(v)?NaN:v; };
   const cv=get('optEditC'), bv=get('optEditB'), t0=get('optEditT0');
   const av=get('optEditA'), dv=get('optEditD');
-  if(t0===undefined||!isFinite(t0)) return;   // NaN·Infinity 모두 차단
+  // 조용히 return 하면 접힌 상태에서 '버튼은 눌리는데 아무 일도 안 일어나고
+  // 이유(recalcOptCard 의 ⚠︎ 배너)는 접혀서 안 보이는' 상태가 된다 → 펼쳐서 사유를 노출.
+  if(t0===undefined||!isFinite(t0)){ unfoldOptForMsg(); return; }   // NaN·Infinity 모두 차단
   // b·θ₄₀ 는 추천 c 를 전제로 함께 최적화된 값이므로 일부만 적용하면 안 된다.
   const bad=(v,lo,hi)=>v!==undefined&&(isNaN(v)||v<lo||v>hi);
-  if(bad(cv,5,400)||bad(bv,5,400)||bad(av,5,400)||bad(dv,10,400)) return;
+  if(bad(cv,5,400)||bad(bv,5,400)||bad(av,5,400)||bad(dv,10,400)){ unfoldOptForMsg(); return; }
   applyOpt(bv,t0,cv,av,dv);
 }
 
