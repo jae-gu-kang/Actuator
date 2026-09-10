@@ -841,7 +841,7 @@ body {
             <div class="step-num">5</div>
             <div class="step-body">
               <h4>힌지모멘트 · 리깅 계산기로 연동</h4>
-              <p><strong>중립각 θ₄₀</strong>와 <strong>타각 δ+ 방향</strong>을 설정한 뒤 <strong>"힌지모멘트 계산기로 보내기"</strong>를 누르면 기하·토크가 전달되어, 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 |T₄(δ)|가 자동 계산됩니다. <strong>"조종면 리깅 계산기로 보내기"</strong>로 3차식·단조성 이론 검증에 링크 기하를 넘길 수도 있습니다.</p>
+              <p><strong>중립각 θ₄₀</strong>(조종면 각도 카드의 "중립 지정" 또는 최적화 "적용"으로 정해집니다)와 <strong>타각 방향</strong>(부호 규약에서 자동 결정 — δ+ = 하향 = θ₄ 감소)이 함께 나갑니다. <strong>"힌지모멘트 계산기로 보내기"</strong>를 누르면 기하·토크가 전달되어, 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 |T₄(δ)|가 자동 계산됩니다. <strong>"조종면 리깅 계산기로 보내기"</strong>로 3차식·단조성 이론 검증에 링크 기하를 넘길 수도 있습니다.</p>
             </div>
           </div>
         </div>
@@ -858,11 +858,11 @@ body {
           <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결. AI 최적화 시 c 허용범위는 <strong>0.2~0.8×L</strong>(L = 유효 지상링크 √(d²+e²), y오프셋 e=0 이면 d)로 자동 연동됩니다</td><td>40</td><td>5 ~ 400</td></tr>
           <tr><td>θ₄ <span class="unit">°</span></td><td>출력각 (팔로워) — 슬라이더 또는 숫자 입력</td><td>100</td><td>0 ~ 360</td></tr>
           <tr><td>θ₂ <span class="unit">°</span></td><td>입력각 (크랭크) — 입력하면 역해로 θ₄ 산출</td><td>계산값</td><td>0 ~ 360</td></tr>
-          <tr><td>δ <span class="unit">°</span></td><td>조종면 각도 — 중립 0°, 입력한 타각범위 안에서 상향(+)·하향(−). θ₄ = θ₄₀ + δ</td><td>0</td><td>−δ₋ ~ +δ₊</td></tr>
+          <tr><td>δ <span class="unit">°</span></td><td>조종면 각도 — 중립 0°, 입력한 타각범위 안에서 <strong>상향 = −, 하향 = +</strong>. <code>δ = −(θ₄ − θ₄₀)</code> 즉 <code>θ₄ = θ₄₀ − δ</code></td><td>0</td><td>−δ<sub>상향</sub> ~ +δ<sub>하향</sub></td></tr>
           <tr><td>장착 기울기 <span class="unit">°</span></td><td>작동기 몸체 회전 (O₂ 고정) — <strong>도면 표시 전용</strong>, 계산 무관</td><td>180</td><td>0 ~ 360</td></tr>
           <tr><td>y오프셋 <span class="unit">mm</span></td><td>작동기 편심 장착 (O₄ 고정, O₂ 승강) — <strong>실제 기하</strong>, L=√(d²+e²) 로 토크 재계산</td><td>0</td><td>−400 ~ 400</td></tr>
           <tr><td>T₂ <span class="unit">N·m</span></td><td>입력 토크 — 크랭크에 인가되는 모터 토크</td><td>3</td><td>−9999 ~ 9999</td></tr>
-          <tr><td>타각 범위 ±δ <span class="unit">°</span></td><td>AI 최적화 목표 타각 범위 (θ₄₀ ± δ)</td><td>25</td><td>0.5 ~ 89</td></tr>
+          <tr><td>타각 범위 ±δ <span class="unit">°</span></td><td>AI 최적화 목표 타각 범위 — <strong>크기</strong>로 입력합니다(부호 없음). 대칭이면 출력각이 θ₄₀−δ(하향) ~ θ₄₀+δ(상향) 를 모두 지나야 한다는 뜻입니다</td><td>25</td><td>0.5 ~ 89</td></tr>
           <tr><td>토크 요구도 <span class="unit">N·m</span></td><td>출력토크·커플러 그래프의 요구 토크 기준선. 토크 가용각 판정에 사용</td><td>3</td><td>−9999 ~ 9999</td></tr>
           <tr><td>끝단 마진 <span class="unit">°</span></td><td>작동범위 양끝단에 두는 안전 여유각. 물리 가용범위에서 제외</td><td>5</td><td>0 ~ 90</td></tr>
           <tr><td>중립각 θ₄₀ <span class="unit">°</span></td><td>힌지모멘트/리깅 연동용 타각 δ=0° 기준 출력각</td><td>100</td><td>0 ~ 360</td></tr>
@@ -883,6 +883,28 @@ body {
           <li><strong>표시 체크박스는 렌더링 토글</strong> — 체크박스 자체는 그림만 바꿉니다(기본 꺼짐). 다만 위의 <strong>y오프셋은 체크박스와 무관하게 항상 계산에 반영</strong>되므로, 표시를 꺼도 값이 0 이 아니면 결과가 달라집니다.</li>
         </ul>
         <div class="tip-box" style="margin-top:14px;">표시를 켜면 <strong>서보 몸체·서보암·커플러·출력혼</strong>과 <strong>4개 연결부 볼트(O₂·A·B·O₄)</strong>가 평면(flat) 도식으로 함께 그려집니다. 끄면 분석용 추상 스키매틱으로 돌아갑니다.</div>
+      </div>
+
+      <!-- 조종면 각도 (δ) 카드 -->
+      <div class="card">
+        <span id="anc-linkage-cs" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">조종면 각도 (δ) 카드</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          기구를 <strong>조종면 기준</strong>으로 움직이는 패널입니다. θ₄ 슬라이더가 출력링크의 절대각을 다룬다면, 여기는 중립을 0°로 놓고 <strong>타각 δ</strong>로 움직입니다.
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">⚠︎</div>
+          <div class="tip-text"><strong>부호 규약 — 조종면 상향 = 마이너스(−), 하향 = 플러스(+).</strong>
+          정의는 <code>δ = −(θ₄ − θ₄₀)</code>, 뒤집으면 <code>θ₄ = θ₄₀ − δ</code>입니다.
+          기구상 <strong>상향은 θ₄ 증가</strong>, 하향은 θ₄ 감소이며, 이 관계는 부호 규약과 무관하게 그대로입니다
+          (타각 입력의 상향·하향 칸은 <em>크기</em>를 양수로 받습니다).</div>
+        </div>
+        <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
+          <li><strong>읽기값과 슬라이더</strong> — 카드 오른쪽 위 큰 글씨가 현재 타각(<code>중립 0.0°</code> / <code>상향 −20.0°</code> / <code>하향 +20.0°</code>)이고, 아래 슬라이더로 직접 끌 수 있습니다. θ₄ 슬라이더나 캔버스 드래그로 <strong>입력한 타각범위를 벗어나면</strong> 읽기값 끝에 <code>⚠</code>가 붙습니다 — 아래 μ 의 <code>⚠</code>(전달각 불량)와는 다른 뜻입니다.</li>
+          <li><strong>지표 3종</strong> — 현재 자세의 <strong>출력토크 T₄</strong>·<strong>입력측 μ</strong>·<strong>출력측 μ</strong>를 한 줄에 보여줍니다. T₄는 크기값이라 출력링크색 고정, μ는 값 자체가 판정이라 <strong>47° 이상 초록 · 40° 이상 주황 · 40° 미만 빨강+⚠</strong>입니다.</li>
+          <li><strong>이동 버튼</strong> — 왼쪽부터 부호 순서로 <code>▲ 상향 −N°</code> · <code>−1°</code> · <code>중립</code> · <code>+1°</code> · <code>하향 +N° ▼</code>. 양 끝 버튼의 N은 입력한 타각을 <strong>10° 단위로 내린 값</strong>이라 딱 떨어지는 각도로 갑니다(상향 35° → 30°, 25.5° → 20°). 버림값이 0이면 중립과 같아 버튼이 숨습니다. 가운데 ±1°는 트림이고 타각범위 끝에서 멈춥니다.</li>
+          <li><strong>"중립 지정"</strong> — 조종면을 <em>움직이지 않고</em> 현재 θ₄를 δ=0° 기준으로 재정의합니다(위 <strong>중립</strong> 버튼은 반대로 δ=0° 위치로 <em>이동</em>). 여기서 정한 θ₄₀가 출력토크 그래프의 δ 눈금과 힌지모멘트·리깅 연동의 기준각이 됩니다.</li>
+          <li><strong>최적화 결과와 대조</strong> — 결과 카드의 <strong>작동범위 내 최소 전달각</strong>은 범위 <em>전체</em>의 최솟값이라 중립(δ=0)의 값과 다른 게 정상입니다. 카드가 최솟값이 나오는 δ를 함께 표시하므로, <strong>"적용" 후</strong> 그 δ로 옮기면 이 카드에 같은 수가 뜹니다. <strong>최적화가 고른 형상</strong>에서는 입력측과 출력측의 최솟값이 대개 <strong>서로 반대쪽 끝단</strong>에서 나옵니다(끝단 불균형 제약이 μ 를 양끝으로 밀기 때문이며, 손으로 고친 형상에서는 같은 쪽일 수도 있습니다).</li>
+        </ul>
       </div>
 
       <!-- AI 최적 설계 추천 -->
@@ -956,7 +978,7 @@ body {
             <div class="step-num" style="background:linear-gradient(135deg,#9b5de5,#bf5af2);">H</div>
             <div class="step-body">
               <h4>힌지모멘트 계산기로 보내기</h4>
-              <p>연동 패널에서 <strong>중립각 θ₄₀</strong>("현재값" 버튼으로 현재 θ₄ 복사)과 <strong>타각 δ+ 방향</strong>(θ₄ 증가/감소)을 설정한 뒤 <strong>"힌지모멘트 계산기로 보내기 →"</strong>를 누르면 {a,b,c,d,해유형,T₂,θ₄₀,방향}이 전달됩니다. 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 <strong>|T₄(δ)| = |T₂ × MA(θ₄₀ ± δ)|</strong>가 자동 계산되어, 공력 힌지모멘트와 링크의 가용 토크를 함께 비교할 수 있습니다.</p>
+              <p>연동 패널은 버튼만 있습니다 — <strong>중립각 θ₄₀</strong>와 <strong>타각 방향</strong>은 앞서 정해진 값이 그대로 나가므로 따로 입력하지 않습니다. θ₄₀ 는 조종면 각도 카드의 <strong>"중립 지정"</strong> 또는 최적화 <strong>"적용"</strong>으로 정하고, 방향은 부호 규약(δ+ = 하향 = θ₄ 감소)에서 나옵니다. <strong>"힌지모멘트 계산기로 보내기 →"</strong>를 누르면 {a,b,c,d(유효 지상링크 L),해유형,T₂,θ₄₀,방향}이 전달되고, 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 <strong>|T₄(δ)| = |T₂ × MA(θ₄₀ − δ)|</strong>가 자동 계산됩니다. 실물 장착이 반대여서 방향을 뒤집어야 하면 <em>수신 도구</em>의 <strong>δ+ 방향</strong> 칸에서 바꿉니다.</p>
             </div>
           </div>
           <div class="step">
@@ -983,7 +1005,7 @@ body {
             <span id="anc-neutral-angle"></span><div class="term-name">중립각 (Neutral Angle)
               <span class="term-symbol">θ₄₀</span>
             </div>
-            <div class="term-desc">타각 δ = 0°에 대응하는 기준 출력각. 조종면의 중립(뉴트럴) 위치에 해당하며, 작동범위는 θ₄₀ ± δ로 정의됩니다. AI 최적화의 탐색 변수이자 힌지모멘트·리깅 연동의 기준각입니다.</div>
+            <div class="term-desc">타각 δ = 0°에 대응하는 기준 출력각. 조종면의 중립(뉴트럴) 위치에 해당합니다. 부호 규약은 <strong>상향 = −δ, 하향 = +δ</strong>라 <code>θ₄ = θ₄₀ − δ</code>이고, 작동범위는 상향 δ₊·하향 δ₋ 에 대해 <code>θ₄₀ + δ₊</code>(상향 끝단) ~ <code>θ₄₀ − δ₋</code>(하향 끝단)입니다. AI 최적화의 탐색 변수이자 힌지모멘트·리깅 연동의 기준각입니다.</div>
           </div>
           <div class="term-row">
             <span id="anc-phys-span"></span><div class="term-name">물리(기계적) 가용 각도
@@ -1097,7 +1119,7 @@ body {
       </div>
       <div class="tip-box">
         <div class="tip-icon">🤖</div>
-        <div class="tip-text"><strong>추천 워크플로우:</strong> ① 타각 범위 ±δ 입력 → <strong>"✦ 최적값 계산"</strong>으로 c·b·θ₄₀ 초안 확보 → ② <strong>"타각범위별 토크 검토"</strong> 스윕으로 δ 변화에 따른 최적 c·토크 여유 확인 → ③ 중립각·δ+ 방향 설정 후 <strong>힌지모멘트 계산기</strong>로 보내 공력 힌지모멘트 대비 링크 가용 토크를 검증합니다.</div>
+        <div class="tip-text"><strong>추천 워크플로우:</strong> ① 타각 범위 ±δ 입력 → <strong>"✦ 최적값 계산"</strong>으로 c·b·θ₄₀ 초안 확보 → ② <strong>"타각범위별 토크 검토"</strong> 스윕으로 δ 변화에 따른 최적 c·토크 여유 확인 → ③ <strong>힌지모멘트 계산기</strong>로 보내 공력 힌지모멘트 대비 링크 가용 토크를 검증합니다.</div>
       </div>
     </section>
 
@@ -2420,10 +2442,11 @@ const SEARCH_INDEX = [
   { id:'linkage', anchor:'anc-loop-closure',        title:'루프 폐합 방정식',                  keywords:'loop closure equation 루프 폐합 방정식 θ₂ θ₃ θ₄ cos sin a b c d X Y방향' },
   { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 입력 토크 T₂ 조종면 각도 전달각 플롯 슬라이더 드래그 개방형 교차형 θ₂ 역해 AI 최적화 그래프 힌지모멘트 리깅 연동' },
   { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ θ₂ T₂ 타각범위 토크요구도 끝단마진 중립각 기본값 고정링크 크랭크 커플러 팔로워 각도 범위 자동연동' },
+  { id:'linkage', anchor:'anc-linkage-cs',          title:'조종면 각도 (δ) 카드',              keywords:'조종면 각도 δ 타각 부호 규약 상향 마이너스 하향 플러스 중립 지정 트림 1도 일의자리 버림 상향 하향 버튼 출력토크 T₄ 입력측 출력측 전달각 μ 47 40 슬라이더' },
   { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 승격 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 설계변수 고정 변수 자물쇠 탐색범위 대칭 비대칭' },
   { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암 렌더',           keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 암길이 M3 스플라인 허브 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 자동 배치 표시 토글 금속 렌더링 inch 25.4 mm 장착 기울기 tilt 180 360 y오프셋 편심 offY 지상링크' },
   { id:'linkage', anchor:'anc-linkage-graphs',      title:'출력토크·커플러·타각 스윕 그래프',  keywords:'출력토크 변화 커플러 길이 영향 타각범위 스윕 역설계 그래프 T₄ 물리 가용 토크 가용 각도 μ반영 토크 요구도 끝단마진 그래프 복사 저장 png' },
-  { id:'linkage', anchor:'anc-linkage-link',        title:'도구 간 연동 — 힌지모멘트·리깅',    keywords:'힌지모멘트 계산기로 보내기 조종면 리깅 계산기로 보내기 개방형 교차형 중립각 θ₄₀ 타각 δ+ 방향 |T₄(δ)| MA localStorage 연동' },
+  { id:'linkage', anchor:'anc-linkage-link',        title:'도구 간 연동 — 힌지모멘트·리깅',    keywords:'힌지모멘트 계산기로 보내기 조종면 리깅 계산기로 보내기 개방형 교차형 중립각 θ₄₀ 중립 지정 부호 규약 상향 마이너스 하향 플러스 |T₄(δ)| MA localStorage 연동' },
   { id:'linkage', anchor:'anc-crank',               title:'크랭크 (Crank)',                    keywords:'크랭크 crank 링크 a 구동 모터 360 로커 rocker Grashof' },
   { id:'linkage', anchor:'anc-coupler',             title:'커플러 (Coupler)',                  keywords:'커플러 coupler 링크 b 커플러곡선 coupler curve 중간링크' },
   { id:'linkage', anchor:'anc-follower',            title:'팔로워 (Follower)',                 keywords:'팔로워 follower 링크 c 출력 θ₄ 조종면 아암 레버' },

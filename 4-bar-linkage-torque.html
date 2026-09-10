@@ -2432,6 +2432,11 @@ function drawTorquePlot(){
     else{T4arr.push(Math.abs(T2*res.ma));}
   }
   const N=Math.max(T4arr.length-1,1);
+  // T4arr 는 1° 정수 격자다. 중립각 θ₄₀ 가 정수가 아니면(최적화 적용 후가 보통 그렇다)
+  // 끝단·현재위치가 격자에 안 떨어져 T4arr[round(...)] 를 읽으면 조종면 각도 카드와
+  // 다른 값이 나온다(실측 0.12 N·m). 마커는 격자 대신 이 헬퍼로 정확한 지점을 쓴다.
+  const tqAt=deg=>{ const q=calcMAatT4(a,b,c,d,deg,sol);
+    return (q&&isFinite(q.ma))?Math.abs(T2*q.ma):null; };
 
   const validT4=T4arr.filter(v=>v!==null);
   if(!validT4.length) return;
@@ -2610,15 +2615,16 @@ function drawTorquePlot(){
   // ── 현재 위치 마커 (주황) ──
   const clampedT4=Math.max(T4_MIN,Math.min(T4_MAX,curT4deg));
   const t4idx=Math.round(clampedT4-T4_MIN);
-  if(T4arr[t4idx]!==null){
-    const cx=xp(t4idx), cy=yp(T4arr[t4idx]);
+  const curTq=tqAt(clampedT4);                 // 격자 반올림 없이 현재 θ₄ 그대로
+  if(curTq!==null){
+    const cx=xp(clampedT4-T4_MIN), cy=yp(curTq);
     c2.strokeStyle="rgba(255,159,10,0.45)"; c2.lineWidth=1; c2.setLineDash([3,2]);
     c2.beginPath(); c2.moveTo(cx,PAD.t); c2.lineTo(cx,PAD.t+IH); c2.stroke();
     c2.setLineDash([]);
     c2.beginPath(); c2.arc(cx,cy,5,0,Math.PI*2);
     c2.fillStyle="#ff9f0a"; c2.fill();
     c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
-    const lbl=T4arr[t4idx].toFixed(2)+" N·m";   // δ 는 아래 알약(노드별)에 표시
+    const lbl=curTq.toFixed(2)+" N·m";   // δ 는 아래 알약(노드별)에 표시
     c2.font="600 9px -apple-system,sans-serif";
     const lw=c2.measureText(lbl).width;
     // 위치 후보: 우상 → 좌상 → 우하 → 좌하 순으로 최대값 라벨과 겹치지 않는 곳 선택
@@ -2652,10 +2658,9 @@ function drawTorquePlot(){
     const placed=[maxLabelRect].filter(Boolean);
     for(const e of csEnds){
       if(e.deg<T4_MIN||e.deg>T4_MAX) continue;
-      const idx=Math.round(e.deg-T4_MIN);
-      const tq=T4arr[idx];
-      if(tq===null||tq===undefined) continue;
-      const x=xp(idx), y=yp(tq);
+      const tq=tqAt(e.deg);
+      if(tq===null) continue;
+      const x=xp(e.deg-T4_MIN), y=yp(tq);
       c2.strokeStyle="rgba(94,92,230,0.38)"; c2.lineWidth=1; c2.setLineDash([4,3]);
       c2.beginPath(); c2.moveTo(x,PAD.t); c2.lineTo(x,PAD.t+IH); c2.stroke();
       c2.setLineDash([]);

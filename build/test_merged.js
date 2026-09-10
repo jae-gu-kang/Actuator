@@ -225,6 +225,37 @@ async function clickByText(frame, txt){
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 토크 그래프에 조종면 끝단(10° 버림) 마커 표시', pm.ok===true, JSON.stringify(pm));
 
+    // 플롯 마커가 조종면 각도 카드와 같은 값을 말하는가.
+    // T4arr 는 1° 정수 격자라, 중립각 θ₄₀ 가 정수가 아니면(최적화 적용 후가 보통 그렇다)
+    // 끝단·현재위치가 격자에 안 떨어진다. 격자로 읽으면 카드와 최대 0.36 N·m 어긋난다.
+    const mk = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=id=>document.getElementById(id);
+      const num=t=>{const m=String(t).match(/-?[\d.]+/); return m?+m[0]:NaN;};
+      g('ia').value=25.4; g('ib').value=111; g('ic').value=46; g('id').value=99; onLink();
+      setDeflectMode('asym'); g('iDeflectP').value=20; g('iDeflectM').value=20;
+      g('iT4Neutral').value=99.6;              // 일부러 정수가 아닌 중립각
+      updateCSUI();
+      // 캔버스에 실제로 찍히는 문자열을 가로챈다
+      const ctx=g('torquePlot').getContext('2d'), drawn=[], orig=ctx.fillText.bind(ctx);
+      ctx.fillText=function(t,x,y){ drawn.push(String(t)); return orig(t,x,y); };
+      csGo('zero');  drawTorquePlot();
+      const curCard=num(g('lCST4').textContent);
+      const curPlot=drawn.filter(t=>/^[\d.]+ N·m$/.test(t)).pop();
+      drawn.length=0;
+      csGo('up');    drawTorquePlot();
+      const upCard=num(g('lCST4').textContent);
+      const upPlot=drawn.filter(t=>/^상향 [\d.]+° · [\d.]+ N·m$/.test(t)).pop();   // 범례 문구 제외
+      ctx.fillText=orig;
+      const upPlotVal=upPlot?num(upPlot.split('·')[1]):null;
+      return {ok: Math.abs(curCard-num(curPlot))<0.005 && upPlotVal!==null
+                  && Math.abs(upCard-upPlotVal)<0.005,
+              θ40:99.6, curCard, curPlot, upCard, upPlot};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=id=>document.getElementById(id);
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      setDeflectMode('sym'); g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
+    rec('linkage: 플롯 마커 값 = 조종면 각도 카드 T₄ (비정수 중립각에서도)', mk.ok===true, JSON.stringify(mk));
+
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
     const dax = await f.evaluate(()=>{ try{
