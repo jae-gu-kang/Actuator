@@ -272,7 +272,7 @@ async function clickByText(frame, txt){
       const g=id=>document.getElementById(id);
       const seen=e=>{ if(!e) return false; const r=e.getBoundingClientRect();
         return getComputedStyle(e).display!=='none' && r.width>0 && r.height>0; };
-      const sweepBtn=()=>[...document.querySelectorAll('button')].find(x=>/타각범위별/.test(x.textContent));
+      const sweepBtn=()=>[...document.querySelectorAll('button')].find(x=>/검토 \(그래프\)/.test(x.textContent));
       const applyBtn=()=>[...document.querySelectorAll('button')].find(x=>/이 값 적용/.test(x.textContent));
       setDeflectMode('sym'); g('iDeflect').value=25;
       g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();

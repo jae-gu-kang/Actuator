@@ -1012,13 +1012,13 @@ canvas.hover { cursor: grab; }
           <div id="deflectAsymRow" style="display:none;grid-template-columns:1fr 1fr;gap:6px;">
             <div class="link-field" style="border-radius:7px;" title="조종면 상향 타각 — 부호 규약상 δ 는 음수(−), 기구상 θ₄ 증가 방향">
               <span style="padding:3px 1px 3px 7px;font-size:10.5px;color:var(--follower);font-weight:600;white-space:nowrap;">상향</span>
-              <input type="number" id="iDeflectP" value="20" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
+              <input type="number" id="iDeflectP" value="30" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
                 style="width:100%;padding:3px 3px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
               <span style="padding:3px 7px 3px 1px;font-size:10px;color:var(--text3);">°</span>
             </div>
             <div class="link-field" style="border-radius:7px;" title="조종면 하향 타각 — 부호 규약상 δ 는 양수(+), 기구상 θ₄ 감소 방향">
               <span style="padding:3px 1px 3px 7px;font-size:10.5px;color:var(--crank);font-weight:600;white-space:nowrap;">하향</span>
-              <input type="number" id="iDeflectM" value="30" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
+              <input type="number" id="iDeflectM" value="20" min="0.5" max="89" step="0.5" oninput="updateCSUI()"
                 style="width:100%;padding:3px 3px;font-size:12px;background:transparent;border:none;outline:none;font-variant-numeric:tabular-nums;color:var(--text);text-align:right;">
               <span style="padding:3px 7px 3px 1px;font-size:10px;color:var(--text3);">°</span>
             </div>
@@ -1027,7 +1027,7 @@ canvas.hover { cursor: grab; }
         <button id="btnOptimize" onclick="runOptimizer()"
           style="width:100%;background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(94,92,230,.25);">
           ✦ 최적값 계산</button>
-        <!-- 접이 영역 — 타각범위별 토크 검토 + 결과 상세.
+        <!-- 접이 영역 — 결과 상세 + 설계변수 스윕 검토 버튼.
              '이 값 적용' 은 아래 #optApply 로 빼내 접혀도 항상 보이게 한다. -->
         <button id="btnOptFold" onclick="toggleOptFold()"
           style="width:100%;margin-top:8px;background:transparent;color:var(--text3);border:none;
@@ -1035,10 +1035,11 @@ canvas.hover { cursor: grab; }
                  display:flex;align-items:center;justify-content:center;gap:4px;">
           <span id="lblOptFold">상세 접기</span><span id="icoOptFold">▲</span></button>
         <div id="optFold">
+          <div id="optResult" style="display:none;margin-bottom:8px;"></div>
+          <!-- 스윕은 '추천안을 검토하는' 동작이라 결과 아래·'이 값 적용' 바로 위에 둔다 -->
           <button onclick="openDeltaSweep()"
             style="width:100%;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
-            타각범위별 토크 검토 (그래프) →</button>
-          <div id="optResult" style="display:none;margin-top:10px;"></div>
+            설계변수별 토크·전달각 검토 (그래프) →</button>
         </div>
         <div id="optApply" style="display:none;margin-top:8px;"></div>
       </div>
@@ -1274,33 +1275,32 @@ canvas.hover { cursor: grab; }
 <div id="dsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:100;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeDeltaSweep()">
   <div style="background:#fff;border-radius:16px;max-width:660px;width:100%;max-height:92vh;overflow-y:auto;padding:16px 16px 14px;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div style="font-size:14px;font-weight:600;color:var(--text);">타각범위 스윕 검토</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);">설계변수 스윕 검토</div>
       <button onclick="closeDeltaSweep()" style="background:rgba(118,118,128,0.12);border:none;border-radius:50%;width:26px;height:26px;font-size:13px;color:var(--text2);cursor:pointer;font-family:inherit;line-height:1;">✕</button>
     </div>
     <div id="dsSub" style="font-size:10.5px;color:var(--text3);margin-bottom:10px;line-height:1.5;">
-      각 타각범위 ±δ 마다 출력링크 c 까지 포함해 최적 (c, b, θ₄₀)를 다시 계산하여
-      작동범위 내 최대·최소 토크와 최적 c 의 변화를 보여줍니다.
+      타각 범위는 입력값으로 고정하고, 변수 링크 하나를 골라 그 값을 강제하며 훑습니다.
+      <b>나머지 변수는 매 지점마다 다시 최적화</b>하므로, 곡선은 "이 값으로 못박았을 때
+      나머지를 최선으로 맞추면 어디까지 되는가" 를 뜻합니다.
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-      <div style="font-size:11px;color:var(--text2);font-weight:500;">δ 범위</div>
+      <div style="font-size:11px;color:var(--text2);font-weight:500;">스윕 대상</div>
+      <select id="dsVar" onchange="dsOnVarChange()"
+        style="padding:4px 8px;font-size:11.5px;font-weight:600;border:1px solid var(--border2);
+               border-radius:7px;background:var(--card);color:var(--text);font-family:inherit;outline:none;cursor:pointer;"></select>
       <div class="link-field" style="border-radius:7px;">
-        <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
-        <input type="number" id="dsFrom" value="20" min="0.5" max="88" step="0.5" style="width:46px;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
-        <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+        <input type="number" id="dsFrom" step="1" style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
+        <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">mm</span>
       </div>
       <span style="font-size:11px;color:var(--text3);">~</span>
       <div class="link-field" style="border-radius:7px;">
-        <span style="padding:3px 2px 3px 8px;font-size:11px;color:var(--text3);">±</span>
-        <input type="number" id="dsTo" value="35" min="1" max="89" step="0.5" style="width:46px;padding:3px 4px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
-        <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">°</span>
+        <input type="number" id="dsTo" step="1" style="width:52px;padding:3px 6px;font-size:12px;background:transparent;border:none;outline:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);">
+        <span style="padding:3px 6px 3px 2px;font-size:10px;color:var(--text3);">mm</span>
       </div>
       <button id="dsRun" onclick="runDeltaSweep()" style="background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">계산</button>
       <span id="dsStatus" style="font-size:10.5px;color:var(--text3);font-variant-numeric:tabular-nums;"></span>
     </div>
-    <label style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--text2);cursor:pointer;">
-      <input type="checkbox" id="dsOptC" checked style="accent-color:#34c759;">
-      출력링크 c 도 함께 최적화 (자동 범위 0.2~0.8×L · δ 간격 1°) — 끄면 현재 c 고정으로 검토
-    </label>
+    <div id="dsWarn" style="display:none;background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.3);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:10.5px;color:#a05800;font-weight:600;line-height:1.5;"></div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
       <button class="copy-btn" onclick="copyPlotImage('deltaSweepPlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
       <button class="copy-btn" onclick="downloadPlotImage('deltaSweepPlot',this)" title="그래프를 이미지로 저장"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M4.5 6.5 8 10l3.5-3.5"/><path d="M3 13h10"/></svg>그래프 저장</button>
@@ -3545,7 +3545,7 @@ function runOptimizer(){
   },30);
 }
 
-// 결과 상세(타각범위별 토크 검토 버튼 포함)를 접는다. '이 값 적용' 은 #optApply 라 안 접힌다.
+// 결과 상세(설계변수 스윕 검토 버튼 포함)를 접는다. '이 값 적용' 은 #optApply 라 안 접힌다.
 let _optFolded=false;
 function toggleOptFold(){ _optFolded=!_optFolded; applyOptFold(); }
 function applyOptFold(){
@@ -4121,8 +4121,7 @@ function updateOptVarUI(){
       for(const el of [mn,mx]) if(el) el.style.color=live?'var(--text)':'var(--orange)';
     }
   }
-  const ds=document.getElementById('dsOptC');
-  if(ds) ds.disabled=!OPTVARS.c.v;   // c 가 고정이면 스윕의 'c 도 최적화' 는 무의미
+  dsSyncVarSelect();   // 잠금이 바뀌면 스윕 대상 목록도 따라간다
   refreshOptDesc();
   // 고정 링크는 카드에 편집칸이 없어 recalc 가 자동으로 안 돈다. a·c·d 가 바뀌는 모든 경로
   // (onLink·onServoOffset·endDrag·applyOpt)가 여기를 지나므로 여기서 한 번 걸어준다.
@@ -4367,65 +4366,118 @@ function openDeltaSweep(){
 }
 function closeDeltaSweep(){ document.getElementById('dsModal').style.display='none'; }
 
+// 스윕 대상 셀렉트 — 지금 '변수' 인 링크만 고를 수 있다(고정 링크는 훑을 값이 없다).
+function dsSyncVarSelect(){
+  const sel=document.getElementById('dsVar'); if(!sel) return;
+  const vars=OPTVAR_ORDER.filter(k=>OPTVARS[k].v);
+  const prev=sel.value;
+  sel.innerHTML=vars.map(k=>'<option value="'+k+'">'+OPTVAR_META[k].nm+'</option>').join('');
+  if(vars.includes(prev)) sel.value=prev;
+  else if(vars.length) sel.value=vars.includes('c')?'c':vars[0];
+  const warn=document.getElementById('dsWarn');
+  if(warn){
+    if(!vars.length){
+      warn.style.display='block';
+      warn.innerHTML='⚠︎ 변수로 지정된 링크가 없습니다 — 링크 길이 카드의 자물쇠를 열어 하나 이상을 변수로 두세요.';
+    } else warn.style.display='none';
+  }
+  dsOnVarChange(true);
+}
+// 대상이 바뀌면 범위 입력을 그 링크의 탐색범위로 초기화한다(사용자가 고친 값은 유지).
+function dsOnVarChange(keepIfEdited){
+  const sel=document.getElementById('dsVar'); if(!sel||!sel.value) return;
+  const k=sel.value, rg=optVarRange(k);
+  const f=document.getElementById('dsFrom'), t=document.getElementById('dsTo');
+  if(!f||!t) return;
+  if(!keepIfEdited||f.value===''||t.value===''||f.dataset.key!==k){
+    f.value=rg.lo; t.value=rg.hi; f.dataset.key=k; t.dataset.key=k;
+  }
+  const lim=OPTVAR_META[k].min;
+  f.min=lim; t.min=lim; f.max=400; t.max=400;
+}
+
 function runDeltaSweep(){
   if(_dsBusy) return;
-  const T2=parseFloat(document.getElementById('iTorque')?.value)||0;
-  const marginVal=Math.max(0,parseFloat(document.getElementById('iMarginAngle')?.value)||0);
-  let d0=parseFloat(document.getElementById('dsFrom')?.value);
-  let d1=parseFloat(document.getElementById('dsTo')?.value);
   const status=document.getElementById('dsStatus');
-  if(isNaN(d0)||isNaN(d1)||d0<=0||d1<=d0||d1>89){
-    if(status) status.textContent='⚠︎ δ 범위를 확인하세요';
+  const sel=document.getElementById('dsVar');
+  const key=sel?sel.value:'';
+  if(!key||!OPTVARS[key]||!OPTVARS[key].v){
+    if(status) status.textContent='⚠︎ 스윕할 변수 링크를 고르세요';
     return;
   }
-  // 현재 타각 모드가 비대칭이면 δ₋/δ₊ 비율을 보존한 채 x축(δ₊)만 스윕
+  const T2=parseFloat(document.getElementById('iTorque')?.value)||0;
+  const marginVal=Math.max(0,parseFloat(document.getElementById('iMarginAngle')?.value)||0);
+  const v0=parseFloat(document.getElementById('dsFrom')?.value);
+  const v1=parseFloat(document.getElementById('dsTo')?.value);
+  const lim=OPTVAR_META[key].min;
+  if(!isFinite(v0)||!isFinite(v1)||v1<=v0||v0<lim||v1>400){
+    if(status) status.textContent='⚠︎ 범위를 확인하세요 ('+lim+'~400mm, 최소<최대)';
+    return;
+  }
   const df=getDeflect();
-  const ratio=(df.sym||!(df.dp>0)||!(df.dm>0))?1:(df.dm/df.dp);
-  // 스윕은 δ 점마다 최적화를 돌리므로 a·d 는 현재값 고정, c 는 설계 변수 설정을 따른다
-  const optC=(!!document.getElementById('dsOptC')?.checked)&&OPTVARS.c.v;
-  const STEP=optC?1:0.5;   // c-모드는 계산량이 커서 1° 간격
-  const deltas=[];
-  for(let d=d0;d<=d1+1e-9;d+=STEP) deltas.push(+d.toFixed(2));
-  _deltaSweepData={deltas,maxArr:[],minArr:[],fbArr:[],bArr:[],t0Arr:[],tnArr:[],
-    cArr:optC?[]:null,optC,ratio,sym:df.sym,
-    T2,margin:marginVal,a:S.a,c:S.c,d:S.d,sol:S.sol};
-  const cR=optVarRange('c');
+  if(!isFinite(df.dm)||!isFinite(df.dp)||df.dm<=0||df.dp<=0){
+    if(status) status.textContent='⚠︎ 타각 범위를 먼저 입력하세요';
+    return;
+  }
+  // 점 수를 40 안팎으로 맞춘다 — 나머지 변수를 매 점마다 재최적화하므로 비용이 크다
+  const STEP=Math.max(0.5, Math.round((v1-v0)/40*2)/2);
+  const xs=[];
+  for(let v=v0; v<=v1+1e-9; v+=STEP) xs.push(+v.toFixed(2));
+  if(xs[xs.length-1]<v1-1e-9) xs.push(+v1.toFixed(2));
+
+  const others=OPTVAR_ORDER.filter(k=>k!==key&&OPTVARS[k].v);
+  _deltaSweepData={key, xs, maxArr:[],minArr:[],fbArr:[],tnArr:[],
+    muInArr:[], muOutArr:[],
+    T2, margin:marginVal, dm:df.dm, dp:df.dp, sym:df.sym,
+    cur:S[key], others:others.slice()};
+
   const sub=document.getElementById('dsSub');
-  if(sub) sub.textContent='a='+S.a+(optC?', c 자동 범위 '+cR.lo+'~'+cR.hi+'mm (0.2~0.8×L)':', c='+S.c)
-    +', d='+S.d+' mm · T₂='+T2.toFixed(2)
-    +' N·m · 마진 '+marginVal.toFixed(1)+'° 기준'
-    +(df.sym?' — x축 ±δ':' — x축 δ₊ (δ₋=δ₊×'+ratio.toFixed(2)+' 비율 보존, 여유율 균형)')
-    +(OPTVARS.b.v?'':' · b='+S.b+' 고정')
-    +' · 각 점마다 최적 ('+(optC?'c, ':'')+(OPTVARS.b.v?'b, ':'')+'θ₄₀) 재계산';
+  if(sub) sub.innerHTML='<b>'+OPTVAR_META[key].nm+'</b> 를 '+v0+'~'+v1+'mm 로 강제하며 훑습니다'
+    +' (간격 '+STEP+'mm · '+xs.length+'점). 타각 '
+    +(df.sym?'±'+df.dp+'°':'상향 '+df.dp+'° / 하향 '+df.dm+'°')+' 고정 · T₂='+T2.toFixed(2)
+    +' N·m · 마진 '+marginVal.toFixed(1)+'°.<br>매 지점마다 '
+    +(others.length?'<b>'+others.map(k=>OPTVAR_META[k].nm).join(' · ')+' · θ₄₀</b> 를 다시 최적화'
+                   :'<b>θ₄₀</b> 만 다시 최적화 (다른 변수 없음)')
+    +'합니다.';
+
   _dsBusy=true;
   const runBtn=document.getElementById('dsRun');
   if(runBtn){ runBtn.disabled=true; runBtn.style.opacity='0.5'; }
+  const snap={a:S.a,b:S.b,c:S.c,d:S.d}, wasVar=OPTVARS[key].v;
   let i=0;
   (function next(){
-    if(i>=deltas.length){
+    if(i>=xs.length){
+      S.a=snap.a; S.b=snap.b; S.c=snap.c; S.d=snap.d; OPTVARS[key].v=wasVar;
       _dsBusy=false;
       if(runBtn){ runBtn.disabled=false; runBtn.style.opacity=''; }
-      if(status) status.textContent='완료 ('+deltas.length+'점)';
+      if(status) status.textContent='완료 ('+xs.length+'점)';
       drawDeltaSweepPlot();
       return;
     }
-    if(status) status.textContent='계산 중… '+(i+1)+'/'+deltas.length;
+    if(status) status.textContent='계산 중… '+(i+1)+'/'+xs.length;
     setTimeout(()=>{
-      let r=null;
-      const dpI=deltas[i], dmI=+(dpI*ratio).toFixed(4);   // 비대칭: 비율 보존 (대칭이면 ratio=1 → dmI=dpI)
-      try{ r=optC?optimizeForDeltaWithC(dmI,dpI,T2,marginVal,cR.lo,cR.hi):optimizeForDelta(dmI,dpI,T2,marginVal); }
-      catch(e){ console.warn('deltaSweep:',e); }
-      // 중립각 토크는 정확값, wmax 는 0.25° 그리드값 → max 곡선이 항상 상한이 되도록 보정
-      const tn=r?(r.tn!==undefined?r.tn:absT4At(r.b,r.t0,T2)):null;
-      _deltaSweepData.maxArr.push(r?Math.max(r.wmax,tn??-Infinity):null);
-      _deltaSweepData.minArr.push(r?r.worst:null);
-      _deltaSweepData.fbArr.push(r?r.fallback:null);
-      _deltaSweepData.bArr.push(r?r.b:null);
-      _deltaSweepData.t0Arr.push(r?r.t0:null);
-      _deltaSweepData.tnArr.push(tn);   // 중립각에서의 |T₄|
-      if(_deltaSweepData.cArr) _deltaSweepData.cArr.push(r?(r.cOpt??S.c):null);
+      let r=null, m=null;
+      try{
+        // 대상은 이 값으로 못박고(변수 해제), 나머지 변수만 최적화한다
+        S[key]=xs[i]; OPTVARS[key].v=false;
+        r=optimizeForVars(df.dm,df.dp,T2,marginVal);
+        if(r&&r.t0!==undefined){
+          const cc=r.cOpt!==undefined?r.cOpt:S.c, aa=r.aOpt!==undefined?r.aOpt:S.a,
+                dd=r.dOpt!==undefined?r.dOpt:S.d;
+          m=evalDesign(cc,r.b,r.t0,df.dm,df.dp,T2,marginVal,'',aa,dd);
+        }
+      }catch(e){ console.warn('varSweep:',e); }
+      finally{ S.a=snap.a; S.b=snap.b; S.c=snap.c; S.d=snap.d; OPTVARS[key].v=wasVar; }
+      const ok=m&&!m.err;
+      const tn=ok?m.tn:null;
+      _deltaSweepData.maxArr.push(ok?Math.max(m.wmax, tn??-Infinity):null);
+      _deltaSweepData.minArr.push(ok?Math.min(m.tm,m.tp):null);
+      _deltaSweepData.tnArr.push(tn);
+      _deltaSweepData.fbArr.push(r?!!r.fallback:null);
+      _deltaSweepData.muInArr.push(ok&&isFinite(m.muInMin)?m.muInMin:null);
+      _deltaSweepData.muOutArr.push(ok&&isFinite(m.muOutMin)?m.muOutMin:null);
       i++;
-      drawDeltaSweepPlot();   // 진행 상황을 그래프에 점진 표시
+      drawDeltaSweepPlot();
       next();
     },0);
   })();
@@ -4439,16 +4491,20 @@ function drawDeltaSweepPlot(){
 
   const D=_deltaSweepData;
   const hasFB=!!(D&&D.fbArr.some(v=>v===true));
-  const hasC=!!(D&&D.cArr&&D.cArr.some(v=>v!==null));
+  const hasMu=!!(D&&D.muInArr&&D.muInArr.some(v=>v!==null));
   const legItems=[
     {type:'line',color:'#ff453a',label:'최대 |T₄| (작동범위 내)'},
     {type:'line',color:'#0071e3',label:'최소 |T₄| (끝단 worst)'},
     {type:'dash',color:'#bf5af2',label:'중립각 |T₄| (점선)'},
   ];
-  if(hasC) legItems.push({type:'line',color:'#34c759',label:'최적 c (우측축, mm)'});
+  if(hasMu){
+    legItems.push({type:'line',color:'#34c759',label:'최소 μ 입력측 (우측축, °)'});
+    legItems.push({type:'line',color:'#5ac8fa',label:'최소 μ 출력측 (우측축, °)'});
+    legItems.push({type:'dash',color:'rgba(255,69,58,0.5)',label:'μ 기준 '+OPT_MU_MIN+'°'});
+  }
   if(hasFB) legItems.push({type:'dot',color:'#ff9f0a',label:'차선 (제약 미충족)'});
 
-  const PAD={t:24,b:46,l:56,r:hasC?56:20};
+  const PAD={t:24,b:46,l:56,r:hasMu?56:20};
   const IW=W2-PAD.l-PAD.r;
   const legRows=layoutLegend(legItems,IW);
   const LEG_H=legendHeight(legRows);
@@ -4475,12 +4531,13 @@ function drawDeltaSweepPlot(){
     c2.font="500 11px -apple-system,'SF Pro Text',sans-serif"; c2.textAlign='center';
     c2.fillText(t,PAD.l+IW/2,PAD.t+IH/2+4);};
 
-  if(!D||!D.deltas.length){
+  if(!D||!D.xs||!D.xs.length){
     centerMsg('계산 버튼을 눌러 스윕을 실행하세요');
     border(); drawLegendOnCanvas(c2,legRows,PAD.l,PH-LEG_H+2);
     return;
   }
-  const{deltas,maxArr,minArr,fbArr,bArr}=D;
+  const{xs,maxArr,minArr,fbArr}=D;
+  const deltas=xs;                       // 아래 그리기 코드는 x 배열 이름을 그대로 쓴다
   const tnArr=D.tnArr||[];
   const x0=deltas[0], x1=deltas.length>1?deltas[deltas.length-1]:x0+1;
   const xp=d=>PAD.l+((d-x0)/Math.max(x1-x0,1e-9))*IW;
@@ -4502,10 +4559,10 @@ function drawDeltaSweepPlot(){
   if(yLo===yHi){yLo-=1;yHi+=1;}
   const yp=v=>PAD.t+IH-(v-yLo)/(yHi-yLo)*IH;
 
-  // ── 우측축: 최적 c (mm) ──
+  // ── 우측축: 최소 전달각 μ (°) ──
   let ypR=null,rLo=0,rHi=0,rStep=1;
-  if(hasC){
-    const cs=D.cArr.filter(v=>v!==null&&isFinite(v));
+  if(hasMu){
+    const cs=D.muInArr.concat(D.muOutArr).filter(v=>v!==null&&isFinite(v)).concat([OPT_MU_MIN]);
     const rmin=Math.min(...cs), rmax=Math.max(...cs);
     const rspan=Math.max(rmax-rmin,2);
     const rraw=rspan/5;
@@ -4547,10 +4604,10 @@ function drawDeltaSweepPlot(){
   c2.font="500 9px -apple-system,'SF Pro Text',sans-serif";
   c2.fillStyle='rgba(110,110,115,0.9)'; c2.textAlign='center';
   for(let d=Math.ceil(x0/xTick)*xTick; d<=x1+1e-9; d+=xTick){
-    c2.fillText('±'+(+d.toFixed(1))+'°', xp(d), PAD.t+IH+14);
+    c2.fillText((+d.toFixed(d%1?1:0))+'', xp(d), PAD.t+IH+14);
   }
   c2.textAlign='right'; c2.fillStyle='rgba(110,110,115,0.6)';
-  c2.fillText('타각범위 δ', PW-2, PAD.t+IH+28);
+  c2.fillText(D.key?(OPTVAR_META[D.key].nm+' (mm)'):'', PW-2, PAD.t+IH+28);
   c2.textAlign='right';
   for(let v=yLo; v<=yHi+1e-9; v+=yStep){
     const y=yp(v);
@@ -4574,7 +4631,7 @@ function drawDeltaSweepPlot(){
   c2.fillText('|T₄| (N·m)', PAD.l/2, PAD.t-8);
   if(ypR){
     c2.fillStyle='rgba(40,150,70,0.85)';
-    c2.fillText('c (mm)', PW-PAD.r/2, PAD.t-8);
+    c2.fillText('μ (°)', PW-PAD.r/2, PAD.t-8);
   }
   c2.restore();
 
@@ -4598,7 +4655,17 @@ function drawDeltaSweepPlot(){
   strokeSeries(tnArr,yp,'#bf5af2','rgba(191,90,242,0.25)',true);
   strokeSeries(minArr,yp,'#0071e3','rgba(0,113,227,0.25)');
   strokeSeries(maxArr,yp,'#ff453a','rgba(255,69,58,0.25)');
-  if(ypR) strokeSeries(D.cArr,ypR,'#34c759','rgba(52,199,89,0.25)');
+  if(ypR){
+    // μ 기준선(47°) — 어느 구간에서 제약을 잃는지 한눈에
+    const yb=ypR(OPT_MU_MIN);
+    if(yb>=PAD.t&&yb<=PAD.t+IH){
+      c2.strokeStyle='rgba(255,69,58,0.5)'; c2.lineWidth=1.2; c2.setLineDash([5,4]);
+      c2.beginPath(); c2.moveTo(PAD.l,yb); c2.lineTo(PAD.l+IW,yb); c2.stroke();
+      c2.setLineDash([]);
+    }
+    strokeSeries(D.muInArr, ypR,'#34c759','rgba(52,199,89,0.25)');
+    strokeSeries(D.muOutArr,ypR,'#5ac8fa','rgba(90,200,250,0.25)');
+  }
 
   // ── 데이터 점 (차선은 주황 링) ──
   function dot(x,y,fill,r){
@@ -4611,7 +4678,8 @@ function drawDeltaSweepPlot(){
     if(tnArr[i]!==null&&tnArr[i]!==undefined) dot(x,yp(tnArr[i]),fbArr[i]?'#ff9f0a':'#bf5af2',2.2);
     if(minArr[i]!==null) dot(x,yp(minArr[i]),fbArr[i]?'#ff9f0a':'#0071e3',2.6);
     if(maxArr[i]!==null) dot(x,yp(maxArr[i]),fbArr[i]?'#ff9f0a':'#ff453a',2.6);
-    if(ypR&&D.cArr[i]!==null) dot(x,ypR(D.cArr[i]),fbArr[i]?'#ff9f0a':'#34c759',2.6);
+    if(ypR&&D.muInArr[i]!==null)  dot(x,ypR(D.muInArr[i]), fbArr[i]?'#ff9f0a':'#34c759',2.4);
+    if(ypR&&D.muOutArr[i]!==null) dot(x,ypR(D.muOutArr[i]),fbArr[i]?'#ff9f0a':'#5ac8fa',2.4);
   }
 
   border();
