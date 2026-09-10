@@ -256,7 +256,7 @@ async function clickByText(frame, txt){
       const upPlotVal=upPlot?num(upPlot.split('·')[1]):null;
       return {ok: Math.abs(curCard-num(curPlot))<0.005 && upPlotVal!==null
                   && Math.abs(upCard-upPlotVal)<0.005 && curPill,
-              θ40:99.6, curCard, curPlot, upCard, upPlot, pillT4, curPill};
+              θ40:99.6, curCard, curPlot, upCard, upPlot, pillT4, curPill, pill};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
       if(_ctx&&_orig) delete _ctx.fillText;     // 예외가 나도 몽키패치를 반드시 되돌린다(프로토타입 복귀)
@@ -264,6 +264,57 @@ async function clickByText(frame, txt){
       g('iDeflectP').value=_sv.dp; g('iDeflectM').value=_sv.dm;
       setDeflectMode('sym'); g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
     rec('linkage: 플롯 마커·알약이 조종면 각도 카드와 같은 θ₄·T₄ (비정수 중립각)', mk.ok===true, JSON.stringify(mk));
+
+    // AI 추천 패널 접기 — '이 값 적용' 은 접혀도 보이고, 실패 사유는 묻히지 않아야 한다.
+    // (#optResult 가 #optFold 의 자식이라, 접히면 자식에 display:block 을 해도 안 보인다.
+    //  그래서 가시성 판정은 getComputedStyle 이 아니라 getBoundingClientRect 로 해야 한다)
+    const fold = await f.evaluate(()=>{ try{
+      const g=id=>document.getElementById(id);
+      const seen=e=>{ if(!e) return false; const r=e.getBoundingClientRect();
+        return getComputedStyle(e).display!=='none' && r.width>0 && r.height>0; };
+      const sweepBtn=()=>[...document.querySelectorAll('button')].find(x=>/타각범위별/.test(x.textContent));
+      const applyBtn=()=>[...document.querySelectorAll('button')].find(x=>/이 값 적용/.test(x.textContent));
+      setDeflectMode('sym'); g('iDeflect').value=25;
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      if(_optFolded) toggleOptFold();
+      doOptimize();
+      const open={apply:seen(applyBtn()), sweep:seen(sweepBtn())};
+      toggleOptFold();
+      const shut={apply:seen(applyBtn()), sweep:seen(sweepBtn()), result:seen(g('optResult'))};
+      // 접힌 채 적용이 실제로 동작하는가 (숨김이지 제거가 아님)
+      const b4={c:S.c,t4n:+g('iT4Neutral').value};
+      applyBtn().click();
+      const af={c:S.c,t4n:+g('iT4Neutral').value};
+      // 접힌 채 실패 → 자동으로 펼쳐 사유를 보여야 한다
+      if(!_optFolded) toggleOptFold();
+      g('iDeflect').value=''; doOptimize();
+      const warn={folded:_optFolded, seen:seen(g('optResult')), apply:seen(applyBtn())};
+      // 접힌 채 링크를 바꿔 카드가 '조립 불가' 가 되면 → 펼쳐서 사유를 보이되 적용은 막지 않는다.
+      // (사유는 '현재 기하' 기준 평가라, 적용하면 추천 형상으로 바뀌어 해소될 수 있다)
+      g('iDeflect').value=25; doOptimize();
+      const wantC=+g('optEditC').value;        // 카드가 추천한 c
+      if(!_optFolded) toggleOptFold();
+      g('ic').value=wantC===45?44:45; g('id').value=400; onLink();   // c 를 일부러 다르게 + 조립 불가
+      const bad0={c:S.c};
+      // onLink 의 recalc 은 150ms 디바운스라 아직 안 돌았다. 사유 렌더는 클릭 안의
+      // 강제 최신화가 하므로 **클릭 뒤에** 읽어야 한다(전에 읽으면 옛 내용이 잡힌다).
+      applyBtn().click();
+      const errCase={folded:_optFolded, seen:seen(g('optMetrics')),
+                     errRendered:/⚠︎/.test(g('optMetrics').textContent),
+                     before:bad0.c, after:S.c, applied:S.c===wantC};
+      if(_optFolded) toggleOptFold();
+      return {ok: open.apply&&open.sweep && shut.apply&&!shut.sweep&&!shut.result
+                  && (af.c!==b4.c||af.t4n!==b4.t4n)
+                  && !warn.folded&&warn.seen&&!warn.apply
+                  && !errCase.folded&&errCase.seen&&errCase.errRendered&&errCase.applied,
+              open, shut, b4, af, warn, errCase};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=id=>document.getElementById(id);
+      if(_optFolded) toggleOptFold();
+      setDeflectMode('sym'); g('iDeflect').value=25;
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100;
+      g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
+    rec('linkage: AI 패널 접기 — 적용은 항상 보이고 실패 사유는 묻히지 않음', fold.ok===true, JSON.stringify(fold));
 
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
