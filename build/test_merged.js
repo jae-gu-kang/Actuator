@@ -454,6 +454,8 @@ async function clickByText(frame, txt){
       let worst=0, at=null, n=0, minRects=1e9, thin=null;
       // 각도 라벨(θ₂·θ₄)은 고정링크 '아래'(기구 반대쪽)에 놓여야 한다 — 그쪽이 늘 비어 있어
       // 자리싸움이 없다. 위로 올라오면 커플러·관절 라벨과 다투기 시작한다.
+      // 주의: 이 단언은 '전부' 를 요구하므로 below 부호에 히스테리시스(밴드 안에서 직전 방향
+      // 유지)를 넣으면 밴드에 걸린 라벨이 반대편에 남아 여기서 실패한다. 의도된 제약이다.
       let angTot=0, angBelow=0;
       // 각도 라벨 지시선은 관절에서 끝나야 하고 링크를 가로지르면 안 된다. 판정은 구현의
       // 목표점 계산을 베끼지 않고 '실제로 그려진 선분'으로 한다.
@@ -517,14 +519,21 @@ async function clickByText(frame, txt){
                   if(side(L.x,L.y)*sMech<0) angBelow++;
                   pills.push({x:L.x-5,y:L.y-10,w:_tc.measureText(L.t).width+10,h:14});
                 }
-                // 지시선 = 'θ 알약 안에서 시작' + '그 각의 색 35% 투명'. 알약 위치만으로 고르면
-                // 알약을 지나가는 y오프셋 치수선(회색 35%, O₂ 에서 끝남)까지 딸려 온다.
-                const LEAD=[cnorm(hexAlpha(C.crank,0.35)), cnorm(hexAlpha(C.follower,0.35))];
+                // 지시선 = 'θ 알약 안에서 시작' + '알파 정확히 0.35'. 알약 위치만으로 고르면
+                // 알약을 지나가는 y오프셋 치수선·기준선 틱이 딸려 온다 — 색조는 크랭크색으로
+                // 같고 **알파만 다르다**(불투명 / 0.45). 지시선을 0.35 로 판별하는 이 규칙이
+                // 필터의 전부이므로, 다른 요소의 알파를 0.35 로 맞추면 이 테스트가 깨진다.
+                const CRK=cnorm(hexAlpha(C.crank,0.35)), FOL=cnorm(hexAlpha(C.follower,0.35));
                 for(const [u,v,sc] of segs){
-                  if(!LEAD.includes(sc)) continue;
+                  if(sc!==CRK&&sc!==FOL) continue;
                   if(!pills.some(q=>u.x>=q.x-0.6&&u.x<=q.x+q.w+0.6&&u.y>=q.y-0.6&&u.y<=q.y+q.h+0.6)) continue;
                   leadN++;
-                  if(Math.min(Math.hypot(v.x-P2.x,v.y-P2.y),Math.hypot(v.x-P4.x,v.y-P4.y))>=0.5) leadOff++;
+                  // '아무 관절이나' 가 아니라 **제 관절**이어야 한다. 크랭크색 = θ₂ = O₂,
+                  // 팔로워색 = θ₄ = O₄. 아무 관절이나 허용하면 θ₄ 지시선이 O₂ 로 가도 통과한다
+                  // (인접한 두 arcAng 호출을 복사할 때 나기 쉬운 실수인데, 그 지시선은 고정링크
+                  //  아래 빈 곳을 지나 아무것도 가로지르지 않아 교차 단언에도 안 걸린다).
+                  const J = sc===CRK ? P2 : P4;
+                  if(Math.hypot(v.x-J.x,v.y-J.y)>=0.5) leadOff++;
                   for(const [k,l] of links) if(xseg(u,v,k,l)){
                     leadCross++; leadAt={a,b,c,d,servo,off,scale:+scale.toFixed(2)}; break; }
                 }
@@ -545,7 +554,9 @@ async function clickByText(frame, txt){
       return {ok: worst===0 && minRects>=10 && minRects<1e9
                   && angTot>0 && angBelow===angTot
                   && perShape.every(v=>v>0)           // 형상 4개가 전부 라벨을 냈는가
-                  // 각도 라벨마다 지시선이 하나씩, 전부 관절에서 끝나고, 링크를 안 가로지름
+                  // 각도 라벨마다 지시선이 하나씩, 전부 **제** 관절에서 끝나고, 링크 미교차.
+                  // 등호는 '224개가 전부 22px 게이트를 넘는다' 는 실측까지 함께 고정한다 —
+                  // 후보 간격을 손대 게이트 아래로 들어가는 라벨이 생기면 여기서 먼저 걸린다.
                   && leadN===angTot && leadOff===0 && leadCross===0,
               검사:n, 최대겹침:worst, 지점:at, 최소예약:minRects, 최소지점:thin,
               각도라벨:angTot, 고정링크아래:angBelow, 형상별:perShape,

@@ -1997,15 +1997,18 @@ function arcAng(cx,cy,angle,r,color,label,base,below){
   const acx=pp.x+bw2/2, acy=pp.y+bh2/2;
   const ax=cx+r*Math.cos(-mid), ay=cy+r*Math.sin(-mid);   // 호 중앙점 — 멀어졌는지 판정용
   if(Math.hypot(acx-ax,acy-ay)>22){
-    // 긋는 곳은 호 중앙이 아니라 **관절 중심**. 호 중앙으로 그으면 링크를 자주
-    // 가로지른다(실측 112개 중 14 → 0). 관절은 링크들이 모이는 끝점이라 가로지르지
-    // 않고, "어느 관절의 각인가" 라는 의미에도 정확히 맞는다.
-    const jd=Math.hypot(acx-cx,acy-cy)||1;
+    // θ 호(below 를 받은 호)는 **관절 중심**으로 긋는다. 호 중앙으로 그으면 링크를 자주
+    // 가로지른다(라벨 224개 중 74 → 0). 관절은 링크들이 모이는 끝점이라 가로지르지 않고,
+    // "어느 관절의 각인가" 라는 의미에도 정확히 맞는다.
+    // 반대로 장착 기울기 호(below 없음)는 호 중앙 그대로 둔다 — 그 관절은 O₂ 이고 −x 쪽은
+    // 서보 몸체가 덮고 있어(위 1622행 주석), 관절로 그으면 선이 몸체를 25px 남짓 지난다.
+    const tx=below?cx:ax, ty=below?cy:ay;
+    const td=Math.hypot(acx-tx,acy-ty)||1;
     ctx.save();
     ctx.strokeStyle=hexAlpha(color,0.35); ctx.lineWidth=1; ctx.setLineDash([]);
-    const ux3=(cx-acx)/jd, uy3=(cy-acy)/jd;
+    const ux3=(tx-acx)/td, uy3=(ty-acy)/td;
     const edge3=Math.min(bw2/2/Math.max(Math.abs(ux3),1e-6), bh2/2/Math.max(Math.abs(uy3),1e-6));
-    ctx.beginPath(); ctx.moveTo(acx+ux3*edge3, acy+uy3*edge3); ctx.lineTo(cx,cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(acx+ux3*edge3, acy+uy3*edge3); ctx.lineTo(tx,ty); ctx.stroke();
     ctx.restore();
   }
   ctx.fillStyle='rgba(255,255,255,0.85)';
