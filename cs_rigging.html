@@ -352,8 +352,11 @@
     font-size: 12px;
     font-family: 'SF Mono', 'Menlo', monospace;
     color: var(--text-primary); line-height: 1.65;
-    word-break: break-all;
+    word-break: keep-all;            /* 숫자를 자릿수 중간에서 쪼개지 않음 — 폭이 되면 한 줄, 부족하면 항(+/−) 단위로만 줄바꿈 */
+    overflow-wrap: normal;
   }
+  /* 이론 탭 계수 카드: 넓은 패널 폭을 그대로 써서 식이 한 줄로 나오게 */
+  #th-coeff-grid { grid-template-columns: 1fr; }
   .coeff-eq .cv { color: var(--accent); font-weight: 600; }
   .coeff-copy-btn {
     margin-left: auto;
@@ -857,9 +860,14 @@
   .theory-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
   .theory-sub { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5; }
   .theory-field { margin-bottom: 12px; }
+  /* 기하 입력을 2열로 압축 (칸 수 절반) */
+  .theory-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 10px; margin-bottom: 12px; }
+  .theory-grid2 .theory-field { margin-bottom: 0; min-width: 0; }   /* min-width:0 → 셀이 줄어들며 단위(mm)가 잘리지 않음 */
+  .theory-grid2 .theory-input-unit span { width: auto; }
   .theory-field label {
     display: block; font-size: 11.5px; font-weight: 600;
     color: var(--text-secondary); margin-bottom: 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .theory-input-unit { display: flex; align-items: center; gap: 8px; }
   .theory-input-unit input {
@@ -1254,36 +1262,38 @@
           <div class="theory-title">링키지 기하 입력</div>
           <div class="theory-sub">일반 4절 링크 · 4절 링크 토크 계산기에서 "리깅 계산기로 보내기"로 자동 입력되며, 여기서 직접 수정할 수도 있습니다</div>
 
-          <div class="theory-field">
-            <label>입력 크랭크 a (액추에이터 혼)</label>
-            <div class="theory-input-unit">
-              <input type="text" inputmode="decimal" id="th-a" value="30" onchange="theoryCompute()">
-              <span>mm</span>
+          <div class="theory-grid2">
+            <div class="theory-field" title="입력 크랭크 a — 액추에이터 혼">
+              <label>입력 크랭크 a</label>
+              <div class="theory-input-unit">
+                <input type="text" inputmode="decimal" id="th-a" value="30" onchange="theoryCompute()">
+                <span>mm</span>
+              </div>
+            </div>
+            <div class="theory-field" title="커플러 b — 푸시로드">
+              <label>커플러 b</label>
+              <div class="theory-input-unit">
+                <input type="text" inputmode="decimal" id="th-b" value="120" onchange="theoryCompute()">
+                <span>mm</span>
+              </div>
+            </div>
+            <div class="theory-field" title="출력 혼 c — 조종면 측">
+              <label>출력 혼 c</label>
+              <div class="theory-input-unit">
+                <input type="text" inputmode="decimal" id="th-c" value="40" onchange="theoryCompute()">
+                <span>mm</span>
+              </div>
+            </div>
+            <div class="theory-field" title="고정 링크 d — 피벗 간 거리">
+              <label>고정 링크 d</label>
+              <div class="theory-input-unit">
+                <input type="text" inputmode="decimal" id="th-d" value="100" onchange="theoryCompute()">
+                <span>mm</span>
+              </div>
             </div>
           </div>
-          <div class="theory-field">
-            <label>커플러 b (푸시로드)</label>
-            <div class="theory-input-unit">
-              <input type="text" inputmode="decimal" id="th-b" value="120" onchange="theoryCompute()">
-              <span>mm</span>
-            </div>
-          </div>
-          <div class="theory-field">
-            <label>출력 혼 c (조종면 측)</label>
-            <div class="theory-input-unit">
-              <input type="text" inputmode="decimal" id="th-c" value="40" onchange="theoryCompute()">
-              <span>mm</span>
-            </div>
-          </div>
-          <div class="theory-field">
-            <label>고정 링크 d (피벗 간 거리)</label>
-            <div class="theory-input-unit">
-              <input type="text" inputmode="decimal" id="th-d" value="100" onchange="theoryCompute()">
-              <span>mm</span>
-            </div>
-          </div>
-          <div class="theory-field">
-            <label>중립각 θ₄₀ (타각 δ=0°일 때 출력 혼 각도)</label>
+          <div class="theory-field" title="타각 δ=0°일 때 출력 혼 각도">
+            <label>중립각 θ₄₀</label>
             <div class="theory-input-unit">
               <input type="text" inputmode="decimal" id="th-t4n" value="60" onchange="theoryCompute()">
               <span>°</span>
@@ -1303,16 +1313,32 @@
               <button class="mode-btn active" id="th-dir-dn" onclick="theorySetDir(-1)">θ₄ 감소</button>
             </div>
           </div>
-          <div class="theory-field">
+          <div class="theory-field" title="운용 범위 (타각 δ)">
             <label>운용 범위 (타각 δ)</label>
-            <div class="theory-input-unit">
+            <div class="mode-btn-group" style="margin-bottom:6px;">
+              <button class="mode-btn active" id="th-rng-sym"  onclick="theorySetRangeMode('sym')">대칭 ±δ</button>
+              <button class="mode-btn"        id="th-rng-asym" onclick="theorySetRangeMode('asym')">비대칭 +δ₊·−δ₋</button>
+            </div>
+            <!-- 대칭: ±δ 한 칸 -->
+            <div class="theory-input-unit" id="th-range-sym-wrap">
               <input type="text" inputmode="decimal" id="th-range" value="30" onchange="theoryCompute()">
               <span>±°</span>
+            </div>
+            <!-- 비대칭: +δ / −δ 두 칸 (δ+ 방향은 위 '타각 δ+ 방향' 설정 기준) -->
+            <div id="th-range-asym-wrap" style="display:none;gap:8px;">
+              <div class="theory-input-unit" style="flex:1;" title="+δ 방향 타각 크기 (δ+ 방향은 위 '타각 δ+ 방향' 설정 기준)">
+                <input type="text" inputmode="decimal" id="th-range-p" value="20" onchange="theoryCompute()">
+                <span>+δ°</span>
+              </div>
+              <div class="theory-input-unit" style="flex:1;" title="−δ 방향 타각 크기">
+                <input type="text" inputmode="decimal" id="th-range-m" value="30" onchange="theoryCompute()">
+                <span>−δ°</span>
+              </div>
             </div>
           </div>
 
           <div class="divider" style="margin:14px 0;"></div>
-          <div class="theory-field">
+          <div class="theory-field" title="실측 회귀와 비교 (FCA_RIG)">
             <label>실측 회귀와 비교 (FCA_RIG)</label>
             <select id="th-compare" class="theory-select" onchange="theoryCompute()">
               <option value="">— 비교 안 함 —</option>
@@ -3893,6 +3919,31 @@ window.addEventListener('DOMContentLoaded', ()=>{
 const TH_RAD = Math.PI / 180, TH_DEG = 180 / Math.PI;
 let thSol = 'open';   // 해 유형
 let thDir = -1;       // δ+ → θ₄ 증가(+1) / 감소(-1)
+let thRangeMode = 'sym';   // 운용 범위: 대칭 ±δ / 비대칭 +δ₊·−δ₋
+
+// 운용 범위 모드 전환 (대칭 ↔ 비대칭). 링크해석기에서 수신 시에도 이 함수로 세팅.
+function theorySetRangeMode(mode) {
+  thRangeMode = (mode === 'asym') ? 'asym' : 'sym';
+  document.getElementById('th-rng-sym').classList.toggle('active',  thRangeMode === 'sym');
+  document.getElementById('th-rng-asym').classList.toggle('active', thRangeMode === 'asym');
+  document.getElementById('th-range-sym-wrap').style.display  = thRangeMode === 'sym'  ? '' : 'none';
+  document.getElementById('th-range-asym-wrap').style.display = thRangeMode === 'asym' ? 'flex' : 'none';
+  theoryCompute();
+}
+// 현재 운용 범위를 {dp(+측), dm(−측), sym} 로 반환 (둘 다 양수 크기). 유효하지 않으면 기본값.
+function theoryGetRange() {
+  if (thRangeMode === 'asym') {
+    let dp = Math.abs(parseFloat(document.getElementById('th-range-p').value));
+    let dm = Math.abs(parseFloat(document.getElementById('th-range-m').value));
+    if (!isFinite(dp)) dp = 0;
+    if (!isFinite(dm)) dm = 0;
+    if (dp <= 0 && dm <= 0) { dp = 30; dm = 30; }   // 둘 다 0 → 축 폭 0(division-by-zero) 방지
+    return { dp: dp, dm: dm, sym: false };
+  }
+  let d = Math.abs(parseFloat(document.getElementById('th-range').value));
+  if (!isFinite(d) || d <= 0) d = 30;
+  return { dp: d, dm: d, sym: true };
+}
 
 function thNorm(d) { d = d % 360; return d < 0 ? d + 360 : d; }
 // 두 각(deg)의 차를 (−180, 180]로 정규화
@@ -3984,6 +4035,24 @@ function theoryApplyLinkage(p) {
     thDir = p.dir;
     document.getElementById('th-dir-up').classList.toggle('active', thDir === 1);
     document.getElementById('th-dir-dn').classList.toggle('active', thDir === -1);
+  }
+  // 운용 범위(타각) 수신 — 대칭이면 ±δ 한 칸, 비대칭이면 +δ/−δ 두 칸에 반영.
+  // 송신측 규약: dp=상향(θ₄ 증가), dm=하향(θ₄ 감소). 수신측 δ 는 thDir 로 θ₄ 에 매핑되므로
+  //   (θ₄ = t4n + thDir·δ) 같은 θ₄ 범위를 재현하도록 +δ/−δ 쪽에 값을 배치한다.
+  //   thDir=−1 : +δ→θ₄ 감소=하향(dm), −δ→θ₄ 증가=상향(dp)
+  //   thDir=+1 : +δ→θ₄ 증가=상향(dp), −δ→θ₄ 감소=하향(dm)
+  if (p.rng && typeof p.rng === 'object') {
+    const dp = num(p.rng.dp), dm = num(p.rng.dm);
+    if (p.rng.sym === false && dp !== null && dm !== null) {
+      const pSide = (thDir === -1) ? dm : dp;   // th-range-p (+δ 쪽)
+      const mSide = (thDir === -1) ? dp : dm;   // th-range-m (−δ 쪽)
+      document.getElementById('th-range-p').value = pSide;
+      document.getElementById('th-range-m').value = mSide;
+      theorySetRangeMode('asym');
+    } else if (dp !== null) {
+      document.getElementById('th-range').value = dp;   // 대칭: ±dp (dp=dm)
+      theorySetRangeMode('sym');
+    }
   }
   return true;
 }
@@ -4077,7 +4146,10 @@ function theoryCompute() {
   const c     = parseFloat(document.getElementById('th-c').value);
   const d     = parseFloat(document.getElementById('th-d').value);
   const t4n   = parseFloat(document.getElementById('th-t4n').value);
-  const range = Math.abs(parseFloat(document.getElementById('th-range').value)) || 30;
+  const _rng = theoryGetRange();
+  const dHi = _rng.dp, dLo = _rng.dm;     // +측 상한 / −측 하한 크기 (둘 다 양수)
+  const rangeTxt = _rng.sym ? ('±' + theoryFmt(dHi, 1) + '°')
+                            : ('+' + theoryFmt(dHi, 1) + '° / −' + theoryFmt(dLo, 1) + '°');
 
   const badge   = document.getElementById('th-badge');
   const summary = document.getElementById('th-summary');
@@ -4115,12 +4187,12 @@ function theoryCompute() {
   const reachTxt = (reach.loOpen ? '−90°↓' : theoryFmt(reach.lo, 1) + '°') + ' ~ ' +
                    (reach.hiOpen ? '+90°↑' : '+' + theoryFmt(reach.hi, 1) + '°');
 
-  // ── 정확해 샘플링: δ ∈ [−range, +range], 0.25° 간격 ──
+  // ── 정확해 샘플링: δ ∈ [−dLo, +dHi], 0.25° 간격 (대칭이면 dLo=dHi) ──
   // α_raw = θ₂ − θ₂₀ (정규화). 부호는 중립 게인이 양수가 되도록 자동 결정.
   const stepDeg = 0.25;
   const rawXs = [], rawYs = [];
   let singular = false;
-  for (let del = -range; del <= range + 1e-9; del += stepDeg) {
+  for (let del = -dLo; del <= dHi + 1e-9; del += stepDeg) {
     const t4 = t4n + thDir * del;
     const s = th4barTheta2(a, b, c, d, t4);
     if (!s || s[thSol] === null) { singular = true; continue; }
@@ -4158,7 +4230,7 @@ function theoryCompute() {
     const t = Math.sqrt(-dp.p / (3 * dp.a));
     ext = [dp.h - t, dp.h + t];
   }
-  const extInRange = ext ? ext.some(function(x){ return Math.abs(x) <= range; }) : false;
+  const extInRange = ext ? ext.some(function(x){ return x >= -dLo - 1e-9 && x <= dHi + 1e-9; }) : false;
 
   // 근사 오차 / 선형(중립 게인) 대비 편차
   let maxErr = 0;
@@ -4180,7 +4252,7 @@ function theoryCompute() {
     const dMid = (reach.lo + reach.hi) / 2;
     const t4mid = t4n + thDir * dMid;
     const half  = (reach.hi - reach.lo) / 2;
-    note.textContent = '요청한 ±' + range + '° 중 일부가 출력 혼의 스윙 한계(크랭크·커플러가 일직선이 되는 지점) 밖입니다. ' +
+    note.textContent = '요청한 ' + rangeTxt + ' 중 일부가 출력 혼의 스윙 한계(크랭크·커플러가 일직선이 되는 지점) 밖입니다. ' +
       '중립각 θ₄₀를 스윙 중앙 ' + theoryFmt(t4mid, 1) + '° 로 옮기면 약 ±' + theoryFmt(half, 1) + '° 가 확보됩니다. ' +
       '그래도 부족하면 입력 크랭크 a를 키워 스윙 범위 자체를 넓히세요.';
   } else if (ext) {
@@ -4198,7 +4270,7 @@ function theoryCompute() {
     ['중립 게인 dα/dδ',    theoryFmt(linSlope, 4)],
     ['변곡점 h',            dp ? theoryFmt(dp.h, 2) + '°' : '— (3차항 ≈ 0)'],
     ['극점 위치',            ext ? theoryFmt(ext[0],1) + '° / ' + theoryFmt(ext[1],1) + '°' : '없음 (단조)'],
-    ['±' + range + '° 선형 대비 편차', theoryFmt(devLin, 3) + '°'],
+    [(_rng.sym ? '±' + theoryFmt(dHi,1) : '+' + theoryFmt(dHi,1)) + '° 선형 대비 편차', theoryFmt(devLin, 3) + '°'],
     ['3차 근사 최대오차',    theoryFmt(maxErr, 4) + '°'],
     ['피팅 R²',              fit.r2 !== null ? fit.r2.toFixed(6) : '—'],
     ['커맨드 범위 (α)',      theoryFmt(Math.min.apply(null, ys), 1) + '° ~ ' + theoryFmt(Math.max.apply(null, ys), 1) + '°']
@@ -4248,7 +4320,7 @@ function theoryCompute() {
 
   // ── 그래프 ──
   theoryDrawChart({
-    xs: xs, ys: ys, coeffs: cf, linSlope: linSlope, range: range,
+    xs: xs, ys: ys, coeffs: cf, linSlope: linSlope, dLo: dLo, dHi: dHi,
     ext: ext, extInRange: extInRange, cmp: cmp
   });
 }
@@ -4263,7 +4335,7 @@ function theoryDrawChart(m) {
   if (!m) return;
 
   const pad = { l: 52, r: 16, t: 14, b: 34 };
-  const xMin = -m.range, xMax = m.range;
+  const xMin = -m.dLo, xMax = m.dHi;
   let yMin = Infinity, yMax = -Infinity;
   m.ys.forEach(function(v){ yMin = Math.min(yMin, v); yMax = Math.max(yMax, v); });
   if (m.cmp) {

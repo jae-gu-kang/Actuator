@@ -4651,7 +4651,8 @@ function sendToRig(){
 
   const msg = document.getElementById('sendRigmsg');
   msg.style.display = 'block';
-  const rngTxt = df.sym ? ('±' + df.dp + '°') : ('+' + df.dp + '°/−' + df.dm + '°');
+  const _rp = isFinite(df.dp) ? df.dp : '?', _rm = isFinite(df.dm) ? df.dm : '?';
+  const rngTxt = df.sym ? ('±' + _rp + '°') : ('+' + _rp + '°/−' + _rm + '°');
   msg.textContent = '전송됨 ✓  (a=' + S.a + ', b=' + S.b + ', c=' + S.c + ', d=' + S.d +
                     ', θ₄₀=' + t4n.toFixed(1) + '°, ' + (S.sol==='open'?'개방형':'교차형') +
                     ', 타각 ' + rngTxt + ')';
