@@ -279,18 +279,41 @@ async function clickByText(frame, txt){
       const fmt=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(1)+'°';
       const cUp=tx('lSVup'), cDn=tx('lSVdn'), cTr=tx('lSVtravel');
       onCSAngle(-30); draw(); const atUp=tx('lSV');
+
+      // 변화점을 아슬아슬하게 스치는 형상 — 판독값(svRelAt)과 양 끝(svSweep)이 서로 다른
+      // 걸음으로 걸으면 정확히 360° 어긋나, 카드 위아래가 서로를 반박한다. 두 걸음을 같은
+      // 식에서 뽑으므로 이제 구조적으로 어긋날 수 없다.
+      setDeflectMode('asym'); g('iDeflectP').value=77.5; g('iDeflectM').value=45.5; updateCSUI();
+      g('ia').value=163.9; g('ib').value=164.11; g('ic').value=255.9; g('id').value=255.82; onLink();
+      setSol('cross'); setT4(197.7); csSetNeutral(); draw();
+      onCSAngle(45.5); draw();
+      const kCur=tx('lSV'), kDn=tx('lSVdn');
+      // 1° 걸음이었다면 어긋났을 형상인가 — 아니면 이 단언이 공허하다
+      const t40k=csNeutralT4(), zk=svT2At(t40k);
+      const kwalk=(dT,st)=>{ let prev=zk, acc=0;
+        const n=Math.max(1,Math.ceil(Math.abs(dT)/st));
+        for(let i=1;i<=n;i++){ const t=svT2At(t40k-dT*i/n); if(t===null) return null;
+          acc+=((t-prev+180)%360+360)%360-180; prev=t; }
+        return acc; };
+      const coarse=kwalk(45.5,1), fine=kwalk(45.5,(77.5+45.5)/svN(77.5,45.5));
+      const kiteReal = coarse!==null && fine!==null && Math.abs(coarse-fine)>300;
+
       return {ok: wUp!==null && wUp>180              // 실제로 ±180 을 넘는 형상인가(공허 방지)
                   && cUp===fmt(wUp) && cDn===fmt(wDn)
                   && Math.abs(parseFloat(cTr)-(hi-lo))<0.6
-                  && atUp===cUp && cTr.indexOf('≥')<0,   // 해가 끊기지 않으므로 하한 표기가 아니다
+                  && atUp===cUp && cTr.indexOf('≥')<0   // 해가 끊기지 않으므로 하한 표기가 아니다
+                  && kiteReal && kCur===kDn,            // 걸음이 갈릴 수 있는 형상에서 두 판독값 일치
               독립상향:+wUp.toFixed(1), 독립하향:+wDn.toFixed(1), 독립행정:+(hi-lo).toFixed(1),
-              카드상향:cUp, 카드하향:cDn, 카드행정:cTr, 상향이동:atUp};
+              카드상향:cUp, 카드하향:cDn, 카드행정:cTr, 상향이동:atUp,
+              변화점판독:kCur, 변화점끝:kDn,
+              거친걸음:coarse===null?null:+coarse.toFixed(1), 정렬걸음:fine===null?null:+fine.toFixed(1)};
     }catch(e){ return {err:e.message}; }
     finally{ const g=i=>document.getElementById(i);
-      setSol('open');
+      setSol('open'); setDeflectMode('asym');
+      g('iDeflectP').value=30; g('iDeflectM').value=20; updateCSUI();
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
       onLink(); g('iT4Neutral').value=100; setT4(_sv.t4); draw(); } });
-    rec('linkage: 서보각도 — 크랭크가 ±180° 를 넘어도 부호·행정이 이어짐(접힘 없음)', svw.ok===true, JSON.stringify(svw));
+    rec('linkage: 서보각도 — ±180° 를 넘어도 이어짐 · 변화점 근처에서 두 판독값 불일치 없음', svw.ok===true, JSON.stringify(svw));
 
     // 서보각도 ↔ 조종면 각도 대응 그래프 — 실제로 그려진 폴리라인을 잡아 카드와 대조한다.
     const svp = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
@@ -323,11 +346,10 @@ async function clickByText(frame, txt){
       toggleSVPlot(); onCSAngle(-12); draw();
 
       // 두 축 모드에서 같은 표본을 어느 쪽으로 놓는지만 달라야 한다.
-      const dp=30, dm=20, t40=csNeutralT4(), z=svT2At(t40);
-      const rel=t4=>{ const t=svT2At(t4); return t===null?null:(((t-z+180)%360+360)%360-180); };
-      const samp=[];
-      for(let i=0;i<=400;i++){ const d=-dp+(dp+dm)*i/400, v=rel(t40-d);
-        if(v!==null) samp.push({d,v}); }
+      // 표본은 구현이 실제로 그리는 배열에서 가져온다. 여기서 옛 '표본별 접기' 식을 다시
+      // 쓰면, 그 식을 되살리는 회귀에 테스트가 함께 동의해 버린다(물리 자체는 svw 가 고정).
+      const dp=30, dm=20;
+      const samp=svSweep().pts.filter(q=>q.v!==null);
       const A=samp[0], B=samp[samp.length-1];
       const probe=(mode)=>{
         setSVAxis(mode);
@@ -348,7 +370,7 @@ async function clickByText(frame, txt){
         // 마커 — 곡선 위에 있는 것만으로는 부족하다(중립점도 곡선 위다). 모드별로 마커의
         // x 가 '현재 δ' 인지 '현재 서보각' 인지까지 본다.
         const mk=C.arcs.find(q=>q.r>3&&q.r<6);
-        const curQ={d:csDelta(), v:rel(S.t4)};
+        const curQ={d:csDelta(), v:svRelAt(csDelta())};
         let dy=null,dx=null;
         if(mk&&curve.length>1){
           const bb=Math.min(...curve.map(q=>Math.abs(q.x-mk.x)));
@@ -357,7 +379,21 @@ async function clickByText(frame, txt){
           const xL=curve[0].x, xR=curve[curve.length-1].x, dL=px(A), dR=px(B);
           dx=Math.abs(mk.x-(xL+(px(curQ)-dL)/((dR-dL)||1)*(xR-xL)));
         }
+        // 중립 원점을 곡선이 지나는가 — 모드마다 본다('중립을 안 뺀' 구현을 잡는 유일한 검사)
+        const grn=C.segs.filter(q=>q.s&&q.s.indexOf('52, 199, 89')>0&&q.length===2);
+        const vt=grn.find(q=>Math.abs(q[0].x-q[1].x)<0.01);
+        const hz=grn.find(q=>Math.abs(q[0].y-q[1].y)<0.01);
+        let org=null;
+        if(vt&&hz&&curve.length>1){
+          const nr=curve.reduce((b,q)=>Math.abs(q.x-vt[0].x)<Math.abs(b.x-vt[0].x)?q:b, curve[0]);
+          org=Math.abs(nr.y-hz[0].y);
+        }
+        // 화면 방향 — 곡선은 δ 오름차순이므로 첫 점이 상향(−dp), 끝 점이 하향(+dm).
+        // 's' 모드의 세로축이 δ 라면 하향(+)이 화면 위쪽이어야 한다. 이 단언이 없으면
+        // px·py 를 함께 뒤집는 점대칭 변이가 나머지 검사를 전부 통과한다.
+        const upDown = curve.length>1 ? (curve[curve.length-1].y<curve[0].y) : null;
         return {n:curve.length, 캡션:capTxt, 기대:want, devOK:unitOK,
+                중립원점차:org===null?null:+org.toFixed(2), 하향이위:upDown,
                 마커y차:dy===null?null:+dy.toFixed(2), 마커x차:dx===null?null:+dx.toFixed(2),
                 끝점x:[curve.length?+curve[0].x.toFixed(1):null,
                        curve.length?+curve[curve.length-1].x.toFixed(1):null],
@@ -367,18 +403,6 @@ async function clickByText(frame, txt){
       };
       const D=probe('d'), Sw=probe('s');
       setSVAxis('d');
-      // 중립에서 곡선이 원점(초록 십자선)을 지나야 한다. 이 검사가 없으면 '중립을 안 뺀'
-      // 구현이 방향·비선형성 검사를 모두 통과한다(상수 이동은 둘 다 안 바꾸므로).
-      const Cx=cap();
-      const grn=Cx.segs.filter(q=>q.s&&q.s.indexOf('52, 199, 89')>0&&q.length===2);
-      const vert=grn.find(q=>Math.abs(q[0].x-q[1].x)<0.01);
-      const horz=grn.find(q=>Math.abs(q[0].y-q[1].y)<0.01);
-      const cvX=Cx.segs.slice().sort((x,y)=>y.length-x.length)[0]||[];
-      let originGap=null;
-      if(vert&&horz&&cvX.length>1){
-        const near=cvX.reduce((b,q)=>Math.abs(q.x-vert[0].x)<Math.abs(b.x-vert[0].x)?q:b, cvX[0]);
-        originGap=Math.abs(near.y-horz[0].y);
-      }
       // 방향: δ→서보 모드에서 서보각이 줄면 화면 y 는 커진다(카드의 양 끝 부호와 일치)
       const a=svAngles();
       const Cd=cap(); const curveD=Cd.segs.slice().sort((x,y)=>y.length-x.length)[0]||[];
@@ -395,9 +419,10 @@ async function clickByText(frame, txt){
                   && D.n>=80 && Sw.n>=80 && mono && dirOK
                   && D.devOK && Sw.devOK && D.캡션!==Sw.캡션   // 단위가 바뀌면 수치도 바뀐다
                   && okMk(D) && okMk(Sw) && swapped
-                  && originGap!==null && originGap<1,          // 곡선이 중립 원점을 지난다
-              foldHidden, drawnWhileFolded, mono, dirOK, swapped,
-              중립원점차:originGap===null?null:+originGap.toFixed(2), D, Sw};
+                  && D.중립원점차!==null && D.중립원점차<1      // 두 모드 모두 원점을 지난다
+                  && Sw.중립원점차!==null && Sw.중립원점차<1
+                  && Sw.하향이위===true,                        // 's' 모드에서 하향(+δ)이 위쪽
+              foldHidden, drawnWhileFolded, mono, dirOK, swapped, D, Sw};
     }catch(e){ return {err:e.message}; }
     finally{ const g=i=>document.getElementById(i);
       setSVAxis('d');
@@ -405,6 +430,151 @@ async function clickByText(frame, txt){
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
       onLink(); csGo('zero'); draw(); } });
     rec('linkage: 서보↔조종면 대응 그래프 — 접힘 · 방향·비선형성 일치 · 축 전환 두 모드', svp.ok===true, JSON.stringify(svp));
+
+    // 변환식(3차) + 좌우 반전. 반전은 거울상 조립이라 서보 회전 '방향' 만 뒤집히고
+    // 크기·행정·잔차는 같아야 한다 — 계수는 전부 부호만 반대가 된다.
+    const sve = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=i=>document.getElementById(i), tx=i=>g(i).textContent.trim();
+      setDeflectMode('asym'); g('iDeflectP').value=30; g('iDeflectM').value=20; updateCSUI();
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      g('iT4Neutral').value=100; csGo('zero'); onCSAngle(-12); draw();
+      if(g('svPlotFold').style.display==='none') toggleSVPlot();
+      setSVAxis('d'); setSVSide('r'); drawSVPlot();
+      // 독립 최소제곱 — 중심화 없이 원변수로 정규방정식을 푼다(구현과 다른 경로)
+      const lsq=(xs,ys)=>{
+        const M=[];
+        for(let i=0;i<4;i++){ const row=[];
+          for(let j=0;j<4;j++) row.push(xs.reduce((a,x)=>a+Math.pow(x,i+j),0));
+          row.push(xs.reduce((a,x,k)=>a+Math.pow(x,i)*ys[k],0)); M.push(row); }
+        for(let c=0;c<4;c++){
+          let pv=c; for(let r=c+1;r<4;r++) if(Math.abs(M[r][c])>Math.abs(M[pv][c])) pv=r;
+          const t=M[c]; M[c]=M[pv]; M[pv]=t;
+          for(let r=0;r<4;r++){ if(r===c) continue; const f=M[r][c]/M[c][c];
+            for(let k=c;k<=4;k++) M[r][k]-=f*M[c][k]; } }
+        return [M[3][4]/M[3][3], M[2][4]/M[2][2], M[1][4]/M[1][1], M[0][4]/M[0][0]];
+      };
+      const swp=svSweep(), good=swp.pts.filter(q=>q.v!==null);
+      const want=lsq(good.map(q=>q.d), good.map(q=>q.v));
+      const gotR=_svEq? _svEq.co.slice() : null;
+      const coOK = !!gotR && gotR.every((v,i)=>Math.abs(v-want[i])<Math.max(1e-9,Math.abs(want[i])*1e-6));
+      // 잔차가 실제 최대 잔차인가
+      let resWant=0;
+      for(const q of good) resWant=Math.max(resWant,
+        Math.abs(q.v-((((want[0]*q.d+want[1])*q.d+want[2])*q.d+want[3]))));
+      const resOK = !!_svEq && Math.abs(_svEq.res-resWant)<1e-6;
+      // 식이 캔버스에 실제로 그려지는가
+      const c2=g('svPlot').getContext('2d');
+      let drawn=[]; const _ft=c2.fillText.bind(c2);
+      c2.fillText=function(t,x,y){ drawn.push(String(t)); return _ft(t,x,y); };
+      try{ drawSVPlot(); } finally{ c2.fillText=_ft; }
+      const eqDrawn=drawn.some(t=>t.indexOf('Δθ₂ =')===0) && drawn.some(t=>t.indexOf('잔차 최대')>=0);
+      // ── 좌우 반전 ──
+      const cardR={sv:tx('lSV'),up:tx('lSVup'),dn:tx('lSVdn'),tr:tx('lSVtravel')};
+      setSVSide('l'); drawSVPlot();
+      const cardL={sv:tx('lSV'),up:tx('lSVup'),dn:tx('lSVdn'),tr:tx('lSVtravel')};
+      const gotL=_svEq? _svEq.co.slice() : null;
+      const neg=t=>t==='—'?t:(t[0]==='−'?'+'+t.slice(1):(t[0]==='+'?'−'+t.slice(1):t));
+      const mirOK = cardR.sv!=='—' && cardR.dn!=='—'   // '—' 이면 neg() 가 그대로 통과해 공허해진다
+                    && cardL.sv===neg(cardR.sv) && cardL.up===neg(cardR.up)
+                    && cardL.dn===neg(cardR.dn) && cardL.tr===cardR.tr   // 행정은 크기라 그대로
+                    && !!gotL && gotL.every((v,i)=>Math.abs(v+gotR[i])<Math.max(1e-9,Math.abs(gotR[i])*1e-6))
+                    && Math.abs(_svEq.res-resWant)<1e-6;                 // 잔차도 그대로
+      setSVSide('l'); let dl=[]; const _f2=c2.fillText.bind(c2);
+      c2.fillText=function(t,x,y){ dl.push(String(t)); return _f2(t,x,y); };
+      try{ drawSVPlot(); } finally{ c2.fillText=_f2; }
+      // 반전 표시는 두 축 모드 모두에서 나와야 한다 — 'd' 만 보면 축을 바꿨을 때
+      // 태그를 빠뜨린 회귀가 지나간다(모드마다 태그가 붙는 라벨이 다르다).
+      const tagD = dl.some(t=>t.indexOf('좌측')>=0);
+      setSVAxis('s'); let ds=[]; const _f3=c2.fillText.bind(c2);
+      c2.fillText=function(t,x,y){ ds.push(String(t)); return _f3(t,x,y); };
+      try{ drawSVPlot(); } finally{ c2.fillText=_f3; }
+      const tagOK = tagD && ds.some(t=>t.indexOf('좌측')>=0);
+      setSVAxis('d'); drawSVPlot();
+      // 축을 바꾸면 종속변수가 바뀐다
+      setSVSide('r'); setSVAxis('s'); drawSVPlot();
+      const eqS=_svEq? _svEq.text : '';
+      // 그릴 수 없는 형상으로 바뀌면 식은 무효가 되어야 한다. 남겨두면 '식 복사' 가
+      // 화면엔 '해가 없습니다' 를 띄운 채 **옛 형상의** 계수를 배정밀도로 건네준다.
+      setSVAxis('d'); drawSVPlot();
+      const hadEq=_svEq!==null;
+      g('ia').value=20; g('ib').value=30; g('ic').value=20; g('id').value=200; onLink(); draw();
+      drawSVPlot();
+      const staleEq=_svEq!==null;
+      g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      g('iT4Neutral').value=100; csGo('zero'); draw(); drawSVPlot();
+      return {ok: coOK && resOK && eqDrawn && mirOK && tagOK
+                  && eqS.indexOf('δ =')===0
+                  && hadEq && !staleEq            // 해 없는 형상으로 바뀌면 식이 비워진다
+                  && cardR.up!=='—' && cardR.up!==cardL.up,
+              coOK, resOK, eqDrawn, mirOK, tagOK, hadEq, staleEq,
+              계수:gotR&&gotR.map(v=>+v.toPrecision(6)), 잔차:_svEq&&+resWant.toFixed(4),
+              우측:cardR, 좌측:cardL, 축전환식:eqS.slice(0,28)};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=i=>document.getElementById(i);
+      setSVSide('r'); setSVAxis('d');
+      if(g('svPlotFold').style.display!=='none') toggleSVPlot();
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      onLink(); csGo('zero'); draw(); } });
+    rec('linkage: 변환식 3차 계수 = 독립 최소제곱 · 좌우 반전은 부호만 뒤집힘', sve.ok===true, JSON.stringify(sve));
+
+    // 서보각이 구간 안에서 되꺾이는 형상 — 축을 바꾸면 δ 가 서보각의 함수가 아니게 된다.
+    // 예전엔 거의 수직인 기준선에 대한 세로거리를 재서 δ 축 폭(50°)의 수백 배인 수를 냈다.
+    const svt = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+      const g=i=>document.getElementById(i);
+      const cap=()=>{ const c=g('svPlot').getContext('2d'); const t=[],seg=[]; let path=[];
+        const _ft=c.fillText.bind(c),_bp=c.beginPath.bind(c),_mv=c.moveTo.bind(c),
+              _ln=c.lineTo.bind(c),_st=c.stroke.bind(c);
+        c.fillText=function(x,a,b2){ const str=String(x);
+          t.push({s:str, x:a, y:b2, w:c.measureText(str).width}); return _ft(x,a,b2);};
+        c.beginPath=function(){path=[];return _bp();};
+        c.moveTo=function(x,y){path.push({x,y});return _mv(x,y);};
+        c.lineTo=function(x,y){path.push({x,y});return _ln(x,y);};
+        c.stroke=function(){ if(path.length>1){const q=path.slice();q.s=String(c.strokeStyle);seg.push(q);} return _st(); };
+        try{ drawSVPlot(); } finally{ c.fillText=_ft;c.beginPath=_bp;c.moveTo=_mv;c.lineTo=_ln;c.stroke=_st; }
+        return {t,seg}; };
+      setDeflectMode('asym'); g('iDeflectP').value=30; g('iDeflectM').value=20; updateCSUI();
+      g('ia').value=40; g('ib').value=60; g('ic').value=40; g('id').value=80; onLink();
+      setSol('open'); setT4(150); csSetNeutral(); draw();
+      if(g('svPlotFold').style.display==='none') toggleSVPlot();
+      setSVSide('r');
+      // 이 형상이 실제로 되꺾이는가 (단언이 공허해지지 않게 먼저 확인)
+      const good=svSweep().pts.filter(q=>q.v!==null);
+      let tv=0; for(let i=1;i<good.length;i++) tv+=Math.abs(good[i].v-good[i-1].v);
+      const turn=(tv-Math.abs(good[good.length-1].v-good[0].v))/2;
+      setSVAxis('d'); const D=cap();
+      const dCap=(D.t.find(q=>/^(직선 대비 )?최대 /.test(q.s))||{s:''}).s;
+      setSVAxis('s'); const Sx=cap();
+      const sTurn=(Sx.t.find(q=>/^(서보각이|되꺾임 )/.test(q.s))||{s:''}).s;  // 좁은 폭에선 짧은 형태
+      const sDev =(Sx.t.find(q=>/^(직선 대비 )?최대 /.test(q.s))||{s:''}).s;
+      const chord=Sx.seg.some(q=>q.s&&q.s.indexOf('142, 142, 147')>0);
+      // 이 안내가 '수치·기준선·3차식이 왜 사라졌나' 의 유일한 설명이라 잘리면 안 된다.
+      // 사이드바 최소폭(280px)일 때 캔버스는 ~230px — 그보다 좁게 강제해 재 본다.
+      const holder=g('svPlot').parentElement, _w=holder.style.width;
+      let clip=-1e9;
+      for(const W of [230,200]){
+        holder.style.width=W+'px';
+        const C2=cap(), cw=g('svPlot').offsetWidth;
+        for(const q of C2.t) if(/서보각이|되꺾임 |둘 —|3차식 불가/.test(q.s))
+          clip=Math.max(clip, q.x+q.w-cw);
+      }
+      holder.style.width=_w; drawSVPlot();
+      return {ok: turn>1                                   // 되꺾이는 형상이 맞다
+                  && dCap.indexOf('되꺾임')>0
+                  && sTurn.indexOf('서보각이')===0          // 기본 폭에선 온전한 문구
+                  && sDev===''                             // 축 전환: 수치 대신 사실
+                  && !chord && _svEq===null                // 기준선·3차식 없음
+                  && Sx.t.some(q=>q.s.indexOf('3차식 불가')>=0)
+                  && clip>-1e8 && clip<0,                  // 좁은 폭에서도 안 잘린다
+              되꺾임:+turn.toFixed(1), d캡션:dCap, s캡션:sTurn, s수치:sDev,
+              기준선:chord, 식:_svEq!==null, 최대넘침:+clip.toFixed(1)};
+    }catch(e){ return {err:e.message}; }
+    finally{ const g=i=>document.getElementById(i);
+      setSVSide('r'); setSVAxis('d');
+      if(g('svPlotFold').style.display!=='none') toggleSVPlot();
+      setSol('open');
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      onLink(); g('iT4Neutral').value=100; setT4(100); draw(); } });
+    rec('linkage: 서보각 되꺾임 — 축 전환 시 무의미한 비선형성 수치 대신 사실을 알림', svt.ok===true, JSON.stringify(svt));
 
     // 출력토크 그래프에 조종면 끝단(10° 버림) 마커가 그려지는가
     const pm = await f.evaluate(()=>{ try{

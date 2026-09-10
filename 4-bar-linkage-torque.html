@@ -1057,6 +1057,13 @@ canvas.hover { cursor: grab; }
           <div class="angle-label">
             <span class="angle-sym" style="background:rgba(0,113,227,.1);color:var(--crank)">Δθ₂</span>서보각도
           </div>
+          <!-- 좌우 반전 — 반대편 날개는 링키지가 거울상이라 같은 타각에 서보가 반대로 돈다.
+               조종면 상향/하향은 물리적 위아래라 그대로고, 뒤집히는 건 서보 회전 방향뿐이다. -->
+          <div class="seg-ctrl" style="padding:2px;margin-left:auto;margin-right:8px;"
+               title="화면의 링키지를 우측으로 보고, 좌측은 그 거울상입니다. 서보 회전 방향(부호)만 뒤집히고 크기·행정·비선형성은 같습니다.">
+            <button class="seg-btn active" id="btnSVSideR" onclick="setSVSide('r')" style="padding:2px 8px;font-size:10px;">우측</button>
+            <button class="seg-btn"        id="btnSVSideL" onclick="setSVSide('l')" style="padding:2px 8px;font-size:10px;">좌측</button>
+          </div>
           <div class="angle-readout" style="color:var(--crank)" id="lSV">—</div>
         </div>
         <!-- 서보 선정에 그대로 쓰는 수 3개. 양 끝 부호가 '어느 쪽으로 돌리면 조종면이
@@ -1122,6 +1129,7 @@ canvas.hover { cursor: grab; }
           <div style="flex:1 1 0;min-width:0;"></div>
           <button class="copy-btn" onclick="copyPlotImage('svPlot',this)" title="그래프를 이미지로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>그래프 복사</button>
           <button class="copy-btn" onclick="downloadPlotImage('svPlot',this)" title="그래프를 이미지로 저장"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M4.5 6.5 8 10l3.5-3.5"/><path d="M3 13h10"/></svg>그래프 저장</button>
+          <button class="copy-btn" id="btnSVEq" onclick="copySVEquation(this)" title="변환식과 3차 계수(배정밀도)를 클립보드로 복사"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10"/><path d="M5.5 4.5 3 8l2.5 3.5"/><path d="M10.5 4.5 13 8l-2.5 3.5"/></svg>식 복사</button>
         </div>
         <div style="background:var(--card);border-radius:12px;border:1px solid var(--border2);padding:10px 10px 6px;">
           <canvas id="svPlot" height="200" style="width:100%;display:block;border-radius:6px;"></canvas>
@@ -2337,17 +2345,37 @@ const svFold=x=>((x+180)%360+360)%360-180;
 // (예: a25 b145 c100 d80 · θ₄₀ 60 · 상향 30/하향 20 · 개방형 → 상향 끝 −170.2°, 실제 +189.8°).
 // 그래서 이웃 표본 사이의 차만 접어 누적한다(unwrap). 해가 끊긴 지점 너머는 연속 운동으로
 // 갈 수 없으므로 이어 붙이지 않고 null 로 남긴다.
+// 좌우 반전 — 반대편 날개는 링키지가 거울상이라 **같은 조종면 방향에 서보가 반대로** 돈다.
+// 조종면 상향/하향은 물리적 위아래라 그대로고, 뒤집히는 건 서보 회전 방향뿐이다.
+// 그래서 기구를 다시 풀지 않고 Δθ₂ 부호만 뒤집는다 — 크기·행정·비선형성은 그대로다.
+// 화면에 그려진 링키지를 '우측' 으로 보고, '좌측' 은 그 거울상이다.
+let _svSide='r';
+function svMir(){ return _svSide==='l' ? -1 : 1; }
+function setSVSide(side){
+  _svSide=(side==='l')?'l':'r';
+  const r=document.getElementById('btnSVSideR'), l=document.getElementById('btnSVSideL');
+  if(r) r.classList.toggle('active',_svSide==='r');
+  if(l) l.classList.toggle('active',_svSide==='l');
+  updateCSUI();                                  // 카드 + (펼쳐져 있으면) 그래프
+}
+const svN=(dp,dm)=>Math.max(80, Math.min(400, Math.round((dp+dm)*4)));
 function svRelAt(dTarget){                       // 중립 → δ 까지 걸어가며 누적한 Δθ₂
   const t40=csNeutralT4(), z=svT2At(t40);
   if(z===null) return null;
-  const steps=Math.max(1, Math.ceil(Math.abs(dTarget)));   // ≤1° 걸음
+  // 걸음 폭을 svSweep 과 같게 맞춘다. 다르면 변화점 근처에서 두 판독값이 정확히 360°
+  // 어긋날 수 있는데(카드 위 '하향 +165.5°' / 아래 '하향 끝 −194.5°'), 둘이 서로를
+  // 반박하는 건 어느 한쪽이 틀린 것보다 나쁘다.
+  const _df=getDeflect();
+  const _dp=isFinite(_df.dp)?_df.dp:0, _dm=isFinite(_df.dm)?_df.dm:0;
+  const _st=(_dp+_dm>0)?(_dp+_dm)/svN(_dp,_dm):1;
+  const steps=Math.max(1, Math.ceil(Math.abs(dTarget)/_st));
   let prev=z, acc=0;
   for(let i=1;i<=steps;i++){
     const t=svT2At(t40-dTarget*i/steps);
     if(t===null) return null;
     acc+=svFold(t-prev); prev=t;
   }
-  return acc;
+  return acc*svMir();
 }
 // 타각범위 전체를 훑은 표본. 카드와 그래프가 **같은 배열**을 쓴다 — 예전엔 접는 식이
 // 세 곳에 복사돼 있어 우연히만 일치했다. 키가 같으면 재사용하므로 δ 를 끄는 동안에는
@@ -2357,12 +2385,12 @@ function svSweep(){
   const df=getDeflect();
   const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
   const t40=csNeutralT4();
-  const key=[S.a,S.b,S.c,S.d,S.offY,S.sol,t40,dp,dm].join('|');
+  const key=[S.a,S.b,S.c,S.d,S.offY,S.sol,t40,dp,dm,_svSide].join('|');
   if(_svMemo.key===key) return _svMemo.val;
   let val=null;
   const z=svT2At(t40);
   if(z!==null && dp+dm>0){
-    const n=Math.max(80, Math.min(400, Math.round((dp+dm)*4)));
+    const n=svN(dp,dm);
     const pts=[];
     for(let i=0;i<=n;i++){ const d=-dp+(dp+dm)*i/n; pts.push({d, t:svT2At(t40-d), v:null}); }
     let k=0;                                     // 중립(δ=0)에 가장 가까운 표본에서 양쪽으로 편다
@@ -2373,6 +2401,8 @@ function svSweep(){
         pts[i].v=pts[i-1].v+svFold(pts[i].t-pts[i-1].t); }
       for(let i=k-1;i>=0;i--){ if(pts[i].t===null||pts[i+1].v===null) break;
         pts[i].v=pts[i+1].v+svFold(pts[i].t-pts[i+1].t); }
+      const mir=svMir();                         // 반전은 마지막에 한 번만 — 누적 중에 걸면 접힘이 어긋난다
+      if(mir<0) for(const q of pts) if(q.v!==null) q.v=-q.v;
     }
     val={z, dp, dm, t40, pts, gap:pts.some(q=>q.v===null)};
   }
@@ -2404,6 +2434,7 @@ function toggleRawAng(){
 // 점선은 양 끝을 잇는 직선 — 곡선이 그 선에서 벌어지는 정도가 곧 리깅 비선형성이고,
 // 조종면 리깅 계산기가 3차식을 쓰는 이유이기도 하다. 최대 편차를 캔버스 안에 적는다.
 let _svPlotFolded=true;
+let _svEq=null;                      // 마지막으로 그린 변환식 — '식 복사' 가 읽는다
 // 축 모드 — 'd': x=조종면 δ, y=서보 Δθ₂ (조종면을 얼마 치면 서보가 얼마 도나)
 //           's': 축을 바꿔 x=서보, y=조종면 (서보를 얼마 돌리면 조종면이 얼마 가나 = 리깅 방향)
 let _svAxis='d';
@@ -2425,15 +2456,75 @@ function svTick(span){                   // 축 눈금 간격 — 1·2·5·10·2
   const raw=span/4, p=Math.pow(10,Math.floor(Math.log10(raw||1))), n=raw/p;
   return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;
 }
+// 최소제곱 3차 적합. x 를 중심·정규화해 풀고(정규방정식 조건수) 계수를 원래 변수로 되돌린다 —
+// 각도(수십 °)를 그대로 넣으면 x⁶ 항이 1e10 대라 4x4 가 나빠진다.
+function svFitCubic(xs, ys){
+  const n=xs.length; if(n<4) return null;
+  const m=xs.reduce((a,b)=>a+b,0)/n;
+  const sd=Math.sqrt(xs.reduce((a,b)=>a+(b-m)*(b-m),0)/n);
+  if(!(sd>1e-9)) return null;
+  const A=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], B=[0,0,0,0];
+  for(let i=0;i<n;i++){
+    const u=(xs[i]-m)/sd, pw=[1,u,u*u,u*u*u];
+    for(let r=0;r<4;r++){ B[r]+=pw[r]*ys[i]; for(let c=0;c<4;c++) A[r][c]+=pw[r]*pw[c]; }
+  }
+  const M=A.map((row,i)=>row.concat([B[i]]));    // 가우스 소거(부분 피벗)
+  for(let c=0;c<4;c++){
+    let pv=c; for(let r=c+1;r<4;r++) if(Math.abs(M[r][c])>Math.abs(M[pv][c])) pv=r;
+    if(Math.abs(M[pv][c])<1e-12) return null;
+    const tmp=M[c]; M[c]=M[pv]; M[pv]=tmp;
+    for(let r=0;r<4;r++){ if(r===c) continue;
+      const f=M[r][c]/M[c][c];
+      for(let k=c;k<=4;k++) M[r][k]-=f*M[c][k]; }
+  }
+  const c0=M[0][4]/M[0][0], c1=M[1][4]/M[1][1], c2=M[2][4]/M[2][2], c3=M[3][4]/M[3][3];
+  const s2=sd*sd, s3=s2*sd;                      // u=(x−m)/s 를 x 다항식으로 전개
+  return [ c3/s3,
+           -3*m*c3/s3 + c2/s2,
+           3*m*m*c3/s3 - 2*m*c2/s2 + c1/sd,
+           -m*m*m*c3/s3 + m*m*c2/s2 - m*c1/sd + c0 ];
+}
+const svPoly=(co,x)=>((co[0]*x+co[1])*x+co[2])*x+co[3];
+// 계수 표기 — 3차 계수는 1e-5 대로 작아지므로 크기에 따라 고정/지수를 고른다
+function svCoStr(v){
+  const a=Math.abs(v);
+  if(a<5e-7) return '0';
+  if(a>=1e-3) return String(+a.toPrecision(a>=1?5:4));
+  return a.toExponential(2).replace('e-','e−');
+}
+function svEqStr(co, yn, xn){
+  const pw=['\u00b3','\u00b2','',''];
+  let out=yn+' = ';
+  for(let i=0;i<4;i++){
+    const v=co[i];
+    out += i===0 ? (v<0?'−':'') : (v<0?' − ':' + ');
+    out += svCoStr(v) + (i<3 ? xn+pw[i] : '');
+  }
+  return out;
+}
 function drawSVPlot(){
  try{
   const pc=document.getElementById('svPlot'); if(!pc||_svPlotFolded) return;
-  const W2=pc.offsetWidth||220, PH=200;
-  const PAD={t:14,b:36,l:46,r:14}, IW=W2-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
+  // 아래 어느 경로로 빠지든(해 없음·타각 0 등) 식은 무효다. 여기서 비우지 않으면
+  // '식 복사' 가 **다른 형상의** 계수를 배정밀도로 건네준다 — 화면엔 '해가 없습니다' 가
+  // 떠 있는데 클립보드엔 그럴듯한 3차식이 들어간다.
+  _svEq=null;
+  const W2=pc.offsetWidth||220, EQH=26, PH=200+EQH;    // EQH: 아래 변환식 띠
+  const PAD={t:14,b:36+EQH,l:46,r:14}, IW=W2-PAD.l-PAD.r, IH=PH-PAD.t-PAD.b;
   const DPR=plotDPR||window.devicePixelRatio||1;
   pc.width=W2*DPR; pc.height=PH*DPR; pc.style.width='100%'; pc.style.height=PH+'px';
   const g=pc.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.scale(DPR,DPR);
   g.clearRect(0,0,W2,PH);
+  // 좁은 사이드바에서 잘리지 않게 — **글씨 크기는 고정하고 문구를 줄인다**.
+  // 한글은 8px 아래로 내려가면 읽히지 않으므로, 줄일 여지는 글씨가 아니라 말에 있다.
+  // (아래 변환식은 반대로 글씨를 줄인 뒤 두 줄로 접는다 — 거기 담긴 건 계수라서
+  //  짧게 고쳐 쓸 수가 없다. 두 renderer 의 우선순위가 다른 건 그 차이 때문이다.)
+  // 후보는 긴 것부터 준다. 다 안 들어가면 마지막(가장 짧은) 것을 쓴다.
+  const pickFit=(cands,w,size,maxW)=>{
+    g.font=w+' '+size+'px -apple-system,sans-serif';
+    for(const t of cands) if(g.measureText(t).width<=maxW) return t;
+    return cands[cands.length-1];
+  };
   const note=m=>{ g.fillStyle='#8e8e93';     // 캔버스는 CSS 변수를 못 받는다 — 리터럴로
     g.font='500 11px -apple-system,sans-serif'; g.textAlign='center';
     g.fillText(m, W2/2, PH/2); };
@@ -2479,12 +2570,23 @@ function drawSVPlot(){
   g.beginPath(); g.moveTo(X(0),PAD.t); g.lineTo(X(0),PAD.t+IH); g.stroke();
   g.beginPath(); g.moveTo(PAD.l,Y(0)); g.lineTo(PAD.l+IW,Y(0)); g.stroke();
 
+  // 서보각이 구간 안에서 되꺾이는가. 총 변동이 양 끝 차보다 크면 어딘가에서 되돌아온다.
+  // 되꺾이면 축을 바꾼 모드에서 δ 는 서보각의 **함수가 아니다** — 같은 서보각에 δ 가 둘이다.
+  // 그때는 양 끝을 잇는 직선이 거의 수직이 되어 '직선과의 세로 거리' 가 δ 축 폭의 수백 배
+  // 같은 무의미한 수가 되고(실측 14442.6°), 3차식도 다가 함수를 적합하는 꼴이 된다.
+  let tv=0; for(let i=1;i<good.length;i++) tv+=Math.abs(good[i].v-good[i-1].v);
+  const vspan=Math.abs(good[good.length-1].v-good[0].v);
+  const turn=Math.max(0,(tv-vspan)/2);
+  const bad=sw && turn>0.5;                      // 축 전환 모드에서만 성립이 깨진다
+
   // 양 끝을 잇는 직선(이상적 선형) — 곡선과의 벌어짐이 비선형성
   const A=good[0], B=good[good.length-1];
   const axA=px(A), ayA=py(A), axB=px(B), ayB=py(B);
   const refY=x=>ayA+(ayB-ayA)*(x-axA)/((axB-axA)||1);
-  g.strokeStyle='rgba(142,142,147,0.75)'; g.lineWidth=1; g.setLineDash([4,3]);
-  g.beginPath(); g.moveTo(X(axA),Y(ayA)); g.lineTo(X(axB),Y(ayB)); g.stroke();
+  if(!bad){
+    g.strokeStyle='rgba(142,142,147,0.75)'; g.lineWidth=1; g.setLineDash([4,3]);
+    g.beginPath(); g.moveTo(X(axA),Y(ayA)); g.lineTo(X(axB),Y(ayB)); g.stroke();
+  }
 
   // 대응 곡선 — 해가 끊기면 선도 끊는다. 축을 바꾸면 서보각이 δ 에 대해 단조가 아닐 때
   // 곡선이 되꺾일 수 있어, 함수가 아니라 (x,y) 매개곡선으로 잇는다.
@@ -2511,25 +2613,75 @@ function drawSVPlot(){
   // 축 이름 — 회전 라벨은 아래에서 위로 읽히므로, 화살표를 붙이면 '위쪽 = +' 를 가리킨다
   g.setLineDash([]); g.fillStyle='#8e8e93'; g.font='500 9.5px -apple-system,sans-serif';
   g.textAlign='right'; g.textBaseline='bottom';
-  g.fillText(sw?'서보 Δθ₂ (°)':'조종면 δ (°)  →  하향 +', PAD.l+IW, PH-2);
-  if(!sw){ g.textAlign='left'; g.fillText('상향 −', PAD.l, PH-2); }
+  const AXY=PAD.t+IH+30;                        // 축 이름 줄 — 눈금(+5~+16) 아래로 충분히 띄운다
+  const sideTag=_svSide==='l'?' · 좌측':'';
+  g.fillText(sw?('서보 Δθ₂ (°)'+sideTag):'조종면 δ (°)  →  하향 +', PAD.l+IW, AXY);
+  if(!sw){ g.textAlign='left'; g.fillText('상향 −', PAD.l, AXY); }
   g.save(); g.translate(11, PAD.t+IH/2); g.rotate(-Math.PI/2);
   g.textAlign='center'; g.textBaseline='top';
-  g.fillText(sw?'조종면 δ (°)  →  하향 +':'서보 Δθ₂ (°)', 0, 0); g.restore();
+  g.fillText(sw?'조종면 δ (°)  →  하향 +':('서보 Δθ₂ (°)'+sideTag), 0, 0); g.restore();
 
   // 비선형성 — 세로 방향(=지금 세로축의 단위)으로 잰다. 축을 바꾸면 같은 형상이라도
   // 뜻이 달라지므로(서보 몇 ° vs 조종면 몇 °) 단위를 괄호로 함께 적는다.
   let dev=0; for(const q of good) dev=Math.max(dev, Math.abs(py(q)-refY(px(q))));
   const gap=pts.some(q=>q.v===null);
-  g.textBaseline='top'; g.font='600 9.5px -apple-system,sans-serif'; g.fillStyle=C.crank;
+  g.textBaseline='top'; g.fillStyle=C.crank;
+  if(bad){                                       // 되꺾임 — 수치 대신 사실을 알린다
+    // 이 두 줄이 '수치·기준선·3차식이 왜 사라졌는가' 의 유일한 설명이라, 최소 폭(사이드바
+    // 280px)에서 잘리면 안 된다 — 폭에 맞춰 문구를 줄인다(글씨 크기는 그대로).
+    const T=turn.toFixed(1);
+    g.textAlign='left'; g.fillStyle='#c76a00';
+    g.fillText(pickFit(['서보각이 '+T+'° 되꺾여 δ = f(서보) 가 성립하지 않습니다',
+                        '되꺾임 '+T+'° · δ = f(서보) 불성립',
+                        '되꺾임 '+T+'°'],'600',9.5,IW-4), PAD.l+4, PAD.t+3);
+    g.textBaseline='top'; g.fillStyle='#8e8e93';
+    g.fillText(pickFit(['같은 서보각에 δ 가 둘 — 3차식 불가',
+                        'δ 가 둘 — 3차식 불가',
+                        '3차식 불가'],'500',9.5,IW), PAD.l, PH-EQH+3);
+    return;
+  }
   // 빈 쪽 위 모서리에 붙인다. 판정은 **화면 기울기**로 한다 — 축을 바꾸면 곡선이 오른쪽에서
   // 왼쪽으로 진행할 수 있어, 표본 순서(A→B)로 보면 위아래가 뒤집힌다.
   const sxA=X(axA), syA=Y(ayA), sxB=X(axB), syB=Y(ayB);
   const down = Math.abs(sxB-sxA)<1e-9 ? false : ((syB-syA)/(sxB-sxA) > 0);
   g.textAlign=down?'right':'left';
-  g.fillText('직선 대비 최대 '+dev.toFixed(1)+'° ('+(sw?'조종면':'서보')+')'
-             +(gap?' · 해 없는 구간 제외':''),
+  // 접미사가 둘 다 붙으면(갭 + 되꺾임) 최소 폭에서 캔버스를 넘는다
+  const capTxt='직선 대비 최대 '+dev.toFixed(1)+'° ('+(sw?'조종면':'서보')+')'
+             +(turn>0.5?' · 되꺾임 '+turn.toFixed(1)+'°':'')
+             +(gap?' · 해 없는 구간 제외':'');
+  const capShort='최대 '+dev.toFixed(1)+'° ('+(sw?'조종면':'서보')+')'
+               +(turn>0.5?' · 되꺾임 '+turn.toFixed(1)+'°':'');
+  g.fillText(pickFit([capTxt, capShort, '최대 '+dev.toFixed(1)+'°'],'600',9.5,IW-4),
              down?PAD.l+IW-4:PAD.l+4, PAD.t+3);
+
+  // ── 변환식(3차) — 지금 축 방향 그대로 y=f(x). 리깅 계산기의 3차식과 같은 꼴이다.
+  const yn=sw?'δ':'Δθ₂', xn=sw?'Δθ₂':'δ';
+  const co=svFitCubic(good.map(px), good.map(py));
+  const EY=PH-EQH+3;
+  if(co){
+    let res=0; for(const q of good) res=Math.max(res, Math.abs(py(q)-svPoly(co,px(q))));
+    _svEq={co, res, yn, xn, text:svEqStr(co,yn,xn), unit:sw?'조종면':'서보', side:_svSide};
+    const tail='   잔차 최대 '+(res<0.005?'0.01':res.toFixed(2))+'°';
+    g.textAlign='left'; g.textBaseline='top'; g.fillStyle='#8e8e93';
+    // 좁은 사이드바에서 한 줄에 안 들어가면 글씨를 줄이고, 그래도 넘치면 두 줄로 나눈다
+    let fs=9.5, eq=_svEq.text;
+    for(; fs>=8; fs-=0.5){ g.font='500 '+fs+'px -apple-system,sans-serif';
+      if(g.measureText(eq+tail).width<=IW) break; }
+    if(g.measureText(eq+tail).width<=IW){
+      g.fillStyle=C.crank; g.fillText(eq, PAD.l, EY);
+      g.fillStyle='#8e8e93'; g.fillText(tail, PAD.l+g.measureText(eq).width, EY);
+    }else{
+      const cut=eq.indexOf(xn+'\u00b2');                 // 2차 항 뒤에서 접는다
+      const br=cut>0?eq.indexOf(' ', cut):-1;
+      g.fillStyle=C.crank;
+      // 잔차 꼬리는 **2행** 오른쪽에 둔다. 1행과 같은 baseline 에 두면 좁은 사이드바에서
+      // 왼쪽 정렬된 식과 폭 예약 없이 마주 보게 되어 겹친다(실측 최대 7.1px).
+      if(br>0){ g.fillText(eq.slice(0,br), PAD.l, EY-2);
+                g.fillText('   '+eq.slice(br+1), PAD.l, EY+10); }
+      else g.fillText(eq, PAD.l, EY-2);                // 포맷이 바뀌어 접을 자리가 없을 때
+      g.fillStyle='#8e8e93'; g.textAlign='right'; g.fillText(tail.trim(), PAD.l+IW, EY+10);
+    }
+  }
  }catch(e){}
 }
 
@@ -5235,6 +5387,18 @@ function redrawPlotById(id){
   else if(id==='couplerPlot') drawCouplerPlot();
   else if(id==='deltaSweepPlot') drawDeltaSweepPlot();
   else if(id==='svPlot') drawSVPlot();
+}
+
+// 변환식 복사 — 리깅 계산기에 옮겨 적으려고 쓰는 값이라 표시용 반올림이 아니라
+// 배정밀도 계수를 그대로 준다.
+async function copySVEquation(btn){
+  if(!_svEq){ plotBtnFeedback(btn,'식 없음'); return; }
+  const e=_svEq;
+  const txt=e.text+'\n'
+    +'a3='+e.co[0]+'\na2='+e.co[1]+'\na1='+e.co[2]+'\na0='+e.co[3]+'\n'
+    +'# '+(e.side==='l'?'좌측(서보 반전)':'우측')+' · 잔차 최대 '+e.res.toFixed(4)+'° ('+e.unit+')';
+  try{ await navigator.clipboard.writeText(txt); plotBtnFeedback(btn,'복사됨'); }
+  catch(err){ plotBtnFeedback(btn,'복사 실패'); }
 }
 
 function plotBtnFeedback(btn, text){
