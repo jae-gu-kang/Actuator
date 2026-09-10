@@ -1027,10 +1027,20 @@ canvas.hover { cursor: grab; }
         <button id="btnOptimize" onclick="runOptimizer()"
           style="width:100%;background:linear-gradient(135deg,#bf5af2,#5e5ce6);color:#fff;border:none;border-radius:9px;padding:9px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(94,92,230,.25);">
           ✦ 최적값 계산</button>
-        <button onclick="openDeltaSweep()"
-          style="width:100%;margin-top:8px;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
-          타각범위별 토크 검토 (그래프) →</button>
-        <div id="optResult" style="display:none;margin-top:10px;"></div>
+        <!-- 접이 영역 — 타각범위별 토크 검토 + 결과 상세.
+             '이 값 적용' 은 아래 #optApply 로 빼내 접혀도 항상 보이게 한다. -->
+        <button id="btnOptFold" onclick="toggleOptFold()"
+          style="width:100%;margin-top:8px;background:transparent;color:var(--text3);border:none;
+                 padding:3px 0;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;
+                 display:flex;align-items:center;justify-content:center;gap:4px;">
+          <span id="lblOptFold">상세 접기</span><span id="icoOptFold">▲</span></button>
+        <div id="optFold">
+          <button onclick="openDeltaSweep()"
+            style="width:100%;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+            타각범위별 토크 검토 (그래프) →</button>
+          <div id="optResult" style="display:none;margin-top:10px;"></div>
+        </div>
+        <div id="optApply" style="display:none;margin-top:8px;"></div>
       </div>
     </div>
 
@@ -2614,7 +2624,6 @@ function drawTorquePlot(){
 
   // ── 현재 위치 마커 (주황) ──
   const clampedT4=Math.max(T4_MIN,Math.min(T4_MAX,curT4deg));
-  const t4idx=Math.round(clampedT4-T4_MIN);
   const curTq=tqAt(clampedT4);                 // 격자 반올림 없이 현재 θ₄ 그대로
   if(curTq!==null){
     const cx=xp(clampedT4-T4_MIN), cy=yp(curTq);
@@ -2648,7 +2657,7 @@ function drawTorquePlot(){
     c2.fillStyle="#b06000"; c2.textAlign="left";
     c2.fillText(lbl, lx+1, ly);
     // 현재 출력각(θ₄)+조종면기준 각도(δ)를 축 아래 알약에 두 줄로 (max·교점 라벨과 겹침 자동 회피)
-    xAxisLabels.push({x:cx, label:(T4_MIN+t4idx).toFixed(1)+"°", sub:csDegStr(clampedT4),
+    xAxisLabels.push({x:cx, label:clampedT4.toFixed(1)+"°", sub:csDegStr(clampedT4),
       color:"#b06000", bg:"rgba(255,159,10,0.18)"});
   }
 
@@ -3504,7 +3513,7 @@ function runOptimizer(){
   btn.innerHTML='계산 중…'; btn.style.opacity='0.6';
   // 결과창에도 즉시 진행 상태 표시 (c 스윕 포함이라 1~2초 소요될 수 있음)
   const box=document.getElementById('optResult');
-  if(box){ box.style.display='block';
+  if(box){ box.style.display='block'; setOptApply('');
     box.innerHTML='<div style="font-size:11px;color:var(--text3);">(c, b, θ₄₀) 전수 탐색 중…</div>'; }
   // 렌더 한 프레임 양보 후 계산 (버튼 상태가 화면에 먼저 반영되도록)
   setTimeout(()=>{
@@ -3512,7 +3521,7 @@ function runOptimizer(){
     catch(e){
       console.warn('optimize:',e);
       // 에러를 화면에 노출해 원인 파악이 가능하게 함
-      if(box){ box.style.display='block';
+      if(box){ box.style.display='block'; setOptApply('');
         box.innerHTML='<div style="font-size:11px;color:var(--red);font-weight:600;line-height:1.5;">'
           +'⚠︎ 계산 중 오류가 발생했습니다:<br><code style="font-size:10px;">'
           +String(e&&e.message||e).replace(/</g,'&lt;')+'</code></div>'; }
@@ -3520,6 +3529,22 @@ function runOptimizer(){
     btn.innerHTML=orig; btn.style.opacity='';
     btn._busy=false;
   },30);
+}
+
+// 결과 상세(타각범위별 토크 검토 버튼 포함)를 접는다. '이 값 적용' 은 #optApply 라 안 접힌다.
+let _optFolded=false;
+function toggleOptFold(){ _optFolded=!_optFolded; applyOptFold(); }
+function applyOptFold(){
+  const box=document.getElementById('optFold'),
+        lbl=document.getElementById('lblOptFold'), ico=document.getElementById('icoOptFold');
+  if(box) box.style.display=_optFolded?'none':'';
+  if(lbl) lbl.textContent=_optFolded?'상세 펼치기':'상세 접기';
+  if(ico) ico.textContent=_optFolded?'▼':'▲';
+}
+// 적용바는 결과가 있을 때만 — 로딩·경고·오류 상태에서는 비운다(이전 결과의 버튼이 남으면 안 된다)
+function setOptApply(html){
+  const el=document.getElementById('optApply'); if(!el) return;
+  el.innerHTML=html||''; el.style.display=html?'block':'none';
 }
 
 function doOptimize(){
@@ -3530,7 +3555,7 @@ function doOptimize(){
   const hasMotor=!isNaN(motorVal)&&motorEl.value.trim()!=='';
   const {dm,dp,sym}=getDeflect();
   const box=document.getElementById('optResult');
-  const showMsg=t=>{box.style.display='block';
+  const showMsg=t=>{box.style.display='block'; setOptApply('');
     box.innerHTML='<div style="font-size:11px;color:#a05800;font-weight:500;line-height:1.5;">'+t+'</div>';};
 
   // 타각 범위는 필수 입력
@@ -3663,11 +3688,13 @@ function doOptimize(){
     +editRow('추천 중립각 θ₄₀','optEditT0',+best.t0.toFixed(1),0.5,'°','var(--follower)')
     +'<div class="result-divider"></div>'
     +'<div id="optMetrics"></div>'
-    +'</div>'
-    +'<button onclick="applyOptFromCard()"'
+    +'</div>';
+  // 적용 버튼은 접이 영역 **밖**이라, 상세를 접어도 항상 보인다.
+  // (편집칸 optEditD/A/C/B/T0 는 접혀도 DOM 에 남아 있어 값 읽기에 문제 없다)
+  setOptApply('<button onclick="applyOptFromCard()"'
     +' style="width:100%;background:rgba(94,92,230,0.10);color:#5e5ce6;border:none;border-radius:9px;padding:8px 0;'
     +'font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">이 값 적용 ('
-    +(applied.length?applied.join(' · ')+' · ':'')+'θ₄₀ · 중립각)</button>';
+    +(applied.length?applied.join(' · ')+' · ':'')+'θ₄₀ · 중립각)</button>');
   recalcOptCard();   // 최초 지표 채우기
 }
 

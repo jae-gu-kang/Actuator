@@ -228,7 +228,11 @@ async function clickByText(frame, txt){
     // 플롯 마커가 조종면 각도 카드와 같은 값을 말하는가.
     // T4arr 는 1° 정수 격자라, 중립각 θ₄₀ 가 정수가 아니면(최적화 적용 후가 보통 그렇다)
     // 끝단·현재위치가 격자에 안 떨어진다. 격자로 읽으면 카드와 최대 0.36 N·m 어긋난다.
-    const mk = await f.evaluate(()=>{ const _sv={a:S.a,b:S.b,c:S.c,d:S.d}; try{
+    const mk = await f.evaluate(()=>{
+      const _sv={a:S.a,b:S.b,c:S.c,d:S.d,dp:document.getElementById('iDeflectP').value,
+                 dm:document.getElementById('iDeflectM').value};
+      let _ctx=null,_orig=null;
+      try{
       const g=id=>document.getElementById(id);
       const num=t=>{const m=String(t).match(/-?[\d.]+/); return m?+m[0]:NaN;};
       g('ia').value=25.4; g('ib').value=111; g('ic').value=46; g('id').value=99; onLink();
@@ -237,24 +241,29 @@ async function clickByText(frame, txt){
       updateCSUI();
       // 캔버스에 실제로 찍히는 문자열을 가로챈다
       const ctx=g('torquePlot').getContext('2d'), drawn=[], orig=ctx.fillText.bind(ctx);
+      _ctx=ctx; _orig=orig;
       ctx.fillText=function(t,x,y){ drawn.push(String(t)); return orig(t,x,y); };
       csGo('zero');  drawTorquePlot();
       const curCard=num(g('lCST4').textContent);
       const curPlot=drawn.filter(t=>/^[\d.]+ N·m$/.test(t)).pop();
+      // 알약 윗줄(θ₄)도 격자가 아닌 실제 각도여야 한다 — 아랫줄 δ 와 모순되면 안 된다
+      const pill=drawn.filter(t=>/^[\d.]+°$/.test(t)).map(t=>parseFloat(t));
+      const curPill=pill.some(v=>Math.abs(v-S.t4)<0.051);
       drawn.length=0;
       csGo('up');    drawTorquePlot();
       const upCard=num(g('lCST4').textContent);
       const upPlot=drawn.filter(t=>/^상향 [\d.]+° · [\d.]+ N·m$/.test(t)).pop();   // 범례 문구 제외
-      ctx.fillText=orig;
       const upPlotVal=upPlot?num(upPlot.split('·')[1]):null;
       return {ok: Math.abs(curCard-num(curPlot))<0.005 && upPlotVal!==null
-                  && Math.abs(upCard-upPlotVal)<0.005,
-              θ40:99.6, curCard, curPlot, upCard, upPlot};
+                  && Math.abs(upCard-upPlotVal)<0.005 && curPill,
+              θ40:99.6, curCard, curPlot, upCard, upPlot, θ4:+S.t4.toFixed(2), curPill};
     }catch(e){ return {err:e.message}; }
     finally{ const g=id=>document.getElementById(id);
+      if(_ctx&&_orig) _ctx.fillText=_orig;      // 예외가 나도 몽키패치를 반드시 되돌린다
       g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      g('iDeflectP').value=_sv.dp; g('iDeflectM').value=_sv.dm;
       setDeflectMode('sym'); g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
-    rec('linkage: 플롯 마커 값 = 조종면 각도 카드 T₄ (비정수 중립각에서도)', mk.ok===true, JSON.stringify(mk));
+    rec('linkage: 플롯 마커·알약이 조종면 각도 카드와 같은 θ₄·T₄ (비정수 중립각)', mk.ok===true, JSON.stringify(mk));
 
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
     // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.

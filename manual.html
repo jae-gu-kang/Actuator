@@ -834,7 +834,7 @@ body {
             <div class="step-num" style="background:linear-gradient(135deg,#0071e3,#bf5af2);">AI</div>
             <div class="step-body">
               <h4>AI 최적 설계 추천</h4>
-              <p><strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 해당 타각 범위를 물리 가용범위 안에 수용하면서 양끝단 토크 불균형을 억제하고 토크 합이 최대가 되도록 <strong>커플러 b · 출력링크 c · 중립각 θ₄₀</strong>를 자동 탐색합니다. 추천 값은 카드에서 직접 편집·재평가할 수 있고 <strong>"이 값 적용"</strong>으로 반영됩니다. <strong>"타각범위별 토크 검토 (그래프)"</strong>로 δ 스윕 역설계 검토 모달을 엽니다.</p>
+              <p><strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 해당 타각 범위를 물리 가용범위 안에 수용하면서 양끝단 토크 불균형을 억제하고 토크 합이 최대가 되도록 <strong>커플러 b · 출력링크 c · 중립각 θ₄₀</strong>를 자동 탐색합니다. 추천 값은 카드에서 직접 편집·재평가할 수 있고 <strong>"이 값 적용"</strong>으로 반영됩니다. <strong>"타각범위별 토크 검토 (그래프)"</strong>로 δ 스윕 역설계 검토 모달을 엽니다. 계산 버튼 아래 <strong>"상세 접기"</strong>로 검토 버튼과 결과 지표를 접을 수 있으며, <strong>"이 값 적용"</strong>은 접어도 항상 보입니다.</p>
             </div>
           </div>
           <div class="step">
@@ -865,7 +865,7 @@ body {
           <tr><td>타각 범위 ±δ <span class="unit">°</span></td><td>AI 최적화 목표 타각 범위 — <strong>크기</strong>로 입력합니다(부호 없음). 대칭이면 출력각이 θ₄₀−δ(하향) ~ θ₄₀+δ(상향) 를 모두 지나야 한다는 뜻입니다</td><td>25</td><td>0.5 ~ 89</td></tr>
           <tr><td>토크 요구도 <span class="unit">N·m</span></td><td>출력토크·커플러 그래프의 요구 토크 기준선. 토크 가용각 판정에 사용</td><td>3</td><td>−9999 ~ 9999</td></tr>
           <tr><td>끝단 마진 <span class="unit">°</span></td><td>작동범위 양끝단에 두는 안전 여유각. 물리 가용범위에서 제외</td><td>5</td><td>0 ~ 90</td></tr>
-          <tr><td>중립각 θ₄₀ <span class="unit">°</span></td><td>힌지모멘트/리깅 연동용 타각 δ=0° 기준 출력각</td><td>100</td><td>0 ~ 360</td></tr>
+          <tr><td>중립각 θ₄₀ <span class="unit">°</span></td><td>타각 δ=0° 기준 출력각 — <strong>직접 입력하는 칸은 없습니다.</strong> 조종면 각도 카드의 "중립 지정" 또는 최적화 "적용"으로 정해지고, 그래프 δ 눈금·연동 페이로드가 이 값을 씁니다</td><td>100</td><td>0 ~ 360</td></tr>
         </table>
       </div>
 
@@ -1005,7 +1005,7 @@ body {
             <span id="anc-neutral-angle"></span><div class="term-name">중립각 (Neutral Angle)
               <span class="term-symbol">θ₄₀</span>
             </div>
-            <div class="term-desc">타각 δ = 0°에 대응하는 기준 출력각. 조종면의 중립(뉴트럴) 위치에 해당합니다. 부호 규약은 <strong>상향 = −δ, 하향 = +δ</strong>라 <code>θ₄ = θ₄₀ − δ</code>이고, 작동범위는 상향 δ₊·하향 δ₋ 에 대해 <code>θ₄₀ + δ₊</code>(상향 끝단) ~ <code>θ₄₀ − δ₋</code>(하향 끝단)입니다. AI 최적화의 탐색 변수이자 힌지모멘트·리깅 연동의 기준각입니다.</div>
+            <div class="term-desc">타각 δ = 0°에 대응하는 기준 출력각. 조종면의 중립(뉴트럴) 위치에 해당합니다. 부호 규약은 <strong>상향 = −δ, 하향 = +δ</strong>라 <code>θ₄ = θ₄₀ − δ</code>이고, 작동범위는 상향 타각 δ<sub>상향</sub>·하향 타각 δ<sub>하향</sub>(둘 다 크기, 양수)에 대해 <code>θ₄₀ + δ<sub>상향</sub></code>(상향 끝단) ~ <code>θ₄₀ − δ<sub>하향</sub></code>(하향 끝단)입니다. AI 최적화의 탐색 변수이자 힌지모멘트·리깅 연동의 기준각입니다.</div>
           </div>
           <div class="term-row">
             <span id="anc-phys-span"></span><div class="term-name">물리(기계적) 가용 각도
