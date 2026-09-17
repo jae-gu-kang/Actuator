@@ -402,12 +402,12 @@ body.hover #ctl{opacity:1}
     <ol class="toc">
       <li data-anim data-goto="3"><span class="tn">1</span><span class="tt">서론 — 조종면 리깅이란</span><span class="tp">3</span></li>
       <li data-anim data-goto="4"><span class="tn">2</span><span class="tt">연구 배경 — 상용 구동기와 리깅 비선형성</span><span class="tp">4</span></li>
-      <li data-anim data-goto="7"><span class="tn">3</span><span class="tt">문제 정의 — 기존 리깅의 한계</span><span class="tp">7</span></li>
-      <li data-anim data-goto="9"><span class="tn">4</span><span class="tt">연구 목적 및 시스템 구성</span><span class="tp">9</span></li>
-      <li data-anim data-goto="11"><span class="tn">5</span><span class="tt">도구 설계 및 구현</span><span class="tp">11</span></li>
-      <li data-anim data-goto="13"><span class="tn">6</span><span class="tt">검증</span><span class="tp">13</span></li>
-      <li data-anim data-goto="15"><span class="tn">7</span><span class="tt">운용 효과 분석</span><span class="tp">15</span></li>
-      <li data-anim data-goto="17"><span class="tn">8</span><span class="tt">결론</span><span class="tp">17</span></li>
+      <li data-anim data-goto="8"><span class="tn">3</span><span class="tt">문제 정의 — 기존 리깅의 한계</span><span class="tp">8</span></li>
+      <li data-anim data-goto="10"><span class="tn">4</span><span class="tt">연구 목적 및 시스템 구성</span><span class="tp">10</span></li>
+      <li data-anim data-goto="12"><span class="tn">5</span><span class="tt">도구 설계 및 구현</span><span class="tp">12</span></li>
+      <li data-anim data-goto="14"><span class="tn">6</span><span class="tt">검증</span><span class="tp">14</span></li>
+      <li data-anim data-goto="16"><span class="tn">7</span><span class="tt">운용 효과 분석</span><span class="tp">16</span></li>
+      <li data-anim data-goto="18"><span class="tn">8</span><span class="tt">결론</span><span class="tp">18</span></li>
     </ol>
   </div>
   <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
@@ -523,8 +523,8 @@ body.hover #ctl{opacity:1}
             <circle class="s-fill-p s-stroke draw" cx="295" cy="158" r="6" style="--i:9"/>
             <text class="s-lbl b" x="372" y="138" text-anchor="middle">조종면</text>
             <!-- 힌지모멘트 -->
-            <path class="s-acc draw" d="M323,168 A30,30 0 0 1 305,186" style="--i:10"/>
-            <path class="s-acc draw" d="M299,179 L305,187 L313,183" style="--i:11"/>
+            <path class="s-acc draw" d="M323,178 A34,34 0 0 1 290,192" style="--i:10"/>
+            <path class="s-fill-a" d="M289,192 L301,190 L299.5,198 Z" data-anim="pop" style="--i:11"/>
             <text class="s-lbl a" x="346" y="200" text-anchor="start">힌지모멘트</text>
             <!-- 라벨 -->
             <text class="s-lbl b" x="129" y="230" text-anchor="middle">COTS 구동기 · 감속비 고정</text>
@@ -585,6 +585,29 @@ body.hover #ctl{opacity:1}
         <figcaption>그림 3. 힌지모멘트 요구도가 정하는 링키지 비율과 그에 따르는 비선형성 (개념도)</figcaption>
       </figure>
     </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 6. 기구 실연 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">2.</span><span class="tt">연구 배경 — 조종면을 고르게 움직이려면</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <p class="lead" data-anim style="max-width:980px">조종면을 <em>일정한 5°씩</em> 움직이는 동안 구동기가 얼마나 도는지 보면, 같은 각도를 내는 데 필요한 구동기 변위가 구간마다 다르다.</p>
+    <figure class="fig" data-anim="fade" style="margin-top:6px">
+      <div class="frame" style="padding:12px 18px">
+        <svg id="mech" viewBox="0 0 960 312" role="img"
+             aria-label="4절 링크가 움직이며 조종면 등간격에 대응하는 구동기 각도가 불균등함을 보이는 실연">
+          <g id="mech-static"></g>
+          <g id="mech-move"></g>
+          <g id="mech-scale"></g>
+        </svg>
+      </div>
+      <figcaption>그림 4. 조종면 5° 등간격에 대응하는 구동기 회전각 (링크 해석기 기본 형상 a20 · b100 · c40 · d100 mm)</figcaption>
+    </figure>
   </div>
   <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
 </section>
@@ -713,8 +736,8 @@ body.hover #ctl{opacity:1}
         <div class="frame">
           <svg viewBox="0 0 440 236" role="img" aria-label="8개 조종면에 반복되는 48회의 주요 작업 단계">
             <g id="step-grid"></g>
-            <text class="s-lbl" x="26" y="112" text-anchor="middle" transform="rotate(-90,26,112)">조종면 8</text>
-            <text class="s-lbl" x="212" y="208" text-anchor="middle">조종면마다 반복되는 6단계</text>
+            <text class="s-lbl" x="24" y="118" text-anchor="middle" transform="rotate(-90,24,118)">조종면 8개</text>
+            
           </svg>
         </div>
         <figcaption>그림 6. 종래 방식에서 요구되는 총 48회의 주요 작업 단계</figcaption>
@@ -1058,20 +1081,26 @@ body.hover #ctl{opacity:1}
     var g = document.getElementById('step-grid');
     if(!g) return;
     var NS = 'http://www.w3.org/2000/svg';
-    var t = document.createElementNS(NS,'text');
-    t.setAttribute('x','220'); t.setAttribute('y','20');
-    t.setAttribute('text-anchor','middle');
-    t.setAttribute('class','s-lbl a');
-    t.setAttribute('font-size','13');
-    t.textContent = '총 48회의 주요 작업 단계';
-    g.appendChild(t);
-    for(var r=0;r<8;r++){
-      for(var c=0;c<6;c++){
+    var STEPS = ['개방','연결','측정','입력','분리','폐쇄'];   /* Table 1 의 6단계 */
+    function tx(x, y, s, cls, size){
+      var t = document.createElementNS(NS,'text');
+      t.setAttribute('x', x); t.setAttribute('y', y);
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('class','s-lbl' + (cls ? ' ' + cls : ''));
+      if(size) t.setAttribute('font-size', size);
+      t.textContent = s; return t;
+    }
+    g.appendChild(tx(220, 18, '총 48회의 주요 작업 단계', 'a', 13));
+    STEPS.forEach(function(name, c){
+      g.appendChild(tx(62 + c*60, 40, name, null, 10));
+    });
+    for(var r = 0; r < 8; r++){
+      for(var c = 0; c < 6; c++){
         var rect = document.createElementNS(NS,'rect');
         rect.setAttribute('x', 40 + c*60);
-        rect.setAttribute('y', 40 + r*19);
+        rect.setAttribute('y', 50 + r*17);
         rect.setAttribute('width', 44);
-        rect.setAttribute('height', 12);
+        rect.setAttribute('height', 11);
         rect.setAttribute('fill', 'var(--acc-12)');
         rect.setAttribute('stroke', 'var(--acc-30)');
         rect.setAttribute('stroke-width', '1');
@@ -1080,6 +1109,129 @@ body.hover #ctl{opacity:1}
         g.appendChild(rect);
       }
     }
+    /* 범례 — 네모 하나가 무엇인지 밝힌다 */
+    g.appendChild(tx(220, 206, '한 칸 = 조종면 하나에 대한 작업 한 단계', null, 10.5));
+  })();
+
+  /* ── 기구 실연 : 조종면 등간격 ↔ 구동기 불균등 ───────── */
+  (function buildMech(){
+    var svg = document.getElementById('mech');
+    if(!svg) return;
+    var NS = 'http://www.w3.org/2000/svg';
+    var gS = document.getElementById('mech-static');
+    var gM = document.getElementById('mech-move');
+    var gK = document.getElementById('mech-scale');
+    function el(t, at){ var e = document.createElementNS(NS, t);
+      for(var k in at) e.setAttribute(k, at[k]); return e; }
+    function tx(x, y, s, cls, anc){ var e = el('text',
+      {x:x, y:y, 'text-anchor':anc||'middle', 'class':'s-lbl' + (cls?' '+cls:'')});
+      e.textContent = s; return e; }
+
+    /* 링크 해석기 기본 형상 a20 · b100 · c40 · d100 mm 를 1.6배로 */
+    var O2 = [300,105], O4 = [460,105], a = 32, b = 160, c = 64;
+    var T0 = 100, RNG = 25, STEP = 5, RAD = Math.PI/180;
+
+    function ptB(t4){ return [O4[0] + c*Math.cos(t4*RAD), O4[1] - c*Math.sin(t4*RAD)]; }
+    function solveA(t4){                     /* circle(O2,a) ∩ circle(B,b) */
+      var B = ptB(t4), dx = B[0]-O2[0], dy = B[1]-O2[1], L = Math.hypot(dx,dy);
+      if(L > a+b || L < Math.abs(a-b)) return null;
+      var t = (a*a - b*b + L*L)/(2*L), h2 = a*a - t*t;
+      if(h2 < 0) return null;
+      var h = Math.sqrt(h2), ux = dx/L, uy = dy/L;
+      var px = O2[0] + t*ux, py = O2[1] + t*uy;
+      var A1 = [px - h*uy, py + h*ux], A2 = [px + h*uy, py - h*ux];
+      return A1[1] <= A2[1] ? A1 : A2;       /* 화면 위쪽 분기(열린 형상) */
+    }
+    function th2(t4){ var A = solveA(t4);
+      return A ? Math.atan2(O2[1]-A[1], A[0]-O2[0])/RAD : null; }
+
+    /* ── 고정부 : 구동기 몸체 · 장착 구조 · 지상 링크 · 날개 고정부 ── */
+    gS.appendChild(el('path',{'class':'s-stroke', d:'M266,143 L374,143'}));
+    var hatch = '';
+    for(var hx = 272; hx <= 372; hx += 14) hatch += 'M' + hx + ',143 L' + (hx-8) + ',153 ';
+    gS.appendChild(el('path',{'class':'s-thin', d:hatch}));
+    gS.appendChild(el('rect',{'class':'s-stroke', x:276, y:89, width:87, height:32, rx:4}));
+    gS.appendChild(el('rect',{'class':'s-stroke', x:292, y:91, width:55, height:28, rx:3}));
+    [[282,96],[282,114],[357,96],[357,114]].forEach(function(h){
+      gS.appendChild(el('circle',{'class':'s-thin', fill:'none', cx:h[0], cy:h[1], r:4})); });
+    gS.appendChild(el('path',{'class':'s-thin s-dash', 'stroke-opacity':'.7',
+      d:'M' + O2[0] + ',' + O2[1] + ' L' + O4[0] + ',' + O4[1]}));
+    gS.appendChild(tx(320,171,'COTS 구동기','b'));
+
+    /* ── 움직이는 부분 ── */
+    var surf = el('path',{'class':'s-stroke', d:'M0,-13 C-12,-11 -12,11 0,13 L112,1 Z'});
+    var gSurf = el('g',{});
+    gSurf.appendChild(surf);
+    var lnkA = el('path',{'class':'s-acc', style:'stroke-width:9;stroke-linecap:round'});
+    var lnkB = el('path',{'class':'s-stroke', style:'stroke-width:7;stroke-linecap:round'});
+    var lnkC = el('path',{'class':'s-acc', style:'stroke-width:9;stroke-linecap:round'});
+    var jA = el('circle',{'class':'s-fill-p s-stroke', r:5});
+    var jB = el('circle',{'class':'s-fill-p s-stroke', r:5});
+    gM.appendChild(gSurf); gM.appendChild(lnkB); gM.appendChild(lnkA); gM.appendChild(lnkC);
+    gM.appendChild(el('circle',{'class':'s-fill-p s-stroke', cx:O2[0], cy:O2[1], r:10}));
+    gM.appendChild(el('circle',{'class':'s-fill', cx:O2[0], cy:O2[1], r:3.5}));
+    gM.appendChild(el('circle',{'class':'s-fill-p s-stroke', cx:O4[0], cy:O4[1], r:6}));
+    gM.appendChild(jA); gM.appendChild(jB);
+    gM.appendChild(tx(606,108,'조종면','b','start'));
+
+    /* ── 눈금 : 조종면 등간격 vs 구동기 불균등 ── */
+    var X0 = 70, X1 = 890, YS = 206, YA = 264, ticks = [];
+    for(var dd = -RNG; dd <= RNG + 1e-6; dd += STEP) ticks.push({d:dd, t2:th2(T0+dd)});
+    var t2a = ticks[0].t2, t2b = ticks[ticks.length-1].t2;
+    function xS(d){ return X0 + (d + RNG)/(2*RNG)*(X1 - X0); }
+    function xA(v){ return X0 + (v - t2a)/(t2b - t2a)*(X1 - X0); }
+
+    gK.appendChild(el('path',{'class':'s-stroke', d:'M'+X0+','+YS+' L'+X1+','+YS}));
+    gK.appendChild(el('path',{'class':'s-stroke', d:'M'+X0+','+YA+' L'+X1+','+YA}));
+    ticks.forEach(function(t){
+      gK.appendChild(el('path',{'class':'s-acc', 'stroke-width':'1.6',
+        d:'M'+xS(t.d)+','+YS+' L'+xS(t.d)+','+(YS-9)}));
+      gK.appendChild(el('path',{'class':'s-stroke', 'stroke-width':'1.6',
+        d:'M'+xA(t.t2)+','+YA+' L'+xA(t.t2)+','+(YA-9)}));
+    });
+    gK.appendChild(tx(X0, YS-18, '조종면 각도 δ — 5° 등간격', 'a', 'start'));
+    gK.appendChild(tx(X1, YS-18, '−25°  →  +25°', null, 'end'));
+    gK.appendChild(tx(X0, YA-18, '구동기 회전각 Δθ₂ — 같은 5° 에 대응', 'b', 'start'));
+    gK.appendChild(tx(X1, YA-18, '중립 부근 9.99°  ·  끝단 15.24°', null, 'end'));
+    gK.appendChild(tx(480, YA+36, '조종면 눈금은 고르지만 구동기 눈금은 중립 부근이 조밀하고 양 끝으로 벌어진다', 'a'));
+
+    var mS = el('path',{'class':'s-fill-a'}), mA = el('path',{'class':'s-fill'});
+    gK.appendChild(mS); gK.appendChild(mA);
+    var read1 = tx(680, 66, '', 'a', 'start'), read2 = tx(680, 94, '', 'b', 'start');
+    read1.setAttribute('font-size','15'); read2.setAttribute('font-size','15');
+    gM.appendChild(read1); gM.appendChild(read2);
+
+    function head(x, y){ return 'M'+x+','+y+' L'+(x-5)+','+(y+9)+' L'+(x+5)+','+(y+9)+' Z'; }
+    function setDelta(d){
+      var t4 = T0 + d, A = solveA(t4), B = ptB(t4), v = th2(t4);
+      if(!A || v === null) return;
+      lnkA.setAttribute('d','M'+O2[0]+','+O2[1]+' L'+A[0]+','+A[1]);
+      lnkB.setAttribute('d','M'+A[0]+','+A[1]+' L'+B[0]+','+B[1]);
+      lnkC.setAttribute('d','M'+B[0]+','+B[1]+' L'+O4[0]+','+O4[1]);
+      jA.setAttribute('cx',A[0]); jA.setAttribute('cy',A[1]);
+      jB.setAttribute('cx',B[0]); jB.setAttribute('cy',B[1]);
+      gSurf.setAttribute('transform','translate('+O4[0]+','+O4[1]+') rotate('+(-d)+')');
+      mS.setAttribute('d', head(xS(d), YS+3));
+      mA.setAttribute('d', head(xA(v), YA+3));
+      read1.textContent = '조종면 δ  ' + (d>=0?'+':'') + d.toFixed(1) + '°';
+      read2.textContent = '구동기 Δθ₂  ' + ((v-ticks[5].t2)>=0?'+':'') + (v - ticks[5].t2).toFixed(1) + '°';
+    }
+
+    var reduce = false;
+    try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(err){}
+    var PERIOD = 7000, t0 = null;
+    setDelta(0);
+    function tickFrame(ts){
+      requestAnimationFrame(tickFrame);
+      var sl = svg.closest('.slide');
+      if(!sl || !sl.classList.contains('active')) { t0 = null; return; }
+      if(reduce) return;                       /* 모션 감소 : 중립에 세워 둔다 */
+      if(t0 === null) t0 = ts;
+      var u = ((ts - t0) % PERIOD)/PERIOD;
+      var tri = u < 0.5 ? u*2 : (1 - u)*2;
+      setDelta(-RNG + tri*tri*(3 - 2*tri)*2*RNG);
+    }
+    requestAnimationFrame(tickFrame);
   })();
 
   /* ── 2. 등장 순서 및 선 길이 계산 ────────────────────── */

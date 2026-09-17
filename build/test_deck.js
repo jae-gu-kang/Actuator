@@ -13,7 +13,7 @@ const path = require('path');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FILE = 'file://' + path.resolve(process.argv[2] ||
   path.join(__dirname, '..', 'sase2026_rigging.html'));
-const SLIDES = 18;
+const SLIDES = 19;
 
 const results = [];
 function rec(name, pass, detail){
@@ -215,15 +215,19 @@ async function overflowSweep(page, tag){
     const j5 = { at: await idx(page), ...(await panel(page)) };
     rec('목차에서 5 입력 → 즉시 5장', j5.at === 4 && !j5.open, JSON.stringify(j5));
 
-    /* 19 는 1 만으로 확정되지 않으므로 실제로 '범위 초과 거부' 경로를 탄다.
-       9 를 두 번 누르면 첫 9 가 즉시 확정되어 이 경로에 닿지 못한다. */
-    const oobBefore = await idx(page);
+    /* 범위 초과 거부(n > total)는 장표가 19장인 지금 도달할 수 없다 —
+       한 자리 1~9 도, 두 자리 10~19 도 모두 유효 번호다. 장표 수가 줄면 다시 살아나는
+       방어 코드이므로 남겨 두고, 여기서는 실제로 닿는 거부 경로 둘을 고정한다. */
+    const gBefore = await idx(page);
     await page.keyboard.press('KeyO'); await sleep(250);
-    await page.keyboard.press('Digit1'); await sleep(120);
-    await page.keyboard.press('Digit9'); await sleep(700);
-    const oob = { before: oobBefore, at: await idx(page), ...(await panel(page)) };
-    rec('범위 밖 번호(19)는 이동하지 않음',
-        oob.at === oob.before && oob.open && oob.hint === '', JSON.stringify(oob));
+    await page.keyboard.press('Digit0'); await sleep(250);          /* 앞자리 0 은 무시 */
+    const g0 = await panel(page);
+    rec('앞자리 0 은 번호로 받지 않음',
+        g0.open && g0.hint === '' && (await idx(page)) === gBefore, JSON.stringify(g0));
+    await page.keyboard.press('Enter'); await sleep(350);           /* 빈 버퍼로 확정 */
+    const gE = { at: await idx(page), ...(await panel(page)) };
+    rec('빈 번호로 확정해도 이동하지 않음',
+        gE.at === gBefore && gE.open, JSON.stringify(gE));
     await page.keyboard.press('Escape'); await sleep(250);
 
     /* ── 번호를 입력하다 다른 키를 누르면 잔류 이동이 없어야 한다 ──
