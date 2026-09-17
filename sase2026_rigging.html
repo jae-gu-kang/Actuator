@@ -681,13 +681,13 @@ body.hover #ctl{opacity:1}
       </div>
       <figure class="fig" data-anim="fade" style="--i:2">
         <div class="frame">
-          <svg viewBox="0 0 440 236" role="img" aria-label="8개 조종면에 반복되는 40회의 주요 작업 단계">
+          <svg viewBox="0 0 440 236" role="img" aria-label="8개 조종면에 반복되는 48회의 주요 작업 단계">
             <g id="step-grid"></g>
             <text class="s-lbl" x="26" y="112" text-anchor="middle" transform="rotate(-90,26,112)">조종면 8</text>
-            <text class="s-lbl" x="212" y="208" text-anchor="middle">조종면마다 반복되는 5단계</text>
+            <text class="s-lbl" x="212" y="208" text-anchor="middle">조종면마다 반복되는 6단계</text>
           </svg>
         </div>
-        <figcaption>그림 6. 종래 방식에서 요구되는 총 40회의 주요 작업 단계</figcaption>
+        <figcaption>그림 6. 종래 방식에서 요구되는 총 48회의 주요 작업 단계</figcaption>
       </figure>
     </div>
   </div>
@@ -708,7 +708,7 @@ body.hover #ctl{opacity:1}
       <div class="card" data-anim><div class="t"><span class="n">iii</span>실기 데이터 검증</div><div class="d">실제 운용 중인 FBW 항공기의 리깅 데이터로 도구의 유효성을 검증한다.</div></div>
     </div>
     <div class="stat-row" data-anim style="margin-top:26px;max-width:620px">
-      <div class="stat"><span class="v">40 &rarr; 1</span><span class="k">주요 작업 단계 40회 &rarr; 점검 장비 연결 1회</span></div>
+      <div class="stat"><span class="v">48 &rarr; 1</span><span class="k">주요 작업 단계 48회 &rarr; 점검 장비 연결 1회</span></div>
       <div class="stat"><span class="v">8</span><span class="k">단일 화면에서 처리하는 조종면 수</span></div>
     </div>
   </div>
@@ -931,7 +931,8 @@ body.hover #ctl{opacity:1}
         <tr><td class="step">2</td><td>전용 점검보드 연결 <span class="x">(&times;8)</span></td><td class="new">웹 소프트웨어 기반 구동 및 데이터 입력</td></tr>
         <tr><td class="step">3</td><td>변위 측정 및 계산 <span class="x">(&times;8)</span></td><td class="new">웹 소프트웨어 기반 자동 회귀분석 · 파일 생성</td></tr>
         <tr><td class="step">4</td><td>FCC 수기 입력 <span class="x">(&times;8)</span></td><td class="new">파일 업로드</td></tr>
-        <tr><td class="step">5</td><td>점검창 폐쇄 <span class="x">(&times;8)</span></td><td class="new">&mdash;</td></tr>
+        <tr><td class="step">5</td><td>전용 점검보드 탈거 <span class="x">(&times;8)</span></td><td class="new">&mdash;</td></tr>
+        <tr><td class="step">6</td><td>점검창 폐쇄 <span class="x">(&times;8)</span></td><td class="new">&mdash;</td></tr>
       </tbody>
     </table>
   </div>
@@ -1032,14 +1033,14 @@ body.hover #ctl{opacity:1}
     t.setAttribute('text-anchor','middle');
     t.setAttribute('class','s-lbl a');
     t.setAttribute('font-size','13');
-    t.textContent = '총 40회의 주요 작업 단계';
+    t.textContent = '총 48회의 주요 작업 단계';
     g.appendChild(t);
     for(var r=0;r<8;r++){
-      for(var c=0;c<5;c++){
+      for(var c=0;c<6;c++){
         var rect = document.createElementNS(NS,'rect');
-        rect.setAttribute('x', 40 + c*72);
+        rect.setAttribute('x', 40 + c*60);
         rect.setAttribute('y', 40 + r*19);
-        rect.setAttribute('width', 56);
+        rect.setAttribute('width', 44);
         rect.setAttribute('height', 12);
         rect.setAttribute('fill', 'var(--acc-12)');
         rect.setAttribute('stroke', 'var(--acc-30)');
