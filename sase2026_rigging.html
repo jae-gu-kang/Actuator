@@ -118,7 +118,7 @@ ul.pts li::before{
 }
 ul.pts li strong{color:var(--ink);font-weight:600}
 ul.pts.tight li{font-size:15.5px;line-height:1.66}
-ul.pts.lg{gap:20px}
+ul.pts.lg{gap:28px}
 ul.pts.lg li{font-size:18px;line-height:1.76;padding-left:22px}
 ul.pts.lg li::before{width:7px;height:7px}
 
@@ -396,7 +396,7 @@ body.hover #ctl{opacity:1}
   <div class="body">
     <ol class="toc">
       <li data-anim data-goto="3"><span class="tn">1</span><span class="tt">서론 — 조종면 리깅이란</span><span class="tp">3</span></li>
-      <li data-anim data-goto="4"><span class="tn">2</span><span class="tt">연구 배경 — 상용 구동기와 링키지 비율</span><span class="tp">4</span></li>
+      <li data-anim data-goto="4"><span class="tn">2</span><span class="tt">연구 배경 — 상용 구동기와 리깅 비선형성</span><span class="tp">4</span></li>
       <li data-anim data-goto="7"><span class="tn">3</span><span class="tt">문제 정의 — 기존 리깅의 한계</span><span class="tp">7</span></li>
       <li data-anim data-goto="9"><span class="tn">4</span><span class="tt">연구 목적 및 시스템 구성</span><span class="tp">9</span></li>
       <li data-anim data-goto="11"><span class="tn">5</span><span class="tt">도구 설계 및 구현</span><span class="tp">11</span></li>
@@ -856,7 +856,7 @@ body.hover #ctl{opacity:1}
           <path class="s-stroke draw" d="M525,85 L549,85 M541,80 L549,85 L541,90" style="--i:3"/>
           <rect class="s-stroke draw" x="555" y="46" width="150" height="78" rx="1" style="--i:3"/>
           <text class="s-lbl b" x="630" y="80" text-anchor="middle">회귀 계수 산출</text>
-          <text class="s-lbl" x="630" y="98" text-anchor="middle">JSON 파일 생성</text>
+          <text class="s-lbl b" x="630" y="98" text-anchor="middle">JSON 파일 생성</text>
 
           <path class="s-stroke draw" d="M705,85 L729,85 M721,80 L729,85 L721,90" style="--i:4"/>
           <rect class="s-acc draw" x="735" y="46" width="150" height="78" rx="1" style="--i:4"/>
@@ -956,7 +956,7 @@ body.hover #ctl{opacity:1}
     <div class="cols c-6-6" style="align-items:start">
       <div>
         <div style="font-size:13px;color:var(--ink-40);letter-spacing:1px;margin-bottom:14px" data-anim>작업 부담</div>
-        <ul class="pts tight">
+        <ul class="pts lg">
           <li data-anim>점검창을 일일이 열고 닫을 필요가 없다</li>
           <li data-anim>전용 점검보드의 케이블 연결·분리가 필요 없다</li>
           <li data-anim>링키지 하드웨어의 길이 조정이 필요 없다</li>
@@ -965,7 +965,7 @@ body.hover #ctl{opacity:1}
       </div>
       <div>
         <div style="font-size:13px;color:var(--ink-40);letter-spacing:1px;margin-bottom:14px" data-anim>관리와 품질</div>
-        <ul class="pts tight">
+        <ul class="pts lg">
           <li data-anim>작동기 기종별 <strong>전용 점검보드의 보유·관리 부담</strong>과 가용성 문제에 따른 작업 지연이 해소된다</li>
           <li data-anim>회귀계수 수작업 계산과 FCC 수기 입력에서 발생할 수 있던 <strong>인적 오류 경로가 구조적으로 차단</strong>된다</li>
           <li data-anim>웹 환경이므로 <strong>장소와 장비에 관계없이</strong> 동일한 절차로 리깅할 수 있다</li>
