@@ -274,6 +274,13 @@ async function overflowSweep(page, tag){
     const foot = await page.evaluate(() =>
       document.querySelectorAll('.slide')[2].querySelector('.foot .r').textContent);
     rec('쪽번호 표기', foot === '3 / ' + SLIDES, foot);
+    /* 장표를 끼우면 그림 번호가 조용히 겹친다 — 실제로 6·7장이 둘 다 '그림 4' 였다.
+       문서 순서대로 1..N 이어야 하고 빠짐도 중복도 없어야 한다. */
+    const figs = await page.evaluate(() => [...document.querySelectorAll('figcaption')]
+      .map(f => { const m = /^그림\s*(\d+)\./.exec(f.textContent.trim()); return m ? +m[1] : null; })
+      .filter(n => n !== null));
+    const figOK = figs.length > 5 && figs.every((n, i) => n === i + 1);
+    rec('그림 번호가 문서 순서대로 1..N', figOK, figs.join(','));
     /* 빈 값·0 뿐 아니라 NaN 도 걸러야 한다 */
     const bad = await page.$$eval('.draw', ns =>
       ns.map(n => n.style.getPropertyValue('--len')).filter(v => !(parseFloat(v) > 0)).length);
