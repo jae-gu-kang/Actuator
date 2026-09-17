@@ -520,39 +520,46 @@ body.hover #ctl{opacity:1}
 <!-- ═══════════════ 5. 토크와 비선형성의 상충 ═══════════════ -->
 <section class="slide">
   <div class="head">
-    <h2><span class="no">2.</span><span class="tt">연구 배경 — 토크와 선형성의 상충</span></h2>
+    <h2><span class="no">2.</span><span class="tt">연구 배경 — 토크 확보의 대가로 따라오는 비선형성</span></h2>
     <div class="bar"></div>
   </div>
   <div class="body">
     <div class="cols c-5-7">
       <div>
-        <p class="lead" data-anim>최대 토크를 높이려면 <em>입력 링크 대비 출력 링크의 길이를 늘려야 하고, 그럴수록 비선형성은 증가한다.</em></p>
+        <p class="lead" data-anim>힌지모멘트 요구도는 <em>양보할 수 없는 제약</em>이다. 링키지 비율은 그 요구도를 만족시키려고 정해지고, 비선형성은 그 대가로 따라온다.</p>
         <ul class="pts">
-          <li data-anim>링키지 비율을 키우면 힌지모멘트 여유는 확보되지만</li>
-          <li data-anim>구동기 변위와 조종면 각도 사이의 관계가 점점 <strong>비선형</strong>해진다</li>
-          <li data-anim>즉 <strong>토크 여유와 운동 선형성은 서로 상충</strong>하며, 링키지 설계는 그 사이의 타협점을 고르는 문제가 된다</li>
+          <li data-anim>최대 토크를 높이려면 입력 링크 대비 출력 링크를 늘려야 하므로, 요구도를 만족하는 <strong>최소 링키지 비율이 먼저 정해진다</strong></li>
+          <li data-anim>그 비율에서 구동기 변위와 조종면 각도의 관계는 <strong>이미 비선형</strong>하다</li>
+          <li data-anim>비선형성을 줄이는 것은 목적이 될 수 없다 — 줄이려면 <strong>토크를 포기</strong>해야 하기 때문이다</li>
+          <li data-anim>남는 문제는 비선형성을 없애는 것이 아니라 <strong>이미 있는 비선형성을 얼마나 정확히 보정하느냐</strong>이며, 그것이 리깅이다</li>
         </ul>
       </div>
       <figure class="fig" data-anim="fade" style="--i:2">
         <div class="frame">
-          <svg viewBox="0 0 440 244" role="img" aria-label="링키지 비율에 따른 토크와 선형성의 상충">
+          <svg viewBox="0 0 440 244" role="img" aria-label="힌지모멘트 요구도가 정하는 링키지 비율과 그에 따르는 비선형성">
             <!-- 축 -->
             <path class="s-stroke draw" d="M48,204 L420,204"/>
             <path class="s-stroke draw" d="M48,204 L48,26" style="--i:1"/>
-            <!-- 타협 구간 -->
-            <rect x="196" y="26" width="58" height="178" fill="var(--acc-12)" data-anim="fade" style="--i:6"/>
-            <!-- 토크 -->
+            <!-- 최대 토크 -->
             <path class="s-acc draw" d="M48,186 C150,158 232,96 420,58" style="--i:2"/>
-            <text class="s-lbl a" x="416" y="46" text-anchor="end">최대 토크</text>
-            <!-- 선형성 -->
-            <path class="s-stroke draw" d="M48,52 C160,74 254,146 420,190" style="--i:3"/>
-            <text class="s-lbl b" x="416" y="170" text-anchor="end">운동 선형성</text>
+            <text class="s-lbl a" x="416" y="48" text-anchor="end">최대 토크</text>
+            <!-- 힌지모멘트 요구도 : 넘어야 하는 선 -->
+            <path class="s-stroke s-dash" stroke-opacity=".5" d="M48,120 L420,120" data-anim="fade" style="--i:3"/>
+            <text class="s-lbl" x="56" y="112" text-anchor="start">힌지모멘트 요구도</text>
+            <!-- 요구도를 만족하는 최소 비율 -->
+            <path class="s-thin draw" d="M218,204 L218,44" style="--i:4"/>
+            <text class="s-lbl b" x="218" y="36" text-anchor="middle">최소 필요 비율</text>
+            <circle class="s-fill-a" cx="218" cy="120" r="4" data-anim="pop" style="--i:5"/>
+            <!-- 비선형성 -->
+            <path class="s-stroke draw" d="M48,196 C160,190 250,168 420,96" style="--i:6"/>
+            <text class="s-lbl b" x="416" y="88" text-anchor="end">비선형성</text>
+            <circle class="s-fill" cx="220" cy="168" r="3.4" data-anim="pop" style="--i:7"/>
+            <text class="s-lbl a" x="220" y="192" text-anchor="middle">리깅으로 보정</text>
             <!-- 축 라벨 -->
             <text class="s-lbl" x="234" y="228" text-anchor="middle">링키지 비율 (출력 링크 / 입력 링크)</text>
-            <text class="s-lbl" x="225" y="20" text-anchor="middle">타협 구간</text>
           </svg>
         </div>
-        <figcaption>그림 3. 링키지 비율에 따른 토크·선형성 경향 (개념도)</figcaption>
+        <figcaption>그림 3. 힌지모멘트 요구도가 정하는 링키지 비율과 그에 따르는 비선형성 (개념도)</figcaption>
       </figure>
     </div>
   </div>
