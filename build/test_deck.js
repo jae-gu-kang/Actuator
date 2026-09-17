@@ -51,6 +51,10 @@ async function settle(page, i){
 /* 배치 검사는 goTo() 를 우회해 클래스를 직접 바꾼다. 그래서 스크립트의 cur 가
  * DOM 과 어긋난다 — 이 검사는 해당 페이지의 마지막 단계여야 한다. */
 async function overflowSweep(page, tag){
+  /* getBoundingClientRect 는 opacity 를 보지 않는다. 기하 검사만 두면 화면이
+     완전히 비어도 통과한다 — 쪽수만 세던 PDF 검증과 같은 구멍이다.
+     이미 모든 요소를 도는 순회이므로 표시 여부를 함께 센다. */
+  let hidMax = 0, hidWhere = '', seenAll = 0;
   for(let i = 0; i < SLIDES; i++){
     await page.evaluate(n => {
       const s = [...document.querySelectorAll('.slide')];
@@ -60,19 +64,28 @@ async function overflowSweep(page, tag){
     await settle(page, i);
     const ov = await page.evaluate(n => {
       const sl = [...document.querySelectorAll('.slide')][n], r = sl.getBoundingClientRect();
-      let worst = 0, who = '';
+      let worst = 0, who = '', hid = 0, seen = 0;
       sl.querySelectorAll('*').forEach(el => {
-        if(el.closest('svg')) return;          /* 변형 중인 도형은 잡음이 된다 */
+        if(el.matches('.s-lbl,[data-anim],.draw')){
+          seen++;
+          if(parseFloat(getComputedStyle(el).opacity) < 0.5) hid++;
+        }
+        if(el.closest('svg')) return;          /* 변형 중인 도형은 기하 잡음이 된다 */
         const b = el.getBoundingClientRect();
         if(!b.width && !b.height) return;
         const d = Math.max(b.bottom - r.bottom, b.right - r.right, r.top - b.top, r.left - b.left);
         if(d > worst){ worst = d; who = el.tagName + '.' + (el.className || '').toString().slice(0, 26); }
       });
-      return { worst: Math.round(worst), who };
+      if(parseFloat(getComputedStyle(sl).opacity) < 0.5) hid = Math.max(hid, 1);
+      return { worst: Math.round(worst), who, hid, seen };
     }, i);
     rec(tag + ' 슬라이드 ' + (i+1) + ' 여백 내 배치', ov.worst <= 2,
         ov.worst > 2 ? ('+' + ov.worst + 'px ' + ov.who) : '');
+    seenAll += ov.seen;
+    if(ov.hid > hidMax){ hidMax = ov.hid; hidWhere = (i+1) + '장'; }
   }
+  rec(tag + ' 18장 전체 내용이 화면에 보임', hidMax === 0 && seenAll > 100,
+      hidMax ? (hidMax + '개 안 보임 @' + hidWhere) : (seenAll + '개 요소 확인'));
 }
 
 (async () => {
@@ -150,6 +163,16 @@ async function overflowSweep(page, tag){
     });
     rec('인쇄 시 도형 글자·요소가 모두 보임', pHid.hid === 0 && pHid.tot > 50,
         pHid.hid + '/' + pHid.tot + ' 안 보임');
+    /* 전환 중(leaving)에 인쇄하면 장표가 통째로 투명해지던 경로.
+       자식들은 opacity 1 이라 위 검사로는 안 잡힌다 — 컨테이너를 직접 본다. */
+    const lv = await page.evaluate(() => {
+      const sl = document.querySelectorAll('.slide')[4];
+      sl.classList.add('leaving');
+      const op = getComputedStyle(sl).opacity;
+      sl.classList.remove('leaving');
+      return op;
+    });
+    rec('인쇄 시 전환 중인 장표도 보임', parseFloat(lv) === 1, 'opacity=' + lv);
     await page.emulateMediaType('screen'); await sleep(200);
 
     /* 모션 감소 설정에서 animation-delay 가 남아 최대 1.4초 동안 내용이 비어 있었다.
@@ -172,7 +195,12 @@ async function overflowSweep(page, tag){
     }
     rec('모션 감소 설정에서 즉시 내용이 보임', rmWorst === 0, rmWorst ? (rmWorst + '개 안 보임 @' + rmWhere) : '');
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
-    await sleep(200);
+    /* 위 블록은 goTo 를 우회해 클래스를 직접 바꿨다. 스크립트의 cur 가 DOM 과
+       어긋나 .active 가 둘이 될 수 있으므로 다시 읽어 양쪽을 초기화한다. */
+    await page.goto(FILE, { waitUntil: 'networkidle2' });
+    await sleep(900);
+    rec('상태 초기화 후 활성 1장',
+        (await page.$$eval('.slide.active', n => n.length)) === 1 && (await idx(page)) === 0);
 
     /* ── 목차 패널 번호 입력 ──────────────────────────────── */
     await page.keyboard.press('Home'); await sleep(450);

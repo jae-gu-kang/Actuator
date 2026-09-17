@@ -355,7 +355,9 @@ body.hover #ctl{opacity:1}
   html,body{overflow:visible;height:auto;background:#fff;display:block}
   #stage{transform:none !important;width:1280px;height:auto;box-shadow:none}
   .slide{
-    position:relative;visibility:visible;opacity:1;
+    /* .slide.leaving{opacity:0} 이 (0,2,0) 이라 !important 없이는 전환 중인
+       장표가 통째로 투명하게 인쇄된다 */
+    position:relative;visibility:visible;opacity:1 !important;
     transform:none !important;transition:none !important;
     width:1280px;height:720px;page-break-after:always;break-after:page;
   }
