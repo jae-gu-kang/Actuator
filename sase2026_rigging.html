@@ -736,7 +736,7 @@ body.hover #ctl{opacity:1}
         <div class="frame">
           <svg viewBox="0 0 440 236" role="img" aria-label="8개 조종면에 반복되는 48회의 주요 작업 단계">
             <g id="step-grid"></g>
-            <text class="s-lbl" x="24" y="118" text-anchor="middle" transform="rotate(-90,24,118)">조종면 8개</text>
+            <text class="s-lbl" x="20" y="116" text-anchor="middle" transform="rotate(-90,20,116)">조종면 8개</text>
             
           </svg>
         </div>
@@ -1091,26 +1091,27 @@ body.hover #ctl{opacity:1}
       t.textContent = s; return t;
     }
     g.appendChild(tx(220, 18, '총 48회의 주요 작업 단계', 'a', 13));
-    STEPS.forEach(function(name, c){
-      g.appendChild(tx(62 + c*60, 40, name, null, 10));
-    });
+    /* 칸마다 단계 이름을 적는다 — 열 제목이 따로 필요 없고,
+       같은 말이 여덟 줄 반복되는 것이 그 자체로 이 그림의 내용이다. */
     for(var r = 0; r < 8; r++){
       for(var c = 0; c < 6; c++){
+        var x = 36 + c*64, y = 36 + r*20;
         var rect = document.createElementNS(NS,'rect');
-        rect.setAttribute('x', 40 + c*60);
-        rect.setAttribute('y', 50 + r*17);
-        rect.setAttribute('width', 44);
-        rect.setAttribute('height', 11);
+        rect.setAttribute('x', x);       rect.setAttribute('y', y);
+        rect.setAttribute('width', 56);  rect.setAttribute('height', 16);
         rect.setAttribute('fill', 'var(--acc-12)');
         rect.setAttribute('stroke', 'var(--acc-30)');
         rect.setAttribute('stroke-width', '1');
         rect.setAttribute('data-anim', 'pop');
         rect.style.setProperty('--i', 2 + r + c);
         g.appendChild(rect);
+        var t = tx(x + 28, y + 11.5, STEPS[c], null, 9);
+        t.setAttribute('data-anim', 'pop');
+        t.style.setProperty('--i', 2 + r + c);
+        g.appendChild(t);
       }
     }
-    /* 범례 — 네모 하나가 무엇인지 밝힌다 */
-    g.appendChild(tx(220, 206, '한 칸 = 조종면 하나에 대한 작업 한 단계', null, 10.5));
+    g.appendChild(tx(220, 212, '한 칸 = 조종면 하나에 대한 작업 한 단계', null, 10.5));
   })();
 
   /* ── 기구 실연 : 조종면 등간격 ↔ 구동기 불균등 ───────── */
