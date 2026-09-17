@@ -76,9 +76,19 @@ SHIM = """
 </script>
 """
 
+# The paper-presentation deck is not bundled here, so its card would point at a file that
+# does not travel with the merged HTML. Drop that section from the home tab.
+PAPERS_RE = re.compile(r'<section class="grid-section" id="papers">.*?</section>\s*', re.S)
+
 def process(name, filename):
     html = read(os.path.join(ROOT, filename))
     html = FONT_LINK_RE.sub('<!-- google-fonts removed for offline -->', html)
+    if name == 'home':
+        # Fail loudly rather than silently shipping a card that navigates the iframe
+        # away to a file that is not in this bundle.
+        html, n = PAPERS_RE.subn('', html)
+        if n != 1:  # assert 는 python -O 에서 사라진다 — 이 가드는 항상 살아 있어야 한다
+            raise SystemExit("index.html의 '논문 발표' 섹션을 찾지 못했습니다 — PAPERS_RE 를 마크업에 맞추세요")
     if CHART_400_TAG in html:
         html = html.replace(CHART_400_TAG, '<script>/*chart.js 4.4.0*/\n'+CHART_400+'\n</script>')
     if CHART_441_TAG in html:

@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>통합 점검 장비 기반 웹 소프트웨어를 이용한 FBW 항공기 조종면 리깅 — SASE 2026</title>
+<meta name="description" content="항공우주시스템공학회 2026년도 추계학술대회 구두발표 자료">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════
+   팔레트 — 3색
+   paper(아이보리) · ink(먹) · accent(적갈)
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#f4efe3;
+  --ink:#1c1a16;
+  --accent:#7b2b23;
+
+  --ink-70:rgba(28,26,22,.70);
+  --ink-55:rgba(28,26,22,.55);
+  --ink-40:rgba(28,26,22,.40);
+  --ink-18:rgba(28,26,22,.18);
+  --ink-10:rgba(28,26,22,.10);
+  --acc-12:rgba(123,43,35,.12);
+  --acc-30:rgba(123,43,35,.30);
+
+  --serif-kr:'Noto Serif KR','Nanum Myeongjo','AppleMyungjo','Batang','Apple SD Gothic Neo','Malgun Gothic',serif;
+  --serif-en:'EB Garamond','Noto Serif KR',Georgia,serif;
+  --mono:'SFMono-Regular',Menlo,Consolas,monospace;
+
+  --W:1280px; --H:720px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:#55524c;
+  font-family:var(--serif-kr);
+  color:var(--ink);
+  word-break:keep-all;          /* 한글은 어절 단위로만 줄바꿈 */
+  overflow-wrap:break-word;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ── 무대 ────────────────────────────────────────────────── */
+#stage{
+  position:relative;
+  width:var(--W);height:var(--H);
+  background:var(--paper);
+  box-shadow:0 24px 80px rgba(0,0,0,.45);
+  transform-origin:center center;
+  overflow:hidden;
+  flex:none;
+}
+
+.slide{
+  position:absolute;inset:0;
+  padding:52px 76px 46px;
+  display:flex;flex-direction:column;
+  visibility:hidden;opacity:0;
+  transition:opacity .38s ease, transform .38s cubic-bezier(.32,.72,.32,1);
+  transform:translateX(34px);
+}
+.slide.active{visibility:visible;opacity:1;transform:none;z-index:2}
+.slide.leaving{visibility:visible;opacity:0;transform:translateX(-34px);z-index:1}
+body.rev .slide:not(.active){transform:translateX(-34px)}
+body.rev .slide.leaving{transform:translateX(34px)}
+
+/* ── 진행 표시 ───────────────────────────────────────────── */
+#progress{
+  position:absolute;top:0;left:0;height:2px;
+  background:var(--accent);z-index:40;
+  transition:width .38s cubic-bezier(.32,.72,.32,1);
+}
+
+/* ── 슬라이드 머리 ───────────────────────────────────────── */
+.head{margin-bottom:26px;flex:none}
+.head h2{
+  font-size:29px;font-weight:600;letter-spacing:-.4px;line-height:1.3;
+  display:flex;align-items:baseline;gap:13px;
+}
+.head h2 .no{color:var(--accent);font-weight:600;font-variant-numeric:lining-nums}
+.head .en{
+  font-family:var(--serif-en);font-size:15px;font-style:italic;
+  color:var(--ink-40);margin-top:7px;letter-spacing:.2px;
+}
+.head .bar{
+  height:1px;background:var(--ink-18);margin-top:15px;
+  transform-origin:left center;
+}
+.slide.active .head .bar{animation:grow .62s cubic-bezier(.22,.7,.3,1) both;animation-delay:.1s}
+
+/* ── 본문 ────────────────────────────────────────────────── */
+.body{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+.cols{display:grid;gap:44px;align-items:center}
+.cols.c-5-7{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.cols.c-6-6{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.cols.c-7-5{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+
+.lead{
+  font-size:17.5px;line-height:1.78;color:var(--ink);
+  letter-spacing:-.2px;margin-bottom:20px;
+}
+.lead em{font-style:normal;color:var(--accent);font-weight:600}
+
+ul.pts{list-style:none;display:flex;flex-direction:column;gap:13px}
+ul.pts li{
+  position:relative;padding-left:19px;
+  font-size:16.5px;line-height:1.72;color:var(--ink-70);letter-spacing:-.2px;
+}
+ul.pts li::before{
+  content:'';position:absolute;left:0;top:.72em;
+  width:6px;height:6px;background:var(--accent);
+}
+ul.pts li strong{color:var(--ink);font-weight:600}
+ul.pts.tight li{font-size:15.5px;line-height:1.66}
+ul.pts.lg{gap:20px}
+ul.pts.lg li{font-size:18px;line-height:1.76;padding-left:22px}
+ul.pts.lg li::before{width:7px;height:7px}
+
+ul.sub{list-style:none;margin:9px 0 0 3px;display:flex;flex-direction:column;gap:6px}
+ul.sub li{position:relative;padding-left:15px;font-size:14.5px;line-height:1.6;color:var(--ink-55)}
+ul.sub li::before{content:'—';position:absolute;left:0;color:var(--ink-40)}
+
+/* ── 그림 ────────────────────────────────────────────────── */
+.fig{display:flex;flex-direction:column;align-items:center;gap:11px}
+.fig .frame{
+  width:100%;border:1px solid var(--ink-18);background:rgba(255,255,255,.42);
+  padding:16px 18px;
+}
+.fig figcaption{font-size:12.5px;color:var(--ink-55);letter-spacing:-.1px;text-align:center}
+.fig svg{display:block;width:100%;height:auto}
+
+/* SVG 공통 */
+.s-stroke{fill:none;stroke:var(--ink);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.s-acc{fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.s-thin{fill:none;stroke:var(--ink-18);stroke-width:1}
+.s-dash{stroke-dasharray:4 4}
+.s-lbl{font-family:var(--serif-kr);font-size:11px;fill:var(--ink-55)}
+.s-lbl.b{fill:var(--ink);font-weight:600}
+.s-lbl.a{fill:var(--accent);font-weight:600}
+.s-fill{fill:var(--ink)}
+.s-fill-a{fill:var(--accent)}
+.s-fill-p{fill:var(--paper)}
+
+/* ── 강조 수치 ───────────────────────────────────────────── */
+.stat{display:flex;flex-direction:column;gap:5px}
+.stat .v{
+  font-family:var(--serif-en);font-size:46px;font-weight:600;
+  color:var(--accent);line-height:1;letter-spacing:-1px;
+}
+.stat .k{font-size:13.5px;color:var(--ink-55);letter-spacing:-.1px}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+
+/* ── 수식 ────────────────────────────────────────────────── */
+.eq{
+  border-top:1px solid var(--ink-18);border-bottom:1px solid var(--ink-18);
+  padding:17px 0;margin:19px 0;text-align:center;position:relative;
+}
+.eq .f{font-family:var(--serif-en);font-size:25px;letter-spacing:.4px}
+.eq .f i{font-style:italic}
+.eq .n{position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--ink-40)}
+
+/* ── 표 ──────────────────────────────────────────────────── */
+table.tb{width:100%;border-collapse:collapse;font-size:14.5px}
+table.tb caption{
+  caption-side:top;text-align:left;font-size:12.5px;color:var(--ink-55);
+  padding-bottom:9px;letter-spacing:-.1px;
+}
+table.tb th{
+  font-weight:600;text-align:left;padding:10px 13px;
+  border-top:1.6px solid var(--ink);border-bottom:1px solid var(--ink-40);
+  font-size:14px;letter-spacing:-.2px;
+}
+table.tb td{
+  padding:9.5px 13px;border-bottom:1px solid var(--ink-10);
+  color:var(--ink-70);line-height:1.5;vertical-align:top;
+}
+table.tb tr:last-child td{border-bottom:1.6px solid var(--ink)}
+table.tb td.step{color:var(--ink-40);font-family:var(--serif-en);width:44px;text-align:center}
+table.tb td.new{color:var(--accent)}
+table.tb .x{font-family:var(--serif-en);color:var(--ink-40);font-size:13px}
+
+/* ── 카드 ────────────────────────────────────────────────── */
+.cards{display:grid;gap:15px}
+.cards.c3{grid-template-columns:repeat(3,1fr)}
+.cards.c2{grid-template-columns:repeat(2,1fr)}
+.card{border:1px solid var(--ink-18);padding:19px 20px;background:rgba(255,255,255,.4)}
+.card .t{font-size:15.5px;font-weight:600;margin-bottom:9px;display:flex;align-items:baseline;gap:8px}
+.card .t .n{font-family:var(--serif-en);color:var(--accent);font-size:14px}
+.card .d{font-size:14px;line-height:1.66;color:var(--ink-55)}
+
+/* ── 코드 ────────────────────────────────────────────────── */
+pre.code{
+  font-family:var(--mono);font-size:12.5px;line-height:1.72;
+  border:1px solid var(--ink-18);background:rgba(255,255,255,.5);
+  padding:15px 17px;color:var(--ink-70);overflow:hidden;
+}
+pre.code .k{color:var(--accent)}
+pre.code .c{color:var(--ink-40)}
+
+/* ── 발 ──────────────────────────────────────────────────── */
+.foot{
+  flex:none;display:flex;align-items:flex-end;justify-content:space-between;
+  padding-top:16px;font-size:11.5px;color:var(--ink-40);letter-spacing:.2px;
+}
+.foot .l{color:var(--accent)}
+.foot .r{font-family:var(--serif-en);font-variant-numeric:lining-nums}
+
+/* ══════════════ 표지 ══════════════ */
+.cover{padding:0;justify-content:center;align-items:center;text-align:center}
+.cover .inner{width:100%;padding:0 92px}
+.cover .venue{
+  font-size:13px;color:var(--ink-40);letter-spacing:.9px;margin-bottom:38px;
+}
+.cover .dbl{border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);height:5px;transform-origin:center}
+.cover .titles{padding:40px 0 34px}
+.cover h1{
+  font-size:39px;font-weight:700;line-height:1.42;letter-spacing:-1.1px;
+}
+.cover .en-title{
+  font-family:var(--serif-en);font-size:19.5px;line-height:1.5;
+  color:var(--accent);margin-top:20px;letter-spacing:.1px;
+}
+.cover .authors{margin-top:46px;font-size:16px;line-height:1.95;letter-spacing:-.2px}
+.cover .authors sup{font-size:10.5px;vertical-align:super}
+.cover .affil{font-size:14px;color:var(--ink-55)}
+.cover .corr{font-size:12.5px;color:var(--ink-40);margin-top:7px}
+.cover .authors-en{font-family:var(--serif-en);font-size:14.5px;color:var(--ink-40);margin-top:13px;line-height:1.7}
+.cover .date{margin-top:44px;font-size:13.5px;color:var(--accent);letter-spacing:.4px}
+
+/* ══════════════ 목차 ══════════════ */
+.toc{list-style:none;display:grid;grid-template-columns:1fr;margin-top:2px}
+.toc li{
+  display:flex;align-items:baseline;gap:18px;
+  padding:15px 4px;border-bottom:1px solid var(--ink-10);
+  cursor:pointer;transition:border-color .2s,padding-left .2s;
+}
+.toc li:hover{border-bottom-color:var(--accent);padding-left:9px}
+.toc li:hover .tt{color:var(--accent)}
+.toc .tn{font-family:var(--serif-en);font-size:16px;color:var(--accent);width:22px;flex:none}
+.toc .tt{font-size:17.5px;font-weight:500;letter-spacing:-.3px;transition:color .2s}
+.toc .td{font-size:13px;color:var(--ink-40);margin-left:auto;flex:none}
+.toc .tp{font-family:var(--serif-en);font-size:13px;color:var(--ink-40);margin-left:auto;flex:none}
+
+/* ══════════════ 마무리 ══════════════ */
+.end{justify-content:center;align-items:center;text-align:center}
+.end .thanks{font-size:38px;font-weight:600;letter-spacing:-.8px}
+.end .sub{font-size:15px;color:var(--ink-55);margin-top:17px}
+.refs{list-style:none;margin-top:52px;text-align:left;max-width:760px}
+.refs .rh{font-size:12.5px;color:var(--ink-40);letter-spacing:1px;margin-bottom:11px;border-bottom:1px solid var(--ink-18);padding-bottom:7px}
+.refs li{font-size:13.5px;line-height:1.7;color:var(--ink-55);display:flex;gap:9px}
+.refs li .rn{color:var(--accent);flex:none}
+
+/* ══════════════ 모션 ══════════════ */
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes grow{from{opacity:1;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes pop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:scale(1)}}
+@keyframes sweep{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes flow{from{stroke-dashoffset:0}to{stroke-dashoffset:-28}}
+@keyframes rock{0%,100%{transform:rotate(-13deg)}50%{transform:rotate(13deg)}}
+
+[data-anim]{opacity:0}
+.slide.active [data-anim]{
+  animation:rise .62s cubic-bezier(.22,.7,.3,1) both;
+  animation-delay:calc(var(--i,0) * 85ms + 60ms);
+}
+.slide.active [data-anim="fade"]{animation-name:fade}
+.slide.active [data-anim="pop"]{animation-name:pop}
+.slide.active [data-anim="sweep"]{animation-name:sweep}
+.slide.active [data-anim="grow"]{animation-name:grow;transform-origin:center}
+
+.s-lbl{opacity:0}
+.slide.active .s-lbl{
+  animation:fade .5s ease both;
+  animation-delay:calc(var(--i,0) * 85ms + 420ms);
+}
+.draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);opacity:0}
+.slide.active .draw{
+  opacity:1;
+  animation:draw 1.15s cubic-bezier(.32,.72,.32,1) both;
+  animation-delay:calc(var(--i,0) * 85ms + 180ms);
+}
+.slide.active .flowline{animation:flow 1.1s linear infinite;stroke-dasharray:7 7}
+.slide.active .rocker{animation:rock 3.4s ease-in-out infinite;transform-box:fill-box}
+.slide.active .blink{animation:pulse 1.9s ease-in-out infinite}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  [data-anim],.draw,.s-lbl{opacity:1}
+  .draw{stroke-dashoffset:0}
+}
+
+/* ══════════════ 컨트롤 ══════════════ */
+#ctl{
+  position:fixed;right:18px;bottom:16px;z-index:60;
+  display:flex;align-items:center;gap:7px;
+  opacity:0;transition:opacity .3s;
+}
+body.hover #ctl{opacity:1}
+#ctl button{
+  font-family:var(--serif-kr);font-size:12px;color:var(--paper);
+  background:rgba(0,0,0,.34);border:1px solid rgba(244,239,227,.24);
+  padding:6px 11px;cursor:pointer;transition:background .2s;
+  backdrop-filter:blur(6px);
+}
+#ctl button:hover{background:rgba(0,0,0,.6)}
+#clock{
+  font-family:var(--serif-en);font-size:12px;color:var(--paper);
+  background:rgba(0,0,0,.34);border:1px solid rgba(244,239,227,.24);
+  padding:6px 11px;display:none;letter-spacing:.5px;
+}
+#clock.on{display:block}
+#clock.over{color:#ffb3a7;border-color:rgba(255,179,167,.5)}
+
+/* ── 이동 패널 ───────────────────────────────────────────── */
+#jump{
+  position:fixed;inset:0;z-index:70;display:none;
+  background:rgba(24,22,19,.93);
+  padding:52px 64px;overflow:auto;
+}
+#jump.on{display:block;animation:fade .24s both}
+#jump h3{
+  font-size:14px;color:rgba(244,239,227,.5);letter-spacing:2px;
+  margin-bottom:26px;font-weight:400;
+}
+#jump-hint{
+  font-family:var(--serif-en);letter-spacing:1px;color:#d98a7e;
+  margin-left:14px;font-size:15px;
+}
+#jump ol{list-style:none;columns:2;column-gap:52px}
+#jump li{
+  break-inside:avoid;display:flex;align-items:baseline;gap:14px;
+  padding:9px 10px;cursor:pointer;color:rgba(244,239,227,.68);
+  font-size:15px;border-bottom:1px solid rgba(244,239,227,.09);
+  transition:color .18s,background .18s;
+}
+#jump li:hover{color:var(--paper);background:rgba(244,239,227,.08)}
+#jump li.cur{color:#d98a7e}
+#jump li .n{font-family:var(--serif-en);font-size:13px;opacity:.55;width:22px;flex:none}
+
+/* ── 인쇄 ────────────────────────────────────────────────── */
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{overflow:visible;height:auto;background:#fff;display:block}
+  #stage{transform:none !important;width:1280px;height:auto;box-shadow:none}
+  .slide{
+    position:relative;visibility:visible;opacity:1;
+    transform:none !important;transition:none !important;
+    width:1280px;height:720px;page-break-after:always;break-after:page;
+  }
+  [data-anim]{opacity:1;animation:none !important}
+  .draw{stroke-dashoffset:0;opacity:1;animation:none !important}
+  #ctl,#jump,#progress{display:none !important}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="progress"></div>
+
+<!-- ═══════════════ 1. 표지 ═══════════════ -->
+<section class="slide cover">
+  <div class="inner">
+    <div class="venue" data-anim="fade">항공우주시스템공학회 2026년도 추계학술대회 &nbsp;·&nbsp; SASE 2026 Fall Conference</div>
+    <div class="dbl" data-anim="grow"></div>
+    <div class="titles">
+      <h1 data-anim>통합 점검 장비 기반 웹 소프트웨어를 이용한<br>FBW 항공기 조종면 리깅</h1>
+      <div class="en-title" data-anim>FBW Aircraft Control Surface Rigging Using a Web-Based Tool<br>Integrated with Onboard Test Equipment</div>
+    </div>
+    <div class="dbl" data-anim="grow"></div>
+    <div class="authors" data-anim>
+      강재구<sup>1,†</sup>, 강준구<sup>2</sup>, 김병욱<sup>2</sup>, 조상욱<sup>2</sup>
+      <div class="affil"><sup>1,2</sup>대한항공기술연구원</div>
+      <div class="corr">†교신저자</div>
+      <div class="authors-en">Jaegu Kang<sup>1,†</sup>, Junekoo Kang<sup>2</sup>, Byungwouk Kim<sup>2</sup> and Sangook Cho<sup>2</sup></div>
+    </div>
+    <div class="date" data-anim="fade">2026년도 추계학술대회 구두발표</div>
+  </div>
+</section>
+
+<!-- ═══════════════ 2. 목차 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="tt">목차</span></h2>
+    <div class="en">Contents</div>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <ol class="toc">
+      <li data-anim data-goto="3"><span class="tn">1</span><span class="tt">서론 — 조종면 리깅이란</span><span class="tp">3</span></li>
+      <li data-anim data-goto="4"><span class="tn">2</span><span class="tt">연구 배경 — 상용 구동기와 링키지 비율</span><span class="tp">4</span></li>
+      <li data-anim data-goto="7"><span class="tn">3</span><span class="tt">문제 정의 — 기존 리깅의 한계</span><span class="tp">7</span></li>
+      <li data-anim data-goto="9"><span class="tn">4</span><span class="tt">연구 목적 및 시스템 구성</span><span class="tp">9</span></li>
+      <li data-anim data-goto="11"><span class="tn">5</span><span class="tt">도구 설계 및 구현</span><span class="tp">11</span></li>
+      <li data-anim data-goto="13"><span class="tn">6</span><span class="tt">검증</span><span class="tp">13</span></li>
+      <li data-anim data-goto="15"><span class="tn">7</span><span class="tt">운용 효과 분석</span><span class="tp">15</span></li>
+      <li data-anim data-goto="17"><span class="tn">8</span><span class="tt">결론</span><span class="tp">17</span></li>
+    </ol>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 3. 서론 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">1.</span><span class="tt">서론 — FBW 항공기에서의 조종면 리깅</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-5-7">
+      <div>
+        <p class="lead" data-anim>조종면 리깅은 조종면이 중립을 기준으로 규정된 변위 범위 내에서 조종 입력과 동기화되어 움직이도록 조종계통을 조정하는 절차이다.</p>
+        <ul class="pts">
+          <li data-anim>FBW 항공기에는 <strong>조종석과 조종면 사이의 기계적 연결이 존재하지 않는다</strong></li>
+          <li data-anim>따라서 리깅은 FCC가 출력하는 명령 신호와 구동기를 통해 구현되는 실제 변위 사이의 관계를 수립하고, 이를 <strong>명령·피드백 변환 계수</strong>로 FCC에 적재하는 절차로 대체된다</li>
+          <li data-anim>변환 계수가 조종면 위치 정확도를 직접 결정하므로 <strong>비행 안전과 직결</strong>된다</li>
+        </ul>
+      </div>
+      <figure class="fig" data-anim="fade" style="--i:2">
+        <div class="frame">
+          <svg viewBox="0 0 528 226" role="img" aria-label="FBW 신호 경로 개념도">
+            <!-- 조종석 -->
+            <rect class="s-stroke draw" x="14" y="44" width="88" height="46" rx="1"/>
+            <text class="s-lbl b" x="58" y="72" text-anchor="middle">조종석</text>
+            <!-- 기계적 연결 없음 -->
+            <path class="s-stroke s-dash draw" d="M102,67 L150,67" style="--i:1"/>
+            <path class="s-acc draw" d="M119,60 L133,74 M133,60 L119,74" style="--i:2"/>
+            <text class="s-lbl a" x="126" y="106" text-anchor="middle">기계적 연결 없음</text>
+            <!-- FCC -->
+            <rect class="s-stroke draw" x="150" y="44" width="88" height="46" rx="1" style="--i:1"/>
+            <text class="s-lbl b" x="194" y="72" text-anchor="middle">FCC</text>
+            <!-- 명령 -->
+            <path class="s-stroke draw" d="M238,67 L280,67 M272,62 L280,67 L272,72" style="--i:2"/>
+            <text class="s-lbl" x="259" y="36" text-anchor="middle">명령 신호</text>
+            <!-- 구동기 -->
+            <rect class="s-stroke draw" x="286" y="44" width="88" height="46" rx="1" style="--i:3"/>
+            <text class="s-lbl b" x="330" y="72" text-anchor="middle">구동기</text>
+            <!-- 구동 -->
+            <path class="s-stroke draw" d="M374,67 L416,67 M408,62 L416,67 L408,72" style="--i:4"/>
+            <text class="s-lbl" x="395" y="36" text-anchor="middle">구동</text>
+            <!-- 조종면 -->
+            <rect class="s-stroke draw" x="422" y="44" width="92" height="46" rx="1" style="--i:5"/>
+            <text class="s-lbl b" x="468" y="72" text-anchor="middle">조종면</text>
+            <!-- 피드백 -->
+            <path class="s-acc s-dash draw" d="M468,90 C468,132 330,132 330,96 M325,104 L330,96 L335,104" style="--i:6"/>
+            <text class="s-lbl a" x="399" y="147" text-anchor="middle">피드백</text>
+            <!-- 브래킷 -->
+            <path class="s-acc draw" d="M150,174 L150,186 L514,186 L514,174" style="--i:7"/>
+            <text class="s-lbl a" x="332" y="208" text-anchor="middle">리깅 = 명령 신호 ↔ 실제 변위 관계를 변환 계수로 수립</text>
+          </svg>
+        </div>
+        <figcaption>그림 1. FBW 항공기의 조종 신호 경로와 리깅의 역할 (개념도)</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 4. 연구 배경 — COTS ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">2.</span><span class="tt">연구 배경 — 상용 구동기의 설계 제약</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-5-7">
+      <div>
+        <p class="lead" data-anim>상용(COTS) 구동기를 적용하면 <em>감속기를 신규 개발할 수 없어 최적 감속비를 선택할 수 없다.</em></p>
+        <ul class="pts">
+          <li data-anim>구동기 자체의 출력 토크만으로는 조종면 <strong>힌지모멘트 요구도</strong>를 충족시키기 어렵다</li>
+          <li data-anim>감속비가 고정된 상태에서 남는 설계 자유도는 <strong>링키지 비율</strong>뿐이다</li>
+          <li data-anim>따라서 4절 링크의 입력 링크와 출력 링크 비율로 <strong>최대 토크를 최적화</strong>해야 한다</li>
+        </ul>
+      </div>
+      <figure class="fig" data-anim="fade" style="--i:2">
+        <div class="frame">
+          <svg viewBox="0 0 480 236" role="img" aria-label="상용 구동기와 4절 링크 기구의 구성 개념도">
+            <!-- 구동기 -->
+            <rect class="s-stroke draw" x="20" y="150" width="92" height="52" rx="1"/>
+            <text class="s-lbl b" x="66" y="172" text-anchor="middle">COTS 구동기</text>
+            <text class="s-lbl" x="66" y="189" text-anchor="middle">감속비 고정</text>
+            <!-- 지상 링크 -->
+            <path class="s-thin draw" d="M112,176 L360,176" style="--i:1"/>
+            <!-- 4절 링크 : 출력 링크가 입력 링크보다 길다 -->
+            <path class="s-acc draw" d="M112,176 L152,124" style="--i:2"/>
+            <path class="s-stroke draw" d="M152,124 L330,96" style="--i:3"/>
+            <path class="s-acc draw" d="M330,96 L360,176" style="--i:4"/>
+            <circle class="s-fill-p s-stroke draw" cx="112" cy="176" r="5" style="--i:2"/>
+            <circle class="s-fill-p s-stroke draw" cx="152" cy="124" r="5" style="--i:3"/>
+            <circle class="s-fill-p s-stroke draw" cx="330" cy="96"  r="5" style="--i:4"/>
+            <circle class="s-fill-p s-stroke draw" cx="360" cy="176" r="5" style="--i:5"/>
+            <!-- 조종면 -->
+            <path class="s-stroke draw" d="M360,176 L452,166 L452,190 Z" style="--i:6"/>
+            <!-- 힌지모멘트 -->
+            <path class="s-acc draw" d="M338,200 A30,30 0 0 1 331,169" style="--i:7"/>
+            <path class="s-acc draw" d="M326,174 L331,167 L337,172" style="--i:8"/>
+            <text class="s-lbl a" x="322" y="208" text-anchor="end">힌지모멘트</text>
+            <!-- 라벨 -->
+            <text class="s-lbl a" x="142" y="108" text-anchor="end">입력 링크</text>
+            <text class="s-lbl" x="241" y="92" text-anchor="middle">커플러</text>
+            <text class="s-lbl a" x="374" y="118" text-anchor="start">출력 링크</text>
+            <text class="s-lbl b" x="406" y="212" text-anchor="middle">조종면</text>
+          </svg>
+        </div>
+        <figcaption>그림 2. 상용 구동기와 4절 링크 기구의 구성 (개념도)</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 5. 토크와 비선형성의 상충 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">2.</span><span class="tt">연구 배경 — 토크와 선형성의 상충</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-5-7">
+      <div>
+        <p class="lead" data-anim>최대 토크를 높이려면 <em>입력 링크 대비 출력 링크의 길이를 늘려야 하고, 그럴수록 비선형성은 증가한다.</em></p>
+        <ul class="pts">
+          <li data-anim>링키지 비율을 키우면 힌지모멘트 여유는 확보되지만</li>
+          <li data-anim>구동기 변위와 조종면 각도 사이의 관계가 점점 <strong>비선형</strong>해진다</li>
+          <li data-anim>즉 <strong>토크 여유와 운동 선형성은 서로 상충</strong>하며, 링키지 설계는 그 사이의 타협점을 고르는 문제가 된다</li>
+        </ul>
+      </div>
+      <figure class="fig" data-anim="fade" style="--i:2">
+        <div class="frame">
+          <svg viewBox="0 0 440 244" role="img" aria-label="링키지 비율에 따른 토크와 선형성의 상충">
+            <!-- 축 -->
+            <path class="s-stroke draw" d="M48,204 L420,204"/>
+            <path class="s-stroke draw" d="M48,204 L48,26" style="--i:1"/>
+            <!-- 타협 구간 -->
+            <rect x="196" y="26" width="58" height="178" fill="var(--acc-12)" data-anim="fade" style="--i:6"/>
+            <!-- 토크 -->
+            <path class="s-acc draw" d="M48,186 C150,158 232,96 420,58" style="--i:2"/>
+            <text class="s-lbl a" x="416" y="46" text-anchor="end">최대 토크</text>
+            <!-- 선형성 -->
+            <path class="s-stroke draw" d="M48,52 C160,74 254,146 420,190" style="--i:3"/>
+            <text class="s-lbl b" x="416" y="170" text-anchor="end">운동 선형성</text>
+            <!-- 축 라벨 -->
+            <text class="s-lbl" x="234" y="228" text-anchor="middle">링키지 비율 (출력 링크 / 입력 링크)</text>
+            <text class="s-lbl" x="225" y="20" text-anchor="middle">타협 구간</text>
+          </svg>
+        </div>
+        <figcaption>그림 3. 링키지 비율에 따른 토크·선형성 경향 (개념도)</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 6. 비선형성과 3차 회귀 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">2.</span><span class="tt">연구 배경 — 비선형성이 만드는 리깅 오차</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-5-7">
+      <div>
+        <ul class="pts">
+          <li data-anim>같은 각도를 내기 위한 <strong>구동기의 움직임이 구간에 따라 달라지고</strong>, 선형 관계를 가정하면 구간별 오차가 커진다</li>
+          <li data-anim>링키지 비율에 따른 비선형성은 중립을 기준으로 <strong>대칭성</strong>을 보인다</li>
+          <li data-anim>변곡점을 포함해 근사할 수 있는 <strong>3차 다항식</strong>을 리깅 관계식으로 채택</li>
+        </ul>
+        <div class="eq" data-anim>
+          <span class="f"><i>y</i> = <i>a</i><sub>3</sub><i>x</i><sup>3</sup> + <i>a</i><sub>2</sub><i>x</i><sup>2</sup> + <i>a</i><sub>1</sub><i>x</i> + <i>a</i><sub>0</sub></span>
+          <span class="n">(1)</span>
+        </div>
+      </div>
+      <figure class="fig" data-anim="fade" style="--i:2">
+        <div class="frame">
+          <svg viewBox="0 0 440 244" role="img" aria-label="명령 각도와 실제 각도의 비선형 관계">
+            <path class="s-stroke draw" d="M52,206 L420,206"/>
+            <path class="s-stroke draw" d="M52,206 L52,26" style="--i:1"/>
+            <!-- 선형 가정 -->
+            <path class="s-stroke draw" d="M52,198 L412,40" style="--i:2" opacity=".5"/>
+            <text class="s-lbl" x="150" y="126" text-anchor="middle">선형 가정</text>
+            <!-- 실제 -->
+            <path class="s-acc draw" d="M52,198 C130,196 150,170 232,119 C314,68 336,44 412,40" style="--i:3"/>
+            <text class="s-lbl a" x="316" y="164" text-anchor="middle">실제 응답</text>
+            <!-- 편차 -->
+            <path class="s-stroke draw" d="M130,164 L130,186" style="--i:4"/>
+            <path class="s-stroke draw" d="M336,55 L336,73" style="--i:4"/>
+            <circle class="s-fill-a" cx="130" cy="186" r="2.6" data-anim="pop" style="--i:5"/>
+            <circle class="s-fill-a" cx="336" cy="55" r="2.6" data-anim="pop" style="--i:5"/>
+            <text class="s-lbl" x="104" y="172" text-anchor="end">편차</text>
+            <text class="s-lbl" x="336" y="90" text-anchor="middle">편차</text>
+            <!-- 중립 -->
+            <path class="s-thin s-dash draw" d="M232,206 L232,36" style="--i:6"/>
+            <text class="s-lbl" x="232" y="30" text-anchor="middle">중립</text>
+            <text class="s-lbl" x="236" y="230" text-anchor="middle">명령 각도</text>
+            <text class="s-lbl" x="20" y="120" text-anchor="middle" transform="rotate(-90,20,120)">실제 각도</text>
+          </svg>
+        </div>
+        <figcaption>그림 4. 중립 대칭의 비선형 응답과 선형 가정의 편차 (개념도)</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 7. 절차적 한계 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">3.</span><span class="tt">문제 정의 — 중립 기준 리깅의 한계</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-5-7">
+      <div>
+        <p class="lead" data-anim>리깅은 절차의 복잡성을 줄이기 위해 <em>중립에서 링키지 길이를 맞추는 방식</em>으로 수행되는 경우가 많다.</p>
+        <ul class="pts">
+          <li data-anim>중립 한 점만 일치시키면 나머지 구간의 비선형 오차는 그대로 남는다</li>
+          <li data-anim>남은 오차는 <strong>이후 명령에 그대로 영향</strong>을 미친다</li>
+          <li data-anim>다른 각도에서 얼마나 정확한가에 대한 <strong>영향성 평가는 별개의 문제</strong>로 남는다</li>
+        </ul>
+      </div>
+      <figure class="fig" data-anim="fade" style="--i:2">
+        <div class="frame">
+          <svg viewBox="0 0 460 244" role="img" aria-label="중립 기준 리깅과 전 구간 관계식 수립의 비교">
+            <text class="s-lbl b" x="120" y="22" text-anchor="middle">중립에서만 길이 조정</text>
+            <path d="M34,188 L200,52 L200,68 C158,68 140,94 117,120 C94,146 76,172 34,176 Z"
+                  fill="var(--acc-12)" data-anim="fade" style="--i:4"/>
+            <path class="s-stroke draw" d="M34,196 L206,196"/>
+            <path class="s-stroke draw" d="M34,196 L34,40" style="--i:1"/>
+            <path class="s-stroke draw" d="M34,188 L200,52" style="--i:2" opacity=".5"/>
+            <path class="s-acc draw" d="M34,176 C76,172 94,146 117,120 C140,94 158,68 200,68" style="--i:3"/>
+            <circle class="s-fill-a" cx="117" cy="120" r="4" data-anim="pop" style="--i:5"/>
+            <text class="s-lbl a" x="72" y="76" text-anchor="middle">잔여 오차</text>
+            <text class="s-lbl" x="117" y="214" text-anchor="middle">중립</text>
+
+            <path class="s-thin draw" d="M230,30 L230,208" style="--i:5"/>
+
+            <text class="s-lbl b" x="340" y="22" text-anchor="middle">전 구간 관계식 수립</text>
+            <path class="s-stroke draw" d="M254,196 L426,196" style="--i:6"/>
+            <path class="s-stroke draw" d="M254,196 L254,40" style="--i:6"/>
+            <path class="s-stroke draw" d="M254,188 L420,52" style="--i:7" opacity=".28"/>
+            <path class="s-acc draw" d="M254,176 C296,172 314,146 337,120 C360,94 378,68 420,68" style="--i:8"/>
+            <circle class="s-fill-a" cx="258" cy="175" r="3" data-anim="pop" style="--i:9"/>
+            <circle class="s-fill-a" cx="282" cy="169" r="3" data-anim="pop" style="--i:9"/>
+            <circle class="s-fill-a" cx="320" cy="139" r="3" data-anim="pop" style="--i:10"/>
+            <circle class="s-fill-a" cx="337" cy="120" r="3" data-anim="pop" style="--i:10"/>
+            <circle class="s-fill-a" cx="371" cy="84" r="3" data-anim="pop" style="--i:11"/>
+            <circle class="s-fill-a" cx="403" cy="70" r="3" data-anim="pop" style="--i:11"/>
+            <text class="s-lbl a" x="292" y="76" text-anchor="middle">전 구간 일치</text>
+          </svg>
+        </div>
+        <figcaption>그림 5. 중립 기준 조정과 전 구간 관계식 수립의 비교 (개념도)</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 8. 작업적 비효율 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">3.</span><span class="tt">문제 정의 — 종래 리깅 작업의 비효율</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-6-6">
+      <div>
+        <ul class="pts">
+          <li data-anim>상용 구동기는 <strong>작동기별 전용 점검보드</strong>를 통해서만 점검 인터페이스에 접근할 수 있다</li>
+          <li data-anim>조종면마다 점검창 개방 → 전용 점검보드 연결 → 변위 측정 → 수작업 계수 산출 → FCC 수기 입력이 반복된다</li>
+          <li data-anim>작업성이 좋지 않으면 <strong>구동기를 탈착</strong>해야 하고, 재장착 시 위치가 달라져 <strong>리깅을 다시 수행</strong>해야 한다</li>
+          <li data-anim>수작업 계산과 수기 입력은 <strong>인적 오류 위험</strong>을 동반한다</li>
+        </ul>
+      </div>
+      <figure class="fig" data-anim="fade" style="--i:2">
+        <div class="frame">
+          <svg viewBox="0 0 440 236" role="img" aria-label="8개 조종면에 반복되는 40회의 주요 작업 단계">
+            <g id="step-grid"></g>
+            <text class="s-lbl" x="26" y="112" text-anchor="middle" transform="rotate(-90,26,112)">조종면 8</text>
+            <text class="s-lbl" x="212" y="208" text-anchor="middle">조종면마다 반복되는 5단계</text>
+          </svg>
+        </div>
+        <figcaption>그림 6. 종래 방식에서 요구되는 총 40회의 주요 작업 단계</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 9. 연구 목적 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">4.</span><span class="tt">연구 목적</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <p class="lead" data-anim style="max-width:900px">항공기에 <em>이미 기운용 중인 통합 점검 장비만으로</em> 전 조종면 리깅을 단일 소프트웨어 환경에서 수행하고, 그 결과를 FCC 입력 형식의 JSON 파일로 자동 생성하는 웹 기반 도구를 개발한다.</p>
+    <div class="cards c3" style="margin-top:22px">
+      <div class="card" data-anim><div class="t"><span class="n">i</span>장비 종속성 제거</div><div class="d">작동기별 전용 점검보드 없이, 통합 점검 장비 한 번의 연결로 8개 조종면 전체를 처리한다.</div></div>
+      <div class="card" data-anim><div class="t"><span class="n">ii</span>단일 환경 일괄 처리</div><div class="d">측정값 입력부터 회귀분석, FCC 적재 파일 생성까지 하나의 소프트웨어 안에서 끝난다.</div></div>
+      <div class="card" data-anim><div class="t"><span class="n">iii</span>실기 데이터 검증</div><div class="d">실제 운용 중인 FBW 항공기의 리깅 데이터로 도구의 유효성을 검증한다.</div></div>
+    </div>
+    <div class="stat-row" data-anim style="margin-top:26px;max-width:620px">
+      <div class="stat"><span class="v">40 &rarr; 1</span><span class="k">주요 작업 단계 40회 &rarr; 점검 장비 연결 1회</span></div>
+      <div class="stat"><span class="v">8</span><span class="k">단일 화면에서 처리하는 조종면 수</span></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 10. 시스템 구성 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">4.</span><span class="tt">시스템 구성 — 측정에서 FCC 적재까지</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <figure class="fig" data-anim="fade">
+      <div class="frame" style="padding:18px 22px">
+        <svg viewBox="0 0 960 300" role="img" aria-label="통합 점검 장비와 웹 소프트웨어를 통한 리깅 데이터 흐름">
+          <!-- 조종면 · 구동기 -->
+          <rect class="s-stroke draw" x="24" y="64" width="168" height="100" rx="1"/>
+          <text class="s-lbl b" x="108" y="98" text-anchor="middle">조종면 · 구동기</text>
+          <text class="s-lbl" x="108" y="120" text-anchor="middle">명령값 · 피드백값</text>
+          <text class="s-lbl" x="108" y="138" text-anchor="middle">실제 각도값</text>
+          <!-- 취득 -->
+          <path class="s-stroke draw" d="M192,114 L244,114 M236,109 L244,114 L236,119" style="--i:1"/>
+          <text class="s-lbl" x="218" y="100" text-anchor="middle">취득</text>
+          <!-- AVTE -->
+          <rect class="s-stroke draw" x="252" y="40" width="236" height="148" rx="1" style="--i:2"/>
+          <text class="s-lbl b" x="370" y="64" text-anchor="middle">통합 점검 장비</text>
+          <rect class="s-acc draw" x="270" y="78" width="200" height="94" rx="1" style="--i:3"/>
+          <text class="s-lbl a" x="370" y="100" text-anchor="middle">웹 소프트웨어 (단일 HTML)</text>
+          <text class="s-lbl" x="370" y="124" text-anchor="middle">데이터 입력 → 회귀분석</text>
+          <text class="s-lbl" x="370" y="146" text-anchor="middle">→ JSON 출력</text>
+          <text class="s-lbl" x="370" y="208" text-anchor="middle">항공기 기운용 장비 · 별도 서버나 설치 과정 없음</text>
+          <!-- 계수 -->
+          <path class="s-stroke draw" d="M488,114 L540,114 M532,109 L540,114 L532,119" style="--i:4"/>
+          <text class="s-lbl" x="514" y="100" text-anchor="middle">계수</text>
+          <!-- JSON -->
+          <rect class="s-stroke draw" x="548" y="78" width="160" height="72" rx="1" style="--i:5"/>
+          <text class="s-lbl b" x="628" y="106" text-anchor="middle">JSON 파일</text>
+          <text class="s-lbl" x="628" y="128" text-anchor="middle">3차 회귀 계수</text>
+          <!-- 업로드 -->
+          <path class="s-stroke draw" d="M708,114 L760,114 M752,109 L760,114 L752,119" style="--i:6"/>
+          <text class="s-lbl" x="734" y="100" text-anchor="middle">적재</text>
+          <!-- FCC -->
+          <rect class="s-stroke draw" x="768" y="78" width="160" height="72" rx="1" style="--i:7"/>
+          <text class="s-lbl b" x="848" y="120" text-anchor="middle">FCC</text>
+          <!-- 되먹임 -->
+          <path class="s-acc draw flowline" d="M848,150 L848,252 L108,252 L108,164" style="--i:8"/>
+          <path class="s-acc draw" d="M103,174 L108,164 L113,174" style="--i:9"/>
+          <text class="s-lbl a" x="478" y="274" text-anchor="middle">FCC가 계수로 실제 조종면 작동 각도를 환산하여 구동기에 명령</text>
+        </svg>
+      </div>
+      <figcaption>그림 7. 통합 점검 장비 기반 리깅 데이터 흐름</figcaption>
+    </figure>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 11. 도구 설계 및 구현 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">5.</span><span class="tt">도구 설계 및 구현</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <p class="lead" data-anim style="max-width:920px">개발 도구는 <em>단일 HTML 파일로 구성된 웹 응용 소프트웨어</em>로서, 별도의 서버나 설치 과정 없이 통합 점검 장비에 탑재된 브라우저 환경에서 즉시 실행된다.</p>
+    <div class="cards c3" style="margin-top:20px">
+      <div class="card" data-anim><div class="t"><span class="n">1</span>데이터 입력 모듈</div><div class="d">통합 점검 장비로부터 취득한 조종면 변위 측정값과 구동기 명령·피드백값을 입력받는다.</div></div>
+      <div class="card" data-anim><div class="t"><span class="n">2</span>회귀분석 연산 모듈</div><div class="d">최소제곱법 기반 3차 다항 회귀분석으로 리깅 계수를 산출한다.</div></div>
+      <div class="card" data-anim><div class="t"><span class="n">3</span>JSON 출력 모듈</div><div class="d">산출 결과를 FCC 입력 형식으로 변환하여 파일로 생성한다.</div></div>
+    </div>
+    <ul class="pts tight" data-anim style="margin-top:24px">
+      <li data-anim>웹 환경이므로 <strong>장소와 장비에 종속되지 않고</strong> 어디서나 동일한 절차로 리깅을 수행할 수 있다</li>
+      <li data-anim>8개 조종면을 단일 화면에서 동시에 처리하여 <strong>조종면 간 대칭성과 일관성</strong>을 확인할 수 있다</li>
+    </ul>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 12. 리깅 계수 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">5.</span><span class="tt">리깅 계수의 정의와 전달</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-6-6">
+      <div>
+        <ul class="pts">
+          <li data-anim><strong>FCA_RIG</strong> — 명령 각도와 실제 출력 각도의 관계를 기술하는 계수</li>
+          <li data-anim><strong>FCA_RIG_REVERS</strong> — 구동기 피드백 신호로부터 실제 출력 각도를 추정하는 계수</li>
+          <li data-anim>두 계수 모두 식 (1)의 형태로 범위별 산출되며, 계수 배열은 <strong>[<i>a</i><sub>3</sub>, <i>a</i><sub>2</sub>, <i>a</i><sub>1</sub>, <i>a</i><sub>0</sub>]</strong> 순서로 FCC에 전달된다</li>
+          <li data-anim>3차 다항식은 링크 기구의 기하학적 배치에 따른 <strong>변위 및 각도 비선형성을 변곡점을 포함하여</strong> 근사하기 위해 채택되었다</li>
+        </ul>
+      </div>
+      <div>
+        <pre class="code" data-anim>{
+  <span class="k">"ELV_LI"</span>: {
+    <span class="k">"FCA_RIG"</span>:        [ a₃, a₂, a₁, a₀ ],
+    <span class="k">"FCA_RIG_REVERS"</span>: [ a₃, a₂, a₁, a₀ ]
+  },
+  <span class="k">"ELV_LO"</span>: { … },
+  <span class="k">"RUD_L"</span>:  { … },
+  <span class="c">// 8개 조종면 전체</span>
+}</pre>
+        <p style="font-size:13px;color:var(--ink-55);margin-top:12px;line-height:1.7" data-anim>산출된 계수는 FCC 적재 순서에 맞춘 JSON 파일로 자동 생성되고, 통합 점검 장비를 통해 FCC에 직접 업로드되어 종래의 수기 입력 과정을 완전히 대체한다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 13. 검증 방법 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">6.</span><span class="tt">검증 — 실제 운용 항공기 대상</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <p class="lead" data-anim style="max-width:900px">상용 구동기를 적용해 <em>실제 운용 중인 FBW 항공기</em>를 대상으로 검증을 수행하였다.</p>
+    <figure class="fig" data-anim="fade" style="margin-top:12px">
+      <div class="frame" style="padding:18px 22px">
+        <svg viewBox="0 0 900 222" role="img" aria-label="검증 절차">
+          <rect class="s-stroke draw" x="15" y="46" width="150" height="78" rx="1"/>
+          <text class="s-lbl b" x="90" y="80" text-anchor="middle">통합 점검 장비</text>
+          <text class="s-lbl b" x="90" y="98" text-anchor="middle">항공기 연결</text>
+
+          <path class="s-stroke draw" d="M165,85 L189,85 M181,80 L189,85 L181,90" style="--i:1"/>
+          <rect class="s-stroke draw" x="195" y="46" width="150" height="78" rx="1" style="--i:1"/>
+          <text class="s-lbl b" x="270" y="80" text-anchor="middle">FCC를 통한</text>
+          <text class="s-lbl b" x="270" y="98" text-anchor="middle">명령 인가</text>
+
+          <path class="s-stroke draw" d="M345,85 L369,85 M361,80 L369,85 L361,90" style="--i:2"/>
+          <rect class="s-stroke draw" x="375" y="46" width="150" height="78" rx="1" style="--i:2"/>
+          <text class="s-lbl b" x="450" y="72" text-anchor="middle">각 명령 각도에서</text>
+          <text class="s-lbl b" x="450" y="90" text-anchor="middle">실제 변위 ·</text>
+          <text class="s-lbl b" x="450" y="108" text-anchor="middle">피드백 신호 취득</text>
+
+          <path class="s-stroke draw" d="M525,85 L549,85 M541,80 L549,85 L541,90" style="--i:3"/>
+          <rect class="s-stroke draw" x="555" y="46" width="150" height="78" rx="1" style="--i:3"/>
+          <text class="s-lbl b" x="630" y="80" text-anchor="middle">회귀 계수 산출</text>
+          <text class="s-lbl" x="630" y="98" text-anchor="middle">JSON 파일 생성</text>
+
+          <path class="s-stroke draw" d="M705,85 L729,85 M721,80 L729,85 L721,90" style="--i:4"/>
+          <rect class="s-acc draw" x="735" y="46" width="150" height="78" rx="1" style="--i:4"/>
+          <text class="s-lbl a" x="810" y="80" text-anchor="middle">FCC 업로드 후</text>
+          <text class="s-lbl a" x="810" y="98" text-anchor="middle">명령 추종 재확인</text>
+
+          <path class="s-acc draw flowline" d="M810,124 L810,176 L270,176 L270,130" style="--i:5"/>
+          <path class="s-acc draw" d="M265,140 L270,130 L275,140" style="--i:6"/>
+          <text class="s-lbl a" x="540" y="198" text-anchor="middle">산출된 계수를 적재한 상태에서 명령 추종 특성을 다시 확인</text>
+        </svg>
+      </div>
+      <figcaption>그림 8. 실기 검증 절차</figcaption>
+    </figure>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 14. 검증 결과 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">6.</span><span class="tt">검증 결과</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-6-6">
+      <div>
+        <div class="stat-row" data-anim>
+          <div class="stat"><span class="v">R<sup style="font-size:.55em">2</sup> &ge; 0.99</span><span class="k">전 조종면 회귀 정밀도</span></div>
+          <div class="stat"><span class="v">&plusmn;1&deg;</span><span class="k">FCC 적재 후 명령 추종 오차</span></div>
+        </div>
+        <ul class="pts" style="margin-top:30px">
+          <li data-anim>8개 조종면 <strong>전체에서 R² ≥ 0.99</strong>의 회귀 정밀도를 얻었다</li>
+          <li data-anim>FCC 업로드 후 명령 추종 오차는 <strong>±1° 이내</strong>로 요구 사항을 충족하였다</li>
+          <li data-anim>3차 다항식이 링크 기구의 비선형 응답을 <strong>변곡점까지 포함해 충실히 근사</strong>함을 실기 데이터로 확인하였다</li>
+        </ul>
+      </div>
+      <figure class="fig" data-anim="fade" style="--i:2">
+        <div class="frame">
+          <svg viewBox="0 0 440 244" role="img" aria-label="3차 회귀 적합 개념도">
+            <path class="s-stroke draw" d="M52,206 L420,206"/>
+            <path class="s-stroke draw" d="M52,206 L52,26" style="--i:1"/>
+            <path class="s-acc draw" d="M60,192 C132,184 166,154 236,116 C306,78 346,46 412,38" style="--i:2"/>
+            <circle class="s-fill" cx="72" cy="190" r="3" data-anim="pop" style="--i:3"/>
+            <circle class="s-fill" cx="118" cy="184" r="3" data-anim="pop" style="--i:4"/>
+            <circle class="s-fill" cx="166" cy="158" r="3" data-anim="pop" style="--i:5"/>
+            <circle class="s-fill" cx="212" cy="128" r="3" data-anim="pop" style="--i:6"/>
+            <circle class="s-fill" cx="258" cy="104" r="3" data-anim="pop" style="--i:7"/>
+            <circle class="s-fill" cx="306" cy="78" r="3" data-anim="pop" style="--i:8"/>
+            <circle class="s-fill" cx="354" cy="56" r="3" data-anim="pop" style="--i:9"/>
+            <circle class="s-fill" cx="400" cy="40" r="3" data-anim="pop" style="--i:10"/>
+            <text class="s-lbl a" x="300" y="150" text-anchor="middle">3차 회귀식</text>
+            <text class="s-lbl b" x="128" y="150" text-anchor="middle">측정값</text>
+            <text class="s-lbl" x="236" y="230" text-anchor="middle">명령 각도</text>
+            <text class="s-lbl" x="20" y="120" text-anchor="middle" transform="rotate(-90,20,120)">실제 각도</text>
+          </svg>
+        </div>
+        <figcaption>그림 9. 측정값과 3차 회귀식의 적합 (개념도)</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 15. 운용 효과 — 절차 비교 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">7.</span><span class="tt">운용 효과 — 작업 절차 비교</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <p class="lead" data-anim style="max-width:960px">기존 방식은 8개 조종면 각각에 대해 점검창 개방부터 폐쇄까지의 단계가 반복되었으나, 개발 도구를 활용하면 <em>통합 점검 장비 1회 연결과 데이터 입력, JSON 생성·업로드만으로 전체 리깅이 완료된다.</em></p>
+    <table class="tb" data-anim style="margin-top:6px">
+      <caption>Table 1. 리깅 작업 절차 비교</caption>
+      <thead>
+        <tr><th style="width:44px">단계</th><th style="width:38%">기존 방식 (전용 점검보드)</th><th>개발 도구 활용</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="step">1</td><td>점검창 개방 <span class="x">(&times;8)</span></td><td class="new">통합 점검 장비 연결 <span class="x">(&times;1)</span></td></tr>
+        <tr><td class="step">2</td><td>전용 점검보드 연결 <span class="x">(&times;8)</span></td><td class="new">웹 소프트웨어 기반 구동 및 데이터 입력</td></tr>
+        <tr><td class="step">3</td><td>변위 측정 및 계산 <span class="x">(&times;8)</span></td><td class="new">웹 소프트웨어 기반 자동 회귀분석 · 파일 생성</td></tr>
+        <tr><td class="step">4</td><td>FCC 수기 입력 <span class="x">(&times;8)</span></td><td class="new">파일 업로드</td></tr>
+        <tr><td class="step">5</td><td>점검창 폐쇄 <span class="x">(&times;8)</span></td><td class="new">&mdash;</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 16. 운용 효과 — 정성적 효과 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">7.</span><span class="tt">운용 효과 — 작업 부담과 오류 경로의 제거</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <div class="cols c-6-6" style="align-items:start">
+      <div>
+        <div style="font-size:13px;color:var(--ink-40);letter-spacing:1px;margin-bottom:14px" data-anim>작업 부담</div>
+        <ul class="pts tight">
+          <li data-anim>점검창을 일일이 열고 닫을 필요가 없다</li>
+          <li data-anim>전용 점검보드의 케이블 연결·탈거가 필요 없다</li>
+          <li data-anim>링키지 하드웨어의 길이 조정이 필요 없다</li>
+          <li data-anim>작업성 미비로 인한 구동기 탈착과 <strong>리깅 반복이 필요 없다</strong></li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:13px;color:var(--ink-40);letter-spacing:1px;margin-bottom:14px" data-anim>관리와 품질</div>
+        <ul class="pts tight">
+          <li data-anim>작동기 기종별 <strong>전용 점검보드의 보유·관리 부담</strong>과 가용성 문제에 따른 작업 지연이 해소된다</li>
+          <li data-anim>회귀계수 수작업 계산과 FCC 수기 입력에서 발생할 수 있던 <strong>인적 오류 경로가 구조적으로 차단</strong>된다</li>
+          <li data-anim>웹 환경이므로 <strong>장소와 장비에 관계없이</strong> 동일한 절차로 리깅할 수 있다</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 17. 결론 ═══════════════ -->
+<section class="slide">
+  <div class="head">
+    <h2><span class="no">8.</span><span class="tt">결론</span></h2>
+    <div class="bar"></div>
+  </div>
+  <div class="body">
+    <ul class="pts lg">
+      <li data-anim>상용 구동기를 적용한 FBW 항공기의 조종면 리깅을 위한 <strong>웹 기반 소프트웨어 도구를 개발</strong>하고, 실제 항공기 데이터로 검증하였다</li>
+      <li data-anim>전용 점검보드 없이 <strong>통합 점검 장비만으로 8개 조종면의 리깅을 단일 환경에서</strong> 수행한다</li>
+      <li data-anim>전 조종면에서 <strong>R² ≥ 0.99</strong>의 회귀 정밀도와 <strong>±1° 이내</strong>의 명령 추종 오차를 확인하였다</li>
+      <li data-anim>명령값·피드백값·실제 각도값을 하나의 관계식으로 매핑함으로써, <strong>어떤 환경에서도 동일하게 리깅할 수 있는 절차</strong>를 구현하였다</li>
+      <li data-anim>도구의 상세 설계와 조종면별 검증 결과는 <strong>후속 논문에서 다룰 예정</strong>이다</li>
+    </ul>
+  </div>
+  <div class="foot"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+<!-- ═══════════════ 18. 마무리 ═══════════════ -->
+<section class="slide end">
+  <div class="thanks" data-anim>감사합니다</div>
+  <div class="sub" data-anim>통합 점검 장비 기반 웹 소프트웨어를 이용한 FBW 항공기 조종면 리깅</div>
+  <ul class="refs" data-anim>
+    <div class="rh">참고문헌</div>
+    <li><span class="rn">[1]</span><span>Federal Aviation Administration, <i>Aviation Maintenance Technician Handbook — Airframe</i>, FAA-H-8083-31B, U.S. Department of Transportation, 2023.</span></li>
+  </ul>
+  <div class="foot" style="width:100%;position:absolute;left:0;bottom:46px;padding:0 76px"><span class="l">SASE 2026 추계학술대회</span><span class="r"></span></div>
+</section>
+
+</div><!-- /#stage -->
+
+<div id="ctl">
+  <div id="clock">00:00</div>
+  <button data-act="prev" title="이전 (←)">&larr;</button>
+  <button data-act="next" title="다음 (→)">&rarr;</button>
+  <button data-act="jump" title="목차 이동 (O)">목차</button>
+  <button data-act="full" title="전체화면 (F)">전체화면</button>
+</div>
+
+<div id="jump" role="dialog" aria-label="슬라이드 이동">
+  <h3>슬라이드 이동 &nbsp;—&nbsp; 번호를 입력하거나 클릭, ESC로 닫기 <span id="jump-hint"></span></h3>
+  <ol id="jump-list"></ol>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var stage  = document.getElementById('stage');
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total  = slides.length;
+  var cur    = -1;
+  var jump   = document.getElementById('jump');
+  var bar    = document.getElementById('progress');
+
+  /* ── 1. 반복 도형 생성 (8 조종면 × 6 단계) ───────────── */
+  (function buildGrid(){
+    var g = document.getElementById('step-grid');
+    if(!g) return;
+    var NS = 'http://www.w3.org/2000/svg';
+    var t = document.createElementNS(NS,'text');
+    t.setAttribute('x','220'); t.setAttribute('y','20');
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('class','s-lbl a');
+    t.setAttribute('font-size','13');
+    t.textContent = '총 40회의 주요 작업 단계';
+    g.appendChild(t);
+    for(var r=0;r<8;r++){
+      for(var c=0;c<5;c++){
+        var rect = document.createElementNS(NS,'rect');
+        rect.setAttribute('x', 40 + c*72);
+        rect.setAttribute('y', 40 + r*19);
+        rect.setAttribute('width', 56);
+        rect.setAttribute('height', 12);
+        rect.setAttribute('fill', 'var(--acc-12)');
+        rect.setAttribute('stroke', 'var(--acc-30)');
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('data-anim', 'pop');
+        rect.style.setProperty('--i', 2 + r + c);
+        g.appendChild(rect);
+      }
+    }
+  })();
+
+  /* ── 2. 등장 순서 및 선 길이 계산 ────────────────────── */
+  slides.forEach(function(sl){
+    var n = 0;
+    sl.querySelectorAll('[data-anim]').forEach(function(el){
+      if(!el.style.getPropertyValue('--i')) el.style.setProperty('--i', n);
+      n++;
+    });
+    sl.querySelectorAll('.draw').forEach(function(el){
+      var len = 400;
+      try { if(el.getTotalLength) len = el.getTotalLength() || 400; } catch(err){}
+      el.style.setProperty('--len', Math.ceil(len));
+    });
+    /* SVG 글자는 바로 앞 도형과 같은 순서로 등장시킨다 */
+    sl.querySelectorAll('svg').forEach(function(svg){
+      var last = 0;
+      svg.querySelectorAll('*').forEach(function(el){
+        var own = el.style.getPropertyValue('--i');
+        if(own){ last = parseInt(own, 10) || 0; return; }
+        if(el.classList.contains('s-lbl')) el.style.setProperty('--i', last);
+      });
+    });
+  });
+
+  /* ── 3. 화면 맞춤 ────────────────────────────────────── */
+  function fit(){
+    var pad = fullEl() ? 1 : 0.97;
+    var s = Math.min(window.innerWidth/1280, window.innerHeight/720) * pad;
+    stage.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('fullscreenchange', fit);
+  document.addEventListener('webkitfullscreenchange', fit);
+  fit();
+
+  /* ── 4. 슬라이드 제목 ────────────────────────────────── */
+  function titleOf(sl, i){
+    if(sl.classList.contains('cover')) return '표지';
+    if(sl.classList.contains('end'))   return '감사합니다';
+    var t = sl.querySelector('.head h2 .tt');
+    var no = sl.querySelector('.head h2 .no');
+    return (no ? no.textContent + ' ' : '') + (t ? t.textContent : '슬라이드 ' + (i+1));
+  }
+
+  /* ── 5. 이동 패널 ────────────────────────────────────── */
+  var list = document.getElementById('jump-list');
+  slides.forEach(function(sl, i){
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="n">' + (i+1) + '</span><span>' + titleOf(sl, i) + '</span>';
+    li.addEventListener('click', function(){ closeJump(); goTo(i); });
+    list.appendChild(li);
+  });
+  function openJump(){
+    jump.classList.add('on');
+    Array.prototype.forEach.call(list.children, function(li, i){
+      li.classList.toggle('cur', i === cur);
+    });
+  }
+  function closeJump(){ jump.classList.remove('on'); clearBuf(); }
+  function toggleJump(){ jump.classList.contains('on') ? closeJump() : openJump(); }
+
+  /* 번호 입력 — 더 긴 번호가 불가능해지면 즉시 이동, 아니면 잠시 기다린다 */
+  var hint = document.getElementById('jump-hint'), buf = '', bufT = null;
+  function showBuf(){ hint.textContent = buf ? buf + ' →' : ''; }
+  function clearBuf(){ clearTimeout(bufT); buf = ''; showBuf(); }
+  function pushDigit(d){
+    if(buf === '' && d === '0') return;
+    buf += d;
+    showBuf();
+    clearTimeout(bufT);
+    var n = parseInt(buf, 10);
+    if(n * 10 > total) commitBuf();
+    else bufT = setTimeout(commitBuf, 900);
+  }
+  function commitBuf(){
+    clearTimeout(bufT);
+    var n = parseInt(buf, 10);
+    buf = ''; showBuf();
+    if(n >= 1 && n <= total){ closeJump(); goTo(n - 1); }
+  }
+
+  /* ── 6. 이동 ─────────────────────────────────────────── */
+  function goTo(n){
+    if(n < 0 || n >= total || n === cur) return;
+    var prev = slides[cur];
+    document.body.classList.toggle('rev', n < cur);
+    cur = n;
+    if(prev){
+      prev.classList.remove('active');
+      prev.classList.add('leaving');
+      (function(p){
+        setTimeout(function(){ if(!p.classList.contains('active')) p.classList.remove('leaving'); }, 460);
+      })(prev);
+    }
+    var next = slides[n];
+    next.classList.remove('active','leaving');
+    void next.offsetWidth;          /* 모션 재시작 */
+    next.classList.add('active');
+
+    bar.style.width = ((n+1)/total*100) + '%';
+    slides.forEach(function(sl){
+      var r = sl.querySelector('.foot .r');
+      if(r) r.textContent = (slides.indexOf(sl)+1) + ' / ' + total;
+    });
+    if(jump.classList.contains('on')) openJump();
+    try { history.replaceState(null, '', '#' + (n+1)); } catch(err){}
+    startClock();
+  }
+  function next(){ goTo(cur+1); }
+  function prev(){ goTo(cur-1); }
+
+  /* ── 7. 키보드 ───────────────────────────────────────── */
+  var NEXT = {ArrowRight:1, ArrowDown:1, PageDown:1, ' ':1, Enter:1, Spacebar:1};
+  var PREV = {ArrowLeft:1, ArrowUp:1, PageUp:1, Backspace:1};
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key, code = e.code, done = true;
+
+    /* 이동 패널이 열려 있을 때는 번호 입력이 먼저다 */
+    if(jump.classList.contains('on')){
+      var dig = /^(?:Digit|Numpad)([0-9])$/.exec(code);
+      if(dig)               { pushDigit(dig[1]); e.preventDefault(); return; }
+      if(k === 'Enter')     { commitBuf();       e.preventDefault(); return; }
+      if(k === 'Backspace') { clearTimeout(bufT); buf = buf.slice(0,-1); showBuf(); e.preventDefault(); return; }
+      /* 그 밖의 키를 누르면 입력하던 번호를 버린다. 남겨두면 잠시 뒤 제멋대로 이동한다.
+         이동 키였다면 패널까지 닫고 평소대로 넘어간다. */
+      clearBuf();
+      if(NEXT[k] || PREV[k] || k === 'Home' || k === 'End') closeJump();
+    }
+
+    if(k === 'Escape')                 closeJump();
+    else if(NEXT[k])                   next();
+    else if(PREV[k])                   prev();
+    else if(k === 'Home')              goTo(0);
+    else if(k === 'End')               goTo(total-1);
+    else if(code === 'KeyO')           toggleJump();
+    else if(code === 'KeyF')           toggleFull();
+    else if(code === 'KeyT')           toggleClock();
+    else done = false;
+
+    if(done) e.preventDefault();
+  });
+
+  /* ── 8. 마우스 ───────────────────────────────────────── */
+  stage.addEventListener('click', function(e){
+    var t = e.target.closest('[data-goto]');
+    if(t){ goTo(parseInt(t.getAttribute('data-goto'),10) - 1); return; }
+    next();
+  });
+  document.getElementById('ctl').addEventListener('click', function(e){
+    var b = e.target.closest('button');
+    if(!b) return;
+    var a = b.getAttribute('data-act');
+    if(a === 'next') next();
+    else if(a === 'prev') prev();
+    else if(a === 'jump') toggleJump();
+    else if(a === 'full') toggleFull();
+  });
+  jump.addEventListener('click', function(e){ if(e.target === jump) closeJump(); });
+
+  var hideTimer;
+  document.addEventListener('mousemove', function(){
+    document.body.classList.add('hover');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function(){ document.body.classList.remove('hover'); }, 2200);
+  });
+
+  function fullEl(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function toggleFull(){
+    var d = document, el = d.documentElement;
+    if(fullEl()){ (d.exitFullscreen || d.webkitExitFullscreen || function(){}).call(d); }
+    else { (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el); }
+  }
+
+  /* ── 9. 발표 시간 ────────────────────────────────────── */
+  var clockEl = document.getElementById('clock'), t0 = null, tick = null;
+  function startClock(){
+    if(t0 !== null || cur === 0) return;
+    t0 = Date.now();
+    tick = setInterval(render, 1000);
+    render();
+  }
+  function render(){
+    if(t0 === null) return;
+    var s = Math.floor((Date.now() - t0)/1000);
+    clockEl.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    clockEl.classList.toggle('over', s > 900);   /* 15분 초과 */
+  }
+  function toggleClock(){
+    clockEl.classList.toggle('on');
+    if(clockEl.classList.contains('on') && t0 === null){ t0 = Date.now(); tick = setInterval(render,1000); render(); }
+  }
+
+  /* ── 10. 시작 ────────────────────────────────────────── */
+  var start = parseInt((location.hash || '').replace('#',''), 10);
+  goTo(start > 0 && start <= total ? start - 1 : 0);
+})();
+</script>
+</body>
+</html>
