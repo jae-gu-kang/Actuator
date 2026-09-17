@@ -293,9 +293,12 @@ pre.code .c{color:var(--ink-40)}
 .slide.active .blink{animation:pulse 1.9s ease-in-out infinite}
 
 @media (prefers-reduced-motion:reduce){
-  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
-  [data-anim],.draw,.s-lbl{opacity:1}
-  .draw{stroke-dashoffset:0}
+  *{
+    animation-duration:.01ms !important;animation-delay:0s !important;
+    animation-iteration-count:1 !important;transition-duration:.01ms !important;
+  }
+  [data-anim],.draw,.s-lbl{opacity:1 !important}
+  .draw{stroke-dashoffset:0 !important}
 }
 
 /* ══════════════ 컨트롤 ══════════════ */
@@ -356,8 +359,8 @@ body.hover #ctl{opacity:1}
     transform:none !important;transition:none !important;
     width:1280px;height:720px;page-break-after:always;break-after:page;
   }
-  [data-anim]{opacity:1;animation:none !important}
-  .draw{stroke-dashoffset:0;opacity:1;animation:none !important}
+  [data-anim],.s-lbl{opacity:1 !important;animation:none !important}
+  .draw{stroke-dashoffset:0 !important;opacity:1 !important;animation:none !important}
   #ctl,#jump,#progress{display:none !important}
 }
 </style>
@@ -482,32 +485,42 @@ body.hover #ctl{opacity:1}
       </div>
       <figure class="fig" data-anim="fade" style="--i:2">
         <div class="frame">
-          <svg viewBox="0 0 480 236" role="img" aria-label="상용 구동기와 4절 링크 기구의 구성 개념도">
-            <!-- 구동기 -->
-            <rect class="s-stroke draw" x="20" y="150" width="92" height="52" rx="1"/>
-            <text class="s-lbl b" x="66" y="172" text-anchor="middle">COTS 구동기</text>
-            <text class="s-lbl" x="66" y="189" text-anchor="middle">감속비 고정</text>
+          <svg viewBox="0 0 480 236" role="img" aria-label="상용 회전형 구동기와 4절 링크, 조종면 단면 개념도">
+            <!-- 장착 구조 -->
+            <path class="s-stroke draw" d="M14,200 L120,200"/>
+            <path class="s-thin draw" d="M20,200 L12,211 M34,200 L26,211 M48,200 L40,211 M62,200 L54,211
+                                          M76,200 L68,211 M90,200 L82,211 M104,200 L96,211 M118,200 L110,211" style="--i:1"/>
+            <!-- 구동기 : 모터 · 감속기 · 출력축 -->
+            <rect class="s-stroke draw" x="18" y="155" width="52" height="42" rx="10" style="--i:2"/>
+            <path class="s-thin draw" d="M31,158 L31,194 M57,158 L57,194" style="--i:2"/>
+            <rect class="s-stroke draw" x="70" y="161" width="30" height="30" style="--i:3"/>
+            <path class="s-stroke draw" d="M100,167 L107,167 L107,185 L100,185" style="--i:3"/>
+            <circle class="s-fill-p s-stroke draw" cx="112" cy="176" r="10" style="--i:4"/>
+            <circle class="s-fill" cx="112" cy="176" r="3" data-anim="pop" style="--i:5"/>
+            <text class="s-lbl b" x="60" y="228" text-anchor="middle">COTS 구동기 · 감속비 고정</text>
             <!-- 지상 링크 -->
-            <path class="s-thin draw" d="M112,176 L360,176" style="--i:1"/>
+            <path class="s-thin draw" d="M112,176 L360,176" style="--i:5"/>
             <!-- 4절 링크 : 출력 링크가 입력 링크보다 길다 -->
-            <path class="s-acc draw" d="M112,176 L152,124" style="--i:2"/>
-            <path class="s-stroke draw" d="M152,124 L330,96" style="--i:3"/>
-            <path class="s-acc draw" d="M330,96 L360,176" style="--i:4"/>
-            <circle class="s-fill-p s-stroke draw" cx="112" cy="176" r="5" style="--i:2"/>
-            <circle class="s-fill-p s-stroke draw" cx="152" cy="124" r="5" style="--i:3"/>
-            <circle class="s-fill-p s-stroke draw" cx="330" cy="96"  r="5" style="--i:4"/>
-            <circle class="s-fill-p s-stroke draw" cx="360" cy="176" r="5" style="--i:5"/>
-            <!-- 조종면 -->
-            <path class="s-stroke draw" d="M360,176 L452,166 L452,190 Z" style="--i:6"/>
+            <path class="s-acc draw" d="M112,176 L152,124" style="--i:5"/>
+            <path class="s-stroke draw" d="M152,124 L330,96" style="--i:6"/>
+            <path class="s-acc draw" d="M330,96 L360,176" style="--i:7"/>
+            <circle class="s-fill-p s-stroke draw" cx="152" cy="124" r="5" style="--i:6"/>
+            <circle class="s-fill-p s-stroke draw" cx="330" cy="96"  r="5" style="--i:7"/>
+            <!-- 날개 고정부 -->
+            <path class="s-stroke draw" d="M290,160 L346,171 L346,181 L290,192 Z" style="--i:8"/>
+            <text class="s-lbl" x="312" y="152" text-anchor="middle">고정 구조</text>
+            <!-- 조종면 : 힌지에서 뒷전으로 테이퍼 -->
+            <path class="s-stroke draw" d="M360,166 C348,168 348,184 360,186 L459,179 Z" style="--i:9"/>
+            <circle class="s-fill-p s-stroke draw" cx="360" cy="176" r="6" style="--i:9"/>
+            <text class="s-lbl b" x="414" y="158" text-anchor="middle">조종면</text>
             <!-- 힌지모멘트 -->
-            <path class="s-acc draw" d="M338,200 A30,30 0 0 1 331,169" style="--i:7"/>
-            <path class="s-acc draw" d="M326,174 L331,167 L337,172" style="--i:8"/>
-            <text class="s-lbl a" x="322" y="208" text-anchor="end">힌지모멘트</text>
+            <path class="s-acc draw" d="M392,188 A34,34 0 0 1 372,208" style="--i:10"/>
+            <path class="s-acc draw" d="M365,201 L372,209 L380,204" style="--i:11"/>
+            <text class="s-lbl a" x="404" y="210" text-anchor="start">힌지모멘트</text>
             <!-- 라벨 -->
             <text class="s-lbl a" x="142" y="108" text-anchor="end">입력 링크</text>
-            <text class="s-lbl" x="241" y="92" text-anchor="middle">커플러</text>
+            <text class="s-lbl" x="241" y="90" text-anchor="middle">커플러</text>
             <text class="s-lbl a" x="374" y="118" text-anchor="start">출력 링크</text>
-            <text class="s-lbl b" x="406" y="212" text-anchor="middle">조종면</text>
           </svg>
         </div>
         <figcaption>그림 2. 상용 구동기와 4절 링크 기구의 구성 (개념도)</figcaption>

@@ -139,7 +139,40 @@ async function overflowSweep(page, tag){
     await page.emulateMediaType('print'); await sleep(900);
     const printT = await page.$$eval('.slide', ns => [...new Set(ns.map(n => getComputedStyle(n).transform))]);
     rec('역방향 상태에서 인쇄 시 정렬 유지', printT.every(NONE), printT.join(' | '));
+    /* 인쇄 규칙에 .s-lbl 이 빠져 PDF 에서 도형 글자가 전부 사라진 적이 있다.
+       활성 장표만 애니메이션이 끝나 보였고 나머지 17장은 opacity:0 그대로였다. */
+    const pHid = await page.evaluate(() => {
+      let hid = 0, tot = 0;
+      document.querySelectorAll('.slide .s-lbl, .slide [data-anim], .slide .draw').forEach(e => {
+        tot++; if(parseFloat(getComputedStyle(e).opacity) < 0.5) hid++;
+      });
+      return { hid, tot };
+    });
+    rec('인쇄 시 도형 글자·요소가 모두 보임', pHid.hid === 0 && pHid.tot > 50,
+        pHid.hid + '/' + pHid.tot + ' 안 보임');
     await page.emulateMediaType('screen'); await sleep(200);
+
+    /* 모션 감소 설정에서 animation-delay 가 남아 최대 1.4초 동안 내용이 비어 있었다.
+       지연 중에는 fill-mode:both 가 from(opacity:0) 을 잡아 선언적 opacity 로는 못 이긴다. */
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+    let rmWorst = 0, rmWhere = '';
+    for(const i of [3, 9, 12]){
+      await page.evaluate(n => {
+        const s = [...document.querySelectorAll('.slide')];
+        s.forEach(x => x.classList.remove('active','leaving'));
+        s[n].classList.add('active');
+      }, i);
+      await sleep(120);                      /* 지연이 남아 있으면 아직 안 보일 시점 */
+      const h = await page.evaluate(n => {
+        const sl = [...document.querySelectorAll('.slide')][n];
+        const a = [...sl.querySelectorAll('.s-lbl,[data-anim],.draw')];
+        return a.filter(e => parseFloat(getComputedStyle(e).opacity) < 0.5).length;
+      }, i);
+      if(h > rmWorst){ rmWorst = h; rmWhere = (i+1) + '장'; }
+    }
+    rec('모션 감소 설정에서 즉시 내용이 보임', rmWorst === 0, rmWorst ? (rmWorst + '개 안 보임 @' + rmWhere) : '');
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+    await sleep(200);
 
     /* ── 목차 패널 번호 입력 ──────────────────────────────── */
     await page.keyboard.press('Home'); await sleep(450);
