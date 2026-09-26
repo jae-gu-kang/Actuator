@@ -5,10 +5,8 @@
 node_modules/
 package.json
 package-lock.json
-# 점검장비는 ESM 선언·스크립트용 package.json 이 필요 (의존성 없음)
-!TestEquipment/package.json
-# 제조사(Hitec) 자료 — 공개 저장소·사이트에 올리지 않고 로컬에만 둔다
-TestEquipment/docs/
+# 작동기 점검장비는 별도 저장소(jae-gu-kang/TestEquipment → te.jaegukang.com). 로컬 작업 폴더만 여기 둔다.
+TestEquipment/
 
 # Claude Code 로컬 상태
 .claude/
