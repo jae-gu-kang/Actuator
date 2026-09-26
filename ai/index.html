@@ -40,6 +40,7 @@ a{color:inherit;text-decoration:none}
 
 /* ---------- 무대 ---------- */
 #stage{
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
   position:absolute;left:50%;top:50%;width:1920px;height:1080px;
   transform:translate(-50%,-50%) scale(var(--s));transform-origin:50% 50%;
   z-index:2;
@@ -445,6 +446,16 @@ body.vid #vlayer{opacity:1}
 #hud .n{color:var(--accent);font-variant-numeric:tabular-nums}
 #hud .k{color:var(--grey);font-weight:600}
 body.hover #hud{opacity:1}
+/* 폰 세로 화면: 가로로 돌리라는 안내 (몇 초 뒤 사라짐) */
+#rot{
+  position:fixed;left:16px;right:16px;bottom:20px;z-index:41;display:none;
+  padding:12px 16px;border-radius:14px;background:var(--ink);color:var(--paper);
+  font-size:14px;font-weight:700;line-height:1.55;text-align:center;
+  transition:opacity .6s ease;pointer-events:none;
+}
+#rot.gone{opacity:0;visibility:hidden}
+#rot b{color:var(--accent)}
+@media (orientation:portrait) and (max-width:900px){ #rot{display:block} }
 #notes{
   position:fixed;left:0;right:0;bottom:0;z-index:45;max-height:40vh;overflow:auto;
   background:rgba(17,17,17,.96);color:var(--paper);border-top:3px solid var(--accent);
@@ -476,7 +487,7 @@ body.notes #notes{display:block}
   .draw{stroke-dashoffset:0}
   h1.giant .blk .wipe{background-position:0 0%}
   #vcore{transform:scale(.5)}
-  #vlayer,#bar,#hud,#notes,#demo{display:none!important}
+  #vlayer,#bar,#hud,#notes,#demo,#rot{display:none!important}
 }
 </style>
 </head>
@@ -1060,7 +1071,8 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 </div><!-- /stage -->
 
 <div id="bar"></div>
-<div id="hud"><span class="n"></span><span class="k">← → 이동 · N 대본 · F 전체 화면</span></div>
+<div id="hud"><span class="n"></span><span class="k">← → 또는 화면 좌·우 클릭 · N 대본 · F 전체 화면</span></div>
+<div id="rot">가로로 돌리면 크게 보입니다 · 화면을 <b>좌우로 밀거나</b> 좌·우를 눌러 넘기세요</div>
 <div id="notes"><div class="top"></div><div class="txt"></div></div>
 <div id="demo" role="dialog" aria-label="녹화 영상">
   <button class="x" type="button">닫기 · Esc</button>
@@ -1149,10 +1161,16 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 
   /* 1. 화면 맞춤 */
   function fit(){
-    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-    document.documentElement.style.setProperty('--s', s);
+    var de = document.documentElement;
+    var w = Math.min(window.innerWidth, de.clientWidth || 1e9), h = Math.min(window.innerHeight, de.clientHeight || 1e9);
+    de.style.setProperty('--s', Math.min(w / 1920, h / 1080));
   }
-  window.addEventListener('resize', fit); fit();
+  /* 폰은 주소창이 접히거나 화면을 돌릴 때 크기가 바뀌고, 처음 크기가 늦게 확정되기도 한다 */
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', function(){ setTimeout(fit, 250); });
+  window.addEventListener('load', fit);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+  fit(); requestAnimationFrame(fit);
 
   /* 2. 쪽 번호 · 계획 시간 */
   var plan = slides.map(function(s){ var n = s.querySelector('aside.note'); return n ? +n.getAttribute('data-t') || 0 : 0; });
@@ -1242,6 +1260,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
     runCounts(next);
     syncVideo();
     if(clockT0 === null && n > 0) clockT0 = Date.now();
+    if(prev){ var ro = document.getElementById('rot'); if(ro) ro.classList.add('gone'); }
     bar.style.width = (total > 1 ? n / (total - 1) * 100 : 0) + '%';
     hud.querySelector('.n').textContent = (n + 1) + ' / ' + total;
     renderNotes();
@@ -1307,6 +1326,41 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
     body.classList.add('hover'); clearTimeout(hideT);
     hideT = setTimeout(function(){ body.classList.remove('hover'); }, 2200);
   });
+
+  /* 8-2. 마우스 · 터치 — 화면 오른쪽 절반을 누르면 다음, 왼쪽 절반은 이전.
+     링크·버튼·영상·대본 위를 누른 것은 그것의 동작이 먼저다. */
+  var swipedAt = 0, downX = 0, downY = 0;
+  /* 드래그(글자 고르기 등)로 끝난 click 은 넘기지 않는다. 선택 여부로 판단하면
+     대본에서 고른 글자가 남아 있는 동안 무대 클릭이 계속 막힌다(무대는 선택이 안 되어 풀 수도 없다). */
+  document.addEventListener('mousedown', function(e){ downX = e.clientX; downY = e.clientY; });
+  document.addEventListener('click', function(e){
+    if(e.button !== 0 || demo.classList.contains('on')) return;
+    if(Date.now() - swipedAt < 600) return;        /* 밀기 끝에 따라오는 click 은 무시 */
+    if(e.target.closest('a, button, video, input, textarea, select, #notes, #demo')) return;
+    if(Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) return;
+    if(e.clientX >= window.innerWidth / 2) next(); else prev();
+  });
+  /* 폰: 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전. 두 손가락(확대)은 건드리지 않는다. */
+  var tx = null, ty = null;
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length !== 1 || demo.classList.contains('on') || e.target.closest('#notes, #demo')){ tx = null; return; }
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e){
+    if(tx === null) return;
+    var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+    tx = null;
+    if(window.visualViewport && window.visualViewport.scale > 1.01) return;   /* 확대한 화면을 옮기는 중 */
+    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5){
+      swipedAt = Date.now();
+      if(dx < 0) next(); else prev();
+    }
+  }, {passive: true});
+  document.addEventListener('touchcancel', function(){ tx = null; }, {passive: true});
+
+  /* 세로 화면 안내는 6초 뒤, 또는 처음 넘길 때 사라진다 */
+  var rot = document.getElementById('rot');
+  setTimeout(function(){ rot.classList.add('gone'); }, 6000);
 
   /* 9. 시작 */
   var start = parseInt((location.hash || '').replace('#', ''), 10);

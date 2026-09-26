@@ -185,6 +185,35 @@ async function sweep(page, tag){
     await sleep(50);
     const focusLeft = await page.evaluate(() => document.activeElement && document.activeElement.tagName);
     rec('링크 클릭 뒤 포커스가 남지 않음', focusLeft !== 'A', focusLeft);
+    rec('링크를 눌러도 장은 그대로', (await idx(page)) === 5);
+
+    /* ── 마우스: 화면 오른쪽 절반 = 다음, 왼쪽 절반 = 이전 ── */
+    await page.evaluate(() => window.__deck.goTo(2)); await sleep(1200);
+    await page.mouse.click(1750, 760); await sleep(150);
+    rec('화면 오른쪽 클릭 = 다음 장', (await idx(page)) === 3, 'idx=' + await idx(page));
+    await page.mouse.click(160, 850); await sleep(150);
+    rec('화면 왼쪽 클릭 = 이전 장', (await idx(page)) === 2, 'idx=' + await idx(page));
+    /* Chrome 은 오른쪽 버튼에 click 을 보내지 않으므로, 가드를 확인하려면 직접 만든 click 을 보낸다 */
+    await page.evaluate(() => document.elementFromPoint(1750, 760).dispatchEvent(new MouseEvent('click', { button: 2, clientX: 1750, clientY: 760, bubbles: true })));
+    await sleep(150);
+    rec('마우스 오른쪽 버튼 click 은 넘기지 않음', (await idx(page)) === 2);
+    /* 대본 글자를 드래그해 골라 둔 뒤에도 무대 클릭으로 넘길 수 있어야 한다 */
+    await page.keyboard.press('KeyN'); await sleep(150);
+    const nb = await page.evaluate(() => { const r = document.querySelector('#notes .txt p').getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2, w: r.width }; });
+    await page.mouse.move(nb.x, nb.y); await page.mouse.down(); await page.mouse.move(nb.x + Math.min(300, nb.w - 8), nb.y, { steps: 6 }); await page.mouse.up();
+    await sleep(100);
+    const selLen = await page.evaluate(() => String(getSelection()).length);
+    rec('대본 글자 드래그 선택은 장을 넘기지 않음', selLen > 0 && (await idx(page)) === 2, 'sel=' + selLen);
+    await page.mouse.click(1750, 300); await sleep(150);
+    rec('대본 글자를 골라 둔 채 오른쪽 클릭 = 다음 장', (await idx(page)) === 3, 'idx=' + await idx(page));
+    await page.keyboard.press('KeyN'); await sleep(100);
+    await page.keyboard.press('ArrowLeft'); await sleep(150);
+    await page.evaluate(() => window.__deck.goTo(4)); await sleep(1500);
+    await page.click('.slide.active [data-demo]'); await sleep(300);
+    rec('녹화 영상 버튼을 눌러도 장은 그대로', (await idx(page)) === 4);
+    await page.mouse.click(1850, 1000); await sleep(200);
+    const afterClose = await page.evaluate(() => ({ open: document.getElementById('demo').classList.contains('on'), i: window.__deck.cur() }));
+    rec('영상 창 바깥 클릭은 창만 닫고 장은 그대로', !afterClose.open && afterClose.i === 4, JSON.stringify(afterClose));
 
     /* ── 배치 · 표시 ── */
     await sweep(page, '[1920]');
@@ -194,6 +223,42 @@ async function sweep(page, tag){
     await page.setViewport({ width: 1280, height: 1024 }); await sleep(300);
     const fit2 = await page.evaluate(() => { const b = document.getElementById('stage').getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height), t: Math.round(b.top) }; });
     rec('5:4 화면(1280×1024)에서도 잘리지 않음', fit2.w <= 1280 && fit2.h <= 1024 && fit2.t >= 0, JSON.stringify(fit2));
+
+    /* ── 폰(가로): 밀어서 넘기기 · 좌우 탭 ── */
+    const ph = await browser.newPage();
+    await ph.setViewport({ width: 844, height: 390, isMobile: true, hasTouch: true });
+    await ph.goto(FILE, { waitUntil: 'networkidle2' }); await sleep(300);
+    async function swipe(x0, x1, y0 = 200, y1 = 205){
+      await ph.touchscreen.touchStart(x0, y0);
+      for(let k = 1; k <= 5; k++){ await ph.touchscreen.touchMove(x0 + (x1 - x0) * k / 5, y0 + (y1 - y0) * k / 5); await sleep(16); }
+      await ph.touchscreen.touchEnd(); await sleep(250);
+    }
+    const pidx = () => ph.evaluate(() => window.__deck.cur());
+    await swipe(640, 200);
+    rec('폰: 왼쪽으로 밀면 다음 장', (await pidx()) === 1, 'idx=' + await pidx());
+    await swipe(200, 640);
+    rec('폰: 오른쪽으로 밀면 이전 장', (await pidx()) === 0, 'idx=' + await pidx());
+    await swipe(420, 440, 60, 330);
+    rec('폰: 세로로 밀면 넘기지 않음', (await pidx()) === 0);
+    /* 두 손가락으로 확대한 상태에서 한 손가락으로 화면을 옮기면 넘기지 않는다 (확대 배율을 흉내 낸다) */
+    await ph.evaluate(() => Object.defineProperty(window.visualViewport, 'scale', { configurable: true, get: () => 2 }));
+    await swipe(640, 200);
+    rec('폰: 확대한 채 밀면 넘기지 않음', (await pidx()) === 0);
+    await ph.evaluate(() => delete window.visualViewport.scale);
+    await ph.touchscreen.tap(780, 200); await sleep(250);
+    rec('폰: 오른쪽 탭 = 다음 장', (await pidx()) === 1);
+    await ph.touchscreen.tap(60, 200); await sleep(250);
+    rec('폰: 왼쪽 탭 = 이전 장', (await pidx()) === 0);
+    const pfit = await ph.evaluate(() => { const b = document.getElementById('stage').getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height) }; });
+    rec('폰 가로 화면에 무대가 맞음', pfit.w <= 844 && pfit.h <= 390, JSON.stringify(pfit));
+    /* 세로로 들고 있으면 가로로 돌리라는 안내, 넘기면 사라짐 */
+    await ph.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await ph.reload({ waitUntil: 'networkidle2' }); await sleep(300);     /* 안내는 처음 열 때만 나온다 */
+    const rot1 = await ph.evaluate(() => { const r = document.getElementById('rot'); return getComputedStyle(r).display !== 'none' && !r.classList.contains('gone'); });
+    await ph.touchscreen.tap(350, 420); await sleep(700);
+    const rot2 = await ph.evaluate(() => getComputedStyle(document.getElementById('rot')).visibility === 'hidden');
+    rec('폰 세로: 가로 안내가 보였다가 넘기면 사라짐', rot1 && rot2, JSON.stringify({ rot1, rot2 }));
+    await ph.close();
 
     /* ── 모션 감소 설정: 모든 요소가 처음부터 보여야 한다 ── */
     const p2 = await browser.newPage();
