@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>기억에서 데이터로 — AI 로 만든 네 개의 엔지니어링 도구</title>
+<meta name="description" content="설계지식의 자산화 — 작동기 자동점검 · 설계툴 · 기억지식저장소 · CLAW">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
+<style>
+/* =========================================================
+   양식: hansarang.com/building (건축 이야기) 의 편집 디자인
+   종이 · 먹 · 주황 · 청록 / Pretendard / 1.5px 검은 선
+   캔버스 1920×1080 을 화면에 맞춰 통째로 확대·축소한다.
+   ========================================================= */
+:root{
+  --paper:#F4F1E8;
+  --ink:#111111;
+  --grey:#6F6C66;
+  --accent:#FF4D00;
+  --accent2:#0097B2;
+  --line:#111111;
+  --soft:rgba(17,17,17,.18);
+  --dpaper:rgba(242,240,235,.62);
+  --sans:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+  --s:1;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+::selection{background:var(--accent);color:var(--paper)}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:26px;line-height:1.6;
+  letter-spacing:-.015em;word-break:keep-all;
+  -webkit-font-smoothing:antialiased;
+  transition:background .6s;
+}
+body.vid{background:var(--ink)}
+a{color:inherit;text-decoration:none}
+
+/* ---------- 무대 ---------- */
+#stage{
+  position:absolute;left:50%;top:50%;width:1920px;height:1080px;
+  transform:translate(-50%,-50%) scale(var(--s));transform-origin:50% 50%;
+  z-index:2;
+}
+.slide{
+  position:absolute;inset:0;padding:132px 120px 100px;
+  display:flex;flex-direction:column;
+  background:var(--paper);
+  opacity:0;visibility:hidden;
+  transition:opacity .5s ease,visibility 0s linear .5s;
+}
+.slide.active{opacity:1;visibility:visible;transition:opacity .6s ease}
+.slide.leaving{visibility:visible}
+.slide.dark{background:var(--ink);color:var(--paper)}
+.slide.video{background:transparent;padding:0}
+.slide aside.note{display:none}
+
+/* 상단 줄 — 홈페이지 topbar */
+.rail{
+  position:absolute;left:0;right:0;top:0;height:78px;padding:0 56px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:2px solid var(--line);
+}
+.dark .rail{border-color:rgba(242,240,235,.85)}
+.rail .logo{font-weight:800;font-size:22px;letter-spacing:-.02em}
+.rail .logo sup{color:var(--accent);font-size:12px;margin-left:6px;letter-spacing:.14em;font-weight:800}
+.rail ul{display:flex;gap:4px;list-style:none;font-size:15px;font-weight:700;letter-spacing:.04em}
+.rail li{padding:9px 18px;border:2px solid transparent;border-radius:999px;color:var(--grey)}
+.dark .rail li{color:rgba(242,240,235,.5)}
+.rail li.on{border-color:var(--ink);color:var(--ink)}
+.dark .rail li.on{border-color:var(--paper);color:var(--paper)}
+.rail li.cta{background:var(--ink);color:var(--paper)}
+.dark .rail li.cta{background:var(--paper);color:var(--ink)}
+.foot{
+  position:absolute;left:56px;right:56px;bottom:30px;
+  display:flex;justify-content:space-between;
+  font-size:14px;font-weight:700;letter-spacing:.2em;color:var(--grey);
+}
+.dark .foot{color:rgba(242,240,235,.45)}
+.foot .r{font-variant-numeric:tabular-nums}
+
+/* ---------- 공통 조판 ---------- */
+.sec-head{
+  display:grid;grid-template-columns:auto 1fr auto;gap:26px;align-items:baseline;
+  border-bottom:2px solid var(--line);padding-bottom:20px;margin-bottom:44px;
+}
+.dark .sec-head{border-color:rgba(242,240,235,.9)}
+.sec-head .idx{font-size:18px;font-weight:800;letter-spacing:.2em;color:var(--accent)}
+.sec-head.c2 .idx{color:var(--accent2)}
+.sec-head h2{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1.1}
+.sec-head .en{font-size:15px;font-weight:700;letter-spacing:.3em;color:var(--grey)}
+.dark .sec-head .en{color:rgba(242,240,235,.5)}
+.statement{font-size:50px;font-weight:800;line-height:1.42;letter-spacing:-.035em}
+.statement mark,.closing mark{background:none;color:var(--accent)}
+.hl-o{color:var(--accent);text-decoration:underline;text-decoration-thickness:4px;text-underline-offset:10px}
+.body{font-size:25px;line-height:1.78;color:var(--grey);display:flex;flex-direction:column;gap:22px}
+.body b{color:var(--ink)}
+.dark .body{color:var(--dpaper)}
+.dark .body b{color:var(--paper)}
+.dark .body b.o{color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:start}
+.grow{flex:1;min-height:0}
+.est{
+  display:inline-block;vertical-align:.35em;margin-left:8px;
+  font-style:normal;font-size:13px;font-weight:800;letter-spacing:.12em;line-height:1;
+  padding:5px 9px 4px;border:1.5px solid var(--accent);border-radius:999px;color:var(--accent);
+}
+.cap{font-size:17px;color:var(--grey);line-height:1.7}
+.dark .cap{color:rgba(242,240,235,.45)}
+
+/* 통계 띠 — 홈페이지 stat-row / fact-row */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);border:2px solid var(--line)}
+.stat{padding:26px 28px 28px;border-right:2px solid rgba(17,17,17,.22)}
+.stat:last-child{border-right:none}
+.stat .k{font-size:15px;font-weight:800;letter-spacing:.2em;color:var(--grey);margin-bottom:8px}
+.stat .v{font-size:52px;font-weight:900;letter-spacing:-.035em;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .v em{font-style:normal;color:var(--accent)}
+.stat .v small{font-size:26px;font-weight:800;margin-left:4px}
+.stat .v .to{font-size:26px;color:var(--grey);font-weight:700;margin:0 8px}
+.stat .s{margin-top:8px;font-size:18px;color:var(--grey);line-height:1.55}
+.dark .stat-row{border-color:rgba(242,240,235,.9)}
+.dark .stat{border-color:rgba(242,240,235,.25)}
+.dark .stat .k,.dark .stat .s,.dark .stat .v .to{color:rgba(242,240,235,.55)}
+
+/* 시연 버튼 */
+.demo{display:flex;gap:16px;align-items:center;margin-top:30px}
+.btn{
+  display:inline-flex;align-items:center;gap:14px;cursor:pointer;
+  font:inherit;font-size:21px;font-weight:800;letter-spacing:-.01em;
+  padding:16px 28px;border:2px solid var(--ink);border-radius:999px;
+  background:var(--paper);color:var(--ink);transition:background .2s,color .2s,border-color .2s;
+}
+.btn .u{font-size:16px;font-weight:600;letter-spacing:.02em;color:var(--grey)}
+.btn .arr{font-size:22px;transition:transform .25s}
+.btn:hover .arr{transform:translate(4px,-4px)}
+.btn.live{background:var(--ink);color:var(--paper)}
+.btn.live .u{color:rgba(242,240,235,.6)}
+.btn.live:hover{background:var(--accent);border-color:var(--accent)}
+.btn.rec:hover{background:var(--accent2);border-color:var(--accent2);color:var(--paper)}
+.btn.rec:hover .u{color:rgba(242,240,235,.8)}
+.dark .btn{background:transparent;color:var(--paper);border-color:var(--paper)}
+.dark .btn .u{color:rgba(242,240,235,.55)}
+.dark .btn.live{background:var(--paper);color:var(--ink)}
+.dark .btn.live .u{color:var(--grey)}
+.dark .btn.live:hover{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--accent);animation:blink 1.6s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+
+/* ---------- 등장 모션 ---------- */
+[data-a]{opacity:0}
+.slide.active [data-a]{animation:up .9s cubic-bezier(.2,.8,.2,1) var(--d,0s) both}
+.slide.active [data-a="fade"]{animation-name:fade;animation-duration:1s}
+.slide.active [data-a="left"]{animation-name:fromLeft}
+.slide.active [data-a="pop"]{animation-name:pop;animation-duration:.7s}
+@keyframes up{from{opacity:0;transform:translateY(34px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes fromLeft{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+/* SVG 선 그리기 (pathLength=1) */
+.draw{stroke-dasharray:1;stroke-dashoffset:1}
+.slide.active .draw{animation:draw var(--dur,.9s) cubic-bezier(.4,0,.2,1) var(--d,0s) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+[data-count]{font-variant-numeric:tabular-nums}
+
+/* ---------- 01 표지 ---------- */
+.s-title{padding:0;display:flex;flex-direction:column}
+.hero{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 120px;position:relative}
+.kicker{display:flex;gap:18px;align-items:center;font-size:17px;font-weight:800;letter-spacing:.3em;color:var(--grey);margin-bottom:40px}
+h1.giant{font-weight:900;font-size:188px;line-height:.98;letter-spacing:-.055em}
+h1.giant .row{display:block}
+h1.giant .row > span{display:inline-block}
+.slide.active h1.giant .row:nth-child(1) > span{animation:slideIn 1.3s cubic-bezier(.18,.8,.22,1) .2s both}
+h1.giant .row:nth-child(2){overflow:hidden;margin-top:-.02em;padding-bottom:.06em}
+.slide.active h1.giant .row:nth-child(2) > span{animation:emerge 1.2s cubic-bezier(.3,.9,.25,1) 1.3s both}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}30%{opacity:1}to{transform:none;opacity:1}}
+@keyframes emerge{from{transform:translateY(-108%)}to{transform:none}}
+h1.giant .blk{background:var(--accent);padding:0 .12em;margin-left:-.04em;display:inline-block;letter-spacing:.005em}
+h1.giant .blk .wipe{
+  font-style:normal;
+  background-image:linear-gradient(to bottom,var(--paper) 49%,var(--accent) 51%);
+  background-size:100% 220%;background-position:0 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.slide.active h1.giant .blk .wipe{animation:wipeDown 1.2s cubic-bezier(.3,.9,.25,1) 1.3s both}
+@keyframes wipeDown{from{background-position:0 100%}to{background-position:0 0%}}
+h1.giant .outline{color:var(--paper);-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;margin-left:.1em}
+h1.giant .cyan{color:var(--accent2)}
+.hero-sub{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-top:56px}
+.hero-sub .sub1{font-size:44px;font-weight:800;letter-spacing:-.035em;line-height:1.3}
+.hero-sub .sub2{margin-top:14px;font-size:24px;font-weight:700;letter-spacing:.18em;color:var(--grey)}
+.hero-sub .sub2 b{color:var(--accent)}
+.hero-meta{text-align:right;font-size:19px;font-weight:700;letter-spacing:.14em;line-height:2;color:var(--grey)}
+.hero-meta b{display:block;font-size:34px;letter-spacing:-.01em;color:var(--ink)}
+.stamp{
+  position:absolute;right:150px;top:150px;width:300px;height:300px;border-radius:50%;
+  border:2px solid var(--ink);background:var(--paper);display:flex;align-items:center;justify-content:center;
+  opacity:0;
+}
+.slide.active .stamp{animation:spinIn 1.4s .5s cubic-bezier(.2,.8,.2,1) both,floaty 7s ease-in-out 1.9s infinite}
+@keyframes spinIn{from{opacity:0;transform:rotate(140deg) scale(.5)}to{opacity:1;transform:rotate(6deg) scale(1)}}
+@keyframes floaty{0%,100%{transform:rotate(6deg)}30%{transform:translateY(-30px) rotate(0)}62%{transform:translateY(14px) rotate(11deg)}}
+.stamp svg{width:200px;height:200px}
+.marquee{
+  border-top:2px solid var(--line);overflow:hidden;white-space:nowrap;background:var(--ink);color:var(--paper);
+  padding:20px 0;font-weight:700;font-size:22px;letter-spacing:.05em;
+}
+.marquee .track{display:inline-block;animation:mq 60s linear infinite}
+.marquee em{font-style:normal;color:var(--accent);margin:0 46px 0 20px;font-size:17px;letter-spacing:.16em;font-weight:800}
+.marquee em:nth-of-type(even){color:var(--accent2)}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ---------- 02 문제 ---------- */
+.problem .grid2{grid-template-columns:1.05fr 1fr;gap:100px}
+.problem .statement{font-size:62px;line-height:1.36}
+.closing{margin-top:auto;padding-top:34px;border-top:2px solid rgba(242,240,235,.3);font-size:36px;font-weight:700;line-height:1.55;letter-spacing:-.03em}
+
+/* ---------- 03 네 도구 목록 ---------- */
+.ix{
+  display:grid;grid-template-columns:100px 1fr 520px 310px;gap:28px;align-items:center;
+  padding:30px 8px;border-bottom:1.5px solid var(--soft);
+}
+.ix .no{font-size:20px;font-weight:800;letter-spacing:.16em;color:var(--grey)}
+.ix .name{font-size:56px;font-weight:900;letter-spacing:-.04em;line-height:1.1}
+.ix .desc{font-size:23px;color:var(--grey);line-height:1.55}
+.ix .when{text-align:right;font-size:18px;font-weight:800;letter-spacing:.12em;color:var(--grey);line-height:1.6}
+.ix .when b{display:block;font-size:26px;letter-spacing:-.01em;color:var(--ink)}
+.ix:nth-child(4) .name{color:var(--accent)}
+.total{margin-top:auto;display:flex;gap:56px;align-items:baseline;font-size:22px;font-weight:700;color:var(--grey);letter-spacing:.02em}
+.total b{font-size:40px;font-weight:900;color:var(--ink);letter-spacing:-.03em;margin-right:6px}
+.total .lb{font-size:15px;font-weight:800;letter-spacing:.26em}
+
+/* ---------- 04 자동점검 ---------- */
+.te .grid2{grid-template-columns:1fr 1fr;gap:80px;margin-bottom:30px}
+.te .statement{font-size:46px}
+.steps{border:2px solid var(--line)}
+.step{
+  display:grid;grid-template-columns:70px 1fr auto;gap:18px;align-items:center;
+  padding:10px 24px;border-bottom:1.5px solid var(--soft);position:relative;overflow:hidden;
+}
+.step:last-child{border-bottom:none}
+.step .n{font-size:26px;font-weight:900;color:var(--grey);position:relative}
+.step b{font-size:23px;font-weight:800;letter-spacing:-.02em;position:relative}
+.step .c{font-size:18px;color:var(--grey);font-weight:600;position:relative;font-variant-numeric:tabular-nums}
+.step::before{content:"";position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left}
+.step .ok{position:relative;font-size:15px;font-weight:900;letter-spacing:.14em;color:var(--paper);opacity:0}
+.slide.active .step::before{animation:fillx .5s cubic-bezier(.5,0,.2,1) var(--d) forwards,unfill .6s ease calc(var(--d) + .55s) forwards}
+.slide.active .step .ok{animation:okin .4s ease calc(var(--d) + .3s) forwards}
+.slide.active .step .n{animation:ncol .4s ease calc(var(--d) + .3s) forwards}
+@keyframes fillx{to{transform:scaleX(1)}}
+@keyframes unfill{to{opacity:.0}}
+@keyframes okin{to{opacity:1;color:var(--accent)}}
+@keyframes ncol{to{color:var(--accent)}}
+.steps-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;font-size:15px;font-weight:800;letter-spacing:.24em;color:var(--grey)}
+.steps-head b{color:var(--ink)}
+
+/* ---------- 05 설계툴 카드 ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.card{border:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;transition:background .25s,color .25s}
+.card .th{display:flex;align-items:baseline;gap:16px;padding:22px 28px;border-bottom:2px solid var(--line)}
+.card .th .no{font-size:16px;font-weight:800;letter-spacing:.2em;color:var(--accent)}
+.card .th b{font-size:33px;font-weight:900;letter-spacing:-.035em}
+.card .bd{padding:22px 28px 10px;font-size:21px;line-height:1.7;color:var(--grey);flex:1}
+.card .bd b{color:var(--ink)}
+.card .go{display:flex;justify-content:space-between;align-items:center;padding:16px 28px;border-top:1.5px solid var(--soft);font-size:17px;font-weight:700;letter-spacing:.04em}
+.card .go .arr{font-size:24px;transition:transform .25s}
+.card:hover{background:var(--ink);color:var(--paper)}
+.card:hover .bd,.card:hover .bd b{color:rgba(242,240,235,.8)}
+.card:hover .go .arr{transform:translate(4px,-4px)}
+.card .key{display:block;margin-top:14px;font-size:30px;font-weight:900;letter-spacing:-.03em;color:var(--accent)}
+
+/* ---------- 06 brain ---------- */
+.modes2{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--line)}
+.mode{padding:26px 30px}
+.mode + .mode{border-left:2px solid var(--line)}
+.mode .k{font-size:15px;font-weight:800;letter-spacing:.22em;color:var(--grey)}
+.mode b{display:block;margin-top:10px;font-size:34px;font-weight:900;letter-spacing:-.03em}
+.mode p{margin-top:10px;font-size:21px;color:var(--grey);line-height:1.65}
+.mode .src{display:inline-block;margin-top:14px;font-size:16px;font-weight:800;letter-spacing:.1em;padding:6px 14px;border-radius:999px;background:var(--ink);color:var(--paper)}
+.mode.wiki .src{background:var(--accent2)}
+
+/* ---------- 다이어그램 공통 ---------- */
+figure.dia{flex:1;min-height:0;display:flex;flex-direction:column}
+figure.dia svg{flex:1;min-height:0;width:100%;overflow:visible}
+figure.dia figcaption{margin-top:14px;font-size:17px;color:var(--grey);line-height:1.7;display:flex;justify-content:space-between;gap:30px}
+figure.dia figcaption b{color:var(--ink)}
+svg text{font-family:var(--sans)}
+.bx{fill:var(--paper);stroke:var(--ink);stroke-width:2.5}
+.bx.ink{fill:var(--ink)}
+.bx.o{fill:var(--accent);stroke:var(--accent)}
+.bx.c{fill:var(--accent2);stroke:var(--accent2)}
+.bx.dash{stroke-dasharray:10 7;fill:transparent}
+.t-k{font-size:15px;font-weight:800;letter-spacing:.2em;fill:var(--grey)}
+.t-h{font-size:30px;font-weight:900;letter-spacing:-.03em;fill:var(--ink)}
+.t-b{font-size:19px;font-weight:500;fill:var(--grey)}
+.t-m{font-size:19px;font-weight:600;fill:var(--ink);font-family:ui-monospace,Menlo,monospace;letter-spacing:0}
+.inv .t-k{fill:rgba(242,240,235,.7)}
+.inv .t-h{fill:var(--paper)}
+.inv .t-b{fill:rgba(242,240,235,.85)}
+.ar{fill:none;stroke:var(--ink);stroke-width:2.5}
+.ar.o{stroke:var(--accent)}
+.ar.c{stroke:var(--accent2)}
+.ar.g{stroke:var(--grey);stroke-dasharray:8 7}
+.lb{font-size:17px;font-weight:800;letter-spacing:.06em;fill:var(--grey)}
+.lb.o{fill:var(--accent)}
+.lb.c{fill:var(--accent2)}
+.g-in{opacity:0}
+.slide.active .g-in{animation:fade .7s ease var(--d,0s) forwards}
+.slide.active .g-up{animation:gup .8s cubic-bezier(.2,.8,.2,1) var(--d,0s) both}
+@keyframes gup{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+
+/* 마크다운 페이지 카드 */
+.md{border:2px solid var(--line);background:#fff;display:flex;flex-direction:column}
+.md .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:2px solid var(--line);background:var(--ink);color:var(--paper)}
+.md .mh b{font-family:ui-monospace,Menlo,monospace;font-size:19px;font-weight:700;letter-spacing:0}
+.md .mh span{font-size:13px;font-weight:800;letter-spacing:.2em;color:var(--accent)}
+.md pre{padding:18px 22px;font-family:ui-monospace,Menlo,monospace;font-size:17.5px;line-height:1.72;color:var(--grey);white-space:pre-wrap;letter-spacing:0}
+.md pre .h{color:var(--ink);font-weight:700}
+.md pre .l{color:var(--accent2);font-weight:600}
+.md pre .y{color:#a86400}
+.md pre .c{color:#9a968e}
+.md pre span[data-a]{display:inline}
+.kinds{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.kind{font-size:16px;font-weight:800;letter-spacing:.04em;padding:8px 16px;border:2px solid var(--ink);border-radius:999px}
+.kind i{font-style:normal;font-weight:600;color:var(--grey);margin-left:8px}
+.kind.on{background:var(--ink);color:var(--paper)}
+.kind.on i{color:rgba(242,240,235,.6)}
+.rule{margin-top:18px;padding:18px 22px;border-left:8px solid var(--accent);background:rgba(255,77,0,.07);font-size:21px;font-weight:700;line-height:1.6}
+.rule span{display:block;font-size:17px;font-weight:500;color:var(--grey)}
+
+/* ---------- 07 CLAW ---------- */
+.fact-row{display:grid;grid-template-columns:1.1fr 1fr 1fr 1.15fr;border:2px solid rgba(242,240,235,.9)}
+.fact{padding:30px 30px 32px;border-right:2px solid rgba(242,240,235,.25)}
+.fact:last-child{border-right:none}
+.fact .k{font-size:15px;font-weight:800;letter-spacing:.2em;color:rgba(242,240,235,.55);margin-bottom:10px}
+.fact .v{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1.05}
+.fact .v em{font-style:normal;color:var(--accent)}
+.fact .v small{font-size:30px;font-weight:800;margin-left:4px}
+.fact .v.t{font-size:38px;line-height:1.25}
+.fact .s{margin-top:12px;font-size:19px;line-height:1.6;color:rgba(242,240,235,.6)}
+.chain{display:flex;align-items:center;gap:0;margin-top:56px;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.chain span{padding:12px 22px;border:2px solid rgba(242,240,235,.85);border-radius:999px;white-space:nowrap}
+.chain span.o{background:var(--accent);border-color:var(--accent)}
+.chain i{flex:1;height:2px;background:rgba(242,240,235,.6);min-width:18px;position:relative}
+.chain i::after{content:"";position:absolute;right:-1px;top:-6px;border:7px solid transparent;border-left:10px solid rgba(242,240,235,.6);border-right:none}
+
+/* 14개 모드 */
+.phases{display:grid;grid-template-columns:repeat(13,1fr);gap:12px;margin-bottom:12px}
+.phase{font-size:15px;font-weight:800;letter-spacing:.16em;color:var(--grey);padding-bottom:10px;border-bottom:4px solid var(--ink)}
+.phase.o{border-color:var(--accent);color:var(--accent)}
+.phase.c{border-color:var(--accent2);color:var(--accent2)}
+.tiles{display:grid;grid-template-columns:repeat(13,1fr);gap:12px}
+.tile{
+  display:flex;flex-direction:column;border:2px solid var(--line);background:var(--paper);
+  padding:16px 14px 16px;min-height:340px;transition:background .2s,color .2s;position:relative;
+}
+.tile .n{font-size:40px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--grey)}
+.tile b{margin-top:16px;font-size:23px;font-weight:900;letter-spacing:-.035em;line-height:1.2}
+.tile p{margin-top:10px;font-size:16px;line-height:1.55;color:var(--grey)}
+.tile .arr{margin-top:auto;align-self:flex-end;font-size:20px;transition:transform .2s}
+.tile:hover{background:var(--ink);color:var(--paper)}
+.tile:hover p,.tile:hover .n{color:rgba(242,240,235,.7)}
+.tile:hover .arr{transform:translate(3px,-3px)}
+.tile.key{border-color:var(--accent)}
+.tile.key .n{color:var(--accent)}
+.slide.active .tile .n{animation:lit .5s ease calc(var(--d) + .25s) both}
+@keyframes lit{from{color:var(--grey)}50%{color:var(--accent)}to{}}
+.flowbar{margin-top:20px;display:grid;grid-template-columns:1fr auto;gap:30px;align-items:center;padding:18px 24px;border:2px dashed var(--grey)}
+.flowbar b{font-size:22px;font-weight:900}
+.flowbar span{font-size:19px;color:var(--grey)}
+
+/* ---------- 비전 ---------- */
+.vis-a{display:grid;grid-template-columns:600px 1fr;grid-template-rows:minmax(0,1fr);gap:60px;flex:1;min-height:0}
+.vis-a .statement{font-size:42px}
+.nums{margin-top:30px;border-top:2px solid rgba(242,240,235,.85)}
+.nums div{display:grid;grid-template-columns:1fr auto;align-items:baseline;padding:6px 4px;border-bottom:1.5px solid rgba(242,240,235,.22);font-size:22px;color:var(--dpaper)}
+.nums b{font-size:38px;font-weight:900;color:var(--paper);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.nums div:last-child b{color:var(--accent)}
+#vgraph{width:100%;height:100%;overflow:visible}
+#vgraph .gn{opacity:0;transform-box:fill-box;transform-origin:center}
+.slide.active #vgraph .gn{animation:pop .45s cubic-bezier(.2,.8,.2,1) var(--d) both}
+#vgraph .ge{fill:none;stroke:rgba(242,240,235,.35);stroke-width:1.4}
+#vgraph .gx{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:6 6}
+#vcore{transform-box:view-box;transform-origin:500px 330px}
+.slide.active #vcore{animation:shrink 1.6s cubic-bezier(.6,0,.2,1) 3.4s both}
+@keyframes shrink{to{transform:scale(.5)}}
+#vgraph .cl text{font-size:24px;font-weight:800;fill:var(--paper);letter-spacing:-.02em}
+#vgraph .cl .ck{font-size:13px;font-weight:800;letter-spacing:.2em;fill:rgba(242,240,235,.5)}
+#vgraph .corelab{font-size:15px;font-weight:800;letter-spacing:.2em;fill:var(--accent)}
+
+.cmp{border:2px solid var(--line);display:grid;grid-template-columns:260px 1fr 1fr}
+.cmp > div{padding:26px 28px;border-bottom:1.5px solid var(--soft);font-size:25px;line-height:1.5}
+.cmp > div:nth-last-child(-n+3){border-bottom:none}
+.cmp .hd{font-size:16px;font-weight:800;letter-spacing:.22em;color:var(--grey);border-bottom:2px solid var(--line)!important;padding-top:18px;padding-bottom:16px}
+.cmp .hd.o{color:var(--accent)}
+.cmp .rk{font-size:22px;font-weight:900;letter-spacing:-.02em}
+.cmp .now{color:var(--grey);border-left:1.5px solid var(--soft)}
+.cmp .goal{font-weight:800;border-left:2px solid var(--line);background:rgba(255,77,0,.06)}
+.cmp .goal em{font-style:normal;color:var(--accent)}
+
+/* ---------- 마무리 ---------- */
+.end{justify-content:center}
+.end .kick{display:flex;gap:16px;align-items:center;font-size:17px;font-weight:800;letter-spacing:.3em;color:rgba(242,240,235,.55)}
+.verse{margin-top:52px;padding-left:52px;border-left:12px solid var(--accent)}
+.verse p{font-size:104px;font-weight:900;line-height:1.24;letter-spacing:-.05em;color:var(--paper)}
+.verse .l1,.verse .l2{display:block}
+.verse mark{background:none;color:var(--accent)}
+.end .lead{margin-top:56px;max-width:1300px;font-size:30px;font-weight:600;line-height:1.75;color:rgba(242,240,235,.72)}
+.end .lead b{color:var(--paper)}
+.end .tf{margin-top:56px;padding-top:22px;border-top:2px solid rgba(242,240,235,.35);display:flex;justify-content:space-between;align-items:baseline;color:rgba(242,240,235,.6)}
+.end .tf .thx{font-size:36px;font-weight:900;color:var(--paper);letter-spacing:-.02em}
+.end .tf .sign{font-size:17px;font-weight:800;letter-spacing:.24em}
+
+/* ---------- 영상 층 (무대 밖, 화면 전체) ---------- */
+#vlayer{position:fixed;inset:0;z-index:1;opacity:0;transition:opacity .8s ease;pointer-events:none;background:var(--ink)}
+body.vid #vlayer{opacity:1}
+#vlayer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s}
+#vlayer video.on{opacity:1}
+#vlayer video.missing{display:none}
+.vph{
+  position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+  color:rgba(242,240,235,.5);font-size:20px;font-weight:700;letter-spacing:.12em;text-align:center;
+}
+.vph b{font-size:min(16vw,260px);font-weight:900;letter-spacing:-.05em;line-height:.9;color:var(--ink);-webkit-text-stroke:3px rgba(242,240,235,.5)}
+.vph.on{display:flex}
+
+/* ---------- 녹화 영상 보기 ---------- */
+#demo{position:fixed;inset:0;z-index:50;background:rgba(17,17,17,.94);display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+#demo.on{display:flex}
+#demo video{max-width:92vw;max-height:84vh;background:#000;outline:none}
+#demo .msg{color:var(--paper);font-size:22px;font-weight:700;text-align:center;line-height:1.8;display:none}
+#demo .msg small{display:block;font-size:16px;color:rgba(242,240,235,.55);font-weight:600}
+#demo.missing video{display:none}
+#demo.missing .msg{display:block}
+#demo .x{position:absolute;right:24px;top:18px;color:rgba(242,240,235,.7);font-size:15px;font-weight:700;letter-spacing:.14em;cursor:pointer;padding:8px 14px;border:1.5px solid rgba(242,240,235,.4);border-radius:999px;background:none;font-family:inherit}
+
+/* ---------- 진행 표시 · 대본 ---------- */
+#bar{position:fixed;left:0;top:0;height:4px;width:0;background:var(--accent);z-index:40;transition:width .5s}
+#hud{
+  position:fixed;right:18px;bottom:16px;z-index:40;display:flex;gap:12px;align-items:center;
+  padding:7px 15px;border:1.5px solid var(--ink);border-radius:999px;background:var(--paper);
+  font-size:12px;font-weight:700;letter-spacing:.12em;opacity:0;transition:opacity .4s;pointer-events:none;
+}
+#hud .n{color:var(--accent);font-variant-numeric:tabular-nums}
+#hud .k{color:var(--grey);font-weight:600}
+body.hover #hud{opacity:1}
+#notes{
+  position:fixed;left:0;right:0;bottom:0;z-index:45;max-height:40vh;overflow:auto;
+  background:rgba(17,17,17,.96);color:var(--paper);border-top:3px solid var(--accent);
+  padding:18px 28px 22px;display:none;font-size:19px;line-height:1.75;
+}
+body.notes #notes{display:block}
+#notes .top{display:flex;gap:26px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px;font-size:14px;font-weight:800;letter-spacing:.14em;color:rgba(242,240,235,.55)}
+#notes .top b{font-size:17px;color:var(--paper);letter-spacing:.04em}
+#notes .top .t{color:var(--accent);font-variant-numeric:tabular-nums}
+#notes .top .late{color:#ff8a5c}
+#notes .txt p + p{margin-top:8px}
+#notes .txt b{color:var(--accent)}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  [data-a],.g-in,#vgraph .gn,.stamp{opacity:1}
+  .draw{stroke-dashoffset:0}
+  h1.giant .blk .wipe{background-position:0 0%}
+  #vcore{transform:scale(.5)}
+}
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html,body{height:auto;overflow:visible;background:var(--paper)}
+  #stage{position:static;transform:none;width:1920px;height:auto}
+  .slide{position:relative;height:1080px;opacity:1;visibility:visible;page-break-after:always;break-after:page}
+  .slide.video{display:none}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  [data-a],.g-in,#vgraph .gn,.stamp{opacity:1}
+  .draw{stroke-dashoffset:0}
+  h1.giant .blk .wipe{background-position:0 0%}
+  #vcore{transform:scale(.5)}
+  #vlayer,#bar,#hud,#notes,#demo{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<div id="vlayer">
+  <video id="v-intro" data-for="intro" muted loop playsinline preload="auto" src="media/intro.mp4"></video>
+  <video id="v-outro" data-for="outro" muted loop playsinline preload="auto" src="media/outro.mp4"></video>
+  <div class="vph" data-for="intro"><b>INTRO</b><p>인트로 영상 자리 · media/intro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
+  <div class="vph" data-for="outro"><b>OUTRO</b><p>아웃트로 영상 자리 · media/outro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
+</div>
+
+<div id="stage">
+
+<!-- ======================= 1. 인트로 영상 ======================= -->
+<section class="slide video" data-video="intro" data-sec="">
+  <aside class="note" data-t="20"><p>(영상이 도는 동안 인사 없이 기다립니다. 청중이 자리에 앉으면 넘깁니다.)</p></aside>
+</section>
+
+<!-- ======================= 2. 표지 ======================= -->
+<section class="slide s-title" data-sec="">
+  <div class="hero">
+    <div class="kicker" data-a="fade" style="--d:.1s"><span class="dot"></span>AI 활용 성과 발표 · 개인 프로젝트 · 2026</div>
+    <h1 class="giant">
+      <span class="row"><span><span class="blk"><i class="wipe">기억</i></span>에서</span></span>
+      <span class="row"><span><span class="cyan">데이터</span><span class="outline">로</span></span></span>
+    </h1>
+    <div class="hero-sub">
+      <div data-a style="--d:2s">
+        <div class="sub1">AI 로 만든 네 개의 엔지니어링 도구</div>
+        <div class="sub2">— <b>설계지식의 자산화</b></div>
+      </div>
+      <div class="hero-meta" data-a style="--d:2.3s"><b>강재구 Jaegu Kang</b>작동기 자동점검 · 설계툴 · 기억지식저장소 · CLAW</div>
+    </div>
+    <div class="stamp" aria-hidden="true">
+      <svg viewBox="0 0 200 200">
+        <g fill="none" stroke="#111" stroke-width="2.5">
+          <path d="M40 60 L100 40 L160 70 M40 60 L70 120 L100 40 M70 120 L130 130 L160 70 M130 130 L100 170 L70 120 M100 170 L160 70"/>
+        </g>
+        <g fill="#111"><circle cx="40" cy="60" r="9"/><circle cx="160" cy="70" r="9"/><circle cx="70" cy="120" r="9"/><circle cx="100" cy="170" r="9"/></g>
+        <circle cx="100" cy="40" r="12" fill="#FF4D00"/><circle cx="130" cy="130" r="12" fill="#0097B2"/>
+      </svg>
+    </div>
+  </div>
+  <div class="marquee" aria-hidden="true">
+    <div class="track">
+      작동기 자동점검 <em>01 · TEST</em> 설계툴 <em>02 · DESIGN</em> 기억지식저장소 <em>03 · KNOWLEDGE</em> CLAW <em>04 · CONTROL LAW</em> 감각이 아니라 데이터로 <em>DATA</em> 기억이 아니라 노드로 <em>NODE</em>
+      작동기 자동점검 <em>01 · TEST</em> 설계툴 <em>02 · DESIGN</em> 기억지식저장소 <em>03 · KNOWLEDGE</em> CLAW <em>04 · CONTROL LAW</em> 감각이 아니라 데이터로 <em>DATA</em> 기억이 아니라 노드로 <em>NODE</em>
+    </div>
+  </div>
+  <aside class="note" data-t="30">
+    <p>안녕하십니까, 강재구입니다. 오늘 발표 제목은 <b>「기억에서 데이터로」</b>입니다.</p>
+    <p>제가 AI 와 함께 만든 도구 네 개를 차례로 보여 드리고, 그 과정에서 얻은 결론 하나를 말씀드리겠습니다. 부제처럼, 설계지식을 자산으로 만드는 이야기입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 3. 문제 제기 ======================= -->
+<section class="slide dark problem" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li class="on">문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(00)</span><h2>설계 지식은 어디에 있습니까</h2><span class="en">THE PROBLEM</span></div>
+  <div class="grid2">
+    <p class="statement" data-a style="--d:.2s">지금 우리의 설계 지식은<br><span class="hl-o">사람의 기억</span>과<br>감각 속에 있습니다.</p>
+    <div class="body">
+      <p data-a style="--d:.5s"><b>왜 이 값을 골랐는지는 담당자만 압니다.</b> 담당자가 바뀌면 근거도 함께 사라지고, 같은 검토를 처음부터 다시 합니다.</p>
+      <p data-a style="--d:.8s"><b>자료는 메일함과 개인 PC 에 흩어져 있습니다.</b> 찾는 데 시간이 걸리고, 찾아도 그것이 최신인지 확신할 수 없습니다.</p>
+      <p data-a style="--d:1.1s"><b>점검과 판정이 감각에 기대면</b> 같은 부품도 사람마다 결과가 달라지고, 그 차이는 기록으로 남지 않습니다.</p>
+    </div>
+  </div>
+  <p class="closing" data-a style="--d:1.6s">그래서 네 개의 도구를 만들었습니다. 모두 <mark>AI 와 함께, 혼자</mark> 만들었습니다.</p>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>먼저 문제부터 말씀드리겠습니다. 지금 우리 설계 지식은 대부분 <b>사람의 기억</b>에 있습니다.</p>
+    <p>왜 이 값을 골랐는지는 담당자만 알고, 자료는 메일함과 개인 PC 에 흩어져 있고, 점검 판정은 사람의 감각에 기댑니다.</p>
+    <p>이 문제를 풀어 보려고 도구 네 개를 만들었습니다. 전부 AI 와 함께, 혼자 만들었습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 4. 네 개의 도구 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li class="on">문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head c2" data-a><span class="idx">(00)</span><h2>네 개의 도구</h2><span class="en">FOUR TOOLS</span></div>
+  <div class="index">
+    <div class="ix" data-a="left" style="--d:.2s"><span class="no">01</span><span class="name">작동기 자동점검</span><span class="desc">사람이 하던 작동기 점검을 버튼 하나로. 판정과 성적서까지 자동으로</span><span class="when"><b>te.jaegukang.com</b>2026. 09</span></div>
+    <div class="ix" data-a="left" style="--d:.4s"><span class="no">02</span><span class="name">설계툴</span><span class="desc">조종면 리깅 · 4절링크 · 힌지모멘트 계산을 웹 도구 하나로</span><span class="when"><b>jaegukang.com</b>2026. 03 –</span></div>
+    <div class="ix" data-a="left" style="--d:.6s"><span class="no">03</span><span class="name">기억지식저장소</span><span class="desc">메일함을 AI 가 계속 고쳐 쓰는 지식 위키로</span><span class="when"><b>brain.jaegukang.com</b>2026. 09 –</span></div>
+    <div class="ix" data-a="left" style="--d:.8s"><span class="no">04</span><span class="name">CLAW</span><span class="desc">MATLAB 없이 비행제어법칙 설계부터 탑재 C 코드까지</span><span class="when"><b>claw.jaegukang.com</b>2026. 07 –</span></div>
+  </div>
+  <div class="total" data-a style="--d:1.2s">
+    <span class="lb">네 도구 합계</span>
+    <span><b data-count="210964">210,964</b>줄 코드</span>
+    <span><b data-count="607">607</b>회 커밋</span>
+    <span><b data-count="3100" data-pre="약 ">약 3,100</b>개 자동 시험</span>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="30">
+    <p>네 도구입니다. 작동기 자동점검, 설계툴, 기억지식저장소, 그리고 가장 큰 CLAW 입니다.</p>
+    <p>네 개를 합치면 코드 약 21만 줄, 커밋 607회, 자동 시험 약 3,100개입니다. 이 숫자를 사람 한 명이 AI 와 함께 만들었다는 점을 기억해 주시면 좋겠습니다. 하나씩 보겠습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 5. ① 작동기 자동점검 ======================= -->
+<section class="slide te" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li class="on">점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(01)</span><h2>작동기 자동점검</h2><span class="en">ACTUATOR AUTO TEST</span></div>
+  <div class="grid2 grow">
+    <div>
+      <p class="statement" data-a style="--d:.2s">점검 기준을 <mark>코드</mark>로 옮겼습니다.<br>사람이 달라도 판정은 같습니다.</p>
+      <div class="body" style="margin-top:28px">
+        <p data-a style="--d:.5s">노트북과 <b>USB-CAN 어댑터 하나</b>로 CAN 서보(Hitec MDB961WP-CAN)를 점검합니다. 브라우저에서 바로 연결되고, 설치할 프로그램이 없습니다.</p>
+        <p data-a style="--d:.8s">일곱 항목을 차례로 시험하고, 합격 기준으로 판정해 <b>성적서까지 자동으로</b> 만듭니다. 기준값은 설정으로 빼 두어 바뀌어도 코드를 고치지 않습니다.</p>
+      </div>
+      <div class="demo" data-a style="--d:1.1s">
+        <a class="btn live" href="https://te.jaegukang.com/guide.html" target="_blank" rel="noopener">라이브 <span class="u">te.jaegukang.com/guide</span><span class="arr">↗</span></a>
+        <button class="btn rec" type="button" data-demo="media/demo-te.mp4">녹화 영상 <span class="arr">▶</span></button>
+      </div>
+    </div>
+    <div data-a style="--d:.4s">
+      <div class="steps-head"><span><b>자동 시험 7단계</b></span><span>PASS / FAIL</span></div>
+      <div class="steps">
+        <div class="step" style="--d:1.0s"><span class="n">0</span><b>수동 명령 · 피드백</b><span class="ok">PASS</span></div>
+        <div class="step" style="--d:1.35s"><span class="n">1</span><b>통신 1,000회</b><span class="ok">에러 0%</span></div>
+        <div class="step" style="--d:1.7s"><span class="n">2</span><b>구형파 응답</b><span class="ok">PASS</span></div>
+        <div class="step" style="--d:2.05s"><span class="n">3</span><b>계단파 응답</b><span class="ok">≤ 0.5°</span></div>
+        <div class="step" style="--d:2.4s"><span class="n">4</span><b>최대 각속도</b><span class="ok">측정</span></div>
+        <div class="step" style="--d:2.75s"><span class="n">5</span><b>주파수 응답</b><span class="ok">≥ 6 Hz</span></div>
+        <div class="step" style="--d:3.1s"><span class="n">6</span><b>온도 피드백</b><span class="ok">PASS</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="stat-row" data-a style="--d:1.4s">
+    <div class="stat"><div class="k">개발 기간</div><div class="v"><em data-count="1">1</em><small>일</small></div><div class="s">커밋 10회 · 코드 5,010줄</div></div>
+    <div class="stat"><div class="k">자동 시험</div><div class="v"><em data-count="84">84</em><small>개 통과</small></div><div class="s">실물 없이 시뮬레이터로 검증</div></div>
+    <div class="stat"><div class="k">장비 비용<i class="est">추정</i></div><div class="v">5<small>만 원</small></div><div class="s">어댑터 1개 · 외주 점검장비 제작 대비</div></div>
+    <div class="stat"><div class="k">점검 1회<i class="est">추정</i></div><div class="v">2<small>시간</small><span class="to">→</span><em>15</em><small>분</small></div><div class="s">측정 · 판정 · 성적서 작성 포함</div></div>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="75">
+    <p>첫 번째, 작동기 자동점검입니다. 점검 기준을 코드로 옮겨서 <b>누가 점검해도 같은 판정</b>이 나오게 했습니다.</p>
+    <p>노트북과 5만 원짜리 어댑터 하나면 됩니다. 일곱 단계를 자동으로 돌고 성적서까지 만듭니다. (라이브 버튼 → 사용 안내 화면의 체험 버튼을 눌러 보여 줍니다.)</p>
+    <p>만드는 데 하루 걸렸고, 자동 시험 84개로 검증했습니다.</p>
+    <p><b>확인 필요:</b> 장비 비용(외주 제작 견적), 점검 1회 시간(기존 방식 실측)은 추정치입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 6. ② 설계툴 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li class="on">설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head c2" data-a><span class="idx">(02)</span><h2>설계툴</h2><span class="en">DESIGN TOOLS</span></div>
+  <div class="cards grow" style="margin-bottom:34px">
+    <a class="card" href="https://jaegukang.com/cs_rigging.html" target="_blank" rel="noopener" data-a style="--d:.2s">
+      <div class="th"><span class="no">A</span><b>조종면 리깅</b></div>
+      <div class="bd">조종면 중립·타각을 맞추는 리깅 작업을 단계별로 안내하고 기록합니다.<span class="key">작업시간 50% 이상 단축</span></div>
+      <div class="go"><span>cs_rigging</span><span class="arr">↗</span></div>
+    </a>
+    <a class="card" href="https://jaegukang.com/4-bar-linkage-torque.html" target="_blank" rel="noopener" data-a style="--d:.4s">
+      <div class="th"><span class="no">B</span><b>4절링크 옵티마이저</b></div>
+      <div class="bd">작동기 링크 길이를 자동으로 최적화하고 <b>전달각과 토크</b>를 타각 전 범위에서 확인합니다.<span class="key">수작업 반복 → 자동 탐색</span></div>
+      <div class="go"><span>4-bar-linkage</span><span class="arr">↗</span></div>
+    </a>
+    <a class="card" href="https://jaegukang.com/hinge_moment_calculator.html" target="_blank" rel="noopener" data-a style="--d:.6s">
+      <div class="th"><span class="no">C</span><b>힌지모멘트 · 회귀 · 서보 FRA</b></div>
+      <div class="bd">힌지모멘트 계산, 시험 데이터 회귀분석, 서보 주파수 응답 분석을 한곳에서. <b>인터넷 없는 PC</b> 용 단일 파일도 있습니다.<span class="key">계산 도구 3종 통합</span></div>
+      <div class="go"><span>hinge · regression · fra</span><span class="arr">↗</span></div>
+    </a>
+  </div>
+  <div class="stat-row" data-a style="--d:.9s">
+    <div class="stat"><div class="k">리깅 작업시간</div><div class="v"><em data-count="50">50</em><small>% 이상 ↓</small></div><div class="s">현업 적용 기준</div></div>
+    <div class="stat"><div class="k">개발</div><div class="v"><em data-count="179">179</em><small>회 커밋</small></div><div class="s">2026. 03 부터 · 41일 작업 · 21,383줄</div></div>
+    <div class="stat"><div class="k">도구</div><div class="v"><em data-count="5">5</em><small>종 + 매뉴얼</small></div><div class="s">오프라인 단일 파일 병합본 포함</div></div>
+    <div class="stat"><div class="k">링크 검토 1안<i class="est">추정</i></div><div class="v">반나절<span class="to">→</span><em>수 분</em></div><div class="s">최적화 탐색 · 그래프 자동 생성</div></div>
+  </div>
+  <div class="demo" data-a style="--d:1.1s">
+    <a class="btn live" href="https://jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">jaegukang.com</span><span class="arr">↗</span></a>
+    <button class="btn rec" type="button" data-demo="media/demo-tools.mp4">녹화 영상 <span class="arr">▶</span></button>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="105">
+    <p>두 번째, 설계툴입니다. 세 가지를 보여 드리겠습니다.</p>
+    <p>A. 조종면 리깅 — 단계별 안내와 기록으로 <b>작업시간을 50% 이상</b> 줄였습니다. B. 4절링크 옵티마이저 — 링크 길이를 자동으로 찾고 전달각·토크를 확인합니다. C. 힌지모멘트·회귀·서보 FRA 계산 도구입니다.</p>
+    <p>(카드를 누르면 새 탭에서 각 도구가 열립니다. A → B → C 순으로 짧게.)</p>
+    <p><b>확인 필요:</b> 링크 검토 1안 시간(반나절 → 수 분)은 추정치입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 7. ③ 기억지식저장소 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(03)</span><h2>기억지식저장소</h2><span class="en">AIKE BRAIN</span></div>
+  <div class="grid2 grow" style="grid-template-columns:1fr 1.05fr;gap:80px;margin-bottom:30px">
+    <div>
+      <p class="statement" data-a style="--d:.2s">메일함을<br><mark>쌓이는 지식</mark>으로 바꿉니다.</p>
+      <div class="body" style="margin-top:28px">
+        <p data-a style="--d:.5s">메일을 넣으면 AI 가 <b>사람 · 장비 · 이슈별 위키 페이지</b>를 쓰고, 새 메일이 올 때마다 고쳐 씁니다. 모순은 표시하고, 모든 문장은 출처 메일로 거슬러 올라갑니다.</p>
+        <p data-a style="--d:.8s">원문은 절대 고치지 않습니다. 담당자가 바뀌어도 <b>지식은 남습니다.</b></p>
+      </div>
+      <div class="demo" data-a style="--d:1.1s">
+        <a class="btn live" href="https://brain.jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">brain.jaegukang.com</span><span class="arr">↗</span></a>
+        <button class="btn rec" type="button" data-demo="media/demo-brain.mp4">녹화 영상 <span class="arr">▶</span></button>
+      </div>
+    </div>
+    <div>
+      <div class="modes2" data-a style="--d:.5s">
+        <div class="mode"><div class="k">기억질문</div><b>무엇이 쓰여 있었나</b><p>메일에 실제로 적힌 내용을 찾습니다. 답에는 원문 구절을 그대로 인용합니다.</p><span class="src">근거 · 원문</span></div>
+        <div class="mode wiki"><div class="k">지식질문</div><b>누가 · 무엇을 · 어떻게</b><p>정리된 지식을 묻습니다. 위키 페이지를 근거로 답하고 출처 메일로 이어집니다.</p><span class="src">근거 · 위키</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="stat-row" data-a style="--d:1.2s">
+    <div class="stat"><div class="k">개발 기간</div><div class="v"><em data-count="6">6</em><small>일</small></div><div class="s">2026. 09. 21 시작 · 커밋 39회</div></div>
+    <div class="stat"><div class="k">자동 시험</div><div class="v"><em data-count="289">289</em><small>개</small></div><div class="s">코드 10,782줄</div></div>
+    <div class="stat"><div class="k">위키 페이지 종류</div><div class="v"><em data-count="5">5</em><small>종</small></div><div class="s">source · entity · concept · synthesis · issue</div></div>
+    <div class="stat"><div class="k">자료 찾기 1건<i class="est">추정</i></div><div class="v">20<small>분</small><span class="to">→</span><em>1</em><small>분</small></div><div class="s">메일함 검색 대비</div></div>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>세 번째, 기억지식저장소입니다. 메일함을 <b>쌓이는 지식</b>으로 바꾸는 도구입니다.</p>
+    <p>질문은 두 가지로 나눴습니다. 메일에 실제로 뭐라고 쓰여 있었는지 묻는 기억질문, 정리된 지식을 묻는 지식질문입니다. 두 경로를 섞지 않아서, 답의 근거가 늘 분명합니다.</p>
+    <p><b>확인 필요:</b> 자료 찾기 시간(20분 → 1분)은 추정치입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 8. ③ 파이프라인 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(03)</span><h2>메일이 지식이 되는 길</h2><span class="en">PIPELINE</span></div>
+  <figure class="dia">
+    <svg viewBox="0 0 1680 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="기억지식저장소 파이프라인">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#111"/></marker>
+        <marker id="aho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#FF4D00"/></marker>
+        <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0097B2"/></marker>
+        <marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6F6C66"/></marker>
+      </defs>
+      <!-- 1행: 흐름 -->
+      <g class="g-up" style="--d:.2s">
+        <rect class="bx" x="0" y="80" width="240" height="150"/>
+        <text class="t-k" x="22" y="118">01 가져오기</text>
+        <text class="t-h" x="22" y="160">메일 · 첨부</text>
+        <text class="t-b" x="22" y="196">Gmail · 파일</text>
+      </g>
+      <path class="ar draw" pathLength="1" style="--d:.6s;--dur:.5s" d="M244 155 H316" marker-end="url(#ah)"/>
+      <g class="g-up" style="--d:.8s">
+        <rect class="bx" x="322" y="80" width="300" height="150"/>
+        <text class="t-k" x="344" y="118">02 문서 유형별 파싱</text>
+        <text class="t-h" x="344" y="160">유형 판별</text>
+        <text class="t-b" x="344" y="196">이메일 · 회의록 · 기술자료</text>
+        <text class="t-b" x="344" y="220">보고서 · 시험결과 · 규정</text>
+      </g>
+      <path class="ar draw" pathLength="1" style="--d:1.2s;--dur:.5s" d="M626 155 H698" marker-end="url(#ah)"/>
+      <g class="g-up inv" style="--d:1.4s">
+        <rect class="bx ink" x="704" y="80" width="300" height="150"/>
+        <text class="t-k" x="726" y="118">원본층</text>
+        <text class="t-h" x="726" y="160">문서 · 청크 · 첨부</text>
+        <text class="t-b" x="726" y="196">가져오기만 쓴다</text>
+        <text class="t-b" x="726" y="220">위키 작업은 읽기만</text>
+      </g>
+      <path class="ar o draw" pathLength="1" style="--d:1.8s;--dur:.5s" d="M1008 155 H1080" marker-end="url(#aho)"/>
+      <g class="g-up inv" style="--d:2.0s">
+        <rect class="bx o" x="1086" y="80" width="230" height="150"/>
+        <text class="t-k" x="1108" y="118">AI 반영</text>
+        <text class="t-h" x="1108" y="160">ingest</text>
+        <text class="t-b" x="1108" y="196">페이지 쓰기 · 고치기</text>
+        <text class="t-b" x="1108" y="220">교차 링크 · 모순 표시</text>
+      </g>
+      <path class="ar c draw" pathLength="1" style="--d:2.4s;--dur:.5s" d="M1320 155 H1374" marker-end="url(#ahc)"/>
+      <g class="g-up inv" style="--d:2.6s">
+        <rect class="bx c" x="1380" y="80" width="300" height="150"/>
+        <text class="t-k" x="1402" y="118">위키층</text>
+        <text class="t-h" x="1402" y="160">마크다운 페이지</text>
+        <text class="t-b" x="1402" y="196">source · entity · concept</text>
+        <text class="t-b" x="1402" y="220">synthesis · issue · 색인</text>
+      </g>
+      <!-- 점검 고리 -->
+      <path class="ar c draw" pathLength="1" style="--d:3.0s;--dur:.8s" d="M1640 78 C1640 10 1420 10 1420 74" marker-end="url(#ahc)"/>
+      <text class="lb c g-in" style="--d:3.4s" x="1402" y="46" text-anchor="end">점검 · 리비전 · 되돌림</text>
+      <!-- 스키마층 -->
+      <g class="g-up" style="--d:3.2s">
+        <rect class="bx" x="1046" y="318" width="310" height="140" style="stroke-dasharray:10 7"/>
+        <text class="t-k" x="1068" y="356">스키마층</text>
+        <text class="t-h" x="1068" y="398">wiki_schema.md</text>
+        <text class="t-b" x="1068" y="434">사람과 AI 가 함께 고치는 규칙</text>
+      </g>
+      <path class="ar g draw" pathLength="1" style="--d:3.6s;--dur:.5s" d="M1201 314 V236" marker-end="url(#ahg)"/>
+      <text class="lb g-in" style="--d:3.8s" x="1216" y="282">작성 규칙</text>
+      <!-- 질문 두 갈래 -->
+      <path class="ar draw" pathLength="1" style="--d:4.0s;--dur:.6s" d="M854 234 V500" marker-end="url(#ah)"/>
+      <path class="ar c draw" pathLength="1" style="--d:4.0s;--dur:.6s" d="M1530 234 V500" marker-end="url(#ahc)"/>
+      <g class="g-up" style="--d:4.4s">
+        <rect class="bx" x="600" y="506" width="508" height="130"/>
+        <text class="t-k" x="624" y="544">기억질문</text>
+        <text class="t-h" x="624" y="584">무엇이 쓰여 있었나</text>
+        <text class="t-b" x="624" y="618">근거: 원문 청크 · 인용: 원문 구절 그대로</text>
+      </g>
+      <g class="g-up" style="--d:4.6s">
+        <rect class="bx" x="1172" y="506" width="508" height="130" style="stroke:#0097B2"/>
+        <text class="t-k" x="1196" y="544">지식질문</text>
+        <text class="t-h" x="1196" y="584">누가 · 무엇을 · 어떻게</text>
+        <text class="t-b" x="1196" y="618">근거: 위키 페이지 → 출처 메일로 확인</text>
+      </g>
+      <g class="g-in" style="--d:5.0s">
+        <circle cx="1140" cy="571" r="22" fill="#F4F1E8" stroke="#FF4D00" stroke-width="2.5"/>
+        <path d="M1129 565 H1151 M1129 577 H1151 M1146 558 L1134 584" stroke="#FF4D00" stroke-width="3" stroke-linecap="round" fill="none"/>
+      </g>
+      <text class="lb o g-in" style="--d:5.2s" x="0" y="560">두 경로는 섞지 않는다</text>
+      <text class="t-b g-in" style="--d:5.2s" x="0" y="592">답의 근거가 원문인지 위키인지</text>
+      <text class="t-b g-in" style="--d:5.2s" x="0" y="618">항상 구분해서 보여 줍니다</text>
+    </svg>
+    <figcaption><span>근거: aike-brain3 <b>ADR-002</b> LLM 위키 §2–§7 · <b>SPEC-001</b> 문서 유형별 파싱 프로파일</span><span>원본은 바꾸지 않고, 위키는 계속 고쳐 쓴다</span></figcaption>
+  </figure>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>안을 조금 보여 드리겠습니다. 메일을 가져오면 문서 유형을 판별해 <b>원본층</b>에 넣습니다. 원본층은 절대 고치지 않습니다.</p>
+    <p>그다음 AI 가 원본을 읽고 <b>위키층</b>의 마크다운 페이지를 쓰고 고칩니다. 어떻게 쓸지는 사람과 AI 가 함께 고치는 <b>스키마</b>가 정합니다.</p>
+    <p>질문은 두 갈래입니다. 원문을 근거로 하는 기억질문, 위키를 근거로 하는 지식질문. 섞지 않기 때문에 근거가 흐려지지 않습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 9. ③ 마크다운 계층 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(03)</span><h2>지식을 층으로 쌓는다</h2><span class="en">MARKDOWN HIERARCHY</span></div>
+  <div class="grid2 grow" style="grid-template-columns:1.2fr 1fr;gap:56px">
+    <figure class="dia">
+      <div class="kinds" data-a style="--d:.1s">
+        <span class="kind">source<i>메일 1통 요약</i></span>
+        <span class="kind on">entity<i>사람 · 장비 · 제품</i></span>
+        <span class="kind">concept<i>개념 · 절차</i></span>
+        <span class="kind">synthesis<i>종합</i></span>
+        <span class="kind">issue<i>문제 하나</i></span>
+      </div>
+      <svg viewBox="0 0 980 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="작동기 5층 계층">
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#111"/></marker>
+        </defs>
+        <!-- 층 이름 -->
+        <g class="g-in" style="--d:.3s">
+          <text class="t-k" x="0" y="44">공통</text>
+          <text class="t-k" x="0" y="140">제조사</text>
+          <text class="t-k" x="0" y="236">통신방식</text>
+          <text class="t-k" x="0" y="332">시리즈</text>
+          <text class="t-k" x="0" y="428">모델</text>
+          <text class="t-k" x="0" y="524">이슈</text>
+        </g>
+        <!-- 간선 -->
+        <g>
+          <path class="ar draw" pathLength="1" style="--d:.9s;--dur:.4s" d="M560 62 V112"/>
+          <path class="ar draw" pathLength="1" style="--d:1.4s;--dur:.5s" d="M560 158 C560 184 400 184 400 208"/>
+          <path class="ar draw" pathLength="1" style="--d:1.4s;--dur:.5s" d="M560 158 C560 184 740 184 740 208"/>
+          <path class="ar draw" pathLength="1" style="--d:1.9s;--dur:.4s" d="M400 254 V304"/>
+          <path class="ar draw" pathLength="1" style="--d:1.9s;--dur:.4s" d="M740 254 V304"/>
+          <path class="ar draw" pathLength="1" style="--d:2.4s;--dur:.4s" d="M400 350 V400"/>
+          <path class="ar g draw" pathLength="1" style="--d:2.9s;--dur:.4s" d="M400 446 V496"/>
+          <path class="ar o draw" pathLength="1" style="--d:3.3s;--dur:.6s" d="M560 520 C660 520 740 440 740 356"/>
+        </g>
+        <!-- 노드 -->
+        <g class="g-up" style="--d:.5s"><rect class="bx c" x="380" y="16" width="360" height="46"/><text x="560" y="47" text-anchor="middle" class="t-m" style="fill:#F4F1E8">synthesis/작동기 공통 사항</text></g>
+        <g class="g-up" style="--d:1.0s"><rect class="bx ink" x="440" y="112" width="240" height="46"/><text x="560" y="143" text-anchor="middle" class="t-m" style="fill:#F4F1E8">HITEC RCD</text></g>
+        <g class="g-up" style="--d:1.6s"><rect class="bx" x="290" y="208" width="220" height="46"/><text x="400" y="239" text-anchor="middle" class="t-m">HITEC RCD CAN</text></g>
+        <g class="g-up" style="--d:1.6s"><rect class="bx" x="630" y="208" width="220" height="46"/><text x="740" y="239" text-anchor="middle" class="t-m">HITEC RCD PWM</text></g>
+        <g class="g-up" style="--d:2.1s"><rect class="bx" x="270" y="304" width="260" height="46"/><text x="400" y="335" text-anchor="middle" class="t-m">DB 시리즈</text></g>
+        <g class="g-up" style="--d:2.1s"><rect class="bx" x="630" y="304" width="220" height="46"/><text x="740" y="335" text-anchor="middle" class="t-m">D 시리즈</text></g>
+        <g class="g-up" style="--d:2.6s"><rect class="bx o" x="300" y="400" width="200" height="46"/><text x="400" y="431" text-anchor="middle" class="t-m" style="fill:#fff;font-weight:800">DB961WP</text></g>
+        <g class="g-up" style="--d:3.1s"><rect class="bx dash" x="240" y="496" width="320" height="46"/><text x="400" y="527" text-anchor="middle" class="t-m" style="fill:#6F6C66">issues/&lt;모델&gt; &lt;요지&gt;</text></g>
+        <text class="lb o g-in" style="--d:3.8s" x="770" y="470">여러 모델에 걸친 이슈는</text>
+        <text class="lb o g-in" style="--d:3.8s" x="770" y="494">가장 가까운 상위 층에</text>
+      </svg>
+      <figcaption><span>(개념도) 작성 규칙 <b>wiki_schema.md §5</b>의 예시 — 발표 전 실제 위키 페이지로 교체</span></figcaption>
+    </figure>
+    <div style="display:flex;flex-direction:column">
+      <div class="md" data-a style="--d:1.2s">
+        <div class="mh"><b>entities/DB961WP.md</b><span>MODEL PAGE</span></div>
+<pre><span class="y">---
+kind: entity
+summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들어짐</span><span class="y">
+---</span>
+<span class="h">## 상위</span>
+<span class="l">[[entities/HITEC RCD DB 시리즈]]</span>
+<span class="h">## 사양</span>
+<span class="c">상위와 다른 값만 · 공통 사양은 링크</span>
+<span class="h">## 관련 이슈</span>
+<span class="h">## 타임라인</span>
+이전: … (<span class="l">[[sources/2026-…]]</span>)
+<span class="h">## 미해결·모순</span></pre>
+      </div>
+      <div class="rule" data-a style="--d:2.0s">한 사실은 적용되는 가장 높은 층 한 곳에만 씁니다.<span>다른 층은 복사하지 않고 링크합니다. 복사하면 한 곳만 고쳐져 서로 어긋납니다.</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>위키 페이지는 이렇게 층으로 쌓입니다. 작동기라면 <b>제조사 → 통신방식 → 시리즈 → 모델 → 이슈</b>의 다섯 층입니다.</p>
+    <p>규칙은 하나입니다. <b>한 사실은 가장 높은 층 한 곳에만</b> 쓰고, 나머지는 링크로 잇습니다. 그래서 값이 바뀌면 한 곳만 고치면 됩니다.</p>
+    <p>이것이 바로 지식의 <b>노드화</b>입니다. 이 이야기는 마지막에 다시 하겠습니다.</p>
+    <p><b>교체 예정:</b> 지금 그림은 작성 규칙의 예시입니다. 위키 생성이 끝나면 실제 페이지로 바꿉니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 10. ④ CLAW ======================= -->
+<section class="slide dark" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(04)</span><h2>CLAW — 비행제어법칙 설계툴</h2><span class="en">CONTROL LAW WORKBENCH</span></div>
+  <p class="statement" data-a style="--d:.2s;font-size:64px;margin-top:20px">MATLAB 없이, 제어법칙 설계부터 <mark>탑재 C 코드</mark>까지.</p>
+  <div class="chain" data-a style="--d:.6s">
+    <span>트림</span><i></i><span>선형화 · 안정성 마진</span><i></i><span>게인 설계</span><i></i><span>폐루프 시뮬레이션</span><i></i><span>영향성 판정</span><i></i><span class="o">C 코드 생성 · 검증</span>
+  </div>
+  <div class="grow"></div>
+  <div class="fact-row" data-a style="--d:1.0s">
+    <div class="fact"><div class="k">MATLAB 대체</div><div class="v">약 <em data-count="2">2</em><small>억 원</small></div><div class="s">한 카피 기준 라이선스 비용</div></div>
+    <div class="fact"><div class="k">개발 인력 · 시간</div><div class="v"><em data-count="50">50</em><small>% 이상 ↓</small></div><div class="s">제어법칙 설계 · 검증 · 코드화 전 과정</div></div>
+    <div class="fact"><div class="k">사람 손으로는 불가능</div><div class="v t">여러 게인을 섞은<br>튜닝의 <em>역산</em></div><div class="s">자동 설계 루프가 격자 전체를 풀어냄</div></div>
+    <div class="fact"><div class="k">규모</div><div class="v t"><em data-count="379">379</em>회 커밋<br><em data-count="173789">173,789</em>줄</div><div class="s">2026. 07 – 09 · 28일 작업 · 자동 시험 약 2,800개</div></div>
+  </div>
+  <div class="demo" data-a style="--d:1.3s">
+    <a class="btn live" href="https://claw.jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">claw.jaegukang.com</span><span class="arr">↗</span></a>
+    <button class="btn rec" type="button" data-demo="media/demo-claw.mp4">녹화 영상 <span class="arr">▶</span></button>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="60">
+    <p>네 번째, 가장 공을 들인 CLAW 입니다. MATLAB 없이 비행제어법칙을 설계하고, 탑재용 C 코드까지 만듭니다.</p>
+    <p>MATLAB 은 한 카피에 <b>약 2억 원</b>입니다. 개발 인력과 시간은 <b>50% 이상</b> 줄었고, 여러 게인을 섞은 튜닝을 거꾸로 풀어내는 일처럼 <b>사람 손으로는 불가능한 일</b>을 합니다.</p>
+    <p>두 달 동안 커밋 379회, 코드 17만 줄입니다. 이제 모드를 하나씩 보여 드리겠습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 11. ④ CLAW 14개 모드 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(04)</span><h2>업무 순서대로 놓인 14개 모드</h2><span class="en">14 MODES · LIVE</span></div>
+  <div class="phases" data-a style="--d:.2s">
+    <div class="phase">대상</div><div class="phase" style="grid-column:span 3">구조와 영역</div><div class="phase" style="grid-column:span 3">선형 설계</div><div class="phase c" style="grid-column:span 2">날려 보기</div><div class="phase o">판정</div><div class="phase" style="grid-column:span 2">코드</div><div class="phase">열람</div>
+  </div>
+  <div class="tiles">
+    <a class="tile" href="https://claw.jaegukang.com/#aircraft" target="_blank" rel="noopener" data-a style="--d:.40s"><span class="n">01</span><b>기체</b><p>기체 선택 · 제원</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#blocks" target="_blank" rel="noopener" data-a style="--d:.52s"><span class="n">02</span><b>블록도</b><p>제어법칙 구조를 3D 블록으로</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#envelope" target="_blank" rel="noopener" data-a style="--d:.64s"><span class="n">04</span><b>엔벨로프</b><p>비행 영역 · 실속 경계</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#trim" target="_blank" rel="noopener" data-a style="--d:.76s"><span class="n">05</span><b>트림</b><p>운영점마다 평형 상태</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#gains" target="_blank" rel="noopener" data-a style="--d:.88s"><span class="n">06</span><b>게인</b><p>게인 설계와 스케줄</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#margins" target="_blank" rel="noopener" data-a style="--d:1.00s"><span class="n">07</span><b>마진 맵</b><p>운영점별 안정성 여유</p><span class="arr">↗</span></a>
+    <a class="tile key" href="https://claw.jaegukang.com/#autodesign" target="_blank" rel="noopener" data-a style="--d:1.12s"><span class="n">08</span><b>자동 설계</b><p>격자 → 튜닝 → 적합 → 검증을 스스로 반복</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#sim" target="_blank" rel="noopener" data-a style="--d:1.24s"><span class="n">09</span><b>시뮬레이션</b><p>미션 하나를 6DOF 로 날려 보기</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#world" target="_blank" rel="noopener" data-a style="--d:1.36s"><span class="n">10</span><b>가상환경</b><p>3D 로 눈으로 확인</p><span class="arr">↗</span></a>
+    <a class="tile key" href="https://claw.jaegukang.com/#influence" target="_blank" rel="noopener" data-a style="--d:1.48s"><span class="n">11</span><b>영향성</b><p>격자 전체 판정 · 파라미터가 번지는 길</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#autocode" target="_blank" rel="noopener" data-a style="--d:1.60s"><span class="n">12</span><b>Autocode</b><p>탑재용 C 코드 생성</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#verify" target="_blank" rel="noopener" data-a style="--d:1.72s"><span class="n">13</span><b>검증</b><p>생성 코드와 모델 대조</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#results" target="_blank" rel="noopener" data-a style="--d:1.84s"><span class="n">14</span><b>결과</b><p>모든 실행의 계보 원장</p><span class="arr">↗</span></a>
+  </div>
+  <a class="flowbar" href="https://claw.jaegukang.com/#flow" target="_blank" rel="noopener" data-a style="--d:2.1s"><span><b>03 설계 흐름</b> &nbsp;<span>검증 → 엔벨로프 → 게인 → 자동 설계 → 평가 → 반영을 한 화면에서 끝까지 실행하는 지휘 층</span></span><span class="arr">↗</span></a>
+  <div class="demo" data-a style="--d:2.3s">
+    <a class="btn live" href="https://claw.jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">claw.jaegukang.com</span><span class="arr">↗</span></a>
+    <button class="btn rec" type="button" data-demo="media/demo-claw.mp4">녹화 영상 <span class="arr">▶</span></button>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="210">
+    <p>(라이브: 로그인 화면부터. 모드당 약 15초.)</p>
+    <p>탭은 <b>업무 순서</b> 그대로입니다. 기체를 고르고 → 블록도로 구조를 보고 → 엔벨로프와 트림 → 게인과 마진 → <b>자동 설계</b>가 격자 전체를 스스로 튜닝합니다.</p>
+    <p>그다음 시뮬레이션과 가상환경에서 실제로 날려 보고 → <b>영향성</b>에서 격자 전체를 판정하고 → Autocode 로 C 코드를 만들고 → 검증에서 코드와 모델을 대조합니다. 결과 탭에는 모든 실행의 계보가 남습니다.</p>
+    <p>설계 흐름 탭은 이 전체를 한 화면에서 끝까지 실행합니다.</p>
+    <p><b>시간 조절:</b> 14개 모두 보이면 약 3분 30초. 줄일 때는 자동 설계 · 시뮬레이션 · 영향성 · Autocode 넷만.</p>
+  </aside>
+</section>
+
+<!-- ======================= 12. 비전 A — 그래프가 퍼진다 ======================= -->
+<section class="slide dark" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta on">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(05)</span><h2>그래프가 곧 설계 지식입니다</h2><span class="en">FROM TOOLS TO NODES</span></div>
+  <div class="vis-a">
+    <div>
+      <p class="statement" data-a style="--d:.2s">CLAW 의 영향성 화면은 설계 전체를 <mark>노드와 선</mark>으로 보여 줍니다.</p>
+      <div class="nums" data-a style="--d:.6s">
+        <div>파라미터<b data-count="68">68</b></div>
+        <div>IR 노드 · 25층<b data-count="78">78</b></div>
+        <div>법칙 출력<b data-count="7">7</b></div>
+        <div>설계 지표<b data-count="29">29</b></div>
+        <div>노드 212 · 간선<b data-count="359">359</b></div>
+      </div>
+      <p data-a style="--d:4.4s;margin-top:24px;font-size:23px;line-height:1.7;color:var(--dpaper)">파라미터 하나를 바꾸면 어느 지표가 흔들리는지 <b>선을 따라 보입니다.</b> 이 그래프를 연구원 전체로 넓히면 —</p>
+    </div>
+    <figure class="dia" style="margin:0">
+      <svg id="vgraph" viewBox="0 0 1000 660" preserveAspectRatio="xMidYMid meet" role="img" aria-label="영향성 그래프가 연구원 데이터로 넓어지는 개념도"></svg>
+      <figcaption><span>(개념도) 영향성 그래프 구조: CLAW 문서 fcs-context-06 §5.1 · 바깥 영역은 목표</span></figcaption>
+    </figure>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>이제 결론입니다. CLAW 를 만들면서 깨달은 것이 있습니다. CLAW 의 영향성 화면은 파라미터 68개, IR 노드 78개, 설계 지표 29개를 <b>노드와 선</b>으로 잇습니다.</p>
+    <p>파라미터 하나를 바꾸면 어떤 지표가 흔들리는지 선을 따라 보입니다. 누구의 기억에도 기대지 않습니다.</p>
+    <p>(그래프가 줄어들며 바깥 영역이 나타날 때) 이 그래프를 구조, 작동기 시험, 공력, 비행시험, 규정까지 넓히면 어떨까요.</p>
+  </aside>
+</section>
+
+<!-- ======================= 13. 비전 B — 네 도구가 하나로 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta on">목표</li></ul></header>
+  <div class="sec-head c2" data-a><span class="idx">(05)</span><h2>네 도구는 하나의 망이 됩니다</h2><span class="en">ONE NETWORK</span></div>
+  <figure class="dia">
+    <svg viewBox="0 0 1680 700" preserveAspectRatio="xMidYMid meet" role="img" aria-label="네 도구가 데이터로 이어지는 순환">
+      <defs>
+        <marker id="ah3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#FF4D00"/></marker>
+      </defs>
+      <!-- 가운데 -->
+      <g class="g-in" style="--d:.2s">
+        <path class="ar g" d="M840 350 L395 150 M840 350 L1285 150 M840 350 L1285 550 M840 350 L395 550"/>
+      </g>
+      <g class="g-up" style="--d:.3s">
+        <circle cx="840" cy="350" r="132" fill="#111"/>
+        <circle cx="840" cy="350" r="150" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="4 8"/>
+        <text x="840" y="322" text-anchor="middle" style="font-size:15px;font-weight:800;letter-spacing:.24em;fill:#FF4D00">SPECIFIED NODES</text>
+        <text x="840" y="364" text-anchor="middle" style="font-size:36px;font-weight:900;fill:#F4F1E8;letter-spacing:-.03em">명세된 노드</text>
+        <text x="840" y="400" text-anchor="middle" style="font-size:19px;font-weight:600;fill:rgba(242,240,235,.7)">값 · 출처 · 이력 · 연결</text>
+      </g>
+      <!-- 도구 넷 -->
+      <g class="g-up" style="--d:.6s"><rect class="bx" x="170" y="80" width="450" height="140"/><text class="t-k" x="198" y="120">02 설계툴</text><text class="t-h" x="198" y="164">형상을 계산한다</text><text class="t-b" x="198" y="198">리깅 · 4절링크 · 힌지모멘트</text></g>
+      <g class="g-up" style="--d:.8s"><rect class="bx" x="1060" y="80" width="450" height="140"/><text class="t-k" x="1088" y="120">04 CLAW</text><text class="t-h" x="1088" y="164">제어법칙을 설계한다</text><text class="t-b" x="1088" y="198">게인 · 마진 · 영향성 · C 코드</text></g>
+      <g class="g-up" style="--d:1.0s"><rect class="bx" x="1060" y="480" width="450" height="140"/><text class="t-k" x="1088" y="520">01 작동기 자동점검</text><text class="t-h" x="1088" y="564">실물로 확인한다</text><text class="t-b" x="1088" y="598">응답 · 대역폭 · 성적서</text></g>
+      <g class="g-up" style="--d:1.2s"><rect class="bx" x="170" y="480" width="450" height="140"/><text class="t-k" x="198" y="520">03 기억지식저장소</text><text class="t-h" x="198" y="564">근거를 남긴다</text><text class="t-b" x="198" y="598">메일 · 이슈 · 결정 이력</text></g>
+      <!-- 순환 -->
+      <path id="lp1" class="ar o draw" pathLength="1" style="--d:1.6s;--dur:.8s" d="M624 150 H1054" marker-end="url(#ah3)"/>
+      <path id="lp2" class="ar o draw" pathLength="1" style="--d:2.4s;--dur:.8s" d="M1560 224 C1600 300 1600 400 1560 476" marker-end="url(#ah3)"/>
+      <path id="lp3" class="ar o draw" pathLength="1" style="--d:3.2s;--dur:.8s" d="M1056 550 H626" marker-end="url(#ah3)"/>
+      <path id="lp4" class="ar o draw" pathLength="1" style="--d:4.0s;--dur:.8s" d="M120 476 C80 400 80 300 120 224" marker-end="url(#ah3)"/>
+      <g class="g-in" style="--d:2.0s"><rect x="700" y="116" width="280" height="34" fill="#F4F1E8"/><text class="lb o" x="840" y="138" text-anchor="middle">형상 · 힌지모멘트 · 링크 비</text></g>
+      <g class="g-in" style="--d:2.8s"><text class="lb o" x="1612" y="340">요구 대역폭</text><text class="lb o" x="1612" y="366">응답 기준</text></g>
+      <g class="g-in" style="--d:3.6s"><rect x="720" y="554" width="240" height="34" fill="#F4F1E8"/><text class="lb o" x="840" y="578" text-anchor="middle">시험 결과 · 성적서</text></g>
+      <g class="g-in" style="--d:4.4s"><text class="lb o" x="0" y="340">과거 이슈</text><text class="lb o" x="0" y="366">결정 근거</text></g>
+      <!-- 흐르는 점 (무한) -->
+      <g class="g-in" style="--d:4.9s">
+        <circle r="7" fill="#FF4D00"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#lp1"/></animateMotion></circle>
+        <circle r="7" fill="#FF4D00"><animateMotion dur="2.4s" begin=".6s" repeatCount="indefinite"><mpath href="#lp2"/></animateMotion></circle>
+        <circle r="7" fill="#FF4D00"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite"><mpath href="#lp3"/></animateMotion></circle>
+        <circle r="7" fill="#FF4D00"><animateMotion dur="2.4s" begin="1.8s" repeatCount="indefinite"><mpath href="#lp4"/></animateMotion></circle>
+      </g>
+    </svg>
+    <figcaption><span>(개념도) 지금은 도구마다 따로 쓰는 데이터를, 명세된 노드 하나로 잇는다</span><span>한 번 쓴 값은 <b>다음 단계의 입력</b>이 된다</span></figcaption>
+  </figure>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>네 도구도 지금은 따로 돕니다. 하지만 데이터로 이으면 하나의 고리가 됩니다.</p>
+    <p>설계툴이 계산한 형상과 힌지모멘트가 CLAW 의 입력이 되고, CLAW 가 정한 요구 대역폭이 자동점검의 합격 기준이 되고, 점검 결과가 지식저장소에 남고, 그 이력이 다음 설계의 근거가 됩니다.</p>
+    <p>가운데에 있는 것이 <b>명세된 노드</b>입니다. 값, 출처, 이력, 연결을 가진 데이터입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 14. 비전 C — 기억 vs 데이터 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta on">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(05)</span><h2>기억에서 데이터로</h2><span class="en">MEMORY → DATA</span></div>
+  <div class="cmp">
+    <div class="hd"></div><div class="hd" data-a="fade" style="--d:.2s">지금 · 기억과 감각</div><div class="hd o" data-a="fade" style="--d:.4s">목표 · 명세된 노드</div>
+    <div class="rk" data-a="left" style="--d:.5s">지식의 자리</div><div class="now" data-a="fade" style="--d:.6s">담당자의 기억 · 메일함 · 개인 PC</div><div class="goal" data-a="left" style="--d:1.0s">모두가 여는 <em>노드</em> 하나</div>
+    <div class="rk" data-a="left" style="--d:.7s">판단의 근거</div><div class="now" data-a="fade" style="--d:.8s">경험과 감각, 말로 전해짐</div><div class="goal" data-a="left" style="--d:1.3s">정량 지표와 <em>출처</em>가 붙은 값</div>
+    <div class="rk" data-a="left" style="--d:.9s">변경의 영향</div><div class="now" data-a="fade" style="--d:1.0s">회의로 추측</div><div class="goal" data-a="left" style="--d:1.6s">그래프로 <em>추적</em></div>
+    <div class="rk" data-a="left" style="--d:1.1s">검증</div><div class="now" data-a="fade" style="--d:1.2s">사람마다 다른 판정</div><div class="goal" data-a="left" style="--d:1.9s">같은 기준, <em>자동</em> 시험</div>
+    <div class="rk" data-a="left" style="--d:1.3s">사람이 떠나면</div><div class="now" data-a="fade" style="--d:1.4s">지식도 함께 떠남</div><div class="goal" data-a="left" style="--d:2.2s">지식은 남고 <em>쌓임</em></div>
+  </div>
+  <p class="statement" data-a style="--d:2.7s;font-size:44px;margin-top:auto">효율적이고, 정확하고, <mark>정량적인</mark> 엔지니어링.</p>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="40">
+    <p>정리하면 이렇습니다. 지금은 지식이 사람의 기억에 있고, 판단은 감각에 기대고, 사람이 떠나면 지식도 떠납니다.</p>
+    <p>목표는 <b>연구원의 모든 데이터를 노드로 만들고 명세하는 것</b>입니다. 그러면 근거는 출처가 붙은 값이 되고, 변경의 영향은 그래프로 추적되고, 지식은 남아서 쌓입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 15. 마무리 ======================= -->
+<section class="slide dark end" data-sec="">
+  <div class="kick" data-a="fade"><span class="dot"></span>설계지식의 자산화</div>
+  <div class="verse" data-a="left" style="--d:.3s">
+    <p><span class="l1">감각이 아니라 <mark>데이터</mark>로,</span><span class="l2">기억이 아니라 <mark>노드</mark>로.</span></p>
+  </div>
+  <p class="lead" data-a style="--d:1.2s">연구원의 모든 데이터를 노드로 만들고 명세하면, 사람의 기억과 감각에 기대지 않는 <b>효율적이고 정확하고 정량적인 엔지니어링</b>을 할 수 있습니다. 네 개의 도구는 그 첫걸음입니다.</p>
+  <div class="tf" data-a style="--d:1.8s"><span class="thx">감사합니다</span><span class="sign">강재구 JAEGU KANG</span></div>
+  <aside class="note" data-t="25">
+    <p><b>감각이 아니라 데이터로, 기억이 아니라 노드로.</b></p>
+    <p>네 개의 도구는 그 첫걸음입니다. 들어 주셔서 감사합니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 16. 아웃트로 영상 ======================= -->
+<section class="slide video" data-video="outro" data-sec="">
+  <aside class="note" data-t="15"><p>(영상이 도는 동안 질문을 받습니다.)</p></aside>
+</section>
+
+</div><!-- /stage -->
+
+<div id="bar"></div>
+<div id="hud"><span class="n"></span><span class="k">← → 이동 · N 대본 · F 전체 화면</span></div>
+<div id="notes"><div class="top"></div><div class="txt"></div></div>
+<div id="demo" role="dialog" aria-label="녹화 영상">
+  <button class="x" type="button">닫기 · Esc</button>
+  <video controls playsinline preload="none"></video>
+  <div class="msg">녹화 영상이 아직 없습니다.<small></small></div>
+</div>
+
+<script>
+/* ===== 비전 A : 영향성 그래프(개념도) 생성 — 층 순서대로 켜지고, 줄어들며 바깥 영역이 나타난다 ===== */
+(function(){
+  var svg = document.getElementById('vgraph'); if(!svg) return;
+  var NS = 'http://www.w3.org/2000/svg';
+  var seed = 7; function rnd(){ seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+  function el(tag, at, parent){ var e = document.createElementNS(NS, tag); for(var k in at) e.setAttribute(k, at[k]); (parent || svg).appendChild(e); return e; }
+  /* 열: 파라미터 · IR 층 6 · 출력 · 지표 (실제 68/78/7/29 를 축소한 모양) */
+  var cols = [11, 4, 5, 6, 5, 4, 3, 5, 9];
+  var X0 = 170, X1 = 830, CY = 330, H = 440;
+  var core = el('g', {id: 'vcore'});
+  var eg = el('g', {}, core), ng = el('g', {}, core);
+  var nodes = [];
+  cols.forEach(function(n, c){
+    var x = X0 + (X1 - X0) * c / (cols.length - 1), col = [];
+    for(var i = 0; i < n; i++){
+      var y = CY - H/2 + H * (i + .5) / n + (c && c < cols.length - 1 ? (rnd() - .5) * 18 : 0);
+      col.push({x: x, y: y, c: c, d: .5 + c * .28 + i * .03});
+    }
+    nodes.push(col);
+  });
+  /* 간선: 각 노드는 다음 1~2 열의 노드 1~2개로 */
+  var edges = 0;
+  for(var c = 0; c < cols.length - 1; c++){
+    nodes[c].forEach(function(a){
+      var k = 1 + (rnd() < .55 ? 1 : 0);
+      for(var j = 0; j < k; j++){
+        var cc = Math.min(cols.length - 1, c + 1 + (rnd() < .18 ? 1 : 0));
+        var b = nodes[cc][Math.floor(rnd() * nodes[cc].length)];
+        var mx = (a.x + b.x) / 2;
+        el('path', {'class': 'ge draw', pathLength: 1, style: '--d:' + (a.d + .12).toFixed(2) + 's;--dur:.45s',
+          d: 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1) + ' C' + mx.toFixed(1) + ' ' + a.y.toFixed(1) + ' ' + mx.toFixed(1) + ' ' + b.y.toFixed(1) + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1)}, eg);
+        edges++;
+      }
+    });
+  }
+  nodes.forEach(function(col, c){
+    col.forEach(function(p){
+      var last = c === cols.length - 1, first = c === 0, out = c === cols.length - 2;
+      var fill = first ? '#F4F1E8' : last ? '#FF4D00' : out ? '#0097B2' : 'rgba(242,240,235,.55)';
+      if(first) el('rect', {'class': 'gn', x: p.x - 7, y: p.y - 7, width: 14, height: 14, fill: fill, style: '--d:' + p.d.toFixed(2) + 's'}, ng);
+      else el('circle', {'class': 'gn', cx: p.x, cy: p.y, r: last ? 8 : 6.5, fill: fill, style: '--d:' + p.d.toFixed(2) + 's'}, ng);
+    });
+  });
+  var cap = el('text', {'class': 'corelab gn', x: 500, y: CY + H/4 + 40, 'text-anchor': 'middle', style: '--d:4.9s'});
+  cap.textContent = 'CLAW 영향성 그래프';
+  /* 바깥 영역: 줄어든 뒤 나타난다 */
+  var CL = [
+    ['구조 해석', 'STRUCTURE', 190, 130], ['작동기 시험', 'ACTUATOR TEST', 810, 130],
+    ['공력 DB', 'AERO DATA', 920, 330], ['비행시험', 'FLIGHT TEST', 810, 530],
+    ['규정 · 요구조건', 'REQUIREMENTS', 190, 530], ['설계 이력', 'MAIL · MINUTES', 80, 330]
+  ];
+  CL.forEach(function(k, i){
+    var d = 5.0 + i * .22, cx = k[2], cy = k[3];
+    var dx = cx - 500, dy = cy - 330, L = Math.sqrt(dx * dx + dy * dy), r0 = Math.min(190, 175 * L / Math.max(Math.abs(dx) * 1.05, Math.abs(dy) * 1.5));
+    var ln = el('path', {'class': 'gx draw', pathLength: 1, style: '--d:' + d.toFixed(2) + 's;--dur:.5s',
+      d: 'M' + (500 + dx / L * r0).toFixed(1) + ' ' + (330 + dy / L * r0).toFixed(1) + ' L' + (cx - dx / L * 30).toFixed(1) + ' ' + (cy - dy / L * 30).toFixed(1)});
+    svg.insertBefore(ln, core);                     /* 선은 줄어든 그래프 뒤로 */
+    var g = el('g', {'class': 'cl'});
+    for(var j = 0; j < 6; j++){
+      var a = j / 6 * Math.PI * 2 + i, r = 34 + (j % 2) * 14;
+      el('circle', {'class': 'gn', cx: (cx + Math.cos(a) * r).toFixed(1), cy: (cy + Math.sin(a) * r * .7).toFixed(1), r: 5, fill: j ? 'rgba(242,240,235,.6)' : '#FF4D00', style: '--d:' + (d + .3 + j * .04).toFixed(2) + 's'}, g);
+    }
+    el('circle', {'class': 'gn', cx: cx, cy: cy, r: 11, fill: '#FF4D00', style: '--d:' + (d + .2).toFixed(2) + 's'}, g);
+    var ty = cy < 330 ? cy - 62 : cy > 330 ? cy + 76 : cy - 58;
+    var t1 = el('text', {'class': 'gn', x: cx, y: ty, 'text-anchor': 'middle', style: '--d:' + (d + .4).toFixed(2) + 's'}, g); t1.textContent = k[0];
+    var t2 = el('text', {'class': 'gn ck', x: cx, y: ty + 22, 'text-anchor': 'middle', style: '--d:' + (d + .4).toFixed(2) + 's'}, g); t2.textContent = k[1];
+  });
+})();
+
+/* ===== 장표 엔진 : 화살표 한 번 = 한 장 ===== */
+(function(){
+  var body = document.body, stage = document.getElementById('stage');
+  var slides = [].slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length, cur = -1;
+  var bar = document.getElementById('bar'), hud = document.getElementById('hud');
+  var notes = document.getElementById('notes'), demo = document.getElementById('demo');
+  var dv = demo.querySelector('video');
+
+  /* 1. 화면 맞춤 */
+  function fit(){
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    document.documentElement.style.setProperty('--s', s);
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* 2. 쪽 번호 · 계획 시간 */
+  var plan = slides.map(function(s){ var n = s.querySelector('aside.note'); return n ? +n.getAttribute('data-t') || 0 : 0; });
+  var planTotal = plan.reduce(function(a, b){ return a + b; }, 0);
+  slides.forEach(function(s, i){
+    var r = s.querySelector('.foot .r');
+    if(r) r.textContent = String(i + 1).padStart(2, '0') + ' / ' + total;
+  });
+  function mmss(t){ t = Math.max(0, Math.round(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+
+  /* 3. 숫자 올라가기 */
+  function fmt(v, el){ var p = el.getAttribute('data-pre') || ''; return p + Math.round(v).toLocaleString('en-US'); }
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function runCounts(sl){
+    sl.querySelectorAll('[data-count]').forEach(function(el){
+      var to = +el.getAttribute('data-count');
+      cancelAnimationFrame(el._r); clearTimeout(el._t);
+      if(reduce){ el.textContent = fmt(to, el); return; }
+      el.textContent = fmt(0, el);
+      var host = el.closest('[data-a]'), delay = 350;
+      if(host){ var d = parseFloat(getComputedStyle(host).getPropertyValue('--d')) || 0; delay += d * 1000; }
+      el._t = setTimeout(function(){
+        var t0 = performance.now();
+        (function f(now){
+          var k = Math.min(1, (now - t0) / 1600), e = 1 - Math.pow(1 - k, 3);
+          el.textContent = fmt(to * e, el);
+          if(k < 1) el._r = requestAnimationFrame(f);
+        })(t0);
+      }, delay);
+    });
+  }
+
+  /* 4. 영상 층 */
+  var vids = {}, phs = {};
+  document.querySelectorAll('#vlayer video').forEach(function(v){
+    vids[v.getAttribute('data-for')] = v;
+    v.addEventListener('error', function(){ v.classList.add('missing'); syncVideo(); });
+  });
+  document.querySelectorAll('#vlayer .vph').forEach(function(p){ phs[p.getAttribute('data-for')] = p; });
+  function syncVideo(){
+    var want = cur >= 0 ? slides[cur].getAttribute('data-video') : null;
+    body.classList.toggle('vid', !!want);
+    Object.keys(vids).forEach(function(k){
+      var v = vids[k], on = k === want, miss = v.classList.contains('missing') || !!v.error;
+      v.classList.toggle('on', on && !miss);
+      phs[k].classList.toggle('on', on && miss);
+      if(on && !miss){ var p = v.play(); if(p && p.catch) p.catch(function(){}); }
+      else if(!v.paused) v.pause();
+    });
+  }
+
+  /* 5. 대본 */
+  var clockT0 = null;
+  function renderNotes(){
+    if(cur < 0) return;
+    var n = slides[cur].querySelector('aside.note');
+    var before = plan.slice(0, cur).reduce(function(a, b){ return a + b; }, 0);
+    var el = clockT0 === null ? 0 : (Date.now() - clockT0) / 1000;
+    var late = el > before + plan[cur];
+    notes.querySelector('.top').innerHTML =
+      '<b>' + String(cur + 1).padStart(2, '0') + ' / ' + total + '</b>' +
+      '<span>이 장 <span class="t">' + mmss(plan[cur]) + '</span></span>' +
+      '<span>여기까지 계획 <span class="t">' + mmss(before + plan[cur]) + '</span> / 전체 ' + mmss(planTotal) + '</span>' +
+      '<span>경과 <span class="t' + (late ? ' late' : '') + '">' + (clockT0 === null ? '—' : mmss(el)) + '</span></span>';
+    notes.querySelector('.txt').innerHTML = n ? n.innerHTML : '';
+  }
+  setInterval(function(){ if(body.classList.contains('notes')) renderNotes(); }, 1000);
+
+  /* 6. 이동 */
+  function goTo(n){
+    if(n < 0 || n >= total || n === cur) return;
+    var prev = slides[cur];
+    if(prev){
+      prev.classList.remove('active'); prev.classList.add('leaving');
+      (function(p){ setTimeout(function(){ if(!p.classList.contains('active')) p.classList.remove('leaving'); }, 520); })(prev);
+    }
+    cur = n;
+    var next = slides[n];
+    next.classList.remove('active', 'leaving');
+    void next.offsetWidth;                 /* 모션 재시작 */
+    next.classList.add('active');
+    runCounts(next);
+    syncVideo();
+    if(clockT0 === null && n > 0) clockT0 = Date.now();
+    bar.style.width = (total > 1 ? n / (total - 1) * 100 : 0) + '%';
+    hud.querySelector('.n').textContent = (n + 1) + ' / ' + total;
+    renderNotes();
+    try { history.replaceState(null, '', '#' + (n + 1)); } catch(e){}
+  }
+  function next(){ goTo(cur + 1); }
+  function prev(){ goTo(cur - 1); }
+
+  /* 7. 녹화 영상 */
+  function openDemo(src){
+    demo.classList.remove('missing');
+    demo.querySelector('.msg small').textContent = src + ' 를 넣으면 여기서 재생됩니다';
+    dv.src = src;
+    demo.classList.add('on');
+    var p = dv.play(); if(p && p.catch) p.catch(function(){});
+  }
+  function closeDemo(){ demo.classList.remove('on'); dv.pause(); dv.removeAttribute('src'); dv.load(); }
+  dv.addEventListener('error', function(){ if(dv.getAttribute('src')) demo.classList.add('missing'); });
+  demo.querySelector('.x').addEventListener('click', closeDemo);
+  demo.addEventListener('click', function(e){ if(e.target === demo) closeDemo(); });
+  stage.addEventListener('click', function(e){
+    var b = e.target.closest('[data-demo]');
+    if(b){ e.preventDefault(); b.blur(); openDemo(b.getAttribute('data-demo')); }
+  });
+  /* 링크를 누른 뒤 포커스가 남아 있으면 Space·Enter 가 링크를 다시 연다 */
+  stage.addEventListener('click', function(e){ var a = e.target.closest('a'); if(a) setTimeout(function(){ a.blur(); }, 0); });
+
+  /* 8. 키보드 */
+  var NEXT = {ArrowRight:1, ArrowDown:1, PageDown:1, ' ':1, Enter:1, Spacebar:1};
+  var PREV = {ArrowLeft:1, ArrowUp:1, PageUp:1, Backspace:1};
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key, code = e.code;
+    if(demo.classList.contains('on')){        /* 영상 보는 중에는 장표를 넘기지 않는다 */
+      if(k === 'Escape'){ closeDemo(); e.preventDefault(); }
+      else if(k === ' '){ dv.paused ? dv.play() : dv.pause(); e.preventDefault(); }
+      else if(k === 'ArrowRight'){ dv.currentTime += 5; e.preventDefault(); }
+      else if(k === 'ArrowLeft'){ dv.currentTime -= 5; e.preventDefault(); }
+      return;
+    }
+    var done = true;
+    if(NEXT[k] && !e.repeat) next();
+    else if(PREV[k] && !e.repeat) prev();
+    else if(NEXT[k] || PREV[k]) {}
+    else if(k === 'Home') goTo(0);
+    else if(k === 'End') goTo(total - 1);
+    else if(code === 'KeyN'){ body.classList.toggle('notes'); renderNotes(); }
+    else if(code === 'KeyF') toggleFull();
+    else if(code === 'KeyV'){ var b = slides[cur].querySelector('[data-demo]'); if(b) openDemo(b.getAttribute('data-demo')); }
+    else done = false;
+    if(done) e.preventDefault();
+  });
+  function fullEl(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function toggleFull(){
+    var d = document, el = d.documentElement;
+    if(fullEl()) (d.exitFullscreen || d.webkitExitFullscreen || function(){}).call(d);
+    else { var p = (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el); if(p && p.catch) p.catch(function(){}); }
+  }
+  var hideT;
+  document.addEventListener('mousemove', function(){
+    body.classList.add('hover'); clearTimeout(hideT);
+    hideT = setTimeout(function(){ body.classList.remove('hover'); }, 2200);
+  });
+
+  /* 9. 시작 */
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  goTo(start > 0 && start <= total ? start - 1 : 0);
+  window.__deck = {goTo: goTo, cur: function(){ return cur; }, total: total, planTotal: planTotal};
+})();
+</script>
+</body>
+</html>
