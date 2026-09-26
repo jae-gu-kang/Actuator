@@ -1206,9 +1206,15 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 
   /* 5. 대본 */
   var clockT0 = null;
+  /* 시계 줄만 매초 갱신한다. 대본 본문까지 다시 쓰면 발표자가 고른 글자가 매초 풀린다. */
   function renderNotes(){
     if(cur < 0) return;
     var n = slides[cur].querySelector('aside.note');
+    notes.querySelector('.txt').innerHTML = n ? n.innerHTML : '';
+    renderClock();
+  }
+  function renderClock(){
+    if(cur < 0) return;
     var before = plan.slice(0, cur).reduce(function(a, b){ return a + b; }, 0);
     var el = clockT0 === null ? 0 : (Date.now() - clockT0) / 1000;
     var late = el > before + plan[cur];
@@ -1217,9 +1223,8 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
       '<span>이 장 <span class="t">' + mmss(plan[cur]) + '</span></span>' +
       '<span>여기까지 계획 <span class="t">' + mmss(before + plan[cur]) + '</span> / 전체 ' + mmss(planTotal) + '</span>' +
       '<span>경과 <span class="t' + (late ? ' late' : '') + '">' + (clockT0 === null ? '—' : mmss(el)) + '</span></span>';
-    notes.querySelector('.txt').innerHTML = n ? n.innerHTML : '';
   }
-  setInterval(function(){ if(body.classList.contains('notes')) renderNotes(); }, 1000);
+  setInterval(function(){ if(body.classList.contains('notes')) renderClock(); }, 1000);
 
   /* 6. 이동 */
   function goTo(n){
@@ -1272,11 +1277,13 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
     var k = e.key, code = e.code;
     if(demo.classList.contains('on')){        /* 영상 보는 중에는 장표를 넘기지 않는다 */
       if(k === 'Escape'){ closeDemo(); e.preventDefault(); }
-      else if(k === ' '){ dv.paused ? dv.play() : dv.pause(); e.preventDefault(); }
+      else if(k === ' '){ if(dv.paused){ var pp = dv.play(); if(pp && pp.catch) pp.catch(function(){}); } else dv.pause(); e.preventDefault(); }
       else if(k === 'ArrowRight'){ dv.currentTime += 5; e.preventDefault(); }
       else if(k === 'ArrowLeft'){ dv.currentTime -= 5; e.preventDefault(); }
       return;
     }
+    /* 켜고 끄는 키는 누르고 있어도 한 번만 */
+    if(e.repeat && (code === 'KeyN' || code === 'KeyF' || code === 'KeyV')){ e.preventDefault(); return; }
     var done = true;
     if(NEXT[k] && !e.repeat) next();
     else if(PREV[k] && !e.repeat) prev();

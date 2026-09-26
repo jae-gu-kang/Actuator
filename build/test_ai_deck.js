@@ -160,7 +160,16 @@ async function sweep(page, tag){
     rec('Esc: 영상 창 닫힘', !(await page.evaluate(() => document.getElementById('demo').classList.contains('on'))));
     await page.keyboard.press('KeyV'); await sleep(300);
     rec('V: 이 장의 녹화 영상 열기', await page.evaluate(() => document.getElementById('demo').classList.contains('on')));
+    await page.keyboard.press('Space'); await sleep(200);      /* 파일 없을 때 재생 시도 — 오류가 나면 마지막 검사에서 걸린다 */
     await page.keyboard.press('Escape'); await sleep(120);
+    /* 대본 키를 누르고 있어도 한 번만 켜져야 한다 */
+    await page.keyboard.down('KeyN'); await sleep(30);
+    for(let i = 0; i < 3; i++){ await page.keyboard.down('KeyN', { autoRepeat: true }); await sleep(30); }
+    await page.keyboard.up('KeyN'); await sleep(120);
+    rec('N 을 누르고 있어도 대본은 한 번만 켜짐', await page.evaluate(() => document.body.classList.contains('notes')));
+    const keep = await page.evaluate(() => { const t = document.querySelector('#notes .txt'); const f = t.firstChild; return new Promise(r => setTimeout(() => r(t.firstChild === f), 1300)); });
+    rec('대본 본문은 매초 다시 쓰지 않음', keep);
+    await page.keyboard.press('KeyN'); await sleep(120);
 
     /* ── 링크 ── */
     const links = await page.$$eval('#stage a[href]', as => as.map(a => ({ h: a.href, t: a.target, r: a.rel })));
@@ -171,7 +180,8 @@ async function sweep(page, tag){
 
     /* ── 링크를 누른 뒤 Space 가 링크를 다시 열지 않아야 한다 ── */
     await page.evaluate(() => window.__deck.goTo(5)); await sleep(1500);
-    await page.evaluate(() => { const a = document.querySelector('.slide.active a.card'); a.addEventListener('click', e => e.preventDefault(), { once: true }); a.click(); });
+    /* 스크립트 click() 은 포커스를 옮기지 않으므로 먼저 focus() 로 실제 클릭 뒤 상태를 만든다 */
+    await page.evaluate(() => { const a = document.querySelector('.slide.active a.card'); a.addEventListener('click', e => e.preventDefault(), { once: true }); a.focus(); a.click(); });
     await sleep(50);
     const focusLeft = await page.evaluate(() => document.activeElement && document.activeElement.tagName);
     rec('링크 클릭 뒤 포커스가 남지 않음', focusLeft !== 'A', focusLeft);
