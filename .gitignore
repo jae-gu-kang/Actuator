@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Node — 테스트 하니스(puppeteer-core) 전용 의존성
+node_modules/
+package.json
+package-lock.json
+# 작동기 점검장비는 별도 저장소(jae-gu-kang/TestEquipment → te.jaegukang.com). 로컬 작업 폴더만 여기 둔다.
+TestEquipment/
+
+# Claude Code 로컬 상태
+.claude/
+
+# 발표 영상 원본 (웹용 사본은 ai/media/)
+ai/*.mp4
+ai/*.MP4
+ai/*.mov
+ai/*.MOV

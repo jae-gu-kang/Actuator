@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>기억에서 데이터로 — AI 로 만든 네 개의 엔지니어링 도구</title>
+<meta name="description" content="설계지식의 자산화 — 작동기 자동점검 · 설계툴 · 기억지식저장소 · CLAW">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
+<style>
+/* =========================================================
+   양식: hansarang.com/building (건축 이야기) 의 편집 디자인
+   종이 · 먹 · 주황 · 청록 / Pretendard / 1.5px 검은 선
+   캔버스 1920×1080 을 화면에 맞춰 통째로 확대·축소한다.
+   ========================================================= */
+:root{
+  --paper:#F4F1E8;
+  --ink:#111111;
+  --grey:#6F6C66;
+  --accent:#FF4D00;
+  --accent2:#0097B2;
+  --line:#111111;
+  --soft:rgba(17,17,17,.18);
+  --dpaper:rgba(242,240,235,.62);
+  --sans:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+  --s:1;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+::selection{background:var(--accent);color:var(--paper)}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:26px;line-height:1.6;
+  letter-spacing:-.015em;word-break:keep-all;
+  -webkit-font-smoothing:antialiased;
+  transition:background .6s;
+}
+body.vid{background:var(--ink)}
+a{color:inherit;text-decoration:none}
+
+/* ---------- 무대 ---------- */
+#stage{
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  position:absolute;left:50%;top:50%;width:1920px;height:1080px;
+  transform:translate(-50%,-50%) scale(var(--s));transform-origin:50% 50%;
+  z-index:2;
+}
+.slide{
+  position:absolute;inset:0;padding:132px 120px 100px;
+  display:flex;flex-direction:column;
+  background:var(--paper);
+  opacity:0;visibility:hidden;
+  transition:opacity .5s ease,visibility 0s linear .5s;
+}
+.slide.active{opacity:1;visibility:visible;transition:opacity .6s ease}
+.slide.leaving{visibility:visible}
+.slide.dark{background:var(--ink);color:var(--paper)}
+.slide.video{background:transparent;padding:0}
+.slide aside.note{display:none}
+
+/* 상단 줄 — 홈페이지 topbar */
+.rail{
+  position:absolute;left:0;right:0;top:0;height:78px;padding:0 56px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:2px solid var(--line);
+}
+.dark .rail{border-color:rgba(242,240,235,.85)}
+.rail .logo{font-weight:800;font-size:22px;letter-spacing:-.02em}
+.rail .logo sup{color:var(--accent);font-size:12px;margin-left:6px;letter-spacing:.14em;font-weight:800}
+.rail ul{display:flex;gap:4px;list-style:none;font-size:15px;font-weight:700;letter-spacing:.04em}
+.rail li{padding:9px 18px;border:2px solid transparent;border-radius:999px;color:var(--grey)}
+.dark .rail li{color:rgba(242,240,235,.5)}
+.rail li.on{border-color:var(--ink);color:var(--ink)}
+.dark .rail li.on{border-color:var(--paper);color:var(--paper)}
+.rail li.cta{background:var(--ink);color:var(--paper)}
+.dark .rail li.cta{background:var(--paper);color:var(--ink)}
+.foot{
+  position:absolute;left:56px;right:56px;bottom:30px;
+  display:flex;justify-content:space-between;
+  font-size:14px;font-weight:700;letter-spacing:.2em;color:var(--grey);
+}
+.dark .foot{color:rgba(242,240,235,.45)}
+.foot .r{font-variant-numeric:tabular-nums}
+
+/* ---------- 공통 조판 ---------- */
+.sec-head{
+  display:grid;grid-template-columns:auto 1fr auto;gap:26px;align-items:baseline;
+  border-bottom:2px solid var(--line);padding-bottom:20px;margin-bottom:44px;
+}
+.dark .sec-head{border-color:rgba(242,240,235,.9)}
+.sec-head .idx{font-size:18px;font-weight:800;letter-spacing:.2em;color:var(--accent)}
+.sec-head.c2 .idx{color:var(--accent2)}
+.sec-head h2{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1.1}
+.sec-head .en{font-size:15px;font-weight:700;letter-spacing:.3em;color:var(--grey)}
+.dark .sec-head .en{color:rgba(242,240,235,.5)}
+.statement{font-size:50px;font-weight:800;line-height:1.42;letter-spacing:-.035em}
+.statement mark,.closing mark{background:none;color:var(--accent)}
+.hl-o{color:var(--accent);text-decoration:underline;text-decoration-thickness:4px;text-underline-offset:10px}
+.body{font-size:25px;line-height:1.78;color:var(--grey);display:flex;flex-direction:column;gap:22px}
+.body b{color:var(--ink)}
+.dark .body{color:var(--dpaper)}
+.dark .body b{color:var(--paper)}
+.dark .body b.o{color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:start}
+.grow{flex:1;min-height:0}
+.est{
+  display:inline-block;vertical-align:.35em;margin-left:8px;
+  font-style:normal;font-size:13px;font-weight:800;letter-spacing:.12em;line-height:1;
+  padding:5px 9px 4px;border:1.5px solid var(--accent);border-radius:999px;color:var(--accent);
+}
+.cap{font-size:17px;color:var(--grey);line-height:1.7}
+.dark .cap{color:rgba(242,240,235,.45)}
+
+/* 통계 띠 — 홈페이지 stat-row / fact-row */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);border:2px solid var(--line)}
+.stat{padding:26px 28px 28px;border-right:2px solid rgba(17,17,17,.22)}
+.stat:last-child{border-right:none}
+.stat .k{font-size:15px;font-weight:800;letter-spacing:.2em;color:var(--grey);margin-bottom:8px}
+.stat .v{font-size:52px;font-weight:900;letter-spacing:-.035em;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .v em{font-style:normal;color:var(--accent)}
+.stat .v small{font-size:26px;font-weight:800;margin-left:4px}
+.stat .v .to{font-size:26px;color:var(--grey);font-weight:700;margin:0 8px}
+.stat .s{margin-top:8px;font-size:18px;color:var(--grey);line-height:1.55}
+.dark .stat-row{border-color:rgba(242,240,235,.9)}
+.dark .stat{border-color:rgba(242,240,235,.25)}
+.dark .stat .k,.dark .stat .s,.dark .stat .v .to{color:rgba(242,240,235,.55)}
+
+/* 시연 버튼 */
+.demo{display:flex;gap:16px;align-items:center;margin-top:30px}
+.btn{
+  display:inline-flex;align-items:center;gap:14px;cursor:pointer;
+  font:inherit;font-size:21px;font-weight:800;letter-spacing:-.01em;
+  padding:16px 28px;border:2px solid var(--ink);border-radius:999px;
+  background:var(--paper);color:var(--ink);transition:background .2s,color .2s,border-color .2s;
+}
+.btn .u{font-size:16px;font-weight:600;letter-spacing:.02em;color:var(--grey)}
+.btn .arr{font-size:22px;transition:transform .25s}
+.btn:hover .arr{transform:translate(4px,-4px)}
+.btn.live{background:var(--ink);color:var(--paper)}
+.btn.live .u{color:rgba(242,240,235,.6)}
+.btn.live:hover{background:var(--accent);border-color:var(--accent)}
+.btn.rec:hover{background:var(--accent2);border-color:var(--accent2);color:var(--paper)}
+.btn.rec:hover .u{color:rgba(242,240,235,.8)}
+.dark .btn{background:transparent;color:var(--paper);border-color:var(--paper)}
+.dark .btn .u{color:rgba(242,240,235,.55)}
+.dark .btn.live{background:var(--paper);color:var(--ink)}
+.dark .btn.live .u{color:var(--grey)}
+.dark .btn.live:hover{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--accent);animation:blink 1.6s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+
+/* ---------- 등장 모션 ---------- */
+[data-a]{opacity:0}
+.slide.active [data-a]{animation:up .9s cubic-bezier(.2,.8,.2,1) var(--d,0s) both}
+.slide.active [data-a="fade"]{animation-name:fade;animation-duration:1s}
+.slide.active [data-a="left"]{animation-name:fromLeft}
+.slide.active [data-a="pop"]{animation-name:pop;animation-duration:.7s}
+@keyframes up{from{opacity:0;transform:translateY(34px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes fromLeft{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+/* SVG 선 그리기 (pathLength=1) */
+.draw{stroke-dasharray:1;stroke-dashoffset:1}
+.slide.active .draw{animation:draw var(--dur,.9s) cubic-bezier(.4,0,.2,1) var(--d,0s) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+[data-count]{font-variant-numeric:tabular-nums}
+
+/* ---------- 01 표지 ---------- */
+.s-title{padding:0;display:flex;flex-direction:column}
+.hero{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 120px;position:relative}
+.kicker{display:flex;gap:18px;align-items:center;font-size:17px;font-weight:800;letter-spacing:.3em;color:var(--grey);margin-bottom:40px}
+h1.giant{font-weight:900;font-size:188px;line-height:.98;letter-spacing:-.055em}
+h1.giant .row{display:block}
+h1.giant .row > span{display:inline-block}
+.slide.active h1.giant .row:nth-child(1) > span{animation:slideIn 1.3s cubic-bezier(.18,.8,.22,1) .2s both}
+h1.giant .row:nth-child(2){overflow:hidden;margin-top:-.02em;padding-bottom:.06em}
+.slide.active h1.giant .row:nth-child(2) > span{animation:emerge 1.2s cubic-bezier(.3,.9,.25,1) 1.3s both}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}30%{opacity:1}to{transform:none;opacity:1}}
+@keyframes emerge{from{transform:translateY(-108%)}to{transform:none}}
+h1.giant .blk{background:var(--accent);padding:0 .12em;margin-left:-.04em;display:inline-block;letter-spacing:.005em}
+h1.giant .blk .wipe{
+  font-style:normal;
+  background-image:linear-gradient(to bottom,var(--paper) 49%,var(--accent) 51%);
+  background-size:100% 220%;background-position:0 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.slide.active h1.giant .blk .wipe{animation:wipeDown 1.2s cubic-bezier(.3,.9,.25,1) 1.3s both}
+@keyframes wipeDown{from{background-position:0 100%}to{background-position:0 0%}}
+h1.giant .outline{color:var(--paper);-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;margin-left:.1em}
+h1.giant .cyan{color:var(--accent2)}
+.hero-sub{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-top:56px}
+.hero-sub .sub1{font-size:44px;font-weight:800;letter-spacing:-.035em;line-height:1.3}
+.hero-sub .sub2{margin-top:14px;font-size:24px;font-weight:700;letter-spacing:.18em;color:var(--grey)}
+.hero-sub .sub2 b{color:var(--accent)}
+.hero-meta{text-align:right;font-size:19px;font-weight:700;letter-spacing:.14em;line-height:2;color:var(--grey)}
+.hero-meta b{display:block;font-size:34px;letter-spacing:-.01em;color:var(--ink)}
+.stamp{
+  position:absolute;right:150px;top:150px;width:300px;height:300px;border-radius:50%;
+  border:2px solid var(--ink);background:var(--paper);display:flex;align-items:center;justify-content:center;
+  opacity:0;
+}
+.slide.active .stamp{animation:spinIn 1.4s .5s cubic-bezier(.2,.8,.2,1) both,floaty 7s ease-in-out 1.9s infinite}
+@keyframes spinIn{from{opacity:0;transform:rotate(140deg) scale(.5)}to{opacity:1;transform:rotate(6deg) scale(1)}}
+@keyframes floaty{0%,100%{transform:rotate(6deg)}30%{transform:translateY(-30px) rotate(0)}62%{transform:translateY(14px) rotate(11deg)}}
+.stamp svg{width:200px;height:200px}
+.marquee{
+  border-top:2px solid var(--line);overflow:hidden;white-space:nowrap;background:var(--ink);color:var(--paper);
+  padding:20px 0;font-weight:700;font-size:22px;letter-spacing:.05em;
+}
+.marquee .track{display:inline-block;animation:mq 60s linear infinite}
+.marquee em{font-style:normal;color:var(--accent);margin:0 46px 0 20px;font-size:17px;letter-spacing:.16em;font-weight:800}
+.marquee em:nth-of-type(even){color:var(--accent2)}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ---------- 02 문제 ---------- */
+.problem .grid2{grid-template-columns:1.05fr 1fr;gap:100px}
+.problem .statement{font-size:62px;line-height:1.36}
+.closing{margin-top:auto;padding-top:34px;border-top:2px solid rgba(242,240,235,.3);font-size:36px;font-weight:700;line-height:1.55;letter-spacing:-.03em}
+
+/* ---------- 03 네 도구 목록 ---------- */
+.ix{
+  display:grid;grid-template-columns:140px 1fr 540px 300px;gap:24px;align-items:center;
+  padding:18px 8px;border-bottom:1.5px solid var(--soft);
+}
+.ix .no{font-size:88px;font-weight:900;letter-spacing:-.05em;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}   /* 4개의 성과를 숫자로 강조 */
+.ix .name{font-size:56px;font-weight:900;letter-spacing:-.04em;line-height:1.1}
+.ix .desc{font-size:23px;color:var(--grey);line-height:1.55}
+.ix .when{text-align:right}
+.ix .when b{display:block;font-size:26px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.total{margin-top:auto;display:flex;gap:56px;align-items:baseline;font-size:22px;font-weight:700;color:var(--grey);letter-spacing:.02em}
+.total b{font-size:40px;font-weight:900;color:var(--ink);letter-spacing:-.03em;margin-right:6px}
+.total .lb{font-size:15px;font-weight:800;letter-spacing:.26em}
+
+/* ---------- 04 자동점검 ---------- */
+.te .grid2{grid-template-columns:1fr 1fr;gap:80px;margin-bottom:30px}
+.te .statement{font-size:46px}
+.steps{border:2px solid var(--line)}
+.step{
+  display:grid;grid-template-columns:70px 1fr auto;gap:18px;align-items:center;
+  padding:10px 24px;border-bottom:1.5px solid var(--soft);position:relative;overflow:hidden;
+}
+.step:last-child{border-bottom:none}
+.step .n{font-size:26px;font-weight:900;color:var(--grey);position:relative}
+.step b{font-size:23px;font-weight:800;letter-spacing:-.02em;position:relative}
+.step .c{font-size:18px;color:var(--grey);font-weight:600;position:relative;font-variant-numeric:tabular-nums}
+.step::before{content:"";position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left}
+.step .ok{position:relative;font-size:15px;font-weight:900;letter-spacing:.14em;color:var(--paper);opacity:0}
+.slide.active .step::before{animation:fillx .5s cubic-bezier(.5,0,.2,1) var(--d) forwards,unfill .6s ease calc(var(--d) + .55s) forwards}
+.slide.active .step .ok{animation:okin .4s ease calc(var(--d) + .3s) forwards}
+.slide.active .step .n{animation:ncol .4s ease calc(var(--d) + .3s) forwards}
+@keyframes fillx{to{transform:scaleX(1)}}
+@keyframes unfill{to{opacity:.0}}
+@keyframes okin{to{opacity:1;color:var(--accent)}}
+@keyframes ncol{to{color:var(--accent)}}
+.steps-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;font-size:15px;font-weight:800;letter-spacing:.24em;color:var(--grey)}
+.steps-head b{color:var(--ink)}
+
+/* ---------- 05 설계툴 카드 ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.card{border:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;transition:background .25s,color .25s}
+.card .th{display:flex;align-items:baseline;gap:16px;padding:22px 28px;border-bottom:2px solid var(--line)}
+.card .th .no{font-size:16px;font-weight:800;letter-spacing:.2em;color:var(--accent)}
+.card .th b{font-size:33px;font-weight:900;letter-spacing:-.035em}
+.card .bd{padding:22px 28px 10px;font-size:21px;line-height:1.7;color:var(--grey);flex:1}
+.card .bd b{color:var(--ink)}
+.card .go{display:flex;justify-content:space-between;align-items:center;padding:16px 28px;border-top:1.5px solid var(--soft);font-size:17px;font-weight:700;letter-spacing:.04em}
+.card .go .arr{font-size:24px;transition:transform .25s}
+.card:hover{background:var(--ink);color:var(--paper)}
+.card:hover .bd,.card:hover .bd b{color:rgba(242,240,235,.8)}
+.card:hover .go .arr{transform:translate(4px,-4px)}
+.card .key{display:block;margin-top:14px;font-size:30px;font-weight:900;letter-spacing:-.03em;color:var(--accent)}
+
+/* ---------- 06 brain ---------- */
+.modes2{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--line)}
+.mode{padding:26px 30px}
+.mode + .mode{border-left:2px solid var(--line)}
+.mode .k{font-size:15px;font-weight:800;letter-spacing:.22em;color:var(--grey)}
+.mode b{display:block;margin-top:10px;font-size:34px;font-weight:900;letter-spacing:-.03em}
+.mode p{margin-top:10px;font-size:21px;color:var(--grey);line-height:1.65}
+.mode .src{display:inline-block;margin-top:14px;font-size:16px;font-weight:800;letter-spacing:.1em;padding:6px 14px;border-radius:999px;background:var(--ink);color:var(--paper)}
+.mode.wiki .src{background:var(--accent2)}
+
+/* ---------- 다이어그램 공통 ---------- */
+figure.dia{flex:1;min-height:0;display:flex;flex-direction:column}
+figure.dia svg{flex:1;min-height:0;width:100%;overflow:visible}
+figure.dia figcaption{margin-top:14px;font-size:17px;color:var(--grey);line-height:1.7;display:flex;justify-content:space-between;gap:30px}
+figure.dia figcaption b{color:var(--ink)}
+svg text{font-family:var(--sans)}
+.bx{fill:var(--paper);stroke:var(--ink);stroke-width:2.5}
+.bx.ink{fill:var(--ink)}
+.bx.o{fill:var(--accent);stroke:var(--accent)}
+.bx.c{fill:var(--accent2);stroke:var(--accent2)}
+.bx.dash{stroke-dasharray:10 7;fill:transparent}
+.t-k{font-size:15px;font-weight:800;letter-spacing:.2em;fill:var(--grey)}
+.t-h{font-size:30px;font-weight:900;letter-spacing:-.03em;fill:var(--ink)}
+.t-b{font-size:19px;font-weight:500;fill:var(--grey)}
+.t-m{font-size:19px;font-weight:600;fill:var(--ink);font-family:ui-monospace,Menlo,monospace;letter-spacing:0}
+.inv .t-k{fill:rgba(242,240,235,.7)}
+.inv .t-h{fill:var(--paper)}
+.inv .t-b{fill:rgba(242,240,235,.85)}
+.ar{fill:none;stroke:var(--ink);stroke-width:2.5}
+.ar.o{stroke:var(--accent)}
+.ar.c{stroke:var(--accent2)}
+.ar.g{stroke:var(--grey);stroke-dasharray:8 7}
+.lb{font-size:17px;font-weight:800;letter-spacing:.06em;fill:var(--grey)}
+.lb.o{fill:var(--accent)}
+.lb.c{fill:var(--accent2)}
+.g-in{opacity:0}
+.slide.active .g-in{animation:fade .7s ease var(--d,0s) forwards}
+.slide.active .g-up{animation:gup .8s cubic-bezier(.2,.8,.2,1) var(--d,0s) both}
+@keyframes gup{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+
+/* 마크다운 페이지 카드 */
+.md{border:2px solid var(--line);background:#fff;display:flex;flex-direction:column}
+.md .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:2px solid var(--line);background:var(--ink);color:var(--paper)}
+.md .mh b{font-family:ui-monospace,Menlo,monospace;font-size:19px;font-weight:700;letter-spacing:0}
+.md .mh span{font-size:13px;font-weight:800;letter-spacing:.2em;color:var(--accent)}
+.md pre{padding:18px 22px;font-family:ui-monospace,Menlo,monospace;font-size:17.5px;line-height:1.72;color:var(--grey);white-space:pre-wrap;letter-spacing:0}
+.md pre .h{color:var(--ink);font-weight:700}
+.md pre .l{color:var(--accent2);font-weight:600}
+.md pre .y{color:#a86400}
+.md pre .c{color:#9a968e}
+.md pre span[data-a]{display:inline}
+.kinds{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.kind{font-size:16px;font-weight:800;letter-spacing:.04em;padding:8px 16px;border:2px solid var(--ink);border-radius:999px}
+.kind i{font-style:normal;font-weight:600;color:var(--grey);margin-left:8px}
+.kind.on{background:var(--ink);color:var(--paper)}
+.kind.on i{color:rgba(242,240,235,.6)}
+.rule{margin-top:18px;padding:18px 22px;border-left:8px solid var(--accent);background:rgba(255,77,0,.07);font-size:21px;font-weight:700;line-height:1.6}
+.rule span{display:block;font-size:17px;font-weight:500;color:var(--grey)}
+
+/* ---------- 07 CLAW ---------- */
+.fact-row{display:grid;grid-template-columns:1.1fr 1fr 1fr 1.15fr;border:2px solid rgba(242,240,235,.9)}
+.fact{padding:30px 30px 32px;border-right:2px solid rgba(242,240,235,.25)}
+.fact:last-child{border-right:none}
+.fact .k{font-size:15px;font-weight:800;letter-spacing:.2em;color:rgba(242,240,235,.55);margin-bottom:10px}
+.fact .v{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1.05}
+.fact .v em{font-style:normal;color:var(--accent)}
+.fact .v small{font-size:30px;font-weight:800;margin-left:4px}
+.fact .v.t{font-size:38px;line-height:1.25}
+.fact .s{margin-top:12px;font-size:19px;line-height:1.6;color:rgba(242,240,235,.6)}
+.chain{display:flex;align-items:center;gap:0;margin-top:56px;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.chain span{padding:12px 22px;border:2px solid rgba(242,240,235,.85);border-radius:999px;white-space:nowrap}
+.chain span.o{background:var(--accent);border-color:var(--accent)}
+.chain i{flex:1;height:2px;background:rgba(242,240,235,.6);min-width:18px;position:relative}
+.chain i::after{content:"";position:absolute;right:-1px;top:-6px;border:7px solid transparent;border-left:10px solid rgba(242,240,235,.6);border-right:none}
+
+/* 14개 모드 */
+.phases{display:grid;grid-template-columns:repeat(13,1fr);gap:12px;margin-bottom:12px}
+.phase{font-size:15px;font-weight:800;letter-spacing:.16em;color:var(--grey);padding-bottom:10px;border-bottom:4px solid var(--ink)}
+.phase.o{border-color:var(--accent);color:var(--accent)}
+.phase.c{border-color:var(--accent2);color:var(--accent2)}
+.tiles{display:grid;grid-template-columns:repeat(13,1fr);gap:12px}
+.tile{
+  display:flex;flex-direction:column;border:2px solid var(--line);background:var(--paper);
+  padding:16px 14px 16px;min-height:340px;transition:background .2s,color .2s;position:relative;
+}
+.tile .n{font-size:40px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--grey)}
+.tile b{margin-top:16px;font-size:23px;font-weight:900;letter-spacing:-.035em;line-height:1.2}
+.tile p{margin-top:10px;font-size:16px;line-height:1.55;color:var(--grey)}
+.tile .arr{margin-top:auto;align-self:flex-end;font-size:20px;transition:transform .2s}
+.tile:hover{background:var(--ink);color:var(--paper)}
+.tile:hover p,.tile:hover .n{color:rgba(242,240,235,.7)}
+.tile:hover .arr{transform:translate(3px,-3px)}
+.tile.key{border-color:var(--accent)}
+.tile.key .n{color:var(--accent)}
+.slide.active .tile .n{animation:lit .5s ease calc(var(--d) + .25s) both}
+@keyframes lit{from{color:var(--grey)}50%{color:var(--accent)}to{}}
+.flowbar{margin-top:20px;display:grid;grid-template-columns:1fr auto;gap:30px;align-items:center;padding:18px 24px;border:2px dashed var(--grey)}
+.flowbar b{font-size:22px;font-weight:900}
+.flowbar span{font-size:19px;color:var(--grey)}
+
+/* ---------- 비전 ---------- */
+.cw{display:grid;grid-template-columns:540px 1fr;grid-template-rows:minmax(0,1fr);gap:48px;flex:1;min-height:0}
+.cw .statement{font-size:42px}
+.cw-b{margin-top:22px;display:flex;flex-direction:column;gap:14px;font-size:21px;line-height:1.7;color:var(--dpaper)}
+.cw-b b{color:var(--paper)}
+.cw-n{margin-top:24px;border-top:2px solid rgba(242,240,235,.85)}
+.cw-n div{display:flex;justify-content:space-between;align-items:baseline;padding:5px 2px;border-bottom:1.5px solid rgba(242,240,235,.2);font-size:19px;color:var(--dpaper)}
+.cw-n b{font-size:32px;font-weight:900;color:var(--paper);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.cw-n em{font-style:normal}
+.cw-n div:last-child b{color:var(--accent)}
+.cw-fig{margin:0}
+.cw-fig figcaption{flex-direction:column;gap:8px}
+.cw-fig .cw-lg{justify-content:flex-start}
+.cw-lg{display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;font-size:14px;font-weight:700;color:rgba(242,240,235,.6)}
+.cw-lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#clawgraph .gn{opacity:0;transform-box:fill-box;transform-origin:center}
+.slide.active #clawgraph .gn{animation:pop .4s cubic-bezier(.2,.8,.2,1) var(--d) both}
+#clawgraph .eg{fill:none;stroke:rgba(242,240,235,.13);stroke-width:1}
+#clawgraph .hd{font-size:13px;font-weight:800;letter-spacing:.14em;fill:rgba(242,240,235,.5)}
+#clawgraph .nd > *{transition:opacity .12s}
+#clawgraph.dim .nd > *{opacity:.16}
+#clawgraph.dim .eg{stroke:rgba(242,240,235,.05)}
+#clawgraph .nd.lit > *,#clawgraph .nd.src > *{opacity:1}
+#clawgraph .nd.src > *{stroke:#fff;stroke-width:2.5}
+#clawgraph .sl{font-size:17px;font-weight:800;fill:#fff;paint-order:stroke;stroke:#111;stroke-width:4px;opacity:0;transition:opacity .2s}
+#clawgraph .sl.on{opacity:1}
+#clawgraph .hot{stroke-width:1.8}
+#clawgraph .pt{r:2.6}
+
+.cmp{border:2px solid var(--line);display:grid;grid-template-columns:260px 1fr 1fr}
+.cmp > div{padding:26px 28px;border-bottom:1.5px solid var(--soft);font-size:25px;line-height:1.5}
+.cmp > div:nth-last-child(-n+3){border-bottom:none}
+.cmp .hd{font-size:16px;font-weight:800;letter-spacing:.22em;color:var(--grey);border-bottom:2px solid var(--line)!important;padding-top:18px;padding-bottom:16px}
+.cmp .hd.o{color:var(--accent)}
+.cmp .rk{font-size:22px;font-weight:900;letter-spacing:-.02em}
+.cmp .now{color:var(--grey);border-left:1.5px solid var(--soft)}
+.cmp .goal{font-weight:800;border-left:2px solid var(--line);background:rgba(255,77,0,.06)}
+.cmp .goal em{font-style:normal;color:var(--accent)}
+
+/* ---------- 마무리 ---------- */
+.end{justify-content:center}
+.end .kick{display:flex;gap:16px;align-items:center;font-size:17px;font-weight:800;letter-spacing:.3em;color:rgba(242,240,235,.55)}
+.verse{margin-top:52px;padding-left:52px;border-left:12px solid var(--accent)}
+.verse p{font-size:104px;font-weight:900;line-height:1.24;letter-spacing:-.05em;color:var(--paper)}
+.verse .l1,.verse .l2{display:block}
+.verse mark{background:none;color:var(--accent)}
+.end.lift .verse p{transform-origin:left center;animation:liftPulse 1.1s cubic-bezier(.2,.8,.2,1)}
+.end.lift .verse mark{animation:liftGlow 1.6s ease-out}
+@keyframes liftPulse{0%{transform:none}16%{transform:scale(1.035)}100%{transform:none}}
+@keyframes liftGlow{0%{text-shadow:0 0 0 rgba(255,77,0,0)}18%{text-shadow:0 0 40px rgba(255,77,0,.95)}100%{text-shadow:0 0 0 rgba(255,77,0,0)}}
+.end .lead{margin-top:56px;max-width:1300px;font-size:30px;font-weight:600;line-height:1.75;color:rgba(242,240,235,.72)}
+.end .lead b{color:var(--paper)}
+.end .tf{margin-top:56px;padding-top:22px;border-top:2px solid rgba(242,240,235,.35);display:flex;justify-content:space-between;align-items:baseline;color:rgba(242,240,235,.6)}
+.end .tf .thx{font-size:36px;font-weight:900;color:var(--paper);letter-spacing:-.02em}
+.end .tf .sign{font-size:36px;font-weight:900;letter-spacing:-.02em;color:var(--paper)}   /* 감사합니다와 같은 크기 */
+
+/* ---------- 13 항공기 전체 노드 그래프 (CLAW 영향성 재생 방식) ---------- */
+.ac-lead{font-size:30px;font-weight:700;line-height:1.55;letter-spacing:-.025em;color:rgba(242,240,235,.78);margin-top:-14px;margin-bottom:10px}
+.ac-lead b{color:var(--paper)}
+.ac-lead mark{background:none;color:var(--accent)}
+.ac-fig figcaption{color:rgba(242,240,235,.5)}
+.ac-read{font-size:19px;font-weight:700;color:var(--paper);font-variant-numeric:tabular-nums;min-height:1.7em}
+#acread b,#clawread b{color:var(--accent)}
+#acgraph .hd{font-size:15px;font-weight:800;letter-spacing:.2em;fill:rgba(242,240,235,.5)}
+#acgraph .eg{fill:none;stroke:rgba(242,240,235,.2);stroke-width:1.6}
+svg.inf .hot{fill:none;stroke:var(--accent);stroke-width:3;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .18s linear,opacity .5s ease}
+svg.inf .hot.on{stroke-dashoffset:0}
+svg.inf .hot.fade{opacity:0}
+svg.inf .hot.reset{transition:none}
+#acgraph .fb{fill:none;stroke:var(--accent2);stroke-width:2;stroke-dasharray:7 7}
+#acgraph .fbl{font-size:15px;font-weight:800;letter-spacing:.04em;fill:var(--accent2)}
+.slide.active #acgraph .fb.run{animation:march 1.2s linear infinite}
+@keyframes march{to{stroke-dashoffset:-28}}
+#acgraph .gn{opacity:0;transform-box:fill-box;transform-origin:center}
+.slide.active #acgraph .gn{animation:pop .45s cubic-bezier(.2,.8,.2,1) var(--d) both}
+#acgraph .nd rect{fill:#1c1c1e;stroke:rgba(242,240,235,.38);stroke-width:1.6;transition:fill .12s,stroke .12s}
+#acgraph .nd text{font-size:19px;font-weight:700;fill:var(--paper);transition:fill .12s}
+#acgraph .nd .tg{font-size:13px;font-weight:800;letter-spacing:.08em;fill:var(--accent)}
+#acgraph .nd.tool rect{stroke:var(--accent);stroke-width:2.6}
+#acgraph.dim .nd rect{stroke:rgba(242,240,235,.14)}
+#acgraph.dim .nd.tool rect{stroke:rgba(255,77,0,.35)}
+#acgraph.dim .nd text{fill:rgba(242,240,235,.28)}
+#acgraph.dim .nd .tg{fill:rgba(255,77,0,.4)}
+#acgraph.dim .eg{stroke:rgba(242,240,235,.08)}
+#acgraph .nd.lit rect{fill:rgba(255,77,0,.2);stroke:var(--accent)}
+#acgraph .nd.lit text{fill:var(--paper)}
+#acgraph .nd.lit .tg{fill:var(--accent)}
+#acgraph .nd.src rect{fill:var(--accent);stroke:var(--accent)}
+#acgraph .nd.src text{fill:#fff}
+#acgraph .nd.src .tg{fill:var(--paper)}
+svg.inf .pt{fill:#FFD2BC}
+#acgraph .br{fill:none;stroke:rgba(242,240,235,.55);stroke-width:2}
+#acgraph .br.o{stroke:var(--accent)}
+#acgraph .bl{font-size:18px;font-weight:800;letter-spacing:.06em;fill:rgba(242,240,235,.75)}
+#acgraph .bl.o{fill:var(--accent)}
+
+/* ---------- 폰으로 보는 대본 (?script) ---------- */
+/* 스크롤은 문서(html)가 맡는다 — body 가 스크롤 상자가 되면 위쪽 시계 줄이 붙어 있지 않는다 */
+html.m-script{height:auto;overflow:auto}
+body.m-script{height:auto;overflow:visible}
+body.m-script{background:#111;color:var(--paper);font-size:17px}
+body.m-script #stage,body.m-script #vlayer,body.m-script #bar,body.m-script #hud,body.m-script #notes,body.m-script #rot,body.m-script #demo{display:none!important}
+#scr{max-width:720px;margin:0 auto;padding:0 16px 70vh}   /* 끝의 여백: 마지막 장도 위로 올려 읽을 수 있게 */
+.s-top{position:sticky;top:0;z-index:5;background:#111;padding:12px 0 10px;border-bottom:1.5px solid rgba(242,240,235,.3)}
+.s-t1{display:flex;align-items:baseline;gap:10px}
+.s-t1 b{font-size:18px;font-weight:900;color:var(--accent)}
+.s-t1 span{font-size:13px;font-weight:700;color:rgba(242,240,235,.55)}
+.s-t2{display:flex;align-items:center;gap:10px;margin-top:6px}
+.s-el{font-size:34px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums;min-width:3.2em}
+.s-diff{flex:1;font-size:14px;font-weight:800;color:#8fd19e;font-variant-numeric:tabular-nums}
+.s-diff.late{color:#ff8a5c}
+#scr button{font:inherit;font-size:15px;font-weight:800;cursor:pointer;border-radius:999px;border:1.5px solid rgba(242,240,235,.5);background:transparent;color:var(--paper);padding:9px 16px;-webkit-tap-highlight-color:transparent}
+#scr.running [data-s="run"]{background:var(--accent);border-color:var(--accent)}
+.s-list{list-style:none}
+.s-list li{padding:18px 0 20px;border-bottom:1px solid rgba(242,240,235,.14);cursor:pointer;transition:opacity .2s}
+.s-list li.past{opacity:.45}
+.s-list li.on{opacity:1}
+.c-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.c-h span{font-size:14px;font-weight:900;color:rgba(242,240,235,.5);font-variant-numeric:tabular-nums}
+.c-h b{font-size:18px;font-weight:900;letter-spacing:-.02em}
+.c-h em{margin-left:auto;font-style:normal;font-size:13px;font-weight:700;color:rgba(242,240,235,.5);font-variant-numeric:tabular-nums}
+.c-b{margin-top:10px;font-size:20px;line-height:1.75;color:rgba(242,240,235,.82)}
+.c-b p + p{margin-top:10px}
+.c-b b{color:var(--accent)}
+.s-list li.on .c-h span,.s-list li.on .c-h em{color:var(--accent)}
+.s-list li.on{border-left:5px solid var(--accent);padding-left:11px;margin-left:-16px}
+.s-list li.on .c-b{color:var(--paper)}
+.s-nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#111;border-top:1.5px solid rgba(242,240,235,.3)}
+.s-nav button{flex:1;padding:14px!important;font-size:17px!important}
+.s-pos{font-size:14px;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums;min-width:4.2em;text-align:center}
+/* 장표의 QR 안내 */
+#qr{position:fixed;inset:0;z-index:55;display:none;align-items:center;justify-content:center;background:rgba(17,17,17,.9)}
+#qr.on{display:flex}
+#qr .qc{position:relative;background:var(--paper);color:var(--ink);border-radius:18px;padding:26px 30px 22px;text-align:center;width:min(420px,90vw)}
+#qr .qk{font-size:15px;font-weight:900;letter-spacing:.2em;color:var(--accent)}
+#qr .qi{margin:14px auto 8px;width:min(300px,70vw);aspect-ratio:1}
+#qr .qi svg{width:100%;height:100%;display:block}
+#qr .qu{font-size:20px;font-weight:900;letter-spacing:-.01em;word-break:break-all}
+#qr .qn{margin-top:8px;font-size:13px;color:var(--grey)}
+#qr .qx{position:absolute;right:12px;top:10px;font:inherit;font-size:13px;font-weight:800;border:1.5px solid var(--ink);border-radius:999px;background:none;padding:4px 12px;cursor:pointer}
+
+/* ---------- 영상 층 (무대 밖, 화면 전체) ---------- */
+#vlayer{position:fixed;inset:0;z-index:1;opacity:0;transition:opacity .8s ease;pointer-events:none;background:var(--ink)}
+body.vid #vlayer{opacity:1}
+#vlayer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s}
+#vlayer video.on{opacity:1}
+#vlayer video.missing{display:none}
+.vph{
+  position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+  color:rgba(242,240,235,.5);font-size:20px;font-weight:700;letter-spacing:.12em;text-align:center;
+}
+.vph b{font-size:min(16vw,260px);font-weight:900;letter-spacing:-.05em;line-height:.9;color:var(--ink);-webkit-text-stroke:3px rgba(242,240,235,.5)}
+.vph.on{display:flex}
+
+/* ---------- 녹화 영상 보기 ---------- */
+#demo{position:fixed;inset:0;z-index:50;background:rgba(17,17,17,.94);display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+#demo.on{display:flex}
+#demo video{max-width:92vw;max-height:84vh;background:#000;outline:none}
+#demo .msg{color:var(--paper);font-size:22px;font-weight:700;text-align:center;line-height:1.8;display:none}
+#demo .msg small{display:block;font-size:16px;color:rgba(242,240,235,.55);font-weight:600}
+#demo.missing video{display:none}
+#demo.missing .msg{display:block}
+#demo .x{position:absolute;right:24px;top:18px;color:rgba(242,240,235,.7);font-size:15px;font-weight:700;letter-spacing:.14em;cursor:pointer;padding:8px 14px;border:1.5px solid rgba(242,240,235,.4);border-radius:999px;background:none;font-family:inherit}
+
+/* ---------- 진행 표시 · 대본 ---------- */
+#bar{position:fixed;left:0;top:0;height:4px;width:0;background:var(--accent);z-index:40;transition:width .5s}
+body.vid #bar{opacity:0}            /* 영상 위에는 진행선을 얹지 않는다 */
+#hud{
+  position:fixed;right:18px;bottom:16px;z-index:40;display:flex;gap:12px;align-items:center;
+  padding:7px 15px;border:1.5px solid var(--ink);border-radius:999px;background:var(--paper);
+  font-size:12px;font-weight:700;letter-spacing:.12em;opacity:0;transition:opacity .4s;pointer-events:none;
+}
+#hud .n{color:var(--accent);font-variant-numeric:tabular-nums}
+#hud .k{color:var(--grey);font-weight:600}
+body.hover #hud{opacity:1}
+/* 폰 세로 화면: 가로로 돌리라는 안내 (몇 초 뒤 사라짐) */
+#rot{
+  position:fixed;left:16px;right:16px;bottom:20px;z-index:41;display:none;
+  padding:12px 16px;border-radius:14px;background:var(--ink);color:var(--paper);
+  font-size:14px;font-weight:700;line-height:1.55;text-align:center;
+  transition:opacity .6s ease;pointer-events:none;
+}
+#rot.gone{opacity:0;visibility:hidden}
+#rot b{color:var(--accent)}
+@media (orientation:portrait) and (max-width:900px){ #rot{display:block} }
+#notes{
+  position:fixed;left:0;right:0;bottom:0;z-index:45;max-height:40vh;overflow:auto;
+  background:rgba(17,17,17,.96);color:var(--paper);border-top:3px solid var(--accent);
+  padding:18px 28px 22px;display:none;font-size:19px;line-height:1.75;
+}
+body.notes #notes{display:block}
+#notes .top{display:flex;gap:26px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px;font-size:14px;font-weight:800;letter-spacing:.14em;color:rgba(242,240,235,.55)}
+#notes .top b{font-size:17px;color:var(--paper);letter-spacing:.04em}
+#notes .top .t{color:var(--accent);font-variant-numeric:tabular-nums}
+#notes .top .late{color:#ff8a5c}
+#notes .txt p + p{margin-top:8px}
+#notes .txt b{color:var(--accent)}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  [data-a],.g-in,#clawgraph .gn,#acgraph .gn,.stamp{opacity:1}
+  .draw{stroke-dashoffset:0}
+  h1.giant .blk .wipe{background-position:0 0%}
+}
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html,body{height:auto;overflow:visible;background:var(--paper)}
+  #stage{position:static;transform:none;width:1920px;height:auto}
+  .slide{position:relative;height:1080px;opacity:1;visibility:visible;page-break-after:always;break-after:page}
+  .slide.video{display:none}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  [data-a],.g-in,#clawgraph .gn,#acgraph .gn,.stamp{opacity:1}
+  .draw{stroke-dashoffset:0}
+  h1.giant .blk .wipe{background-position:0 0%}
+  #vlayer,#bar,#hud,#notes,#demo,#rot{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<div id="vlayer">
+  <video id="v-intro" data-for="intro" muted loop playsinline preload="auto" src="media/intro.mp4"></video>
+  <video id="v-outro" data-for="outro" data-once playsinline preload="auto" src="media/outro.mp4"></video>
+  <!-- 아웃트로 노래: 원곡에서 아웃트로 시작 지점(4:20.440)부터 곡 끝(7:20.6)까지. 영상과 함께 시작해 마무리 장에서도 이어진다 -->
+  <audio id="a-outro" preload="auto" src="media/outro-song.m4a"></audio>
+  <div class="vph" data-for="intro"><b>INTRO</b><p>인트로 영상 자리 · media/intro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
+  <div class="vph" data-for="outro"><b>OUTRO</b><p>아웃트로 영상 자리 · media/outro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
+</div>
+
+<div id="stage">
+
+<!-- ======================= 1. 인트로 영상 ======================= -->
+<section class="slide video" data-video="intro" data-sec="">
+  <aside class="note" data-t="10"><p>(인트로 영상이 반복 재생됩니다. 청중이 자리에 앉으면 넘깁니다.)</p></aside>
+</section>
+
+<!-- ======================= 2. 표지 ======================= -->
+<section class="slide s-title" data-sec="">
+  <div class="hero">
+    <div class="kicker" data-a="fade" style="--d:.1s"><span class="dot"></span>AI 활용 성과 발표 · 개인 프로젝트 · 2026</div>
+    <h1 class="giant">
+      <span class="row"><span><span class="blk"><i class="wipe">기억</i></span>에서</span></span>
+      <span class="row"><span><span class="cyan">데이터</span><span class="outline">로</span></span></span>
+    </h1>
+    <div class="hero-sub">
+      <div data-a style="--d:2s">
+        <div class="sub1">AI 로 만든 네 개의 엔지니어링 도구</div>
+        <div class="sub2">— <b>설계지식의 자산화</b></div>
+      </div>
+      <div class="hero-meta" data-a style="--d:2.3s"><b>강재구 Jaegu Kang</b>작동기 자동점검 · 설계툴 · 기억지식저장소 · CLAW</div>
+    </div>
+    <div class="stamp" aria-hidden="true">
+      <svg viewBox="0 0 200 200">
+        <g fill="none" stroke="#111" stroke-width="2.5">
+          <path d="M40 60 L100 40 L160 70 M40 60 L70 120 L100 40 M70 120 L130 130 L160 70 M130 130 L100 170 L70 120 M100 170 L160 70"/>
+        </g>
+        <g fill="#111"><circle cx="40" cy="60" r="9"/><circle cx="160" cy="70" r="9"/><circle cx="70" cy="120" r="9"/><circle cx="100" cy="170" r="9"/></g>
+        <circle cx="100" cy="40" r="12" fill="#FF4D00"/><circle cx="130" cy="130" r="12" fill="#0097B2"/>
+      </svg>
+    </div>
+  </div>
+  <div class="marquee" aria-hidden="true">
+    <div class="track">
+      작동기 자동점검 <em>01 · TEST</em> 설계툴 <em>02 · DESIGN</em> 기억지식저장소 <em>03 · KNOWLEDGE</em> CLAW <em>04 · CONTROL LAW</em> 감각이 아니라 데이터로 <em>DATA</em> 기억이 아니라 노드로 <em>NODE</em>
+      작동기 자동점검 <em>01 · TEST</em> 설계툴 <em>02 · DESIGN</em> 기억지식저장소 <em>03 · KNOWLEDGE</em> CLAW <em>04 · CONTROL LAW</em> 감각이 아니라 데이터로 <em>DATA</em> 기억이 아니라 노드로 <em>NODE</em>
+    </div>
+  </div>
+  <aside class="note" data-t="30">
+    <p>안녕하십니까, 강재구입니다. 오늘 발표 제목은 <b>「기억에서 데이터로」</b>입니다.</p>
+    <p>제가 AI 와 함께 만든 도구 네 개를 차례로 보여 드리고, 그 과정에서 얻은 결론 하나를 말씀드리겠습니다. 부제처럼, 설계지식을 자산으로 만드는 이야기입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 3. 문제 제기 ======================= -->
+<section class="slide dark problem" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li class="on">문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(00)</span><h2>설계 지식은 어디에 있습니까</h2><span class="en">THE PROBLEM</span></div>
+  <div class="grid2">
+    <p class="statement" data-a style="--d:.2s">지금 우리의 설계 지식은<br><span class="hl-o">사람의 기억</span>과<br>감각 속에 있습니다.</p>
+    <div class="body">
+      <p data-a style="--d:.5s"><b>왜 이 값을 골랐는지는 담당자만 압니다.</b> 담당자가 바뀌면 근거도 함께 사라지고, 같은 검토를 처음부터 다시 합니다.</p>
+      <p data-a style="--d:.8s"><b>자료는 메일함과 개인 PC 에 흩어져 있습니다.</b> 찾는 데 시간이 걸리고, 찾아도 그것이 최신인지 확신할 수 없습니다.</p>
+      <p data-a style="--d:1.1s"><b>점검과 판정이 감각에 기대면</b> 같은 부품도 사람마다 결과가 달라지고, 그 차이는 기록으로 남지 않습니다.</p>
+    </div>
+  </div>
+  <p class="closing" data-a style="--d:1.6s">그래서 <mark>AI 로 만든 4개의 성과</mark>를 발표합니다.</p>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>먼저 문제부터 말씀드리겠습니다. 지금 우리 설계 지식은 대부분 <b>사람의 기억</b>에 있습니다.</p>
+    <p>왜 이 값을 골랐는지는 담당자만 알고, 자료는 메일함과 개인 PC 에 흩어져 있고, 점검 판정은 사람의 감각에 기댑니다.</p>
+    <p>그래서 오늘은 AI 로 만든 4개의 성과를 발표하겠습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 4. 네 개의 도구 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li class="on">문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head c2" data-a><span class="idx">(00)</span><h2>4개의 성과 발표</h2><span class="en">FOUR RESULTS</span></div>
+  <div class="index">
+    <div class="ix" data-a="left" style="--d:.2s"><span class="no">01</span><span class="name">작동기 자동점검</span><span class="desc">사람이 하던 작동기 점검을 버튼 하나로. 판정과 성적서까지 자동으로</span><span class="when"><b>te.jaegukang.com</b></span></div>
+    <div class="ix" data-a="left" style="--d:.4s"><span class="no">02</span><span class="name">설계툴</span><span class="desc">조종면 리깅 · 4절링크 · 힌지모멘트 계산을 웹 도구 하나로</span><span class="when"><b>jaegukang.com</b></span></div>
+    <div class="ix" data-a="left" style="--d:.6s"><span class="no">03</span><span class="name">기억지식저장소</span><span class="desc">메일함을 AI 가 계속 고쳐 쓰는 지식 위키로</span><span class="when"><b>brain.jaegukang.com</b></span></div>
+    <div class="ix" data-a="left" style="--d:.8s"><span class="no">04</span><span class="name">CLAW</span><span class="desc">MATLAB 없이 비행제어법칙 설계부터 탑재 C 코드까지</span><span class="when"><b>claw.jaegukang.com</b></span></div>
+  </div>
+  <div class="total" data-a style="--d:1.2s">
+    <span class="lb">네 도구 합계</span>
+    <span><b data-count="210964">210,964</b>줄 코드</span>
+    <span><b data-count="607">607</b>회 커밋</span>
+    <span><b data-count="3100" data-pre="약 ">약 3,100</b>개 자동 시험</span>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="30">
+    <p>4개의 성과입니다. 작동기 자동점검, 설계툴, 기억지식저장소, 그리고 가장 큰 CLAW 입니다.</p>
+    <p>네 개를 합치면 코드 약 21만 줄, 커밋 607회, 자동 시험 약 3,100개입니다. 이 숫자를 사람 한 명이 AI 와 함께 만들었다는 점을 기억해 주시면 좋겠습니다. 하나씩 보겠습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 5. ① 작동기 자동점검 ======================= -->
+<section class="slide te" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li class="on">점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(01)</span><h2>작동기 자동점검</h2><span class="en">ACTUATOR AUTO TEST</span></div>
+  <div class="grid2 grow">
+    <div>
+      <p class="statement" data-a style="--d:.2s">점검 기준을 <mark>코드</mark>로 옮겼습니다.<br>사람이 달라도 판정은 같습니다.</p>
+      <div class="body" style="margin-top:28px">
+        <p data-a style="--d:.5s">노트북과 <b>USB-CAN 어댑터 하나</b>로 CAN 서보(Hitec MDB961WP-CAN)를 점검합니다. 브라우저에서 바로 연결되고, 설치할 프로그램이 없습니다.</p>
+        <p data-a style="--d:.8s">일곱 항목을 차례로 시험하고, 합격 기준으로 판정해 <b>성적서까지 자동으로</b> 만듭니다. 기준값은 설정으로 빼 두어 바뀌어도 코드를 고치지 않습니다.</p>
+      </div>
+      <div class="demo" data-a style="--d:1.1s">
+        <a class="btn live" href="https://te.jaegukang.com/guide.html" target="_blank" rel="noopener">라이브 <span class="u">te.jaegukang.com/guide</span><span class="arr">↗</span></a>
+        <button class="btn rec" type="button" data-demo="media/demo-te.mp4">녹화 영상 <span class="arr">▶</span></button>
+      </div>
+    </div>
+    <div data-a style="--d:.4s">
+      <div class="steps-head"><span><b>자동 시험 7단계</b></span><span>PASS / FAIL</span></div>
+      <div class="steps">
+        <div class="step" style="--d:1.0s"><span class="n">0</span><b>수동 명령 · 피드백</b><span class="ok">PASS</span></div>
+        <div class="step" style="--d:1.35s"><span class="n">1</span><b>통신 1,000회</b><span class="ok">에러 0%</span></div>
+        <div class="step" style="--d:1.7s"><span class="n">2</span><b>구형파 응답</b><span class="ok">PASS</span></div>
+        <div class="step" style="--d:2.05s"><span class="n">3</span><b>계단파 응답</b><span class="ok">≤ 0.5°</span></div>
+        <div class="step" style="--d:2.4s"><span class="n">4</span><b>최대 각속도</b><span class="ok">측정</span></div>
+        <div class="step" style="--d:2.75s"><span class="n">5</span><b>주파수 응답</b><span class="ok">≥ 6 Hz</span></div>
+        <div class="step" style="--d:3.1s"><span class="n">6</span><b>온도 피드백</b><span class="ok">PASS</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="stat-row" data-a style="--d:1.4s">
+    <div class="stat"><div class="k">개발 기간</div><div class="v"><em data-count="1">1</em><small>일</small></div><div class="s">커밋 10회 · 코드 5,010줄</div></div>
+    <div class="stat"><div class="k">자동 시험</div><div class="v"><em data-count="84">84</em><small>개 통과</small></div><div class="s">실물 없이 시뮬레이터로 검증</div></div>
+    <div class="stat"><div class="k">장비 비용<i class="est">추정</i></div><div class="v">5<small>만 원</small></div><div class="s">어댑터 1개 · 외주 점검장비 제작 대비</div></div>
+    <div class="stat"><div class="k">점검 1회<i class="est">추정</i></div><div class="v">2<small>시간</small><span class="to">→</span><em>15</em><small>분</small></div><div class="s">측정 · 판정 · 성적서 작성 포함</div></div>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="75">
+    <p>첫 번째, 작동기 자동점검입니다. 점검 기준을 코드로 옮겨서 <b>누가 점검해도 같은 판정</b>이 나오게 했습니다.</p>
+    <p>노트북과 5만 원짜리 어댑터 하나면 됩니다. 일곱 단계를 자동으로 돌고 성적서까지 만듭니다. (라이브 버튼 → 사용 안내 화면의 체험 버튼을 눌러 보여 줍니다.)</p>
+    <p>만드는 데 하루 걸렸고, 자동 시험 84개로 검증했습니다.</p>
+    <p><b>확인 필요:</b> 장비 비용(외주 제작 견적), 점검 1회 시간(기존 방식 실측)은 추정치입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 6. ② 설계툴 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li class="on">설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head c2" data-a><span class="idx">(02)</span><h2>설계툴</h2><span class="en">DESIGN TOOLS</span></div>
+  <div class="cards grow" style="margin-bottom:34px">
+    <a class="card" href="https://jaegukang.com/cs_rigging.html" target="_blank" rel="noopener" data-a style="--d:.2s">
+      <div class="th"><span class="no">A</span><b>조종면 리깅</b></div>
+      <div class="bd">조종면 중립·타각을 맞추는 리깅 작업을 단계별로 안내하고 기록합니다.<span class="key">작업시간 50% 이상 단축</span></div>
+      <div class="go"><span>cs_rigging</span><span class="arr">↗</span></div>
+    </a>
+    <a class="card" href="https://jaegukang.com/4-bar-linkage-torque.html" target="_blank" rel="noopener" data-a style="--d:.4s">
+      <div class="th"><span class="no">B</span><b>4절링크 옵티마이저</b></div>
+      <div class="bd">작동기 링크 길이를 자동으로 최적화하고 <b>전달각과 토크</b>를 타각 전 범위에서 확인합니다.<span class="key">수작업 반복 → 자동 탐색</span></div>
+      <div class="go"><span>4-bar-linkage</span><span class="arr">↗</span></div>
+    </a>
+    <a class="card" href="https://jaegukang.com/hinge_moment_calculator.html" target="_blank" rel="noopener" data-a style="--d:.6s">
+      <div class="th"><span class="no">C</span><b>힌지모멘트 · 회귀 · 서보 FRA</b></div>
+      <div class="bd">힌지모멘트 계산, 시험 데이터 회귀분석, 서보 주파수 응답 분석을 한곳에서. <b>인터넷 없는 PC</b> 용 단일 파일도 있습니다.<span class="key">계산 도구 3종 통합</span></div>
+      <div class="go"><span>hinge · regression · fra</span><span class="arr">↗</span></div>
+    </a>
+  </div>
+  <div class="stat-row" data-a style="--d:.9s">
+    <div class="stat"><div class="k">리깅 작업시간</div><div class="v"><em data-count="50">50</em><small>% 이상 ↓</small></div><div class="s">현업 적용 기준</div></div>
+    <div class="stat"><div class="k">개발</div><div class="v"><em data-count="179">179</em><small>회 커밋</small></div><div class="s">2026. 03 부터 · 41일 작업 · 21,383줄</div></div>
+    <div class="stat"><div class="k">도구</div><div class="v"><em data-count="5">5</em><small>종 + 매뉴얼</small></div><div class="s">오프라인 단일 파일 병합본 포함</div></div>
+    <div class="stat"><div class="k">링크 검토 1안<i class="est">추정</i></div><div class="v">반나절<span class="to">→</span><em>수 분</em></div><div class="s">최적화 탐색 · 그래프 자동 생성</div></div>
+  </div>
+  <div class="demo" data-a style="--d:1.1s">
+    <a class="btn live" href="https://jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">jaegukang.com</span><span class="arr">↗</span></a>
+    <button class="btn rec" type="button" data-demo="media/demo-tools.mp4">녹화 영상 <span class="arr">▶</span></button>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="105">
+    <p>두 번째, 설계툴입니다. 세 가지를 보여 드리겠습니다.</p>
+    <p>A. 조종면 리깅 — 단계별 안내와 기록으로 <b>작업시간을 50% 이상</b> 줄였습니다. B. 4절링크 옵티마이저 — 링크 길이를 자동으로 찾고 전달각·토크를 확인합니다. C. 힌지모멘트·회귀·서보 FRA 계산 도구입니다.</p>
+    <p>(카드를 누르면 새 탭에서 각 도구가 열립니다. A → B → C 순으로 짧게.)</p>
+    <p><b>확인 필요:</b> 링크 검토 1안 시간(반나절 → 수 분)은 추정치입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 7. ③ 기억지식저장소 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(03)</span><h2>기억지식저장소</h2><span class="en">AIKE BRAIN</span></div>
+  <div class="grid2 grow" style="grid-template-columns:1fr 1.05fr;gap:80px;margin-bottom:30px">
+    <div>
+      <p class="statement" data-a style="--d:.2s">메일함을<br><mark>쌓이는 지식</mark>으로 바꿉니다.</p>
+      <div class="body" style="margin-top:28px">
+        <p data-a style="--d:.5s">메일을 넣으면 AI 가 <b>사람 · 장비 · 이슈별 위키 페이지</b>를 쓰고, 새 메일이 올 때마다 고쳐 씁니다. 모순은 표시하고, 모든 문장은 출처 메일로 거슬러 올라갑니다.</p>
+        <p data-a style="--d:.8s">원문은 절대 고치지 않습니다. 담당자가 바뀌어도 <b>지식은 남습니다.</b></p>
+      </div>
+      <div class="demo" data-a style="--d:1.1s">
+        <a class="btn live" href="https://brain.jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">brain.jaegukang.com</span><span class="arr">↗</span></a>
+        <button class="btn rec" type="button" data-demo="media/demo-brain.mp4">녹화 영상 <span class="arr">▶</span></button>
+      </div>
+    </div>
+    <div>
+      <div class="modes2" data-a style="--d:.5s">
+        <div class="mode"><div class="k">기억질문</div><b>무엇이 쓰여 있었나</b><p>메일에 실제로 적힌 내용을 찾습니다. 답에는 원문 구절을 그대로 인용합니다.</p><span class="src">근거 · 원문</span></div>
+        <div class="mode wiki"><div class="k">지식질문</div><b>누가 · 무엇을 · 어떻게</b><p>정리된 지식을 묻습니다. 위키 페이지를 근거로 답하고 출처 메일로 이어집니다.</p><span class="src">근거 · 위키</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="stat-row" data-a style="--d:1.2s">
+    <div class="stat"><div class="k">개발 기간</div><div class="v"><em data-count="6">6</em><small>일</small></div><div class="s">2026. 09. 21 시작 · 커밋 39회</div></div>
+    <div class="stat"><div class="k">자동 시험</div><div class="v"><em data-count="289">289</em><small>개</small></div><div class="s">코드 10,782줄</div></div>
+    <div class="stat"><div class="k">위키 페이지 종류</div><div class="v"><em data-count="5">5</em><small>종</small></div><div class="s">source · entity · concept · synthesis · issue</div></div>
+    <div class="stat"><div class="k">자료 찾기 1건<i class="est">추정</i></div><div class="v">20<small>분</small><span class="to">→</span><em>1</em><small>분</small></div><div class="s">메일함 검색 대비</div></div>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>세 번째, 기억지식저장소입니다. 메일함을 <b>쌓이는 지식</b>으로 바꾸는 도구입니다.</p>
+    <p>질문은 두 가지로 나눴습니다. 메일에 실제로 뭐라고 쓰여 있었는지 묻는 기억질문, 정리된 지식을 묻는 지식질문입니다. 두 경로를 섞지 않아서, 답의 근거가 늘 분명합니다.</p>
+    <p><b>확인 필요:</b> 자료 찾기 시간(20분 → 1분)은 추정치입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 8. ③ 파이프라인 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(03)</span><h2>메일이 지식이 되는 길</h2><span class="en">PIPELINE</span></div>
+  <figure class="dia">
+    <svg viewBox="0 0 1680 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="기억지식저장소 파이프라인">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#111"/></marker>
+        <marker id="aho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#FF4D00"/></marker>
+        <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0097B2"/></marker>
+        <marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6F6C66"/></marker>
+      </defs>
+      <!-- 1행: 흐름 -->
+      <g class="g-up" style="--d:.2s">
+        <rect class="bx" x="0" y="80" width="240" height="150"/>
+        <text class="t-k" x="22" y="118">01 가져오기</text>
+        <text class="t-h" x="22" y="160">메일 · 첨부</text>
+        <text class="t-b" x="22" y="196">Gmail · 파일</text>
+      </g>
+      <path class="ar draw" pathLength="1" style="--d:.6s;--dur:.5s" d="M244 155 H316" marker-end="url(#ah)"/>
+      <g class="g-up" style="--d:.8s">
+        <rect class="bx" x="322" y="80" width="300" height="150"/>
+        <text class="t-k" x="344" y="118">02 문서 유형별 파싱</text>
+        <text class="t-h" x="344" y="160">유형 판별</text>
+        <text class="t-b" x="344" y="196">이메일 · 회의록 · 기술자료</text>
+        <text class="t-b" x="344" y="220">보고서 · 시험결과 · 규정</text>
+      </g>
+      <path class="ar draw" pathLength="1" style="--d:1.2s;--dur:.5s" d="M626 155 H698" marker-end="url(#ah)"/>
+      <g class="g-up inv" style="--d:1.4s">
+        <rect class="bx ink" x="704" y="80" width="300" height="150"/>
+        <text class="t-k" x="726" y="118">원본층</text>
+        <text class="t-h" x="726" y="160">문서 · 청크 · 첨부</text>
+        <text class="t-b" x="726" y="196">가져오기만 쓴다</text>
+        <text class="t-b" x="726" y="220">위키 작업은 읽기만</text>
+      </g>
+      <path class="ar o draw" pathLength="1" style="--d:1.8s;--dur:.5s" d="M1008 155 H1080" marker-end="url(#aho)"/>
+      <g class="g-up inv" style="--d:2.0s">
+        <rect class="bx o" x="1086" y="80" width="230" height="150"/>
+        <text class="t-k" x="1108" y="118">AI 반영</text>
+        <text class="t-h" x="1108" y="160">ingest</text>
+        <text class="t-b" x="1108" y="196">페이지 쓰기 · 고치기</text>
+        <text class="t-b" x="1108" y="220">교차 링크 · 모순 표시</text>
+      </g>
+      <path class="ar c draw" pathLength="1" style="--d:2.4s;--dur:.5s" d="M1320 155 H1374" marker-end="url(#ahc)"/>
+      <g class="g-up inv" style="--d:2.6s">
+        <rect class="bx c" x="1380" y="80" width="300" height="150"/>
+        <text class="t-k" x="1402" y="118">위키층</text>
+        <text class="t-h" x="1402" y="160">마크다운 페이지</text>
+        <text class="t-b" x="1402" y="196">source · entity · concept</text>
+        <text class="t-b" x="1402" y="220">synthesis · issue · 색인</text>
+      </g>
+      <!-- 점검 고리 -->
+      <path class="ar c draw" pathLength="1" style="--d:3.0s;--dur:.8s" d="M1640 78 C1640 10 1420 10 1420 74" marker-end="url(#ahc)"/>
+      <text class="lb c g-in" style="--d:3.4s" x="1402" y="46" text-anchor="end">점검 · 리비전 · 되돌림</text>
+      <!-- 스키마층 -->
+      <g class="g-up" style="--d:3.2s">
+        <rect class="bx" x="1046" y="318" width="310" height="140" style="stroke-dasharray:10 7"/>
+        <text class="t-k" x="1068" y="356">스키마층</text>
+        <text class="t-h" x="1068" y="398">wiki_schema.md</text>
+        <text class="t-b" x="1068" y="434">사람과 AI 가 함께 고치는 규칙</text>
+      </g>
+      <path class="ar g draw" pathLength="1" style="--d:3.6s;--dur:.5s" d="M1201 314 V236" marker-end="url(#ahg)"/>
+      <text class="lb g-in" style="--d:3.8s" x="1216" y="282">작성 규칙</text>
+      <!-- 질문 두 갈래 -->
+      <path class="ar draw" pathLength="1" style="--d:4.0s;--dur:.6s" d="M854 234 V500" marker-end="url(#ah)"/>
+      <path class="ar c draw" pathLength="1" style="--d:4.0s;--dur:.6s" d="M1530 234 V500" marker-end="url(#ahc)"/>
+      <g class="g-up" style="--d:4.4s">
+        <rect class="bx" x="600" y="506" width="508" height="130"/>
+        <text class="t-k" x="624" y="544">기억질문</text>
+        <text class="t-h" x="624" y="584">무엇이 쓰여 있었나</text>
+        <text class="t-b" x="624" y="618">근거: 원문 청크 · 인용: 원문 구절 그대로</text>
+      </g>
+      <g class="g-up" style="--d:4.6s">
+        <rect class="bx" x="1172" y="506" width="508" height="130" style="stroke:#0097B2"/>
+        <text class="t-k" x="1196" y="544">지식질문</text>
+        <text class="t-h" x="1196" y="584">누가 · 무엇을 · 어떻게</text>
+        <text class="t-b" x="1196" y="618">근거: 위키 페이지 → 출처 메일로 확인</text>
+      </g>
+      <g class="g-in" style="--d:5.0s">
+        <circle cx="1140" cy="571" r="22" fill="#F4F1E8" stroke="#FF4D00" stroke-width="2.5"/>
+        <path d="M1129 565 H1151 M1129 577 H1151 M1146 558 L1134 584" stroke="#FF4D00" stroke-width="3" stroke-linecap="round" fill="none"/>
+      </g>
+      <text class="lb o g-in" style="--d:5.2s" x="0" y="560">두 경로는 섞지 않는다</text>
+      <text class="t-b g-in" style="--d:5.2s" x="0" y="592">답의 근거가 원문인지 위키인지</text>
+      <text class="t-b g-in" style="--d:5.2s" x="0" y="618">항상 구분해서 보여 줍니다</text>
+    </svg>
+    <figcaption><span>근거: aike-brain3 <b>ADR-002</b> LLM 위키 §2–§7 · <b>SPEC-001</b> 문서 유형별 파싱 프로파일</span><span>원본은 바꾸지 않고, 위키는 계속 고쳐 쓴다</span></figcaption>
+  </figure>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>안을 조금 보여 드리겠습니다. 메일을 가져오면 문서 유형을 판별해 <b>원본층</b>에 넣습니다. 원본층은 절대 고치지 않습니다.</p>
+    <p>그다음 AI 가 원본을 읽고 <b>위키층</b>의 마크다운 페이지를 쓰고 고칩니다. 어떻게 쓸지는 사람과 AI 가 함께 고치는 <b>스키마</b>가 정합니다.</p>
+    <p>질문은 두 갈래입니다. 원문을 근거로 하는 기억질문, 위키를 근거로 하는 지식질문. 섞지 않기 때문에 근거가 흐려지지 않습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 9. ③ 마크다운 계층 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(03)</span><h2>지식을 층으로 쌓는다</h2><span class="en">MARKDOWN HIERARCHY</span></div>
+  <div class="grid2 grow" style="grid-template-columns:1.2fr 1fr;gap:56px">
+    <figure class="dia">
+      <div class="kinds" data-a style="--d:.1s">
+        <span class="kind">source<i>메일 1통 요약</i></span>
+        <span class="kind on">entity<i>사람 · 장비 · 제품</i></span>
+        <span class="kind">concept<i>개념 · 절차</i></span>
+        <span class="kind">synthesis<i>종합</i></span>
+        <span class="kind">issue<i>문제 하나</i></span>
+      </div>
+      <svg viewBox="0 0 980 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="작동기 5층 계층">
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#111"/></marker>
+        </defs>
+        <!-- 층 이름 -->
+        <g class="g-in" style="--d:.3s">
+          <text class="t-k" x="0" y="44">공통</text>
+          <text class="t-k" x="0" y="140">제조사</text>
+          <text class="t-k" x="0" y="236">통신방식</text>
+          <text class="t-k" x="0" y="332">시리즈</text>
+          <text class="t-k" x="0" y="428">모델</text>
+          <text class="t-k" x="0" y="524">이슈</text>
+        </g>
+        <!-- 간선 -->
+        <g>
+          <path class="ar draw" pathLength="1" style="--d:.9s;--dur:.4s" d="M560 62 V112"/>
+          <path class="ar draw" pathLength="1" style="--d:1.4s;--dur:.5s" d="M560 158 C560 184 400 184 400 208"/>
+          <path class="ar draw" pathLength="1" style="--d:1.4s;--dur:.5s" d="M560 158 C560 184 740 184 740 208"/>
+          <path class="ar draw" pathLength="1" style="--d:1.9s;--dur:.4s" d="M400 254 V304"/>
+          <path class="ar draw" pathLength="1" style="--d:1.9s;--dur:.4s" d="M740 254 V304"/>
+          <path class="ar draw" pathLength="1" style="--d:2.4s;--dur:.4s" d="M400 350 V400"/>
+          <path class="ar g draw" pathLength="1" style="--d:2.9s;--dur:.4s" d="M400 446 V496"/>
+          <path class="ar o draw" pathLength="1" style="--d:3.3s;--dur:.6s" d="M560 520 C660 520 740 440 740 356"/>
+        </g>
+        <!-- 노드 -->
+        <g class="g-up" style="--d:.5s"><rect class="bx c" x="380" y="16" width="360" height="46"/><text x="560" y="47" text-anchor="middle" class="t-m" style="fill:#F4F1E8">synthesis/작동기 공통 사항</text></g>
+        <g class="g-up" style="--d:1.0s"><rect class="bx ink" x="440" y="112" width="240" height="46"/><text x="560" y="143" text-anchor="middle" class="t-m" style="fill:#F4F1E8">HITEC RCD</text></g>
+        <g class="g-up" style="--d:1.6s"><rect class="bx" x="290" y="208" width="220" height="46"/><text x="400" y="239" text-anchor="middle" class="t-m">HITEC RCD CAN</text></g>
+        <g class="g-up" style="--d:1.6s"><rect class="bx" x="630" y="208" width="220" height="46"/><text x="740" y="239" text-anchor="middle" class="t-m">HITEC RCD PWM</text></g>
+        <g class="g-up" style="--d:2.1s"><rect class="bx" x="270" y="304" width="260" height="46"/><text x="400" y="335" text-anchor="middle" class="t-m">DB 시리즈</text></g>
+        <g class="g-up" style="--d:2.1s"><rect class="bx" x="630" y="304" width="220" height="46"/><text x="740" y="335" text-anchor="middle" class="t-m">D 시리즈</text></g>
+        <g class="g-up" style="--d:2.6s"><rect class="bx o" x="300" y="400" width="200" height="46"/><text x="400" y="431" text-anchor="middle" class="t-m" style="fill:#fff;font-weight:800">DB961WP</text></g>
+        <g class="g-up" style="--d:3.1s"><rect class="bx dash" x="240" y="496" width="320" height="46"/><text x="400" y="527" text-anchor="middle" class="t-m" style="fill:#6F6C66">issues/&lt;모델&gt; &lt;요지&gt;</text></g>
+        <text class="lb o g-in" style="--d:3.8s" x="770" y="470">여러 모델에 걸친 이슈는</text>
+        <text class="lb o g-in" style="--d:3.8s" x="770" y="494">가장 가까운 상위 층에</text>
+      </svg>
+      <figcaption><span>(개념도) 작성 규칙 <b>wiki_schema.md §5</b>의 예시 — 발표 전 실제 위키 페이지로 교체</span></figcaption>
+    </figure>
+    <div style="display:flex;flex-direction:column">
+      <div class="md" data-a style="--d:1.2s">
+        <div class="mh"><b>entities/DB961WP.md</b><span>MODEL PAGE</span></div>
+<pre><span class="y">---
+kind: entity
+summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들어짐</span><span class="y">
+---</span>
+<span class="h">## 상위</span>
+<span class="l">[[entities/HITEC RCD DB 시리즈]]</span>
+<span class="h">## 사양</span>
+<span class="c">상위와 다른 값만 · 공통 사양은 링크</span>
+<span class="h">## 관련 이슈</span>
+<span class="h">## 타임라인</span>
+이전: … (<span class="l">[[sources/2026-…]]</span>)
+<span class="h">## 미해결·모순</span></pre>
+      </div>
+      <div class="rule" data-a style="--d:2.0s">한 사실은 적용되는 가장 높은 층 한 곳에만 씁니다.<span>다른 층은 복사하지 않고 링크합니다. 복사하면 한 곳만 고쳐져 서로 어긋납니다.</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>위키 페이지는 이렇게 층으로 쌓입니다. 작동기라면 <b>제조사 → 통신방식 → 시리즈 → 모델 → 이슈</b>의 다섯 층입니다.</p>
+    <p>규칙은 하나입니다. <b>한 사실은 가장 높은 층 한 곳에만</b> 쓰고, 나머지는 링크로 잇습니다. 그래서 값이 바뀌면 한 곳만 고치면 됩니다.</p>
+    <p>이것이 바로 지식의 <b>노드화</b>입니다. 이 이야기는 마지막에 다시 하겠습니다.</p>
+    <p><b>교체 예정:</b> 지금 그림은 작성 규칙의 예시입니다. 위키 생성이 끝나면 실제 페이지로 바꿉니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 10. ④ CLAW ======================= -->
+<section class="slide dark" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(04)</span><h2>CLAW — 비행제어법칙 설계툴</h2><span class="en">CONTROL LAW WORKBENCH</span></div>
+  <p class="statement" data-a style="--d:.2s;font-size:64px;margin-top:20px">MATLAB 없이, 제어법칙 설계부터 <mark>탑재 C 코드</mark>까지.</p>
+  <div class="chain" data-a style="--d:.6s">
+    <span>트림</span><i></i><span>선형화 · 안정성 마진</span><i></i><span>게인 설계</span><i></i><span>폐루프 시뮬레이션</span><i></i><span>영향성 판정</span><i></i><span class="o">C 코드 생성 · 검증</span>
+  </div>
+  <div class="grow"></div>
+  <div class="fact-row" data-a style="--d:1.0s">
+    <div class="fact"><div class="k">MATLAB 대체</div><div class="v">약 <em data-count="2">2</em><small>억 원</small></div><div class="s">한 카피 기준 라이선스 비용</div></div>
+    <div class="fact"><div class="k">개발 인력 · 시간</div><div class="v"><em data-count="50">50</em><small>% 이상 ↓</small></div><div class="s">제어법칙 설계 · 검증 · 코드화 전 과정</div></div>
+    <div class="fact"><div class="k">사람 손으로는 불가능</div><div class="v t">여러 게인을 섞은<br>튜닝의 <em>역산</em></div><div class="s">자동 설계 루프가 격자 전체를 풀어냄</div></div>
+    <div class="fact"><div class="k">규모</div><div class="v t"><em data-count="379">379</em>회 커밋<br><em data-count="173789">173,789</em>줄</div><div class="s">2026. 07 – 09 · 28일 작업 · 자동 시험 약 2,800개</div></div>
+  </div>
+  <div class="demo" data-a style="--d:1.3s">
+    <a class="btn live" href="https://claw.jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">claw.jaegukang.com</span><span class="arr">↗</span></a>
+    <button class="btn rec" type="button" data-demo="media/demo-claw.mp4">녹화 영상 <span class="arr">▶</span></button>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="60">
+    <p>네 번째, 가장 공을 들인 CLAW 입니다. MATLAB 없이 비행제어법칙을 설계하고, 탑재용 C 코드까지 만듭니다.</p>
+    <p>MATLAB 은 한 카피에 <b>약 2억 원</b>입니다. 개발 인력과 시간은 <b>50% 이상</b> 줄었고, 여러 게인을 섞은 튜닝을 거꾸로 풀어내는 일처럼 <b>사람 손으로는 불가능한 일</b>을 합니다.</p>
+    <p>두 달 동안 커밋 379회, 코드 17만 줄입니다. 이제 모드를 하나씩 보여 드리겠습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 11. ④ CLAW 14개 모드 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(04)</span><h2>업무 순서대로 놓인 14개 모드</h2><span class="en">14 MODES · LIVE</span></div>
+  <div class="phases" data-a style="--d:.2s">
+    <div class="phase">대상</div><div class="phase" style="grid-column:span 3">구조와 영역</div><div class="phase" style="grid-column:span 3">선형 설계</div><div class="phase c" style="grid-column:span 2">날려 보기</div><div class="phase o">판정</div><div class="phase" style="grid-column:span 2">코드</div><div class="phase">열람</div>
+  </div>
+  <div class="tiles">
+    <a class="tile" href="https://claw.jaegukang.com/#aircraft" target="_blank" rel="noopener" data-a style="--d:.40s"><span class="n">01</span><b>기체</b><p>기체 선택 · 제원</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#blocks" target="_blank" rel="noopener" data-a style="--d:.52s"><span class="n">02</span><b>블록도</b><p>제어법칙 구조를 3D 블록으로</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#envelope" target="_blank" rel="noopener" data-a style="--d:.64s"><span class="n">04</span><b>엔벨로프</b><p>비행 영역 · 실속 경계</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#trim" target="_blank" rel="noopener" data-a style="--d:.76s"><span class="n">05</span><b>트림</b><p>운영점마다 평형 상태</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#gains" target="_blank" rel="noopener" data-a style="--d:.88s"><span class="n">06</span><b>게인</b><p>게인 설계와 스케줄</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#margins" target="_blank" rel="noopener" data-a style="--d:1.00s"><span class="n">07</span><b>마진 맵</b><p>운영점별 안정성 여유</p><span class="arr">↗</span></a>
+    <a class="tile key" href="https://claw.jaegukang.com/#autodesign" target="_blank" rel="noopener" data-a style="--d:1.12s"><span class="n">08</span><b>자동 설계</b><p>격자 → 튜닝 → 적합 → 검증을 스스로 반복</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#sim" target="_blank" rel="noopener" data-a style="--d:1.24s"><span class="n">09</span><b>시뮬레이션</b><p>미션 하나를 6DOF 로 날려 보기</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#world" target="_blank" rel="noopener" data-a style="--d:1.36s"><span class="n">10</span><b>가상환경</b><p>3D 로 눈으로 확인</p><span class="arr">↗</span></a>
+    <a class="tile key" href="https://claw.jaegukang.com/#influence" target="_blank" rel="noopener" data-a style="--d:1.48s"><span class="n">11</span><b>영향성</b><p>격자 전체 판정 · 파라미터가 번지는 길</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#autocode" target="_blank" rel="noopener" data-a style="--d:1.60s"><span class="n">12</span><b>Autocode</b><p>탑재용 C 코드 생성</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#verify" target="_blank" rel="noopener" data-a style="--d:1.72s"><span class="n">13</span><b>검증</b><p>생성 코드와 모델 대조</p><span class="arr">↗</span></a>
+    <a class="tile" href="https://claw.jaegukang.com/#results" target="_blank" rel="noopener" data-a style="--d:1.84s"><span class="n">14</span><b>결과</b><p>모든 실행의 계보 원장</p><span class="arr">↗</span></a>
+  </div>
+  <a class="flowbar" href="https://claw.jaegukang.com/#flow" target="_blank" rel="noopener" data-a style="--d:2.1s"><span><b>03 설계 흐름</b> &nbsp;<span>검증 → 엔벨로프 → 게인 → 자동 설계 → 평가 → 반영을 한 화면에서 끝까지 실행하는 지휘 층</span></span><span class="arr">↗</span></a>
+  <div class="demo" data-a style="--d:2.3s">
+    <a class="btn live" href="https://claw.jaegukang.com/" target="_blank" rel="noopener">라이브 <span class="u">claw.jaegukang.com</span><span class="arr">↗</span></a>
+    <button class="btn rec" type="button" data-demo="media/demo-claw.mp4">녹화 영상 <span class="arr">▶</span></button>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="210">
+    <p>(라이브: 로그인 화면부터. 모드당 약 15초.)</p>
+    <p>탭은 <b>업무 순서</b> 그대로입니다. 기체를 고르고 → 블록도로 구조를 보고 → 엔벨로프와 트림 → 게인과 마진 → <b>자동 설계</b>가 격자 전체를 스스로 튜닝합니다.</p>
+    <p>그다음 시뮬레이션과 가상환경에서 실제로 날려 보고 → <b>영향성</b>에서 격자 전체를 판정하고 → Autocode 로 C 코드를 만들고 → 검증에서 코드와 모델을 대조합니다. 결과 탭에는 모든 실행의 계보가 남습니다.</p>
+    <p>설계 흐름 탭은 이 전체를 한 화면에서 끝까지 실행합니다.</p>
+    <p><b>시간 조절:</b> 14개 모두 보이면 약 3분 30초. 줄일 때는 자동 설계 · 시뮬레이션 · 영향성 · Autocode 넷만.</p>
+  </aside>
+</section>
+
+<!-- ======================= 12. CLAW 영향성 ======================= -->
+<section class="slide dark" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(04)</span><h2>CLAW 영향성 — 값 하나가 번지는 길</h2><span class="en">INFLUENCE</span></div>
+  <div class="cw">
+    <div class="cw-l">
+      <p class="statement" data-a style="--d:.2s">파라미터 하나를 바꾸면 <mark>어디까지 번지는지</mark> 선으로 봅니다.</p>
+      <div class="cw-b">
+        <p data-a style="--d:.5s">파라미터를 고르면 모두 어두워지고, 영향이 <b>층을 타고</b> 번집니다. 층 번호가 곧 <b>IR 실행 순서이자 생성 C 코드의 문장 순서</b>라, 이 움직임은 장식이 아니라 실행 순서 그대로입니다.</p>
+        <p data-a style="--d:.8s">자동 설계가 보지 못하는 추종 · 과도 · 타면 · 권한을 <b>격자 전체</b>로 처음 판정하고, 통과한 형상만 코드로 내보냅니다.</p>
+      </div>
+      <div class="cw-n" data-a style="--d:1.1s">
+        <div><span>파라미터</span><b data-count="69">69</b></div>
+        <div><span>IR 노드 · 24층</span><b data-count="80">80</b></div>
+        <div><span>법칙 출력</span><b data-count="7">7</b></div>
+        <div><span>설계 지표</span><b data-count="34">34</b></div>
+        <div><span>노드 · 간선</span><b><em data-count="220">220</em> · <em data-count="373">373</em></b></div>
+      </div>
+    </div>
+    <figure class="dia cw-fig">
+      <svg id="clawgraph" class="inf" viewBox="0 0 1180 640" preserveAspectRatio="xMidYMid meet" data-loop role="img" aria-label="CLAW 영향성 그래프"></svg>
+      <figcaption><span class="ac-read" id="clawread">&nbsp;</span><span class="cw-lg" id="clawlegend"></span></figcaption>
+    </figure>
+  </div>
+  <div class="foot"><span>강재구 · 기억에서 데이터로 · 그래프: CLAW 엔진 structural_payload(예제 기체) 실제 출력</span><span class="r"></span></div>
+  <aside class="note" data-t="55">
+    <p>CLAW 에서 가장 보여 드리고 싶은 화면이 <b>영향성</b>입니다. 지금 보시는 그래프는 그림이 아니라 CLAW 엔진이 실제로 내놓은 제어법칙 그래프입니다. 파라미터 69개, IR 노드 80개, 설계 지표 34개입니다.</p>
+    <p>파라미터를 하나 고르면 나머지가 어두워지고, 영향이 층을 타고 번집니다. 이 층 순서가 곧 탑재 C 코드가 실행되는 순서입니다.</p>
+    <p>(작동기 wn 차례에서) 작동기처럼 제어법칙 밖에 있는 값은 법칙을 거치지 않고 기체로 바로 갑니다. 영향이 없는 게 아니라, 폐루프에서만 보이는 자리라는 뜻입니다.</p>
+    <p>이렇게 값 하나의 영향을 사람의 기억이 아니라 <b>그래프로</b> 추적합니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 13. 비전 B — 네 도구에서 항공기 전체로 ======================= -->
+<section class="slide dark" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta on">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(05)</span><h2>네 도구에서 항공기 전체로</h2><span class="en">ONE AIRCRAFT · ONE GRAPH</span></div>
+  <p class="ac-lead" data-a style="--d:.2s">네 도구를 포함해 <b>비행제어시스템</b>, 나아가 <b>항공기 전체 설계</b>를 데이터로 유기적으로 잇습니다. 값 하나가 바뀌면 <mark>어디까지 번지는지</mark> 선을 따라 보입니다.</p>
+  <figure class="dia ac-fig">
+    <svg id="acgraph" class="inf" viewBox="0 0 1680 690" preserveAspectRatio="xMidYMid meet" data-loop role="img" aria-label="항공기 전체 설계 노드 그래프"></svg>
+    <figcaption><span class="ac-read" id="acread">&nbsp;</span><span>(개념도) <b style="color:#FF4D00">주황 테</b> = 지금 네 도구가 맡은 노드 · 점선 = 되먹임</span></figcaption>
+  </figure>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="45">
+    <p>네 도구는 끝이 아니라 시작입니다. 주황 테가 지금 네 도구가 맡은 노드입니다. 이것을 포함해 <b>비행제어시스템</b>, 나아가 <b>항공기 전체 설계</b>를 데이터로 잇는 것이 목표입니다.</p>
+    <p>(재생을 가리키며) 링크와 힌지모멘트 값이 바뀌면 작동기, 제어법칙, 탑재 코드, 시험까지 어디로 번지는지 선을 따라 보입니다. 공력 DB 나 운용 요구가 바뀌면 훨씬 더 넓게 번집니다.</p>
+    <p>시험과 비행에서 나온 결과는 다시 설계 이력과 이슈로 쌓여 다음 설계로 돌아옵니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 14. 비전 C — 기억 vs 데이터 ======================= -->
+<section class="slide" data-sec="">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta on">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx">(05)</span><h2>기억에서 데이터로</h2><span class="en">MEMORY → DATA</span></div>
+  <div class="cmp">
+    <div class="hd"></div><div class="hd" data-a="fade" style="--d:.2s">지금 · 기억과 감각</div><div class="hd o" data-a="fade" style="--d:.4s">목표 · 명세된 노드</div>
+    <div class="rk" data-a="left" style="--d:.5s">지식의 자리</div><div class="now" data-a="fade" style="--d:.6s">담당자의 기억 · 메일함 · 개인 PC</div><div class="goal" data-a="left" style="--d:1.0s">모두가 여는 <em>노드</em> 하나</div>
+    <div class="rk" data-a="left" style="--d:.7s">판단의 근거</div><div class="now" data-a="fade" style="--d:.8s">경험과 감각, 말로 전해짐</div><div class="goal" data-a="left" style="--d:1.3s">정량 지표와 <em>출처</em>가 붙은 값</div>
+    <div class="rk" data-a="left" style="--d:.9s">변경의 영향</div><div class="now" data-a="fade" style="--d:1.0s">회의로 추측</div><div class="goal" data-a="left" style="--d:1.6s">그래프로 <em>추적</em></div>
+    <div class="rk" data-a="left" style="--d:1.1s">검증</div><div class="now" data-a="fade" style="--d:1.2s">사람마다 다른 판정</div><div class="goal" data-a="left" style="--d:1.9s">같은 기준, <em>자동</em> 시험</div>
+    <div class="rk" data-a="left" style="--d:1.3s">사람이 떠나면</div><div class="now" data-a="fade" style="--d:1.4s">지식도 함께 떠남</div><div class="goal" data-a="left" style="--d:2.2s">지식은 남고 <em>쌓임</em></div>
+  </div>
+  <p class="statement" data-a style="--d:2.7s;font-size:44px;margin-top:auto">효율적이고, 정확하고, <mark>정량적인</mark> 엔지니어링.</p>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="40">
+    <p>정리하면 이렇습니다. 지금은 지식이 사람의 기억에 있고, 판단은 감각에 기대고, 사람이 떠나면 지식도 떠납니다.</p>
+    <p>목표는 <b>연구원의 모든 데이터를 노드로 만들고 명세하는 것</b>입니다. 그러면 근거는 출처가 붙은 값이 되고, 변경의 영향은 그래프로 추적되고, 지식은 남아서 쌓입니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 15. 아웃트로 영상 — 한 번 재생, 끝나면 마무리 장으로 ======================= -->
+<section class="slide video" data-video="outro" data-sec="">
+  <aside class="note" data-t="29"><p>(아웃트로 장은 첫 장면에서 멈춰 있습니다. <b>한 번 더 넘기면</b> 영상이 노래와 함께 재생되고, 노래 박자에 맞춰 마무리 장으로 넘어가 글이 차례로 나옵니다. 노래는 약 39초에 마디 끝에서 저절로 끝납니다. 넘기지 말고 기다리세요.)</p></aside>
+</section>
+
+<!-- ======================= 16. 마무리 ======================= -->
+<section class="slide dark end" data-sec="">
+  <div class="kick" data-a="fade"><span class="dot"></span>설계지식의 자산화</div>
+  <div class="verse" data-a="left" style="--d:.3s">
+    <p><span class="l1">감각이 아니라 <mark>데이터</mark>로,</span><span class="l2">기억이 아니라 <mark>노드</mark>로.</span></p>
+  </div>
+  <p class="lead" data-a style="--d:1.2s">연구원의 모든 데이터를 노드로 만들고 명세하면, 사람의 기억과 감각에 기대지 않는 <b>효율적이고 정확하고 정량적인 엔지니어링</b>을 할 수 있습니다. 네 개의 도구는 그 첫걸음입니다.</p>
+  <div class="tf" data-a style="--d:1.8s"><span class="thx">감사합니다</span><span class="sign">강재구 JAEGU KANG</span></div>
+  <aside class="note" data-t="11">
+    <p><b>감각이 아니라 데이터로, 기억이 아니라 노드로.</b></p>
+    <p>네 개의 도구는 그 첫걸음입니다. 들어 주셔서 감사합니다.</p>
+    <p>(이 화면에 둔 채 질문을 받습니다.)</p>
+  </aside>
+</section>
+
+</div><!-- /stage -->
+
+<div id="bar"></div>
+<div id="hud"><span class="n"></span><span class="k">← → 또는 화면 좌·우 클릭 · N 대본 · P 폰 대본 · F 전체 화면</span></div>
+<div id="rot">가로로 돌리면 크게 보입니다 · 화면을 <b>좌우로 밀거나</b> 좌·우를 눌러 넘기세요</div>
+<div id="notes"><div class="top"></div><div class="txt"></div></div>
+<div id="demo" role="dialog" aria-label="녹화 영상">
+  <button class="x" type="button">닫기 · Esc</button>
+  <video controls playsinline preload="none"></video>
+  <div class="msg">녹화 영상이 아직 없습니다.<small></small></div>
+</div>
+
+<script>
+/* ===== 영향성 재생기 — CLAW 영향성 탭의 재생 방식 (12장 · 13장 공용) =====
+   노드 하나를 고르면 모두 어두워지고, 영향 원뿔이 층(최장 경로 순위)을 타고 켜진다.
+   층 슬롯 150 ms · 층 안 시차 30 ms · 간선 성장 180 ms, 완성 뒤 3.8 s 입자가 흐르고 되감는다.
+   o: svg · read · N(id→{g,out,label}) · order · hot('a>b'→path) · gP(입자 층) · sources
+      · step(src,k,R,id) · done(src,ids,R) · still() · maxPts */
+window.InfluencePlayer = function(o){
+  var svg = o.svg, N = o.N, order = o.order, hot = o.hot, read = o.read;
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var timers = [], raf = 0, running = false, si = 0;
+  /* 끝난 타이머는 스스로 목록에서 빠진다 — 목록을 통째로 비우면, 백그라운드 탭에서 한꺼번에 몰려 실행될 때
+     아직 안 끝난 타이머 번호까지 잃어 clearAll 이 못 끈다 */
+  function later(fn, ms){ var id = setTimeout(function(){ var j = timers.indexOf(id); if(j >= 0) timers.splice(j, 1); fn(); }, ms); timers.push(id); }
+  function resetHot(list){
+    /* 전환을 끈 채 되돌린다 — 켜 두면 지난 선이 다시 나타나며 거꾸로 줄어든다 */
+    list.forEach(function(h){ h.classList.add('reset'); h.classList.remove('on', 'fade'); });
+    void svg.getBoundingClientRect();
+    list.forEach(function(h){ h.classList.remove('reset'); });
+  }
+  function clearAll(){
+    timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); raf = 0;
+    svg.classList.remove('dim');
+    order.forEach(function(id){ N[id].g.classList.remove('lit', 'src'); });
+    resetHot(Object.keys(hot).map(function(k){ return hot[k]; }));
+    o.gP.textContent = '';
+    if(o.onClear) o.onClear();
+  }
+  /* 최장 경로 순위: 층 번호가 곧 켜지는 순서 (CLAW assignRanks 와 같은 뜻).
+     간선은 비순환이어야 한다. 실수로 순환이 생겨도 멈추지 않게 횟수를 제한한다. */
+  function ranks(src){
+    var r = {}; r[src] = 0;
+    var changed = true, pass = 0;
+    while(changed && pass++ <= order.length){
+      changed = false;
+      order.forEach(function(id){
+        if(r[id] === undefined) return;
+        N[id].out.forEach(function(x){ if(r[x] === undefined || r[x] < r[id] + 1){ r[x] = r[id] + 1; changed = true; } });
+      });
+    }
+    return r;
+  }
+  function play(){
+    if(!running) return;
+    var src = o.sources[si++ % o.sources.length], r = ranks(src);
+    var ids = order.filter(function(id){ return r[id] !== undefined; });
+    var R = 0; ids.forEach(function(id){ R = Math.max(R, r[id]); });
+    var byRank = []; ids.forEach(function(id){ (byRank[r[id]] = byRank[r[id]] || []).push(id); });
+    svg.classList.add('dim');
+    if(o.onSource) o.onSource(src);
+    var lit = [], T0 = 300, spill = 0;
+    byRank.forEach(function(list, k){
+      /* 한 층의 시차는 층 간격(150 ms) 안에 끝나야 한다 — 넘치면 다음 층 노드가 부모보다 먼저 켜져
+         '층 = 실행 순서'가 깨진다 */
+      var gap = list.length > 1 ? Math.min(30, 120 / (list.length - 1)) : 0;
+      spill = Math.max(spill, gap * (list.length - 1));
+      list.forEach(function(id, i){
+        later(function(){
+          N[id].g.classList.add(id === src ? 'src' : 'lit');
+          read.innerHTML = o.step(src, k, R, id);
+          N[id].out.forEach(function(x){ if(r[x] !== undefined){ var h = hot[id + '>' + x]; later(function(){ h.classList.add('on'); }, 60); lit.push(h); } });
+        }, T0 + k * 150 + i * gap);
+      });
+    });
+    var done = T0 + R * 150 + spill + 240;
+    later(function(){ read.innerHTML = o.done(src, ids, R); flow(lit); }, done);
+    later(function(){
+      cancelAnimationFrame(raf); o.gP.textContent = '';
+      lit.forEach(function(h){ h.classList.add('fade'); });
+      order.forEach(function(id){ N[id].g.classList.remove('lit', 'src'); });
+      svg.classList.remove('dim');
+      if(o.onClear) o.onClear();
+    }, done + 3800);
+    later(function(){ resetHot(lit); play(); }, done + 3800 + 700);
+  }
+  /* 켜진 간선을 따라 흐르는 입자 (많으면 고르게 솎는다) */
+  function flow(paths){
+    o.gP.textContent = '';
+    var step = Math.max(1, Math.ceil(paths.length / (o.maxPts || 1e9)));
+    var ps = paths.filter(function(p, i){ return i % step === 0; }).map(function(p, i){
+      var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('class', 'pt'); c.setAttribute('r', o.ptR || 4.5); o.gP.appendChild(c);
+      return {p: p, L: p.getTotalLength(), c: c, o: (i * .37) % 1};
+    });
+    var t0 = performance.now();
+    (function f(now){
+      var k = (now - t0) / 1400;
+      ps.forEach(function(q){ var u = (k + q.o) % 1, pt = q.p.getPointAtLength(u * q.L); q.c.setAttribute('cx', pt.x.toFixed(1)); q.c.setAttribute('cy', pt.y.toFixed(1)); });
+      raf = requestAnimationFrame(f);
+    })(t0);
+  }
+  var slide = svg.closest('.slide');
+  document.addEventListener('deck:slide', function(){
+    var on = slide.classList.contains('active');
+    if(on && !running){
+      running = true; si = 0; read.innerHTML = '&nbsp;';
+      if(reduce){ read.innerHTML = o.still(); return; }
+      later(play, o.startDelay || 3300);             /* 등장 모션이 끝난 뒤 재생 */
+    } else if(!on && running){
+      running = false; clearAll();
+    }
+  });
+};
+
+/* ===== 12장 : CLAW 영향성 — 엔진이 실제로 내놓은 제어법칙 그래프 =====
+   데이터: CLAW engine claw.pipeline.influence.structural_payload(Shape(example_profile()))
+   n = [종류, 이름, 묶음] (p 파라미터 · i 입력 · r IR · o 출력 · g 유령 · s 기체 · m 지표), e = [원, 끝] (포트 중복 제외) */
+(function(){
+  var svg = document.getElementById('clawgraph'); if(!svg) return;
+  var G = {"n":[["i","nav_valid","io"],["i","theta","io"],["i","phi","io"],["i","psi","io"],["i","p","io"],["i","q","io"],["i","r","io"],["i","V","io"],["i","alpha","io"],["i","beta","io"],["i","h","io"],["i","hdot","io"],["i","mach","io"],["i","cmd_speed","io"],["i","cmd_alt","io"],["i","cmd_heading","io"],["i","cmd_pitch","io"],["i","cmd_hdot","io"],["i","speed_on","io"],["i","alt_on","io"],["i","heading_on","io"],["i","pitch_on","io"],["i","hdot_on","io"],["r","sched_f_mach","sched"],["r","sched_pitch_k_rate","sched"],["r","sched_pitch_ki","sched"],["r","sched_pitch_kp","sched"],["r","sched_roll_k_rate","sched"],["r","sched_roll_ki","sched"],["r","sched_roll_kp","sched"],["r","ap_fpsi","ap"],["r","ap_psi_diff","ap"],["r","ap_hdg_err","ap"],["r","ap_hdg_pid","ap"],["r","ap_hdg_sat","ap"],["r","ap_theta_hi_raw","ap"],["r","ap_theta_hi","ap"],["r","ap_fh","ap"],["r","ap_alt_err","ap"],["r","ap_alt_damp","ap"],["r","ap_alt_pid","ap"],["r","ap_alt_sum","ap"],["r","ap_alt_sat","ap"],["r","ap_fvs","ap"],["r","ap_vs_err","ap"],["r","ap_vs_pid","ap"],["r","ap_vs_sat","ap"],["r","ap_pitch_sat","ap"],["r","ap_theta_vs","ap"],["r","ap_theta_src","ap"],["r","ap_ff_p_raw","ap"],["r","ap_ff_p","ap"],["r","ap_theta_ff","ap"],["r","ap_theta_out","ap"],["r","ap_fv","ap"],["r","ap_spd_err","ap"],["r","ap_spd_pid","ap"],["r","ap_spd_sat","ap"],["r","lim_stall","lim"],["r","lim_alpha_max","lim"],["r","lim_a_margin","lim"],["r","lim_cap","lim"],["r","lim_theta_lim","lim"],["r","lim_active","lim"],["r","scas_pitch_err","scas"],["r","scas_roll_diff","scas"],["r","scas_roll_err","scas"],["r","scas_yaw_err","scas"],["r","scas_alloc_load","scas"],["r","scas_alloc_n","scas"],["r","scas_alloc_trim","scas"],["r","scas_alloc_resv_raw","scas"],["r","scas_alloc_resv","scas"],["r","scas_alloc_resv_neg","scas"],["r","scas_alloc_roll_hi","scas"],["r","scas_alloc_roll_lo","scas"],["r","scas_roll_damp","scas"],["r","scas_roll_pid","scas"],["r","scas_roll_sum","scas"],["r","scas_roll_sat","scas"],["r","scas_alloc_da_neg","scas"],["r","scas_alloc_da_nabs","scas"],["r","scas_alloc_pitch_hi","scas"],["r","scas_alloc_pitch_lo","scas"],["r","scas_pitch_damp","scas"],["r","scas_pitch_pid","scas"],["r","scas_pitch_sum","scas"],["r","scas_pitch_sat","scas"],["r","scas_yaw_wo","scas"],["r","scas_yaw_damp","scas"],["r","scas_yaw_pid","scas"],["r","scas_yaw_sum","scas"],["r","scas_yaw_sat","scas"],["r","mix_sum_l","mix"],["r","mix_elevon_l","mix"],["r","mix_sum_r","mix"],["r","mix_elevon_r","mix"],["r","mix_rudder","mix"],["r","mix_diff","mix"],["r","mix_thr_l_raw","mix"],["r","mix_thr_l","mix"],["r","mix_thr_r_raw","mix"],["r","mix_thr_r","mix"],["o","elevon_l","io"],["o","elevon_r","io"],["o","rudder","io"],["o","throttle_l","io"],["o","throttle_r","io"],["o","limiter_active","io"],["o","alpha_margin","io"],["s","기체·작동기·항법","io"],["m","고도 추종 RMS","metric"],["m","속도 추종 RMS","metric"],["m","헤딩 추종 RMS","metric"],["m","고도 정착시간","metric"],["m","속도 정착시간","metric"],["m","헤딩 정착시간","metric"],["m","고도 오버슈트","metric"],["m","속도 오버슈트","metric"],["m","헤딩 오버슈트","metric"],["m","고도 상승시간","metric"],["m","속도 상승시간","metric"],["m","헤딩 상승시간","metric"],["m","고도 정상상태 오차","metric"],["m","속도 정상상태 오차","metric"],["m","헤딩 정상상태 오차","metric"],["m","타면 포화율","metric"],["m","타면 포화 최장 지속","metric"],["m","최소 피치 잔여권한","metric"],["m","추력 포화율","metric"],["m","최소 추력 여유","metric"],["m","최소 롤 잔여권한","metric"],["m","가용 동적 여유(엘레본)","metric"],["m","트림 승강타 소모율","metric"],["m","엘레본 기동 편차 최대","metric"],["m","트림 추력 여유","metric"],["m","최악 실속마진","metric"],["m","트림 실속 여유","metric"],["m","엔벨로프 이탈 틱","metric"],["m","α리미터 작동률","metric"],["m","경로오차 RMS","metric"],["m","접지 수직속도","metric"],["m","접지 속도","metric"],["m","접지→정지 직선거리","metric"],["m","사출 하중","metric"],["g","ap_ff_t_raw","ap"],["g","ap_ff_t","ap"],["g","ap_thr_ff","ap"],["g","ap_thr_out","ap"],["g","scas_pitch_wo","scas"],["g","scas_roll_wo","scas"],["p","kp_spd","ap"],["p","ki_spd","ap"],["p","tau_spd","ap"],["p","kp_alt","ap"],["p","ki_alt","ap"],["p","k_hdot","ap"],["p","tau_alt","ap"],["p","kp_hdg","ap"],["p","ki_hdg","ap"],["p","tau_hdg","ap"],["p","kp_vs","ap"],["p","ki_vs","ap"],["p","tau_vs","ap"],["p","theta_lo","ap"],["p","theta_hi","ap"],["p","phi_max","ap"],["p","k_pitch_turn","ap"],["p","k_thr_turn","ap"],["p","pitch.kp","scas"],["p","pitch.ki","scas"],["p","pitch.k_rate","scas"],["p","pitch.washout_tau","scas"],["p","pitch.out_lo","scas"],["p","pitch.out_hi","scas"],["p","roll.kp","scas"],["p","roll.ki","scas"],["p","roll.k_rate","scas"],["p","roll.washout_tau","scas"],["p","roll.out_lo","scas"],["p","roll.out_hi","scas"],["p","yaw.kp","scas"],["p","yaw.ki","scas"],["p","yaw.k_rate","scas"],["p","yaw.washout_tau","scas"],["p","yaw.out_lo","scas"],["p","yaw.out_hi","scas"],["p","elevon_lo","mix"],["p","elevon_hi","mix"],["p","rudder_lo","mix"],["p","rudder_hi","mix"],["p","k_diff_thr","mix"],["p","margin","lim"],["p","pitch.k_rate (곡선 배율)","sched"],["p","pitch.ki (곡선 배율)","sched"],["p","pitch.kp (곡선 배율)","sched"],["p","roll.k_rate (곡선 배율)","sched"],["p","roll.ki (곡선 배율)","sched"],["p","roll.kp (곡선 배율)","sched"],["p","control_hz","rate"],["p","pos_std_h","nav"],["p","pos_std_v","nav"],["p","vel_std_h","nav"],["p","vel_std_v","nav"],["p","att_std","nav"],["p","psi_std","nav"],["p","rate_std","nav"],["p","bias_std_h","nav"],["p","bias_std_v","nav"],["p","bias_tau","nav"],["p","delay_s","nav"],["p","update_hz","nav"],["p","wn","actuator"],["p","zeta","actuator"],["p","pos_lo","actuator"],["p","pos_hi","actuator"],["p","rate_max","actuator"],["p","initial","actuator"],["p","accept_radius","guidance"],["p","bank_max","guidance"]],"e":[[1,61],[1,64],[2,65],[3,30],[3,31],[4,76],[4,150],[5,84],[5,149],[6,88],[7,54],[7,55],[8,60],[9,67],[10,37],[10,38],[11,39],[11,43],[11,44],[12,23],[12,35],[12,58],[12,70],[13,54],[14,37],[15,30],[16,47],[17,43],[18,54],[18,55],[19,37],[19,38],[19,39],[20,30],[20,31],[20,32],[20,33],[20,34],[21,49],[22,43],[22,44],[22,48],[23,24],[23,25],[23,26],[23,27],[23,28],[23,29],[24,84],[25,85],[26,85],[27,76],[28,77],[29,77],[30,31],[31,32],[32,33],[33,34],[34,50],[34,65],[34,68],[34,145],[35,36],[36,40],[36,42],[36,45],[36,46],[36,47],[36,53],[37,38],[38,40],[39,40],[39,41],[40,41],[41,42],[42,48],[43,44],[44,45],[45,46],[46,48],[47,49],[48,49],[49,52],[50,51],[51,52],[52,53],[53,62],[53,63],[54,55],[55,56],[56,57],[57,99],[57,101],[57,147],[58,59],[59,60],[60,61],[60,109],[61,62],[61,63],[62,64],[63,108],[64,85],[65,66],[66,77],[67,90],[68,69],[69,71],[70,71],[71,72],[72,73],[73,74],[74,75],[74,77],[74,79],[75,77],[75,79],[76,77],[76,78],[77,78],[78,79],[79,80],[79,81],[79,93],[79,95],[80,81],[81,82],[82,83],[82,85],[82,87],[83,85],[83,87],[84,85],[84,86],[85,86],[86,87],[87,93],[87,95],[88,89],[89,90],[89,91],[90,91],[91,92],[92,97],[93,94],[94,103],[95,96],[96,104],[97,98],[97,105],[98,99],[98,101],[99,100],[100,106],[101,102],[102,107],[103,110],[104,110],[105,110],[106,110],[107,110],[108,110],[109,110],[110,111],[110,112],[110,113],[110,114],[110,115],[110,116],[110,117],[110,118],[110,119],[110,120],[110,121],[110,122],[110,123],[110,124],[110,125],[110,126],[110,127],[110,128],[110,129],[110,130],[110,131],[110,132],[110,133],[110,134],[110,135],[110,136],[110,137],[110,138],[110,139],[110,140],[110,141],[110,142],[110,143],[110,144],[145,146],[146,147],[147,148],[151,56],[152,56],[153,54],[154,40],[155,40],[156,39],[157,37],[158,33],[159,33],[160,30],[161,45],[162,45],[163,43],[164,36],[164,40],[164,42],[164,45],[164,46],[164,47],[164,53],[165,36],[165,40],[165,42],[165,45],[165,46],[165,47],[165,53],[166,33],[166,34],[167,51],[168,99],[168,101],[168,145],[168,146],[168,147],[168,148],[169,85],[170,85],[172,84],[172,149],[173,72],[173,74],[173,82],[173,85],[173,87],[174,85],[174,87],[175,77],[176,77],[178,76],[178,150],[179,72],[179,74],[179,77],[179,79],[179,82],[180,77],[180,79],[181,90],[182,90],[183,89],[184,88],[185,90],[185,92],[186,90],[186,92],[187,72],[187,74],[187,82],[187,94],[187,96],[188,94],[188,96],[189,97],[190,97],[191,98],[192,35],[192,59],[193,24],[194,25],[195,26],[196,27],[197,28],[198,29],[199,23],[199,24],[199,25],[199,26],[199,27],[199,28],[199,29],[199,30],[199,31],[199,33],[199,34],[199,35],[199,36],[199,37],[199,38],[199,39],[199,40],[199,41],[199,42],[199,43],[199,44],[199,45],[199,46],[199,47],[199,48],[199,49],[199,51],[199,52],[199,53],[199,54],[199,55],[199,56],[199,57],[199,58],[199,60],[199,61],[199,64],[199,65],[199,67],[199,70],[199,71],[199,72],[199,73],[199,75],[199,76],[199,77],[199,78],[199,79],[199,80],[199,83],[199,84],[199,85],[199,86],[199,87],[199,88],[199,89],[199,90],[199,91],[199,92],[199,93],[199,94],[199,95],[199,96],[199,97],[199,98],[199,99],[199,100],[199,101],[199,102],[200,110],[201,110],[202,110],[203,110],[204,110],[205,110],[206,110],[207,110],[208,110],[209,110],[210,110],[211,110],[212,110],[213,110],[214,110],[215,110],[216,110],[217,110],[218,110],[219,110]]};
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, at, parent){ var e = document.createElementNS(NS, tag); for(var k in at) e.setAttribute(k, at[k]); (parent || svg).appendChild(e); return e; }
+  /* CLAW 팔레트 (web/js/lib/influence.js BAND_COLOR · NODE_COLOR) */
+  var BAND = {ap: ['오토파일럿', '#5e90ea'], scas: ['SCAS', '#c28412'], mix: ['엘레본 믹서', '#794cb8'], lim: ['α 리미터', '#b43c43'],
+    sched: ['게인 스케줄', '#2aa776'], rate: ['제어 주기', '#d363b4'], nav: ['항법 오차모델', '#babac6'], actuator: ['작동기', '#8b8b97'], guidance: ['유도', '#5f5f6a']};
+  var IO = '#6d7484', PLANT = '#a2a9b8', METRIC = '#d7dee9';
+  var BORDER = ['ap', 'scas', 'sched', 'lim', 'mix', 'rate', 'nav', 'actuator', 'guidance'];
+  var nodes = G.n.map(function(x, i){ return {id: 'n' + i, i: i, kind: x[0], label: x[1], band: x[2], out: [], inn: []}; });
+  G.e.forEach(function(e){ nodes[e[0]].out.push('n' + e[1]); nodes[e[1]].inn.push(e[0]); });
+  /* 최장 경로 깊이 → 열 */
+  var depth = {};
+  function dp(n){ if(depth[n.i] !== undefined) return depth[n.i]; depth[n.i] = 0; var d = 0; n.inn.forEach(function(j){ d = Math.max(d, dp(nodes[j]) + 1); }); return depth[n.i] = d; }
+  nodes.forEach(dp);
+  var maxIR = 0; nodes.forEach(function(n){ if(n.kind === 'r' || n.kind === 'g') maxIR = Math.max(maxIR, depth[n.i]); });
+  function col(n){
+    if(n.kind === 'p') return 0; if(n.kind === 'i') return 1;
+    if(n.kind === 'o') return maxIR + 2; if(n.kind === 's') return maxIR + 3; if(n.kind === 'm') return maxIR + 4;
+    return depth[n.i] + 1;
+  }
+  var NC = maxIR + 5, X0 = 26, X1 = 1154, CY = 330, HY = 560;
+  var cols = []; nodes.forEach(function(n){ n.c = col(n); (cols[n.c] = cols[n.c] || []).push(n); });
+  cols.forEach(function(list, c){
+    if(!list) return;
+    list.sort(function(a, b){ var ba = BORDER.indexOf(a.band), bb = BORDER.indexOf(b.band); return (ba - bb) || (a.i - b.i); });
+    var sp = Math.min(HY / list.length, 40);
+    list.forEach(function(n, k){ n.x = X0 + (X1 - X0) * c / (NC - 1); n.y = CY + (k - (list.length - 1) / 2) * sp; });
+  });
+  var N = {}, order = [];
+  nodes.forEach(function(n){ N[n.id] = n; order.push(n.id); });
+  /* 열 머리 */
+  function head(x, text, d){ var t = el('text', {'class': 'hd g-in', x: x, y: 26, 'text-anchor': 'middle', style: '--d:' + d + 's'}); t.textContent = text; }
+  function cx(c){ return X0 + (X1 - X0) * c / (NC - 1); }
+  head((cx(0) + cx(1)) / 2 + 6, '파라미터 · 입력', .2); head((cx(2) + cx(maxIR + 1)) / 2, 'IR 노드 · ' + maxIR + '층 — 실행 순서', .4);
+  head(cx(maxIR + 2), '출력', .5); head(cx(maxIR + 3), '기체', .55); head(cx(maxIR + 4) - 10, '지표', .6);
+  var gE = el('g', {}), gH = el('g', {}), gN = el('g', {}), gP = el('g', {}), gL = el('g', {});
+  var hot = {};
+  nodes.forEach(function(a){
+    a.out.forEach(function(id){
+      var b = N[id], mx = (a.x + b.x) / 2;
+      var d = 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1) + ' C' + mx.toFixed(1) + ' ' + a.y.toFixed(1) + ' ' + mx.toFixed(1) + ' ' + b.y.toFixed(1) + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1);
+      el('path', {'class': 'eg draw', pathLength: 1, d: d, style: '--d:' + (.5 + a.c * .06).toFixed(2) + 's;--dur:.6s'}, gE);
+      hot[a.id + '>' + id] = el('path', {'class': 'hot', pathLength: 1, d: d, 'data-e': a.id + '>' + id}, gH);
+    });
+  });
+  nodes.forEach(function(n){
+    var g = el('g', {'class': 'nd gn', 'data-id': n.id, style: '--d:' + (.3 + n.c * .06).toFixed(2) + 's'}, gN), color = (BAND[n.band] || [0, IO])[1];
+    if(n.kind === 'p') el('rect', {x: n.x - 4, y: n.y - 4, width: 8, height: 8, rx: 2.5, fill: color}, g);
+    else if(n.kind === 'i') el('circle', {cx: n.x, cy: n.y, r: 3.5, fill: IO}, g);
+    else if(n.kind === 'r') el('circle', {cx: n.x, cy: n.y, r: 5, fill: color}, g);
+    else if(n.kind === 'g') el('circle', {cx: n.x, cy: n.y, r: 4.5, fill: 'none', stroke: color, 'stroke-width': 1.5, 'stroke-dasharray': '2 2'}, g);
+    else if(n.kind === 'o') el('rect', {x: n.x - 10, y: n.y - 5, width: 20, height: 10, rx: 5, fill: METRIC}, g);
+    else if(n.kind === 's') el('rect', {x: n.x - 9, y: n.y - 40, width: 18, height: 80, rx: 9, fill: PLANT}, g);
+    else el('circle', {cx: n.x, cy: n.y, r: 5, fill: 'none', stroke: METRIC, 'stroke-width': 2}, g);
+    n.g = g;
+  });
+  /* 고른 파라미터 이름표 */
+  var tag = el('text', {'class': 'sl', 'text-anchor': 'start'}, gL);
+  function kindCount(ids, k){ return ids.filter(function(id){ return N[id].kind === k; }).length; }
+  function srcName(src){ var n = N[src]; return '<b>' + n.label + '</b> (' + (BAND[n.band] || [n.band])[0] + ')'; }
+  var pick = function(label, band){ for(var i = 0; i < nodes.length; i++) if(nodes[i].kind === 'p' && nodes[i].label === label && nodes[i].band === band) return nodes[i].id; };
+  var SOURCES = [pick('ki_hdg', 'ap'), pick('pitch.out_lo', 'scas'), pick('wn', 'actuator'), pick('control_hz', 'rate')].filter(Boolean);
+  /* 범례 */
+  var lg = document.getElementById('clawlegend');
+  ['ap', 'scas', 'sched', 'lim', 'mix', 'rate', 'actuator'].forEach(function(b){
+    var s = document.createElement('span'); s.innerHTML = '<i style="background:' + BAND[b][1] + '"></i>' + BAND[b][0]; lg.appendChild(s);
+  });
+  window.InfluencePlayer({
+    svg: svg, read: document.getElementById('clawread'), N: N, order: order, hot: hot, gP: gP, sources: SOURCES, maxPts: 150, ptR: 2.6,
+    onSource: function(src){ var n = N[src]; tag.setAttribute('x', n.x + 12); tag.setAttribute('y', n.y + 6); tag.textContent = n.label; tag.classList.add('on'); },
+    onClear: function(){ tag.classList.remove('on'); },
+    step: function(src, k, R, id){ return srcName(src) + ' 변경 → 층 ' + k + ' / ' + R + ' · ' + N[id].label + ' 도달'; },
+    done: function(src, ids, R){
+      var ir = kindCount(ids, 'r'), out = kindCount(ids, 'o'), m = kindCount(ids, 'm');
+      return srcName(src) + ' → ' + (ir ? 'IR 노드 <b>' + ir + '</b>개 · 출력 ' + out + '개 · ' : '<b>법칙 밖</b> — IR 을 거치지 않고 기체로 · ') + '지표 <b>' + m + '</b>개 · ' + R + '개 층';
+    },
+    still: function(){ return '파라미터 69 · IR 노드 80 · 출력 7 · 지표 34 — 노드 ' + nodes.length + ' · 간선 ' + G.e.length; }
+  });
+})();
+
+/* ===== 13장 : 항공기 전체 노드 그래프 (개념도) — 재생은 공용 InfluencePlayer ===== */
+(function(){
+  var svg = document.getElementById('acgraph'); if(!svg) return;
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, at, parent){ var e = document.createElementNS(NS, tag); for(var k in at) e.setAttribute(k, at[k]); (parent || svg).appendChild(e); return e; }
+  var COLS = [
+    ['요구 · 인증', [['req','운용 요구'], ['hq','비행성 기준'], ['cert','인증 규정']]],
+    ['형상 · 공력', [['geo','형상'], ['aero','공력 DB'], ['wb','무게 · 무게중심'], ['prop','추진']]],
+    ['구조 · 작동', [['load','구조 하중'], ['rig','조종면 리깅','설계툴'], ['link','링크 · 힌지모멘트','설계툴'], ['act','작동기']]],
+    ['비행제어', [['trim','트림 · 엔벨로프','CLAW'], ['gain','게인 · 마진','CLAW'], ['law','제어법칙','CLAW'], ['inf','영향성 판정','CLAW']]],
+    ['소프트웨어 · 항전', [['code','탑재 C 코드','CLAW'], ['fcc','비행컴퓨터'], ['sens','센서']]],
+    ['시험 · 검증', [['atest','작동기 시험','자동점검'], ['hils','HILS'], ['ftest','비행시험']]],
+    ['지식 · 이력', [['hist','설계 이력','지식저장소'], ['issue','이슈 · 결정','지식저장소'], ['mro','정비 데이터']]]
+  ];
+  var EDGES = [
+    ['req','geo'], ['req','prop'], ['hq','gain'], ['hq','inf'], ['cert','load'], ['cert','hils'],
+    ['geo','aero'], ['geo','wb'], ['geo','load'], ['aero','trim'], ['aero','link'], ['wb','trim'], ['prop','trim'],
+    ['load','act'], ['rig','link'], ['link','act'], ['act','law'], ['act','atest'],
+    ['trim','gain'], ['gain','law'], ['law','inf'], ['inf','code'],
+    ['code','fcc'], ['fcc','hils'], ['sens','hils'], ['hils','ftest'],
+    ['atest','hist'], ['atest','issue'], ['ftest','issue'], ['ftest','mro']
+  ];
+  var FEEDBACK = [['hist','rig'], ['issue','gain']];
+  var SOURCES = ['link', 'aero', 'req'];
+  var W = 196, H = 46, X0 = 120, DX = 240, Y0 = 96, YH = 440;
+  var N = {}, order = [];
+  COLS.forEach(function(col, c){
+    var cx = X0 + c * DX;
+    var hd = el('text', {'class': 'hd g-in', x: cx, y: 36, 'text-anchor': 'middle', style: '--d:' + (.2 + c * .12).toFixed(2) + 's'});
+    hd.textContent = col[0];
+    col[1].forEach(function(n, i){
+      N[n[0]] = {id: n[0], label: n[1], tag: n[2] || '', c: c, row: i, x: cx, y: Y0 + (i + .5) * YH / col[1].length, out: [], d: .4 + c * .22 + i * .05};
+      order.push(n[0]);
+    });
+  });
+  EDGES.forEach(function(e){ N[e[0]].out.push(e[1]); });
+  var gE = el('g', {}), gF = el('g', {}), gH = el('g', {}), gP = el('g', {}), gN = el('g', {});
+  function edgePath(a, b){
+    if(a.c === b.c){
+      if(Math.abs(b.row - a.row) === 1) return 'M' + a.x + ' ' + (a.y + H / 2) + ' L' + b.x + ' ' + (b.y - H / 2);
+      /* 사이에 다른 노드가 있으면 곧게 내리면 그 노드를 지나는 것처럼 보인다 — 열 오른쪽으로 돌아간다 */
+      var xr = a.x + W / 2, bx = xr + 26;
+      return 'M' + xr + ' ' + a.y.toFixed(1) + ' C' + bx + ' ' + a.y.toFixed(1) + ' ' + bx + ' ' + b.y.toFixed(1) + ' ' + xr + ' ' + b.y.toFixed(1);
+    }
+    var x1 = a.x + W / 2, x2 = b.x - W / 2, mx = (x1 + x2) / 2;
+    return 'M' + x1 + ' ' + a.y.toFixed(1) + ' C' + mx + ' ' + a.y.toFixed(1) + ' ' + mx + ' ' + b.y.toFixed(1) + ' ' + x2 + ' ' + b.y.toFixed(1);
+  }
+  var hot = {};
+  EDGES.forEach(function(e){
+    var a = N[e[0]], b = N[e[1]], d = edgePath(a, b);
+    el('path', {'class': 'eg draw', pathLength: 1, d: d, style: '--d:' + (a.d + .35).toFixed(2) + 's;--dur:.5s'}, gE);
+    hot[e[0] + '>' + e[1]] = el('path', {'class': 'hot', pathLength: 1, d: d}, gH);
+  });
+  /* 되먹임: 해당 노드의 왼쪽에서 나가 열 사이 틈으로 내려가, 맨 아래 차선을 타고
+     대상 노드 오른쪽 틈으로 올라가 들어간다 — 노드 위를 가로지르지 않는다 */
+  FEEDBACK.forEach(function(e, i){
+    var a = N[e[0]], b = N[e[1]], ly = 548 + i * 18, gap = 12 + i * 12;
+    var xa = a.x - W / 2 - gap, xb = b.x + W / 2 + gap;
+    var fg = el('g', {'class': 'g-in', style: '--d:2.6s'}, gF);      /* 흐르는 점선 모션과 등장 모션을 다른 요소에 */
+    el('path', {'class': 'fb run', d: 'M' + (a.x - W / 2) + ' ' + a.y.toFixed(1) + ' H' + xa + ' V' + ly + ' H' + xb + ' V' + b.y.toFixed(1) + ' H' + (b.x + W / 2 + 4)}, fg);
+    if(i === 0){ var ft = el('text', {'class': 'fbl', x: (xa + xb) / 2, y: ly - 8, 'text-anchor': 'middle'}, fg); ft.textContent = '되먹임 — 시험 결과와 이력이 다음 설계로'; }
+  });
+  order.forEach(function(id){
+    var n = N[id];
+    var g = el('g', {'class': 'nd gn' + (n.tag ? ' tool' : ''), style: '--d:' + n.d.toFixed(2) + 's'}, gN);
+    el('rect', {x: n.x - W / 2, y: n.y - H / 2, width: W, height: H, rx: H / 2}, g);
+    var t = el('text', {x: n.x, y: n.y + 7, 'text-anchor': 'middle'}, g); t.textContent = n.label;
+    if(n.tag){ var tg = el('text', {'class': 'tg', x: n.x + W / 2 - 14, y: n.y - H / 2 - 7, 'text-anchor': 'end'}, g); tg.textContent = n.tag; }
+    n.g = g;
+  });
+  /* 범위 괄호: 비행제어시스템 ⊂ 항공기 전체 */
+  function bracket(x1, x2, y, label, cls, d){
+    var g = el('g', {'class': 'g-in', style: '--d:' + d + 's'});
+    el('path', {'class': 'br' + cls, d: 'M' + x1 + ' ' + (y - 10) + ' V' + y + ' H' + x2 + ' V' + (y - 10)}, g);
+    var t = el('text', {'class': 'bl' + cls, x: (x1 + x2) / 2, y: y + 28, 'text-anchor': 'middle'}, g); t.textContent = label;
+  }
+  bracket(X0 + 2 * DX - W / 2, X0 + 5 * DX + W / 2, 604, '비행제어시스템', ' o', 2.8);
+  bracket(X0 - W / 2, X0 + 6 * DX + W / 2, 650, '항공기 전체', '', 3.0);
+
+  var gPl = gP;
+  window.InfluencePlayer({
+    svg: svg, read: document.getElementById('acread'), N: N, order: order, hot: hot, gP: gPl, sources: SOURCES,
+    step: function(src, k, R, id){ return '<b>' + N[src].label + '</b> 변경 → 층 ' + k + ' / ' + R + ' · ' + N[id].label + ' 도달'; },
+    done: function(src, ids, R){ return '<b>' + N[src].label + '</b> 변경 → 영향 노드 <b>' + (ids.length - 1) + '</b>개 · ' + R + '개 층에 번짐'; },
+    still: function(){ return '노드 <b>' + order.length + '</b>개 · 간선 ' + EDGES.length + '개 · 되먹임 ' + FEEDBACK.length + '개'; }
+  });
+})();
+
+/* ===== 장표 엔진 : 화살표 한 번 = 한 장 ===== */
+(function(){
+  var body = document.body, stage = document.getElementById('stage');
+  var slides = [].slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length, cur = -1;
+  var bar = document.getElementById('bar'), hud = document.getElementById('hud');
+  var notes = document.getElementById('notes'), demo = document.getElementById('demo');
+  var dv = demo.querySelector('video');
+  /* 모드: deck = 장표 · script = 폰으로 보는 대본 (?script) */
+  var MODE = /[?&]script\b/.test(location.search) ? 'script' : 'deck';
+  body.classList.add('m-' + MODE); document.documentElement.classList.add('m-' + MODE);
+
+  /* 1. 화면 맞춤 */
+  function fit(){
+    var de = document.documentElement;
+    var w = Math.min(window.innerWidth, de.clientWidth || 1e9), h = Math.min(window.innerHeight, de.clientHeight || 1e9);
+    de.style.setProperty('--s', Math.min(w / 1920, h / 1080));
+  }
+  /* 폰은 주소창이 접히거나 화면을 돌릴 때 크기가 바뀌고, 처음 크기가 늦게 확정되기도 한다 */
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', function(){ setTimeout(fit, 250); });
+  window.addEventListener('load', fit);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+  fit(); requestAnimationFrame(fit);
+
+  /* 2. 쪽 번호 · 계획 시간 */
+  var plan = slides.map(function(s){ var n = s.querySelector('aside.note'); return n ? +n.getAttribute('data-t') || 0 : 0; });
+  var planTotal = plan.reduce(function(a, b){ return a + b; }, 0);
+  slides.forEach(function(s, i){
+    var r = s.querySelector('.foot .r');
+    if(r) r.textContent = String(i + 1).padStart(2, '0') + ' / ' + total;
+  });
+  function mmss(t){ t = Math.max(0, Math.round(t)) || 0; return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+
+  /* 3. 숫자 올라가기 */
+  function fmt(v, el){ var p = el.getAttribute('data-pre') || ''; return p + Math.round(v).toLocaleString('en-US'); }
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function runCounts(sl){
+    sl.querySelectorAll('[data-count]').forEach(function(el){
+      var to = +el.getAttribute('data-count');
+      cancelAnimationFrame(el._r); clearTimeout(el._t);
+      if(reduce){ el.textContent = fmt(to, el); return; }
+      el.textContent = fmt(0, el);
+      var host = el.closest('[data-a]'), delay = 350;
+      if(host){ var d = parseFloat(getComputedStyle(host).getPropertyValue('--d')) || 0; delay += d * 1000; }
+      el._t = setTimeout(function(){
+        var t0 = performance.now();
+        (function f(now){
+          var k = Math.min(1, (now - t0) / 1600), e = 1 - Math.pow(1 - k, 3);
+          el.textContent = fmt(to * e, el);
+          if(k < 1) el._r = requestAnimationFrame(f);
+        })(t0);
+      }, delay);
+    });
+  }
+
+  /* 4. 영상 층 */
+  var vids = {}, phs = {};
+  document.querySelectorAll('#vlayer video').forEach(function(v){
+    vids[v.getAttribute('data-for')] = v;
+    v.addEventListener('error', function(){ v.classList.add('missing'); syncVideo(); });
+  });
+  document.querySelectorAll('#vlayer .vph').forEach(function(p){ phs[p.getAttribute('data-for')] = p; });
+  /* 인트로: 소리 없이 반복. 아웃트로(data-once): 들어오면 첫 장면에서 멈춰 기다리고(armed),
+     한 번 더 넘기면 처음부터 소리와 함께 한 번 — 끝나면 다음 장.
+     키를 눌러 넘어온 뒤라 소리 재생이 허용되지만, 막히면 소리 없이라도 튼다. */
+  var shown = null;
+  /* 아웃트로 노래 트랙 — 있으면 영상은 소리 없이 틀고 노래는 이 트랙으로 낸다(영상과 같은 순간 시작).
+     영상이 끝나거나 마무리 장으로 넘어가도 노래는 곡 끝까지 이어진다. 파일이 없으면 영상 소리를 쓴다. */
+  var song = document.getElementById('a-outro');
+  if(song) song.addEventListener('error', function(){ song.setAttribute('data-missing', ''); });
+  function songOK(){ return song && !song.error && !song.hasAttribute('data-missing'); }
+  function stopSong(){ if(song){ song.pause(); try { song.currentTime = 0; } catch(err){} } }
+  function playVideo(v){
+    if(!v.hasAttribute('data-once')){ var p = v.play(); if(p && p.catch) p.catch(function(){}); return; }
+    if(songOK()){
+      v.muted = true;
+      var pv = v.play(); if(pv && pv.catch) pv.catch(function(){});
+      try { song.currentTime = v.currentTime || 0; } catch(err){}
+      var ps = song.play(); if(ps && ps.catch) ps.catch(function(){});
+      return;
+    }
+    v.muted = false;
+    var q = v.play();
+    /* 소리 재생이 막혔을 때(NotAllowedError)만, 그리고 아직 이 영상 장에 있을 때만 소리 없이 다시 튼다.
+       장을 떠나며 pause() 로 취소된 재생(AbortError)을 되살리면 안 보이는 곳에서 영상이 계속 돈다 */
+    if(q && q.catch) q.catch(function(err){
+      if(!err || err.name !== 'NotAllowedError' || !v.classList.contains('on')) return;
+      v.muted = true; var r = v.play(); if(r && r.catch) r.catch(function(){});
+    });
+  }
+  function syncVideo(){
+    var want = cur >= 0 ? slides[cur].getAttribute('data-video') : null;
+    body.classList.toggle('vid', !!want);
+    Object.keys(vids).forEach(function(k){
+      var v = vids[k], on = k === want, miss = v.classList.contains('missing') || !!v.error;
+      v.classList.toggle('on', on && !miss);
+      phs[k].classList.toggle('on', on && miss);
+      if(on && !miss){
+        if(v.hasAttribute('data-once')){
+          if(shown !== k){ v.pause(); try { v.currentTime = 0; } catch(err){} v._armed = true; stopSong(); }   /* 들어오면 대기 */
+          else if(!v._armed) playVideo(v);
+        } else playVideo(v);
+      } else {
+        v._armed = false;
+        if(!v.paused) v.pause();
+      }
+    });
+    shown = want;
+    /* 음악 박자에 맞춘 마무리는 노래가 넘겼을 때만 — 직접 넘기거나 다시 들어오면 평소 순서로 */
+    if(typeof viaCut !== 'undefined'){ if(!viaCut) syncEnd(false); viaCut = false; }
+    /* 노래는 아웃트로 장과 바로 다음 장(마무리)에서만 — 그 밖으로 가면 멈춘다 */
+    if(song && !song.paused){
+      var home = slides.findIndex(function(sl){ return sl.getAttribute('data-video') === 'outro'; });
+      if(cur !== home && cur !== home + 1) stopSong();
+    }
+  }
+  if(vids.outro && song) vids.outro.addEventListener('timeupdate', function(){
+    var v = vids.outro;
+    if(!v.paused && !song.paused && Math.abs(song.currentTime - v.currentTime) > .15) song.currentTime = v.currentTime;
+  });
+
+  /* 음악에 맞춘 엔딩 — 노래 시계(초) 기준. 곡은 68.53 BPM, 한 마디 3.502 s, 첫 박 0.795 s.
+     28.81 = 8마디 첫 박(영상 끝 29.04 직전)에 마무리 장으로, 32.31 = 9마디, 35.82 = 곡이 올라가는 마디(리프트)에
+     감사합니다, 36.7→39.32 마지막 세 박 동안 소리가 줄어 마디 끝에서 멈춘다(노래 파일에 페이드, 약 39 s). */
+  var BEAT = {cut: 28.81, verse: 29.25, lead: 32.31, lift: 35.82, thanks: 35.82};
+  var endSlide = document.querySelector('.slide.end'), viaCut = false, musicRaf = 0;
+  var endEls = endSlide ? [['.kick', null], ['.verse', 'verse'], ['.lead', 'lead'], ['.tf', 'thanks']].map(function(x){
+    var el = endSlide.querySelector(x[0]); return {el: el, key: x[1], style: el.getAttribute('style')};
+  }) : [];
+  function outroHome(){ return slides.findIndex(function(sl){ return sl.getAttribute('data-video') === 'outro'; }); }
+  function syncEnd(on, t){
+    if(!endSlide) return;
+    endSlide.classList.toggle('synced', on); endSlide.classList.remove('lift');
+    endEls.forEach(function(x){
+      if(on) x.el.style.setProperty('--d', (x.key ? Math.max(0, BEAT[x.key] - t) : 0).toFixed(2) + 's');
+      else if(x.style === null) x.el.removeAttribute('style'); else x.el.setAttribute('style', x.style);
+    });
+  }
+  function musicLoop(){
+    cancelAnimationFrame(musicRaf);
+    (function f(){
+      if(!song || song.paused){ musicRaf = 0; return; }
+      var t = song.currentTime, home = outroHome();
+      if(cur === home && t >= BEAT.cut){ syncEnd(true, t); viaCut = true; goTo(home + 1); }
+      else if(cur === home + 1 && endSlide.classList.contains('synced') && t >= BEAT.lift) endSlide.classList.add('lift');
+      musicRaf = requestAnimationFrame(f);
+    })();
+  }
+  if(song) song.addEventListener('play', musicLoop);
+  Object.keys(vids).forEach(function(k){
+    var v = vids[k];
+    if(v.hasAttribute('data-once')) v.addEventListener('ended', function(){
+      if(cur >= 0 && slides[cur].getAttribute('data-video') === k) goTo(cur + 1);
+    });
+  });
+
+  /* 5. 대본 */
+  var clockT0 = null;
+  /* 시계 줄만 매초 갱신한다. 대본 본문까지 다시 쓰면 발표자가 고른 글자가 매초 풀린다. */
+  function renderNotes(){
+    if(cur < 0) return;
+    var n = slides[cur].querySelector('aside.note');
+    notes.querySelector('.txt').innerHTML = n ? n.innerHTML : '';
+    renderClock();
+  }
+  function renderClock(){
+    if(cur < 0) return;
+    var before = plan.slice(0, cur).reduce(function(a, b){ return a + b; }, 0);
+    var el = clockT0 === null ? 0 : (Date.now() - clockT0) / 1000;
+    var late = el > before + plan[cur];
+    notes.querySelector('.top').innerHTML =
+      '<b>' + String(cur + 1).padStart(2, '0') + ' / ' + total + '</b>' +
+      '<span>이 장 <span class="t">' + mmss(plan[cur]) + '</span></span>' +
+      '<span>여기까지 계획 <span class="t">' + mmss(before + plan[cur]) + '</span> / 전체 ' + mmss(planTotal) + '</span>' +
+      '<span>경과 <span class="t' + (late ? ' late' : '') + '">' + (clockT0 === null ? '—' : mmss(el)) + '</span></span>';
+  }
+  setInterval(function(){ if(body.classList.contains('notes')) renderClock(); }, 1000);
+
+  /* 6. 이동 */
+  function goTo(n){
+    if(n < 0 || n >= total || n === cur) return;
+    var prev = slides[cur];
+    if(prev){
+      prev.classList.remove('active'); prev.classList.add('leaving');
+      (function(p){ setTimeout(function(){ if(!p.classList.contains('active')) p.classList.remove('leaving'); }, 520); })(prev);
+    }
+    cur = n;
+    var next = slides[n];
+    next.classList.remove('active', 'leaving');
+    void next.offsetWidth;                 /* 모션 재시작 */
+    next.classList.add('active');
+    runCounts(next);
+    syncVideo();
+    document.dispatchEvent(new CustomEvent('deck:slide', {detail: n}));
+    if(clockT0 === null && n > 0) clockT0 = Date.now();
+    if(prev){ var ro = document.getElementById('rot'); if(ro) ro.classList.add('gone'); }
+    bar.style.width = (total > 1 ? n / (total - 1) * 100 : 0) + '%';
+    hud.querySelector('.n').textContent = (n + 1) + ' / ' + total;
+    renderNotes();
+    try { history.replaceState(null, '', '#' + (n + 1)); } catch(e){}
+  }
+  function next(){
+    /* 아웃트로 장에서 대기 중이면 넘기는 대신 재생을 시작한다 */
+    var k = cur >= 0 ? slides[cur].getAttribute('data-video') : null, v = k && vids[k];
+    if(v && v._armed && v.classList.contains('on')){ v._armed = false; playVideo(v); return; }
+    goTo(cur + 1);
+  }
+  function prev(){ goTo(cur - 1); }
+
+  /* 7. 녹화 영상 */
+  function openDemo(src){
+    demo.classList.remove('missing');
+    demo.querySelector('.msg small').textContent = src + ' 를 넣으면 여기서 재생됩니다';
+    dv.src = src;
+    demo.classList.add('on');
+    var p = dv.play(); if(p && p.catch) p.catch(function(){});
+  }
+  function closeDemo(){ demo.classList.remove('on'); dv.pause(); dv.removeAttribute('src'); dv.load(); }
+  dv.addEventListener('error', function(){ if(dv.getAttribute('src')) demo.classList.add('missing'); });
+  demo.querySelector('.x').addEventListener('click', closeDemo);
+  demo.addEventListener('click', function(e){ if(e.target === demo) closeDemo(); });
+  stage.addEventListener('click', function(e){
+    var b = e.target.closest('[data-demo]');
+    if(b){ e.preventDefault(); b.blur(); openDemo(b.getAttribute('data-demo')); }
+  });
+  /* 링크를 누른 뒤 포커스가 남아 있으면 Space·Enter 가 링크를 다시 연다 */
+  stage.addEventListener('click', function(e){ var a = e.target.closest('a'); if(a) setTimeout(function(){ a.blur(); }, 0); });
+
+  /* 8. 키보드 */
+  var NEXT = {ArrowRight:1, ArrowDown:1, PageDown:1, ' ':1, Enter:1, Spacebar:1};
+  var PREV = {ArrowLeft:1, ArrowUp:1, PageUp:1, Backspace:1};
+  document.addEventListener('keydown', function(e){
+    if(MODE !== 'deck' || e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key, code = e.code;
+    if(qrBox && qrBox.classList.contains('on')){ if(!e.repeat && (k === 'Escape' || code === 'KeyP')) toggleQR(); e.preventDefault(); return; }
+    if(demo.classList.contains('on')){        /* 영상 보는 중에는 장표를 넘기지 않는다 */
+      if(k === 'Escape'){ closeDemo(); e.preventDefault(); }
+      else if(k === ' '){ if(dv.paused){ var pp = dv.play(); if(pp && pp.catch) pp.catch(function(){}); } else dv.pause(); e.preventDefault(); }
+      else if(k === 'ArrowRight'){ dv.currentTime += 5; e.preventDefault(); }
+      else if(k === 'ArrowLeft'){ dv.currentTime -= 5; e.preventDefault(); }
+      return;
+    }
+    /* 켜고 끄는 키는 누르고 있어도 한 번만 */
+    if(e.repeat && (code === 'KeyN' || code === 'KeyF' || code === 'KeyV' || code === 'KeyP')){ e.preventDefault(); return; }
+    var done = true;
+    if(NEXT[k] && !e.repeat) next();
+    else if(PREV[k] && !e.repeat) prev();
+    else if(NEXT[k] || PREV[k]) {}
+    else if(k === 'Home') goTo(0);
+    else if(k === 'End') goTo(total - 1);
+    else if(code === 'KeyN'){ body.classList.toggle('notes'); renderNotes(); }
+    else if(code === 'KeyF') toggleFull();
+    else if(code === 'KeyV'){ var b = slides[cur].querySelector('[data-demo]'); if(b) openDemo(b.getAttribute('data-demo')); }
+    else if(code === 'KeyP') toggleQR();
+    else done = false;
+    if(done) e.preventDefault();
+  });
+  function fullEl(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function toggleFull(){
+    var d = document, el = d.documentElement;
+    if(fullEl()) (d.exitFullscreen || d.webkitExitFullscreen || function(){}).call(d);
+    else { var p = (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el); if(p && p.catch) p.catch(function(){}); }
+  }
+  var hideT;
+  document.addEventListener('mousemove', function(){
+    body.classList.add('hover'); clearTimeout(hideT);
+    hideT = setTimeout(function(){ body.classList.remove('hover'); }, 2200);
+  });
+
+  /* 8-2. 마우스 · 터치 — 화면 오른쪽 절반을 누르면 다음, 왼쪽 절반은 이전.
+     링크·버튼·영상·대본 위를 누른 것은 그것의 동작이 먼저다. */
+  var swipedAt = 0, downX = 0, downY = 0;
+  /* 드래그(글자 고르기 등)로 끝난 click 은 넘기지 않는다. 선택 여부로 판단하면
+     대본에서 고른 글자가 남아 있는 동안 무대 클릭이 계속 막힌다(무대는 선택이 안 되어 풀 수도 없다). */
+  document.addEventListener('mousedown', function(e){ downX = e.clientX; downY = e.clientY; });
+  document.addEventListener('click', function(e){
+    if(MODE !== 'deck' || e.button !== 0 || demo.classList.contains('on')) return;
+    if(qrBox && qrBox.classList.contains('on')){ if(e.target === qrBox || e.target.closest('.qx')) toggleQR(); return; }
+    if(Date.now() - swipedAt < 600) return;        /* 밀기 끝에 따라오는 click 은 무시 */
+    if(e.target.closest('a, button, video, input, textarea, select, #notes, #demo')) return;
+    if(Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) return;
+    if(e.clientX >= window.innerWidth / 2) next(); else prev();
+  });
+  /* 폰: 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전. 두 손가락(확대)은 건드리지 않는다. */
+  var tx = null, ty = null;
+  document.addEventListener('touchstart', function(e){
+    if(MODE !== 'deck' || (qrBox && qrBox.classList.contains('on')) || e.touches.length !== 1 || demo.classList.contains('on') || e.target.closest('#notes, #demo')){ tx = null; return; }
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e){
+    if(tx === null) return;
+    var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+    tx = null;
+    if(window.visualViewport && window.visualViewport.scale > 1.01) return;   /* 확대한 화면을 옮기는 중 */
+    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5){
+      swipedAt = Date.now();
+      if(dx < 0) next(); else prev();
+    }
+  }, {passive: true});
+  document.addEventListener('touchcancel', function(){ tx = null; }, {passive: true});
+
+  /* 세로 화면 안내는 6초 뒤, 또는 처음 넘길 때 사라진다 */
+  var rot = document.getElementById('rot');
+  setTimeout(function(){ rot.classList.add('gone'); }, 6000);
+
+  /* 8-3. 폰으로 보는 대본 — 같은 파일을 ?script 로 연다. 장표와 연결하지 않는 독립 페이지다.
+     장표에서 P 를 누르면 폰으로 찍을 QR 코드와 주소를 띄운다. */
+  var PUBLIC = 'https://jaegukang.com/ai/';
+  function scriptURL(){
+    return location.protocol === 'file:' ? PUBLIC + '?script' : location.href.split('#')[0].split('?')[0] + '?script';
+  }
+  var qrBox = null;
+  function toggleQR(){
+    if(!qrBox){
+      qrBox = document.createElement('div'); qrBox.id = 'qr';
+      qrBox.innerHTML = '<div class="qc"><div class="qk">폰으로 대본 보기</div><div class="qi"></div><div class="qu"></div>' +
+        '<p class="qn">카메라로 찍거나 주소를 입력하세요 · <b>P</b> 또는 Esc 로 닫기</p><button type="button" class="qx">닫기</button></div>';
+      body.appendChild(qrBox);
+      var url = scriptURL();
+      qrBox.querySelector('.qu').textContent = url.replace(/^https?:\/\//, '');
+      var draw = function(){
+        try {
+          var q = window.qrcode(0, 'M'); q.addData(url); q.make();
+          qrBox.querySelector('.qi').innerHTML = q.createSvgTag({cellSize: 8, margin: 2, scalable: true});
+        } catch(err){ qrBox.querySelector('.qi').textContent = ''; }
+      };
+      if(window.qrcode) draw();
+      else {
+        /* QR 라이브러리는 필요할 때만 받는다 (cdnjs · 무결성 검사). 인터넷이 없으면 주소만 보인다. */
+        var sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+        sc.integrity = 'sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1';
+        sc.crossOrigin = 'anonymous'; sc.onload = draw;
+        document.head.appendChild(sc);
+      }
+    }
+    qrBox.classList.toggle('on');
+  }
+
+  function script(){
+    var KEY = 'ai-script-v1';
+    var titles = slides.map(function(sl){
+      var h = sl.querySelector('h2');
+      if(h) return h.textContent;
+      if(sl.getAttribute('data-video')) return sl.getAttribute('data-video') === 'intro' ? '인트로 영상' : '아웃트로 영상';
+      return sl.classList.contains('s-title') ? '표지' : '마무리';
+    });
+    var W = document.createElement('div'); W.id = 'scr';
+    W.innerHTML =
+      '<header class="s-top"><div class="s-t1"><b>대본</b><span>기억에서 데이터로 · 계획 ' + mmss(planTotal) + '</span></div>' +
+      '<div class="s-t2"><span class="s-el">0:00</span><span class="s-diff"></span>' +
+      '<button type="button" data-s="run">시작</button><button type="button" data-s="reset">다시</button></div></header>' +
+      '<ol class="s-list"></ol>' +
+      '<nav class="s-nav"><button type="button" data-s="prev">◀ 이전</button><span class="s-pos"></span><button type="button" data-s="next">다음 ▶</button></nav>';
+    body.appendChild(W);
+    var q = function(sel){ return W.querySelector(sel); }, list = q('.s-list');
+    var endAt = [];                       /* 장마다 '여기까지 계획' 누적 초 */
+    plan.reduce(function(a, t, i){ endAt[i] = a + t; return a + t; }, 0);
+    slides.forEach(function(sl, i){
+      var li = document.createElement('li'), h = document.createElement('div'), n = document.createElement('span'),
+          t = document.createElement('b'), m = document.createElement('em'), bd = document.createElement('div');
+      h.className = 'c-h'; bd.className = 'c-b';
+      n.textContent = String(i + 1).padStart(2, '0'); t.textContent = titles[i];
+      m.textContent = mmss(plan[i]) + ' · ' + mmss(endAt[i]) + '까지';
+      var note = sl.querySelector('aside.note'); bd.innerHTML = note ? note.innerHTML : '';   /* 이 파일 안의 대본 — 외부 입력 아님 */
+      h.appendChild(n); h.appendChild(t); h.appendChild(m); li.appendChild(h); li.appendChild(bd);
+      li.addEventListener('click', function(){ set(i, true); });
+      list.appendChild(li);
+    });
+    /* 상태: 지금 장 · 시계 (새로 고쳐도 남게 이 기기에만 저장) */
+    var st = {cur: 0, acc: 0, since: null};
+    /* 저장값은 믿지 않는다 — 장 수가 바뀌었거나 값이 깨졌으면 기본값으로 (범위 밖 cur 는 NaN 시계 · 먹통 버튼을 만든다) */
+    try {
+      var sv = JSON.parse(localStorage.getItem(KEY) || 'null'), fin = function(v){ return typeof v === 'number' && isFinite(v); };
+      if(sv && typeof sv === 'object'){
+        if(fin(sv.cur)) st.cur = Math.max(0, Math.min(total - 1, Math.round(sv.cur)));
+        if(fin(sv.acc) && sv.acc >= 0) st.acc = sv.acc;
+        if(fin(sv.since) && sv.since <= Date.now()) st.since = sv.since;
+      }
+    } catch(err){}
+    function save(){ try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(err){} }
+    function elapsed(){ return st.acc + (st.since ? (Date.now() - st.since) / 1000 : 0); }
+    function set(i, scroll){
+      if(i < 0 || i >= total) return;
+      st.cur = i; save();
+      [].forEach.call(list.children, function(li, k){ li.classList.toggle('on', k === i); li.classList.toggle('past', k < i); });
+      q('.s-pos').textContent = String(i + 1).padStart(2, '0') + ' / ' + total;
+      if(scroll){ var li = list.children[i], top = li.getBoundingClientRect().top + window.scrollY - q('.s-top').offsetHeight - 10; window.scrollTo({top: top, behavior: 'smooth'}); }
+      tick();
+    }
+    function tick(){
+      var el = elapsed(), d = el - endAt[st.cur], df = q('.s-diff');
+      q('.s-el').textContent = mmss(el);
+      df.textContent = (st.since || st.acc) ? (d > 0 ? mmss(d) + ' 늦음' : '여유 ' + mmss(-d)) : '';
+      df.classList.toggle('late', d > 0);
+      q('[data-s="run"]').textContent = st.since ? '멈춤' : (st.acc ? '계속' : '시작');
+      W.classList.toggle('running', !!st.since);
+    }
+    /* 시계가 도는 동안 화면이 꺼지지 않게 (지원하는 브라우저만) */
+    var lock = null, asking = false;
+    function wake(on){
+      if(on && !lock && !asking && navigator.wakeLock && document.visibilityState === 'visible'){
+        asking = true;
+        navigator.wakeLock.request('screen').then(function(l){
+          asking = false;
+          if(!st.since){ l.release().catch(function(){}); return; }   /* 요청 중에 멈췄으면 바로 놓는다 */
+          lock = l; l.addEventListener('release', function(){ lock = null; });
+        }).catch(function(){ asking = false; });
+      } else if(!on && lock){ lock.release().catch(function(){}); lock = null; }
+    }
+    document.addEventListener('visibilitychange', function(){ if(st.since) wake(true); });
+    W.addEventListener('click', function(e){
+      var b = e.target.closest('[data-s]'); if(!b) return;
+      e.stopPropagation(); b.blur();                 /* 포커스가 남으면 Space · Enter 가 이 버튼을 다시 누른다 */
+      var a = b.getAttribute('data-s');
+      if(a === 'next') set(st.cur + 1, true);
+      else if(a === 'prev') set(st.cur - 1, true);
+      else if(a === 'run'){ if(st.since){ st.acc = elapsed(); st.since = null; } else st.since = Date.now(); save(); wake(!!st.since); tick(); }
+      else if(a === 'reset'){ st.acc = 0; st.since = null; save(); wake(false); tick(); }
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.metaKey || e.ctrlKey || e.altKey || e.repeat || (e.target.closest && e.target.closest('button'))) return;
+      if(NEXT[e.key] && e.key !== ' '){ set(st.cur + 1, true); e.preventDefault(); }
+      else if(PREV[e.key] && e.key !== 'Backspace'){ set(st.cur - 1, true); e.preventDefault(); }
+    });
+    setInterval(tick, 1000);
+    if(st.since) wake(true);
+    set(st.cur, false);
+    requestAnimationFrame(function(){ set(st.cur, true); });
+    document.title = '대본 — ' + document.title;
+    window.__script = {cur: function(){ return st.cur; }, elapsed: elapsed};
+  }
+
+  /* 9. 시작 */
+  if(MODE === 'script'){
+    /* 대본 페이지는 영상도 무대도 쓰지 않는다 */
+    Object.keys(vids).forEach(function(k){ var v = vids[k]; v.preload = 'none'; v.removeAttribute('src'); try { v.load(); } catch(err){} });
+    script();
+  }
+  else {
+    var start = parseInt((location.hash || '').replace('#', ''), 10);
+    goTo(start > 0 && start <= total ? start - 1 : 0);
+  }
+  window.__deck = {goTo: goTo, cur: function(){ return cur; }, total: total, planTotal: planTotal, mode: MODE};
+})();
+</script>
+</body>
+</html>

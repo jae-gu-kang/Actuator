@@ -1,0 +1,2727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Engineering Tools — 매뉴얼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #f5f5f7;
+  --card:       rgba(255,255,255,0.92);
+  --border:     rgba(0,0,0,0.08);
+  --text:       #1d1d1f;
+  --text2:      #6e6e73;
+  --text3:      #aeaeb2;
+  --blue:       #0071e3;
+  --blue-light: #e8f1fd;
+  --green:      #28a745;
+  --orange:     #ff9f0a;
+  --purple:     #bf5af2;
+  --red:        #ff453a;
+  --teal:       #5ac8fa;
+  --sidebar-w:  260px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TITLEBAR ── */
+.titlebar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 52px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+
+.titlebar-left { display: flex; align-items: center; gap: 10px; }
+
+.home-btn {
+  display: flex; align-items: center; gap: 5px;
+  text-decoration: none; color: var(--blue);
+  font-size: 13px; font-weight: 500;
+  padding: 5px 10px 5px 6px; border-radius: 8px;
+  background: transparent; border: none; cursor: pointer;
+  transition: background 0.15s;
+  margin-right: 2px;
+}
+.home-btn:hover { background: rgba(0,113,227,0.08); }
+.home-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.titlebar-divider { width: 1px; height: 16px; background: var(--border); }
+
+.app-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(145deg, #1c1c1e, #3a3a3c);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.app-icon svg { width: 16px; height: 16px; }
+
+.app-name { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+
+.titlebar-badge {
+  font-size: 11px; font-weight: 500;
+  padding: 3px 10px; border-radius: 20px;
+  background: rgba(0,113,227,0.1); color: var(--blue);
+}
+
+/* ── LAYOUT ── */
+.layout {
+  display: flex;
+  padding-top: 52px;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR NAV ── */
+.sidebar {
+  position: fixed;
+  top: 52px; left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 20px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.nav-section-title {
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  letter-spacing: 0.5px; text-transform: uppercase;
+  padding: 8px 12px 4px;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px;
+  cursor: pointer; text-decoration: none;
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  transition: all 0.15s; border: none; background: transparent;
+  width: 100%; text-align: left;
+}
+.nav-item:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+.nav-item.active { background: rgba(0,113,227,0.1); color: var(--blue); }
+.nav-item .nav-icon {
+  width: 26px; height: 26px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.nav-item .nav-icon svg { width: 14px; height: 14px; }
+.nav-item .nav-label { flex: 1; line-height: 1.3; }
+.nav-item .nav-sub { font-size: 10px; font-weight: 400; color: var(--text3); display: block; margin-top: 1px; }
+
+/* ── MAIN CONTENT ── */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  padding: 40px 48px;
+  max-width: calc(var(--sidebar-w) + 900px);
+}
+
+/* ── SECTIONS ── */
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── HERO ── */
+.hero {
+  text-align: center;
+  padding: 60px 20px 48px;
+}
+.hero-badge {
+  display: inline-block;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--blue);
+  background: var(--blue-light); padding: 5px 14px; border-radius: 20px;
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: 42px; font-weight: 700; letter-spacing: -1.5px;
+  line-height: 1.15; color: var(--text); margin-bottom: 14px;
+}
+.hero p {
+  font-size: 17px; color: var(--text2); font-weight: 400;
+  line-height: 1.6; max-width: 560px; margin: 0 auto 36px;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  max-width: 900px; margin: 0 auto;
+}
+
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  border-color: rgba(0,113,227,0.2);
+}
+.tool-card-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.tool-card-icon svg { width: 22px; height: 22px; }
+.tool-card h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 6px; }
+.tool-card p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.tool-card-arrow { margin-top: 14px; color: var(--blue); font-size: 12px; font-weight: 500; }
+
+/* ── TOOL MANUAL PAGE ── */
+.page-header {
+  display: flex; align-items: flex-start; gap: 18px;
+  padding: 32px 0 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 36px;
+}
+.page-icon {
+  width: 56px; height: 56px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.page-icon svg { width: 28px; height: 28px; }
+.page-header h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.8px; }
+.page-header p { font-size: 14px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
+.page-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.page-tag {
+  font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px;
+  background: rgba(0,0,0,0.06); color: var(--text2);
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.card-title {
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text3);
+  margin-bottom: 16px;
+}
+
+/* Steps */
+.step-list { display: flex; flex-direction: column; gap: 14px; }
+.step {
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.step-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.step-body p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* Terms */
+.term-grid { display: flex; flex-direction: column; gap: 0; }
+.term-row {
+  display: grid; grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: 20px; padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+  position: relative;
+}
+/* 앵커 span이 그리드 슬롯을 차지하지 않도록 absolute 처리 */
+.term-row > span[id] {
+  position: absolute; top: -80px;
+  visibility: hidden; display: block;
+  width: 0; height: 0;
+}
+.term-row:last-child { border-bottom: none; }
+.term-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  font-family: -apple-system, 'Noto Sans KR', sans-serif;
+  display: flex; align-items: flex-start; gap: 6px;
+  flex-direction: column;
+}
+.term-symbol {
+  font-size: 11px; font-weight: 500; padding: 2px 7px;
+  border-radius: 5px; background: rgba(0,0,0,0.06);
+  color: var(--text2); font-family: -apple-system, sans-serif;
+  margin-top: 3px; display: inline-block;
+}
+.term-desc { font-size: 13px; color: var(--text2); line-height: 1.65; }
+.term-desc code {
+  font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px;
+  background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px;
+  color: var(--text);
+}
+
+/* ── FORMULA CARDS ── */
+.eq-card {
+  margin: 16px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+.eq-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.eq-header svg { width: 13px; height: 13px; opacity: 0.7; }
+.eq-body {
+  padding: 22px 28px;
+  background: #fff;
+  display: flex; flex-direction: column; gap: 18px;
+  align-items: center;
+}
+.eq-body.dark-bg {
+  background: #1c1c1e;
+}
+
+/* single equation row */
+.eq-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; flex-wrap: wrap;
+}
+.eq-label {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  letter-spacing: 0.4px; text-transform: uppercase;
+  margin-bottom: 10px; text-align: center;
+}
+.eq-divider {
+  height: 1px; background: rgba(0,0,0,0.06); margin: 4px 0;
+}
+
+/* Math tokens */
+.m { font-family: 'Georgia', 'Times New Roman', serif; font-style: italic; }
+.m-up { font-family: 'Georgia', serif; font-style: normal; font-weight: 600; }
+.eq-sym {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 22px; color: var(--text);
+  display: inline-flex; align-items: center;
+  padding: 0 3px;
+}
+.eq-op {
+  font-size: 18px; color: var(--text2);
+  padding: 0 6px; font-family: 'SF Pro Display', sans-serif; font-weight: 300;
+}
+.eq-eq {
+  font-size: 20px; color: var(--text3);
+  padding: 0 10px; font-weight: 300;
+}
+
+/* Fraction */
+.frac {
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  vertical-align: middle; margin: 0 4px;
+}
+.frac-num, .frac-den {
+  font-family: 'Georgia', serif; font-style: italic;
+  font-size: 14px; padding: 0 4px; line-height: 1.3;
+  color: var(--text);
+}
+.frac-line { width: 100%; height: 1.5px; background: var(--text); margin: 2px 0; }
+
+/* Big symbol (Σ, √, ∫) */
+.big-sym {
+  font-size: 32px; line-height: 1; color: var(--text2);
+  font-family: 'Georgia', serif; padding-right: 2px;
+  vertical-align: middle;
+}
+
+/* Colored variable highlights */
+.var-blue  { color: #0071e3; font-style: italic; font-family: 'Georgia', serif; }
+.var-purple{ color: #bf5af2; font-style: italic; font-family: 'Georgia', serif; }
+.var-orange{ color: #ff9f0a; font-style: italic; font-family: 'Georgia', serif; }
+.var-teal  { color: #30b0c7; font-style: italic; font-family: 'Georgia', serif; }
+.var-green { color: #28a745; font-style: italic; font-family: 'Georgia', serif; }
+.var-red   { color: #ff453a; font-style: italic; font-family: 'Georgia', serif; }
+
+/* Sub/superscript */
+.sub { font-size: 0.65em; vertical-align: sub; font-style: normal; }
+.sup { font-size: 0.65em; vertical-align: super; font-style: normal; }
+
+/* Legend row below formula */
+.eq-legend {
+  display: flex; flex-wrap: wrap; gap: 8px 20px;
+  padding: 14px 18px;
+  background: rgba(0,0,0,0.02);
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+.eq-legend-item {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 12px; color: var(--text2);
+}
+.eq-legend-sym {
+  font-family: 'Georgia', serif; font-style: italic;
+  font-size: 14px; font-weight: 500; min-width: 28px;
+}
+
+/* Tip box */
+.tip-box {
+  display: flex; gap: 12px;
+  background: rgba(0,113,227,0.06);
+  border: 1px solid rgba(0,113,227,0.15);
+  border-radius: 12px; padding: 14px 16px;
+  margin: 10px 0;
+}
+.tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.tip-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.tip-text strong { color: var(--text); }
+
+/* Warning box */
+.warn-box {
+  display: flex; gap: 12px;
+  background: rgba(255,159,10,0.08);
+  border: 1px solid rgba(255,159,10,0.2);
+  border-radius: 12px; padding: 14px 16px;
+  margin: 10px 0;
+}
+
+/* Input table */
+.input-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.input-table th {
+  text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--text3); text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 0 12px 10px 0; border-bottom: 1px solid var(--border);
+}
+.input-table td {
+  padding: 11px 12px 11px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  vertical-align: top; line-height: 1.5;
+}
+.input-table tr:last-child td { border-bottom: none; }
+.input-table td:first-child { font-weight: 600; white-space: nowrap; }
+.input-table td code {
+  font-family: 'SF Mono', monospace; font-size: 12px;
+  background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px;
+}
+
+/* unit badge */
+.unit { font-size: 11px; color: var(--text3); margin-left: 4px; }
+
+/* ── SEARCH ── */
+.search-wrap {
+  position: relative;
+  margin-bottom: 8px;
+}
+.search-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; color: var(--text3); pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  padding: 8px 32px 8px 30px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(118,118,128,0.08);
+  font-size: 13px; color: var(--text);
+  font-family: inherit; outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.search-input:focus {
+  border-color: var(--blue);
+  background: rgba(0,113,227,0.04);
+}
+.search-input::placeholder { color: var(--text3); }
+.search-clear {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; border: none; background: transparent;
+  cursor: pointer; padding: 0; color: var(--text3); display: flex;
+  align-items: center; justify-content: center;
+}
+.search-clear svg { width: 12px; height: 12px; }
+.search-clear:hover { color: var(--text); }
+
+.search-result-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 12px; border-radius: 8px;
+  cursor: pointer; background: transparent;
+  border: none; text-align: left; width: 100%;
+  transition: background 0.12s;
+}
+.search-result-item:hover { background: rgba(0,113,227,0.06); }
+.search-result-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.search-result-snippet { font-size: 11px; color: var(--text2); line-height: 1.4; }
+.search-result-snippet mark {
+  background: rgba(0,113,227,0.15); color: var(--blue);
+  border-radius: 2px; padding: 0 1px; font-style: normal;
+}
+.search-no-result {
+  font-size: 12px; color: var(--text3); text-align: center;
+  padding: 12px 0;
+}
+.search-group-label {
+  display: flex; align-items: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; padding: 8px 12px 4px;
+  margin-top: 2px;
+}
+
+/* ── 검색 결과 하이라이트 ── */
+@keyframes searchPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,113,227,0.35), 0 0 0 0 rgba(0,113,227,0.15); background: rgba(0,113,227,0.08); }
+  40%  { box-shadow: 0 0 0 6px rgba(0,113,227,0.12), 0 0 0 12px rgba(0,113,227,0.05); background: rgba(0,113,227,0.06); }
+  100% { box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent; background: transparent; }
+}
+.search-highlight {
+  border-radius: 10px;
+  animation: searchPulse 2.2s ease-out forwards;
+  position: relative; z-index: 1;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; padding: 10px; overflow-x: auto; }
+  .layout { flex-direction: column; }
+  .main { margin-left: 0; padding: 24px 20px; }
+  .hero h1 { font-size: 28px; }
+  .term-row { grid-template-columns: 1fr; gap: 4px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <div class="titlebar-left">
+    <a class="home-btn" href="index.html">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 6.5L8 2l6 4.5V13.5a.5.5 0 01-.5.5h-3.5V10h-4v4H2.5a.5.5 0 01-.5-.5V6.5z"/>
+      </svg>
+      홈
+    </a>
+    <div class="titlebar-divider"></div>
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+        <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+      </svg>
+    </div>
+    <span class="app-name">Engineering Tools Manual</span>
+  </div>
+  <span class="titlebar-badge">v1.1 · 5 Tools</span>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <!-- 검색창 -->
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
+      </svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="매뉴얼 검색..." oninput="doSearch(this.value)">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none;">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+      </button>
+    </div>
+    <!-- 검색 결과 -->
+    <div id="searchResults" style="display:none; flex-direction:column; gap:2px; margin-bottom:4px;"></div>
+
+    <div class="nav-section-title" id="navTitle">도구별 매뉴얼</div>
+    <button class="nav-item active" onclick="showSection('linkage')">
+      <span class="nav-icon" style="background:rgba(0,113,227,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
+          <circle cx="4" cy="4" r="2"/><circle cx="20" cy="10" r="2"/>
+          <line x1="4" y1="6" x2="4" y2="18"/>
+          <line x1="6" y1="4" x2="18" y2="10"/>
+          <line x1="6" y1="20" x2="18" y2="20"/>
+          <line x1="20" y1="12" x2="20" y2="18"/>
+        </svg>
+      </span>
+      <span class="nav-label">4-Bar Linkage<span class="nav-sub">링크 해석기</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('hinge')">
+      <span class="nav-icon" style="background:rgba(191,90,242,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bf5af2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M2 12h20"/>
+          <path d="M12 2C8 6 5 9 5 12s3 6 7 10"/>
+          <path d="M12 2c4 4 7 7 7 10s-3 6-7 10"/>
+        </svg>
+      </span>
+      <span class="nav-label">힌지모멘트 계산기<span class="nav-sub">Hinge Moment</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('regression')">
+      <span class="nav-icon" style="background:rgba(255,159,10,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 20 4 4"/><polyline points="4 20 20 20"/>
+          <circle cx="7" cy="14" r="1.2" fill="#ff9f0a"/>
+          <circle cx="10" cy="11" r="1.2" fill="#ff9f0a"/>
+          <circle cx="13" cy="13" r="1.2" fill="#ff9f0a"/>
+          <circle cx="17" cy="8" r="1.2" fill="#ff9f0a"/>
+          <line x1="5" y1="16" x2="19" y2="7" stroke-dasharray="2 1"/>
+        </svg>
+      </span>
+      <span class="nav-label">회귀분석 도구<span class="nav-sub">Regression Analysis</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('servo')">
+      <span class="nav-icon" style="background:rgba(48,176,199,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/>
+          <line x1="3" y1="20" x2="21" y2="20"/>
+        </svg>
+      </span>
+      <span class="nav-label">주파수 응답 분석기<span class="nav-sub">Servo FRA</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('rigging')">
+      <span class="nav-icon" style="background:rgba(50,215,75,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3 L2 18 L7 17 L10 13 L10 19 L12 21 L14 19 L14 13 L17 17 L22 18 Z"/>
+          <line x1="2" y1="18" x2="7" y2="17"/>
+          <line x1="17" y1="17" x2="22" y2="18"/>
+        </svg>
+      </span>
+      <span class="nav-label">CS Rigging<span class="nav-sub">조종면 리깅 도구</span></span>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ══════════════ 4-BAR LINKAGE ══════════════ -->
+    <section class="section active" id="sec-linkage">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(0,113,227,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/>
+            <circle cx="4" cy="4" r="2"/><circle cx="20" cy="10" r="2"/>
+            <line x1="4" y1="6" x2="4" y2="18"/>
+            <line x1="6" y1="4" x2="18" y2="10"/>
+            <line x1="6" y1="20" x2="18" y2="20"/>
+            <line x1="20" y1="12" x2="20" y2="18"/>
+          </svg>
+        </div>
+        <div>
+          <h2>4-Bar Linkage 해석기</h2>
+          <p>4절 링크 기구의 위치 해석과 토크 전달 분석 도구</p>
+          <div class="page-tags">
+            <span class="page-tag">기구학</span>
+            <span class="page-tag">토크 해석</span>
+            <span class="page-tag">링크 설계</span>
+            <span class="page-tag">AI 최적설계</span>
+            <span class="page-tag">역설계 검토</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 개요 -->
+      <div class="card">
+        <span id="anc-linkage-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          4-Bar Linkage 해석기는 4개의 링크(크랭크, 커플러, 팔로워, 고정링크)로 구성된 기구학적 메커니즘의 위치, 각도, 토크를 분석합니다. 항공기 조종면 액추에이터, 로봇 팔, 자동차 서스펜션 등 다양한 분야에서 활용되는 기초 기구학 해석 도구입니다.
+        </p>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-top:10px;">
+          위치·토크 해석에 더해, 이 도구는 <strong>AI 최적 설계 추천</strong>(타각 범위를 만족하며 토크가 최대가 되도록 커플러 b·출력링크 c·중립각 θ₄₀ 자동 탐색), <strong>설계변수 스윕 검토</strong>, <strong>출력토크·커플러·타각별 그래프</strong>, 그리고 <strong>힌지모멘트·조종면 리깅 계산기로의 연동</strong>까지 지원하는 통합 액추에이터 설계 워크벤치입니다.
+        </p>
+        <div class="eq-card" style="margin-top:16px;">
+          <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 8h12M8 2v12"/></svg>
+            <span id="anc-loop-closure" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>루프 폐합 방정식 (Loop Closure Equations)
+          </div>
+
+          <!-- 4절 링크 다이어그램 -->
+          <div style="background:rgba(0,113,227,0.03); border-bottom:1px solid rgba(0,113,227,0.08); padding:20px 24px; display:flex; justify-content:center;">
+            <svg viewBox="0 0 420 200" width="100%" style="max-width:420px; font-family:-apple-system,sans-serif;">
+              <!-- 배경 그리드 점 -->
+              <defs>
+                <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <circle cx="1" cy="1" r="1" fill="rgba(0,0,0,0.07)"/>
+                </pattern>
+              </defs>
+              <rect width="420" height="200" fill="url(#dots)" rx="8"/>
+
+              <!-- 좌표 정의 : O2(80,150) O4(340,150) A(140,60) B(300,80) -->
+
+              <!-- 지면 해칭 (고정링크 양단) -->
+              <g stroke="#8e8e93" stroke-width="1">
+                <!-- O2 지면 -->
+                <line x1="68" y1="158" x2="92" y2="158" stroke-width="1.5"/>
+                <line x1="62" y1="164" x2="72" y2="158"/><line x1="68" y1="164" x2="78" y2="158"/>
+                <line x1="74" y1="164" x2="84" y2="158"/><line x1="80" y1="164" x2="90" y2="158"/>
+                <line x1="86" y1="164" x2="96" y2="158"/>
+                <!-- O4 지면 -->
+                <line x1="328" y1="158" x2="352" y2="158" stroke-width="1.5"/>
+                <line x1="322" y1="164" x2="332" y2="158"/><line x1="328" y1="164" x2="338" y2="158"/>
+                <line x1="334" y1="164" x2="344" y2="158"/><line x1="340" y1="164" x2="350" y2="158"/>
+                <line x1="346" y1="164" x2="356" y2="158"/>
+              </g>
+
+              <!-- 고정링크 d (O2→O4, 점선) -->
+              <line x1="80" y1="150" x2="340" y2="150" stroke="#8e8e93" stroke-width="2" stroke-dasharray="6 4"/>
+
+              <!-- 크랭크 a (O2→A) : 파랑 -->
+              <line x1="80" y1="150" x2="140" y2="60" stroke="#0071e3" stroke-width="3.5" stroke-linecap="round"/>
+              <!-- 커플러 b (A→B) : 보라 -->
+              <line x1="140" y1="60" x2="300" y2="80" stroke="#bf5af2" stroke-width="3.5" stroke-linecap="round"/>
+              <!-- 팔로워 c (O4→B) : 빨강 -->
+              <line x1="340" y1="150" x2="300" y2="80" stroke="#ff453a" stroke-width="3.5" stroke-linecap="round"/>
+
+              <!-- 각도 호 θ₂ at O2 -->
+              <path d="M 110 150 A 30 30 0 0 0 93 123" fill="none" stroke="#0071e3" stroke-width="1.5" stroke-dasharray="3 2"/>
+              <!-- 각도 호 θ₄ at O4 -->
+              <path d="M 310 150 A 30 30 0 0 1 322 122" fill="none" stroke="#ff453a" stroke-width="1.5" stroke-dasharray="3 2"/>
+              <!-- 각도 호 θ₃ on coupler (near A) -->
+              <path d="M 160 65 A 22 22 0 0 1 162 85" fill="none" stroke="#bf5af2" stroke-width="1.5" stroke-dasharray="3 2"/>
+
+              <!-- 절점 O2 (고정) -->
+              <circle cx="80" cy="150" r="7" fill="white" stroke="#8e8e93" stroke-width="2"/>
+              <circle cx="80" cy="150" r="3" fill="#8e8e93"/>
+              <!-- 절점 O4 (고정) -->
+              <circle cx="340" cy="150" r="7" fill="white" stroke="#8e8e93" stroke-width="2"/>
+              <circle cx="340" cy="150" r="3" fill="#8e8e93"/>
+              <!-- 절점 A (가동) -->
+              <circle cx="140" cy="60" r="7" fill="white" stroke="#0071e3" stroke-width="2.5"/>
+              <circle cx="140" cy="60" r="3" fill="#0071e3"/>
+              <!-- 절점 B (가동) -->
+              <circle cx="300" cy="80" r="7" fill="white" stroke="#bf5af2" stroke-width="2.5"/>
+              <circle cx="300" cy="80" r="3" fill="#bf5af2"/>
+
+              <!-- 링크 레이블 -->
+              <!-- a 레이블 (크랭크, 파랑) -->
+              <text x="96" y="96" fill="#0071e3" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">a</text>
+              <!-- b 레이블 (커플러, 보라) -->
+              <text x="222" y="57" fill="#bf5af2" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">b</text>
+              <!-- c 레이블 (팔로워, 빨강) -->
+              <text x="326" y="106" fill="#ff453a" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">c</text>
+              <!-- d 레이블 (고정, 회색) -->
+              <text x="210" y="143" fill="#8e8e93" font-size="15" font-weight="700" font-style="italic" text-anchor="middle">d</text>
+
+              <!-- 절점 레이블 -->
+              <text x="62" y="148" fill="#6e6e73" font-size="11" font-weight="600" text-anchor="middle">O₂</text>
+              <text x="358" y="148" fill="#6e6e73" font-size="11" font-weight="600" text-anchor="start">O₄</text>
+              <text x="140" y="46" fill="#0071e3" font-size="11" font-weight="700" text-anchor="middle">A</text>
+              <text x="300" y="66" fill="#bf5af2" font-size="11" font-weight="700" text-anchor="middle">B</text>
+
+              <!-- 각도 레이블 -->
+              <text x="118" y="136" fill="#0071e3" font-size="12" font-weight="600" font-style="italic">θ₂</text>
+              <text x="303" y="134" fill="#ff453a" font-size="12" font-weight="600" font-style="italic">θ₄</text>
+              <text x="170" y="60" fill="#bf5af2" font-size="12" font-weight="600" font-style="italic">θ₃</text>
+
+              <!-- 회전 방향 화살표 (크랭크) -->
+              <path d="M 55 128 A 26 26 0 0 1 78 126" fill="none" stroke="#0071e3" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+              <defs>
+                <marker id="arr-blue" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                  <path d="M0,0 L6,3 L0,6 Z" fill="#0071e3"/>
+                </marker>
+              </defs>
+
+              <!-- 범례 -->
+              <rect x="10" y="8" width="200" height="22" rx="6" fill="rgba(255,255,255,0.7)"/>
+              <line x1="18" y1="19" x2="36" y2="19" stroke="#0071e3" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="40" y="23" fill="#0071e3" font-size="10.5" font-weight="600">크랭크 a</text>
+              <line x1="90" y1="19" x2="108" y2="19" stroke="#bf5af2" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="112" y="23" fill="#bf5af2" font-size="10.5" font-weight="600">커플러 b</text>
+              <rect x="10" y="34" width="200" height="22" rx="6" fill="rgba(255,255,255,0.7)"/>
+              <line x1="18" y1="45" x2="36" y2="45" stroke="#ff453a" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="40" y="49" fill="#ff453a" font-size="10.5" font-weight="600">팔로워 c</text>
+              <line x1="90" y1="45" x2="108" y2="45" stroke="#8e8e93" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="112" y="49" fill="#8e8e93" font-size="10.5" font-weight="600">고정링크 d</text>
+            </svg>
+          </div>
+
+          <div class="eq-body">
+            <div>
+              <div class="eq-label">X 방향</div>
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">a</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">cos</span>
+                <span class="eq-sym">(θ<span class="sub">2</span>)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-purple">b</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">cos</span>
+                <span class="eq-sym">(θ<span class="sub">3</span>)</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">d</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-red">c</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">cos</span>
+                <span class="eq-sym">(θ<span class="sub">4</span>)</span>
+              </div>
+            </div>
+            <div class="eq-divider"></div>
+            <div>
+              <div class="eq-label">Y 방향</div>
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">a</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">sin</span>
+                <span class="eq-sym">(θ<span class="sub">2</span>)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-purple">b</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">sin</span>
+                <span class="eq-sym">(θ<span class="sub">3</span>)</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-red">c</span></span>
+                <span class="eq-sym" style="font-style:normal;font-size:16px;">sin</span>
+                <span class="eq-sym">(θ<span class="sub">4</span>)</span>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">a</span>크랭크 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">b</span>커플러 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">c</span>팔로워 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">d</span>고정링크 길이</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">θ<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">2,3,4</span></span>각 링크 각도</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 사용 방법 -->
+      <div class="card">
+        <span id="anc-linkage-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>링크 길이 입력 & 해 유형 선택</h4>
+              <p>좌측 <strong>링크 길이</strong> 섹션에서 고정 d · 입력 a(크랭크) · 커플러 b · 출력 c(팔로워)를 입력합니다(mm). 상단 세그먼트에서 <strong>개방형</strong> / <strong>교차형</strong> 조립 형태를 선택하고, 우측 상단 <strong>Grashof 배지</strong>로 완전회전 가능 여부를 확인합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>자세 조정 (조종면 각도 δ · 서보각도)</h4>
+              <p><strong>자세</strong> 묶음은 같은 1자유도를 두 축으로 보여줍니다 — 위는 입력측 <strong>서보각도</strong>(읽기 전용), 아래는 출력측 <strong>조종면 각도 δ</strong>(슬라이더·이동 버튼). δ 를 움직이면 서보각도가 함께 갱신됩니다. 캔버스에서 절점 A·B나 링크 중간점을 드래그해 기구를 직접 조작할 수도 있습니다. 원시 각 <strong>θ₄ 출력각 · θ₂ 입력각</strong>은 두 카드로 다 읽히므로 <strong>"원시 각 θ₂ · θ₄ 직접 입력"</strong>으로 접어 두었고, 타각범위 <em>밖</em>으로 나가 중립을 새로 잡을 때 펼쳐 씁니다. 도달 불가 각도에서는 경고 배너가 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>입력 토크와 결과 읽기</h4>
+              <p><strong>액추에이터 / 서보암</strong> 섹션의 <strong>입력 토크 T₂</strong>에 작동기 토크를 넣으면, 가상일 원리로 출력 토크 <code>T₄ = T₂ × MA</code>가 계산됩니다. 결과는 <strong>조종면 각도</strong> 카드가 현재 자세 기준으로 <strong>출력토크 T₄ · 입력측 μ · 출력측 μ</strong> 세 값을 함께 보여주고, 전 범위 곡선은 <strong>출력토크 변화</strong> 그래프에서 확인합니다. 전달각 μ는 47° 이상이면 초록, 40° 이상이면 주황, 40° 미만이면 빨강에 ⚠ 표시가 붙습니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>토크·커플러 그래프 확인</h4>
+              <p><strong>출력토크 변화</strong> 그래프에서 θ₄ 전 범위의 T₄ 곡선을, <strong>커플러 길이 영향</strong> 그래프에서 커플러 b에 따른 최대 토크·가용각 변화를 확인합니다. <strong>토크 요구도</strong>와 <strong>끝단 마진</strong>을 입력하면 <strong>물리(기계적) 가용 각도</strong>·<strong>토크 가용 각도</strong>가 계산·시각화됩니다. 각 그래프는 고해상도 PNG로 복사·저장할 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#0071e3,#bf5af2);">AI</div>
+            <div class="step-body">
+              <h4>AI 최적 설계 추천</h4>
+              <p><strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 해당 타각 범위를 물리 가용범위 안에 수용하면서 양끝단 토크 불균형을 억제하고 토크 합이 최대가 되도록 <strong>커플러 b · 출력링크 c · 중립각 θ₄₀</strong>를 자동 탐색합니다. 추천 값은 카드에서 직접 편집·재평가할 수 있고 <strong>"이 값 적용"</strong>으로 반영됩니다. <strong>"설계변수별 토크·전달각 검토 (그래프)"</strong>로 스윕 모달을 엽니다 — 타각은 입력값으로 고정하고 <strong>변수 링크 하나를 골라 그 값을 강제하며</strong> 훑되, 매 지점마다 <strong>나머지 변수와 θ₄₀ 를 다시 최적화</strong>합니다. 그래서 곡선은 "이 값으로 못박았을 때 나머지를 최선으로 맞추면 어디까지 되는가" 를 뜻합니다. 왼쪽 축은 토크, 오른쪽 축은 <strong>작동범위 내 최소 전달각 μ</strong>(입력·출력)이고 47° 기준선이 함께 그려져, 토크가 계속 오르는데도 추천이 끊기는 구간을 바로 볼 수 있습니다. 계산 버튼 아래 <strong>"상세 접기"</strong>로 검토 버튼과 결과 지표를 접을 수 있으며, <strong>"이 값 적용"</strong>은 접어도 항상 보입니다. 다만 <strong>계산이 실패하거나, 접힌 채 "이 값 적용"을 눌렀는데 카드에 사유가 떠 있으면 자동으로 펼쳐집니다</strong> — 그 사유가 접힌 영역 안에 있어 그대로 두면 화면에 아무 변화가 없기 때문입니다(정상 계산은 접힌 상태를 유지합니다).</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h4>힌지모멘트 · 리깅 계산기로 연동</h4>
+              <p><strong>중립각 θ₄₀</strong>(조종면 각도 카드의 "중립 지정" 또는 최적화 "적용"으로 정해집니다)와 <strong>타각 방향</strong>(부호 규약에서 자동 결정 — δ+ = 하향 = θ₄ 감소)이 함께 나갑니다. <strong>"힌지모멘트 계산기로 보내기"</strong>를 누르면 기하·토크가 전달되어, 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 |T₄(δ)|가 자동 계산됩니다. <strong>"조종면 리깅 계산기로 보내기"</strong>로 3차식·단조성 이론 검증에 링크 기하를 넘길 수도 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 입력 파라미터 -->
+      <div class="card">
+        <span id="anc-linkage-params" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">입력 파라미터</div>
+        <table class="input-table">
+          <tr><th>파라미터</th><th>설명</th><th>기본값</th><th>범위</th></tr>
+          <tr><td>d <span class="unit">mm</span></td><td>고정링크 (Ground Link) — O₂와 O₄ 사이의 거리</td><td>100</td><td>10 ~ 400</td></tr>
+          <tr><td>a <span class="unit">mm</span></td><td>크랭크 (Crank) — 구동 링크. 실물은 서보암이며 길이 a = 서보암 <strong>홀간 거리</strong></td><td>20</td><td>5 ~ 400</td></tr>
+          <tr><td>b <span class="unit">mm</span></td><td>커플러 (Coupler) — 크랭크와 팔로워 연결 링크</td><td>100</td><td>5 ~ 400</td></tr>
+          <tr><td>c <span class="unit">mm</span></td><td>팔로워 (Follower) — 출력 링크. 조종면 등에 연결. AI 최적화 시 c 허용범위는 <strong>0.2~0.8×L</strong>(L = 유효 지상링크 √(d²+e²), y오프셋 e=0 이면 d)로 자동 연동됩니다</td><td>40</td><td>5 ~ 400</td></tr>
+          <tr><td>θ₄ <span class="unit">°</span></td><td>출력각 (팔로워) — 슬라이더 또는 숫자 입력. <strong>"원시 각 θ₂ · θ₄ 직접 입력"</strong> 안에 접혀 있습니다</td><td>100</td><td>0 ~ 360</td></tr>
+          <tr><td>θ₂ <span class="unit">°</span></td><td>입력각 (크랭크) — 입력하면 역해로 θ₄ 산출. 같은 접이 영역 안</td><td>계산값</td><td>0 ~ 360</td></tr>
+          <tr><td>δ <span class="unit">°</span></td><td>조종면 각도 — 중립 0°, 입력한 타각범위 안에서 <strong>상향 = −, 하향 = +</strong>. <code>δ = −(θ₄ − θ₄₀)</code> 즉 <code>θ₄ = θ₄₀ − δ</code></td><td>0</td><td>−δ<sub>상향</sub> ~ +δ<sub>하향</sub></td></tr>
+          <tr><td>장착 기울기 <span class="unit">°</span></td><td>작동기 몸체 회전 (O₂ 고정) — <strong>도면 표시 전용</strong>, 계산 무관</td><td>180</td><td>0 ~ 360</td></tr>
+          <tr><td>y오프셋 <span class="unit">mm</span></td><td>작동기 편심 장착 (O₄ 고정, O₂ 승강) — <strong>실제 기하</strong>, L=√(d²+e²) 로 토크 재계산</td><td>0</td><td>−400 ~ 400</td></tr>
+          <tr><td>T₂ <span class="unit">N·m</span></td><td>입력 토크 — 크랭크에 인가되는 모터 토크</td><td>3</td><td>−9999 ~ 9999</td></tr>
+          <tr><td>타각 범위 ±δ <span class="unit">°</span></td><td>AI 최적화 목표 타각 범위 — <strong>크기</strong>로 입력합니다(부호 없음). 대칭이면 출력각이 θ₄₀−δ(하향) ~ θ₄₀+δ(상향) 를 모두 지나야 한다는 뜻입니다</td><td>25</td><td>0.5 ~ 89</td></tr>
+          <tr><td>토크 요구도 <span class="unit">N·m</span></td><td>출력토크·커플러 그래프의 요구 토크 기준선. 토크 가용각 판정에 사용</td><td>3</td><td>−9999 ~ 9999</td></tr>
+          <tr><td>끝단 마진 <span class="unit">°</span></td><td>작동범위 양끝단에 두는 안전 여유각. 물리 가용범위에서 제외</td><td>5</td><td>0 ~ 90</td></tr>
+          <tr><td>중립각 θ₄₀ <span class="unit">°</span></td><td>타각 δ=0° 기준 출력각 — <strong>직접 입력하는 칸은 없습니다.</strong> 조종면 각도 카드의 "중립 지정" 또는 최적화 "적용"으로 정해지고, 그래프 δ 눈금·연동 페이로드가 이 값을 씁니다</td><td>100</td><td>0 ~ 360</td></tr>
+        </table>
+      </div>
+
+      <!-- 액추에이터 / 서보암 -->
+      <div class="card">
+        <span id="anc-linkage-servo" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">액추에이터 / 서보암 렌더</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          좌측 <strong>"액추에이터 / 서보암"</strong> 패널의 <strong>표시</strong> 체크박스를 켜면, 추상 크랭크 막대 대신 실제 <strong>서보(작동기) 몸체</strong>와 <strong>서보암</strong>이 실측 mm 스케일로 그려집니다. 출력 샤프트(=회전축)가 입력 피벗 O₂ 에 오도록 서보 몸체를 <strong>도면 위치(한쪽 끝에서 14.9mm, 폭 중앙)에 구속</strong>해 눕혀 그리며, 서보암만 θ₂ 로 회전합니다. <strong>몸체는 프레임에 고정</strong>되어 링크 움직임(θ₄)과 무관하며, 방향은 아래 <strong>장착 기울기</strong>로만 바뀝니다.
+        </p>
+        <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
+          <li><strong>프리셋</strong> — Hitec MDD961WP(몸체 54.5×20mm, 마운트홀 Ø5)를 기본 제공하며, 몸체 길이·폭·샤프트 오프셋·마운트홀 등 치수를 직접 수정하면 자동으로 "직접 입력(커스텀)"으로 전환됩니다.</li>
+          <li><strong>서보암 길이 = 크랭크 a</strong> — 서보암 홀간 거리(스플라인 허브 ↔ 푸시로드 M3 홀)는 크랭크 a 와 같은 치수라 <strong>링크 길이의 입력 a</strong> 한 곳에서만 입력합니다(1.0 in = 25.4 mm). 푸시로드 홀은 <strong>M3(Ø3)</strong> 고정입니다.</li>
+          <li><strong>장착 기울기</strong> — 회전축 O₂ 는 고정한 채 서보 몸체만 0~360° 회전시킵니다(기본 180°). <strong>도면 표시 전용</strong>이라 기구·토크 계산에는 영향이 없습니다.</li>
+          <li><strong>작동기 y오프셋</strong> — O₄ 는 고정하고 O₂ 를 위아래로 옮겨, 서보가 조종면 힌지보다 높거나 낮게 장착되는 <strong>편심 배치</strong>를 모델링합니다. 기울기와 달리 <strong>실제 기하 파라미터</strong>라 지상링크 유효길이가 <code>L = √(d² + e²)</code> 로 늘어나고 <strong>MA·토크·가용범위가 모두 재계산</strong>됩니다.</li>
+          <li><strong>표시 체크박스는 렌더링 토글</strong> — 체크박스 자체는 그림만 바꿉니다(기본 꺼짐). 다만 위의 <strong>y오프셋은 체크박스와 무관하게 항상 계산에 반영</strong>되므로, 표시를 꺼도 값이 0 이 아니면 결과가 달라집니다.</li>
+        </ul>
+        <div class="tip-box" style="margin-top:14px;">표시를 켜면 <strong>서보 몸체·서보암·커플러·출력혼</strong>과 <strong>4개 연결부 볼트(O₂·A·B·O₄)</strong>가 평면(flat) 도식으로 함께 그려집니다. 끄면 분석용 추상 스키매틱으로 돌아갑니다.</div>
+      </div>
+
+      <!-- 서보각도 카드 -->
+      <div class="card">
+        <span id="anc-linkage-svangle" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">서보각도 (Δθ₂) 카드</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          같은 자세를 <strong>입력측</strong>에서 본 값입니다. 조종면 중립(δ=0)에서의 크랭크각 θ₂₀ 를 0° 로 잡은 <strong>실제 서보 회전량 Δθ₂ = θ₂ − θ₂₀</strong> 이며, 아래 조종면 각도 카드를 움직이면 함께 갱신됩니다(읽기 전용).
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">⚠︎</div>
+          <div class="tip-text"><strong>부호는 조종면 부호와 일부러 맞추지 않았습니다.</strong>
+          Δθ₂ 는 θ₂ 규약 그대로 <strong>반시계(CCW)가 +</strong> 입니다. 그래서 조종면 상향(−δ)에 서보 +가 대응할 수도, −가 대응할 수도 있습니다 —
+          그 어긋남 자체가 <strong>"어느 쪽으로 돌려야 조종면이 내려가는가"</strong> 라는 장착·배선 정보라 억지로 맞추지 않았습니다.
+          <strong>해 유형(개방형/교차형)을 바꾸면 이 방향이 뒤집힙니다.</strong></div>
+        </div>
+        <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
+          <li><strong>읽기값</strong> — 카드 오른쪽 위 큰 글씨가 현재 서보각도입니다. 중립에서 정확히 <code>+0.0°</code> 가 됩니다.</li>
+          <li><strong>상향 끝 · 하향 끝</strong> — 입력한 타각범위 양 끝에서의 서보각도이며, 색은 아래 조종면 카드의 상향(빨강)·하향(파랑) 버튼과 맞췄습니다. 두 값의 크기가 다르면 <strong>서보 행정이 중립에 대해 비대칭</strong>이라는 뜻입니다.</li>
+          <li><strong>총 행정</strong> — 타각범위 전체를 훑어 얻은 <strong>최대−최소</strong>입니다. 양 끝의 차가 아니라 구간 전체를 보는 이유는, 범위 안에 크랭크가 되돌아가는 자세가 있으면 끝점만 봐서는 실제 회전량보다 작게 나오기 때문입니다. <strong>서보 선정에 그대로 쓰는 수</strong>이며, 표준 서보의 가동각(대개 ±60° 안팎)을 넘으면 링크 형상을 다시 잡아야 합니다.</li>
+          <li><strong>좌우 반전 (<code>우측</code> / <code>좌측</code>)</strong> — 반대편 날개는 링키지가 <strong>거울상</strong>이라 같은 타각에 서보가 반대로 돕니다. 조종면 상향·하향은 물리적인 위아래라 그대로이고, 뒤집히는 것은 <strong>서보 회전 방향뿐</strong>입니다. 그래서 기구를 다시 풀지 않고 Δθ₂ 의 부호만 뒤집습니다 — <strong>총 행정·비선형성·잔차는 그대로</strong>이고 판독값과 양 끝 부호만 반대가 됩니다. 화면에 그려진 링키지를 <code>우측</code>으로 보고 <code>좌측</code>은 그 거울상입니다(실물이 반대면 토글만 바꾸면 됩니다). 아래 대응 그래프와 변환식에도 그대로 반영되며, 반전 중에는 그래프 축 이름에 <code>· 좌측</code>이 붙습니다.
+          <strong>주의 — 반전 상태는 "식 복사"에만 실립니다.</strong> <strong>"힌지모멘트 계산기로 보내기"</strong>는 기하(a·b·c·d·해유형·θ₄₀·방향)에 <strong>입력토크 T₂</strong>를, <strong>"조종면 리깅 계산기로 보내기"</strong>는 같은 기하에 <strong>타각범위</strong>를 함께 넘깁니다 — <strong>어느 쪽도 좌우 구분은 보내지 않으므로</strong> 받는 쪽은 언제나 <code>우측</code> 기준으로 서보 방향을 다시 유도합니다. 좌측 기체분을 넘길 때는 받는 도구에서 서보 방향을 직접 뒤집어야 합니다.</li>
+          <li><strong>180°를 넘는 값도 그대로 나옵니다</strong> — 각도는 중립에서부터 <em>이어서</em> 누적하므로, 크랭크가 중립에서 반 바퀴 이상 도는 형상에서는 <code>+189.8°</code> 처럼 180°를 넘겨 표시됩니다. −180 ~ +180 으로 접지 않는 이유는, 접으면 그 순간 부호가 뒤집혀 <strong>서보를 반대로 돌리라고 말하게</strong> 되기 때문입니다. 그런 형상은 애초에 서보로 구동할 수 없다는 신호이기도 합니다.</li>
+          <li><strong><code>≥</code> 표시</strong> — 타각범위 일부에서 기구 해가 없으면 행정 앞에 <code>≥</code> 가 붙습니다. 훑을 수 있었던 구간만의 값이라 <em>확정값이 아니라 하한</em>이라는 뜻입니다. 양 끝 칸이 <code>—</code> 로 뜨는 것도 같은 이유입니다.</li>
+          <li><strong>"서보각도 ↔ 조종면 각도 그래프"</strong> (토글은 아래 <strong>조종면 각도 카드 밑</strong>에 있습니다) — 두 카드가 <em>지금 값</em>을 말한다면, 이 접이 그래프는 <em>범위 전체의 대응</em>을 보여줍니다. 가로축이 조종면 δ(왼쪽이 상향 −, δ 슬라이더와 같은 방향), 세로축이 서보 Δθ₂ 이고, 초록 십자선이 중립, 초록 점이 현재 위치입니다. 회색 점선은 <strong>양 끝을 잇는 직선</strong>이라, 곡선이 그 선에서 벌어지는 정도가 곧 <strong>리깅 비선형성</strong>입니다 — 왼쪽 위(또는 오른쪽 위)에 <code>직선 대비 최대 N.N°</code> 로 적힙니다. 이 값이 크면 서보 명령과 실제 타각이 비례하지 않는다는 뜻이라, 조종면 리깅 계산기의 <strong>3차 회귀</strong>가 필요한 이유가 됩니다. 그래프는 <strong>펼쳐져 있을 때만 다시 그립니다</strong>(접힌 캔버스는 폭이 0이라 눈금이 깨집니다).</li>
+          <li><strong>축 전환 (<code>δ → 서보</code> / <code>서보 → δ</code>)</strong> — 같은 곡선을 어느 쪽에서 읽을지만 바꿉니다. <code>δ → 서보</code>는 <strong>설계용</strong>(타각을 주면 서보 행정이 얼마나 드는가), <code>서보 → δ</code>는 <strong>리깅용</strong>(서보 명령을 주면 조종면이 어디로 가는가 — 조종면 리깅 계산기의 FCA_RIG 방향)입니다. <strong>비선형성 수치는 세로축 단위로 다시 계산됩니다</strong> — 같은 형상이라도 <code>16.3° (서보)</code>가 <code>6.4° (조종면)</code>가 되는 식이라, 괄호 안 단위를 함께 읽어야 합니다. 서보각이 δ에 대해 단조가 아닌 형상에서는 축을 바꾸면 곡선이 되꺾일 수 있는데, 함수가 아니라 매개곡선으로 그리므로 그대로 표시됩니다.</li>
+          <li><strong>변환식 (3차)</strong> — 그래프 아래에 지금 축 방향 그대로의 <strong>최소제곱 3차식</strong>이 <code>Δθ₂ = a₃δ³ + a₂δ² + a₁δ + a₀</code> 꼴로 적힙니다(축을 바꾸면 <code>δ = …Δθ₂…</code> 로 바뀝니다). 조종면 리깅 계산기의 <strong>3차 회귀</strong>와 같은 꼴이라 그대로 옮겨 쓸 수 있습니다. <strong>서보각이 타각범위 안에서 되꺾이는 형상</strong>에서는 같은 서보각에 조종면 각이 둘이라 <code>δ = f(서보)</code>가 성립하지 않습니다 — 이때 <code>서보 → δ</code> 모드는 수치·기준선·3차식을 내지 않고 되꺾임 크기를 알립니다(<code>δ → 서보</code> 쪽은 δ가 항상 단조라 그대로 유효하며, 캡션에 <code>· 되꺾임 N.N°</code>가 덧붙습니다). 옆의 <strong>잔차 최대</strong>는 곡선과 이 3차식의 최대 차이로, <strong>3차식으로 대신했을 때 남는 오차</strong>입니다 — 이 값이 크면 3차식으로는 그 형상을 제대로 표현할 수 없다는 뜻이므로 링크 형상을 다시 잡는 편이 낫습니다. <strong>"식 복사"</strong> 버튼은 표시용 반올림이 아니라 <strong>배정밀도 계수</strong>(a₃·a₂·a₁·a₀)와 반전 여부·잔차를 함께 클립보드에 넣습니다.</li>
+        </ul>
+      </div>
+
+      <!-- 조종면 각도 (δ) 카드 -->
+      <div class="card">
+        <span id="anc-linkage-cs" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">조종면 각도 (δ) 카드</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          기구를 <strong>조종면 기준</strong>으로 움직이는 패널이며, 이 도구에서 <strong>자세를 끄는 유일한 슬라이더</strong>입니다. 접어 둔 θ₄ 슬라이더가 출력링크의 절대각을 다룬다면, 여기는 중립을 0°로 놓고 <strong>타각 δ</strong>로 움직입니다.
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">⚠︎</div>
+          <div class="tip-text"><strong>부호 규약 — 조종면 상향 = 마이너스(−), 하향 = 플러스(+).</strong>
+          정의는 <code>δ = −(θ₄ − θ₄₀)</code>, 뒤집으면 <code>θ₄ = θ₄₀ − δ</code>입니다.
+          기구상 <strong>상향은 θ₄ 증가</strong>, 하향은 θ₄ 감소이며, 이 관계는 부호 규약과 무관하게 그대로입니다
+          (타각 입력의 상향·하향 칸은 <em>크기</em>를 양수로 받습니다).</div>
+        </div>
+        <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
+          <li><strong>읽기값과 슬라이더</strong> — 카드 오른쪽 위 큰 글씨가 현재 타각(<code>중립 0.0°</code> / <code>상향 −20.0°</code> / <code>하향 +20.0°</code>)이고, 아래 슬라이더로 직접 끌 수 있습니다. 접어 둔 θ₄ 슬라이더나 캔버스 드래그로 <strong>입력한 타각범위를 벗어나면</strong> 읽기값 끝에 <code>⚠</code>가 붙습니다 — 아래 μ 의 <code>⚠</code>(전달각 불량)와는 다른 뜻입니다.</li>
+          <li><strong>지표 3종</strong> — 현재 자세의 <strong>출력토크 T₄</strong>·<strong>입력측 μ</strong>·<strong>출력측 μ</strong>를 한 줄에 보여줍니다. T₄는 크기값이라 출력링크색 고정, μ는 값 자체가 판정이라 <strong>47° 이상 초록 · 40° 이상 주황 · 40° 미만 빨강+⚠</strong>입니다.</li>
+          <li><strong>이동 버튼</strong> — 왼쪽부터 부호 순서로 <code>▲ 상향 −N°</code> · <code>−1°</code> · <code>중립</code> · <code>+1°</code> · <code>하향 +N° ▼</code>. 양 끝 버튼의 N은 입력한 타각을 <strong>10° 단위로 내린 값</strong>이라 딱 떨어지는 각도로 갑니다(상향 35° → 30°, 25.5° → 20°). 버림값이 0이면 중립과 같아 버튼이 숨습니다. 가운데 ±1°는 트림이고 타각범위 끝에서 멈춥니다.</li>
+          <li><strong>"중립 지정"</strong> — 조종면을 <em>움직이지 않고</em> 현재 θ₄를 δ=0° 기준으로 재정의합니다(위 <strong>중립</strong> 버튼은 반대로 δ=0° 위치로 <em>이동</em>). 여기서 정한 θ₄₀가 출력토크 그래프의 δ 눈금과 힌지모멘트·리깅 연동의 기준각이 됩니다.</li>
+          <li><strong>최적화 결과와 대조</strong> — 결과 카드의 <strong>작동범위 내 최소 전달각</strong>은 범위 <em>전체</em>의 최솟값이라 중립(δ=0)의 값과 다른 게 정상입니다. 카드가 최솟값이 나오는 δ를 함께 표시하므로, <strong>"적용" 후</strong> 그 δ로 옮기면 이 카드에 같은 수가 뜹니다. <strong>최적화가 고른 형상</strong>에서는 입력측과 출력측의 최솟값이 대개 <strong>서로 반대쪽 끝단</strong>에서 나옵니다(끝단 불균형 제약이 μ 를 양끝으로 밀기 때문이며, 손으로 고친 형상에서는 같은 쪽일 수도 있습니다).</li>
+        </ul>
+      </div>
+
+      <!-- AI 최적 설계 추천 -->
+      <div class="card">
+        <span id="anc-linkage-ai" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">AI 최적 설계 추천</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          좌측 <strong>AI 최적 설계 추천</strong> 패널에 <strong>타각 범위 ±δ</strong>를 입력하고 <strong>"✦ 최적값 계산"</strong>을 누르면, 타각 범위 전체를 물리 가용범위 안에 수용하도록 링크 길이와 <strong>중립 출력각 θ₄₀</strong>를 자동으로 탐색합니다. 어떤 링크를 탐색할지는 <strong>링크 길이 카드의 자물쇠 버튼</strong>으로 고릅니다 — 잠금=고정, 열림=변수이고 변수로 바꾸면 그 자리에 탐색범위 입력칸이 펼쳐집니다(비우면 자동 산정). 기본값은 <strong>커플러 b · 출력 c 가 변수</strong>, 고정 d · 입력 a 가 고정입니다. 네 링크를 전부 변수로 둘 수는 없습니다 — a:b:c:d 를 같은 배율로 키우면 MA 와 모든 각도가 그대로라 해가 무한히 축퇴하므로, <strong>최소 하나는 고정</strong>이어야 합니다. 결과 카드의 값은 직접 편집해 즉시 재평가할 수 있으며, 적용 버튼으로 기구에 반영합니다(버튼 라벨은 변수로 고른 항목에 맞춰 바뀝니다).
+        </p>
+
+        <div class="eq-card" style="margin-top:16px;">
+          <div class="eq-header" style="background:linear-gradient(90deg,rgba(0,113,227,0.1),rgba(191,90,242,0.1)); color:#6e40c9;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v12M2 8h12"/></svg>
+            최적화 목적함수 · 제약조건
+          </div>
+          <div class="eq-body" style="align-items:center;">
+            <div>
+              <div class="eq-label">목적함수 (최대화) — 세 토크의 합</div>
+              <div class="eq-row" style="flex-wrap:wrap;">
+                <span class="eq-sym" style="font-style:normal;font-family:sans-serif;font-size:15px;font-weight:600;">score</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym">|T₄(θ₄₀−δ)|</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">|T₄(θ₄₀+δ)|</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">max|T₄|</span>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">①</span>작동범위 [θ₄₀−δ, θ₄₀+δ] ⊆ 물리 가용범위(끝단 마진 제외)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">②</span>작동범위 내 최소 전달각 μ ≥ 47° (입력측·출력측 모두)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">③</span>양끝단 토크 불균형 ≤ 10%</div>
+          </div>
+        </div>
+
+        <p style="font-size:13.5px;color:var(--text2);line-height:1.7;margin-top:14px;">
+          제약을 모두 만족하는 정상해가 없으면 <strong>차선(fallback) 해</strong>를 주황 배너로 안내합니다 — <strong>불균형 차선</strong>(끝단 토크 불균형을 최소화) 또는 <strong>전달각 차선</strong>(최소 전달각을 최대화). 정상해가 있더라도 불균형 차선의 목적함수 점수(양끝단+피크 토크 합)가 <strong>20% 넘게</strong> 높으면 그쪽을 채택하고 파란 배너로 이유를 밝힙니다(전달각 차선은 승격 대상이 아닙니다). 출력링크 c의 탐색 범위는 유효 지상링크 L=√(d²+e²)에 자동 연동되어 <strong>0.2×L ~ 0.8×L</strong>로 설정되며(자물쇠로 직접 입력도 가능), 최적값이 탐색범위 경계에 붙으면 "해당 범위를 넓히면 더 좋은 해가 있을 수 있음"을 안내합니다(c 뿐 아니라 변수로 고른 a·d 도 같이 봅니다).
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-text">추천 카드에는 작동범위, 최소 μ, 양끝단·중립각 |T₄|, 끝단 불균형, 최대 |T₄| 발생 각도, 세 토크의 합, 물리 가용범위, 토크 요구도 충족 여부가 함께 표시됩니다. 값을 손으로 바꾸면 지표가 실시간으로 다시 계산됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 그래프 & 가용 각도 -->
+      <div class="card">
+        <span id="anc-linkage-graphs" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">출력토크 · 커플러 · 설계변수 스윕 그래프</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">
+          세 종류의 그래프로 링크 설계를 검토합니다. 모든 그래프는 <strong>"그래프 복사" / "그래프 저장"</strong>으로 고해상도 PNG 내보내기가 가능하며, 그래프를 클릭해 포커스한 뒤 <kbd>←</kbd>/<kbd>→</kbd> 키로 현재 위치(θ₄ 또는 b)를 미세 이동할 수 있습니다.
+        </p>
+        <table class="input-table">
+          <tr><th>그래프</th><th>X축</th><th>내용</th></tr>
+          <tr><td><strong>출력토크 변화</strong></td><td>θ₄ (°)</td><td>출력각 전 범위의 T₄ = |T₂ × MA(θ₄)| 곡선. 최대값·현재 위치 마커, <strong>토크 요구도</strong> 수평선과 교점, 끝단 마진 음영·물리 가용범위 경계 표시</td></tr>
+          <tr><td><strong>커플러 길이 영향</strong></td><td>커플러 b (mm)</td><td>조립 가능한 b 범위에서 최대 T₄(좌축)와 가용 각도(우축) 변화. <strong>가용각 (μ반영)</strong>·<strong>토크 가용</strong> 체크박스로 곡선 표시를 토글. 최고토크·가용각·현재 b 마커 표시</td></tr>
+          <tr><td><strong>설계변수 스윕</strong><br>(역설계 검토)</td><td>변수 링크 1개 + 그 범위 (mm)<br><span class="unit">타각은 입력값으로 고정</span></td><td>모달 창. 고른 링크를 그 값으로 <strong>강제</strong>하면서, 매 지점마다 <strong>나머지 변수와 θ₄₀ 를 다시 최적화</strong>해 좌축에 토크(최대·끝단·중립), 우축에 <strong>작동범위 내 최소 전달각 μ</strong>(입력·출력)와 47° 기준선을 그림 → "이 값으로 못박으면 어디까지 되는가" 를 읽어 <strong>링크 길이 역설계</strong> 검토</td></tr>
+        </table>
+        <div class="tip-box" style="margin-top:14px;">
+          <div class="tip-icon">📐</div>
+          <div class="tip-text"><strong>물리(기계적) 가용 각도</strong>는 유효 해가 존재하고 전달각 μ ≥ 47°(입력측·출력측 모두)인 최장 연속구간에서 끝단 마진을 뺀 범위이고, <strong>토크 가용 각도</strong>는 |T₄| ≥ 토크 요구도인 θ₄ 구간의 총 각도입니다. 두 값은 출력토크 그래프 아래 박스에 각각 표시됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 도구 간 연동 -->
+      <div class="card">
+        <span id="anc-linkage-link" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 간 연동 — 힌지모멘트 · 조종면 리깅</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          링크 해석기는 상단 세그먼트에서 <strong>개방형 / 교차형</strong> 조립 형태를 선택할 수 있고, 이 기하와 토크를 다른 도구로 넘길 수 있습니다.
+        </p>
+        <div class="step-list" style="margin-top:14px;">
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#9b5de5,#bf5af2);">H</div>
+            <div class="step-body">
+              <h4>힌지모멘트 계산기로 보내기</h4>
+              <p>연동 패널은 버튼만 있습니다 — <strong>중립각 θ₄₀</strong>와 <strong>타각 방향</strong>은 앞서 정해진 값이 그대로 나가므로 따로 입력하지 않습니다. θ₄₀ 는 조종면 각도 카드의 <strong>"중립 지정"</strong> 또는 최적화 <strong>"적용"</strong>으로 정하고, 방향은 부호 규약(δ+ = 하향 = θ₄ 감소)에서 나옵니다. <strong>"힌지모멘트 계산기로 보내기 →"</strong>를 누르면 {a,b,c,d(유효 지상링크 L),해유형,T₂,θ₄₀,방향}이 전달되고, 힌지모멘트 계산기의 속도×타각 테이블에서 타각별 가용 토크 <strong>|T₄(δ)| = |T₂ × MA(θ₄₀ − δ)|</strong>가 자동 계산됩니다. 실물 장착이 반대여서 방향을 뒤집어야 하면 <em>수신 도구</em>의 <strong>δ+ 방향</strong> 칸에서 바꿉니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#28a745,#32d74b);">R</div>
+            <div class="step-body">
+              <h4>조종면 리깅 계산기로 보내기</h4>
+              <p><strong>"조종면 리깅 계산기로 보내기 →"</strong>로 링크 기하를 CS Rigging의 <strong>이론 검증</strong> 탭에 넘기면, 4절 링크 기구로부터 이론 3차식과 단조성(monotonicity)을 판정해 실측 리깅 회귀와 비교할 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 핵심 용어 -->
+      <div class="card">
+        <span id="anc-linkage-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <span id="anc-solution-type"></span><div class="term-name">개방형 / 교차형 (Open / Cross)
+              <span class="term-symbol">조립 형태</span>
+            </div>
+            <div class="term-desc">동일한 링크 길이·입력각에 대해 4절 링크는 두 가지 조립 자세(분기해)를 가집니다. 커플러와 팔로워가 교차하지 않는 <strong>개방형</strong>과 교차하는 <strong>교차형</strong>이며, 상단 세그먼트로 선택합니다. 해석은 선택된 분기의 위치·토크를 기준으로 수행됩니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-neutral-angle"></span><div class="term-name">중립각 (Neutral Angle)
+              <span class="term-symbol">θ₄₀</span>
+            </div>
+            <div class="term-desc">타각 δ = 0°에 대응하는 기준 출력각. 조종면의 중립(뉴트럴) 위치에 해당합니다. 부호 규약은 <strong>상향 = −δ, 하향 = +δ</strong>라 <code>θ₄ = θ₄₀ − δ</code>이고, 작동범위는 상향 타각 δ<sub>상향</sub>·하향 타각 δ<sub>하향</sub>(둘 다 크기, 양수)에 대해 <code>θ₄₀ + δ<sub>상향</sub></code>(상향 끝단) ~ <code>θ₄₀ − δ<sub>하향</sub></code>(하향 끝단)입니다. AI 최적화의 탐색 변수이자 힌지모멘트·리깅 연동의 기준각입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-phys-span"></span><div class="term-name">물리(기계적) 가용 각도
+              <span class="term-symbol">Mechanical Span</span>
+            </div>
+            <div class="term-desc">유효한 해가 존재하고 전달각 μ가 기준(최적화 시 47°) 이상으로 유지되는 최장 연속 출력각 구간에서, 양끝단 마진을 제외한 실제 사용 가능한 각도 범위입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-torque-span"></span><div class="term-name">토크 가용 각도
+              <span class="term-symbol">Torque Span</span>
+            </div>
+            <div class="term-desc">출력 토크 |T₄|가 입력한 <strong>토크 요구도</strong> 이상을 만족하는 θ₄ 구간의 총 각도. 물리 가용 각도가 기구학적 한계라면, 토크 가용 각도는 요구 하중을 실제로 감당할 수 있는 범위를 뜻합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-crank"></span><div class="term-name">크랭크 (Crank)
+              <span class="term-symbol">링크 a</span>
+            </div>
+            <div class="term-desc">4절 링크에서 모터 등 구동원에 연결된 입력 링크. 회전 운동을 제공하며 360° 완전 회전이 가능한 경우를 <strong>크랭크</strong>, 그렇지 않은 경우를 <strong>로커(Rocker)</strong>라고 구분합니다. Grashof 조건에 의해 결정됩니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-coupler"></span><div class="term-name">커플러 (Coupler)
+              <span class="term-symbol">링크 b</span>
+            </div>
+            <div class="term-desc">크랭크와 팔로워를 연결하는 중간 링크. 커플러 위의 임의 점이 그리는 궤적을 <strong>커플러 곡선(Coupler Curve)</strong>이라 하며, 이를 이용해 다양한 동작 경로를 설계합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-follower"></span><div class="term-name">팔로워 (Follower)
+              <span class="term-symbol">링크 c</span>
+            </div>
+            <div class="term-desc">출력 링크. 조종면, 아암, 레버 등에 연결되어 유효한 출력 운동을 전달합니다. 팔로워의 각도 θ₄가 출력 위치를 결정합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-transmission-angle"></span><div class="term-name">전달각 (Transmission Angle)
+              <span class="term-symbol">μ</span>
+            </div>
+            <div class="term-desc">링크 사이에서 힘이 전달되는 각도. <code>μ = 90°</code>일 때 전달 효율이 최대이고, 일반적으로 <strong>μ &gt; 40°</strong>를 유지해야 기구가 정상 동작합니다. 이 도구는 <strong>출력측</strong>(커플러 b ↔ 출력링크 c, 표준 전달각)과 <strong>입력측</strong>(크랭크 a ↔ 커플러 b)을 모두 표시하며, 최적화 제약은 <strong>둘 다 47° 이상</strong>입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-ma"></span><div class="term-name">기계적 이득 (MA)
+              <span class="term-symbol">Mechanical Advantage</span>
+            </div>
+            <div class="term-desc" style="display:flex;flex-direction:column;gap:10px;">
+              <span>입력 토크 대비 출력 토크의 비율. 가상일 원리(Virtual Work Principle)로 계산됩니다. MA &gt; 1이면 힘 증폭, MA &lt; 1이면 속도 증폭을 의미합니다.</span>
+              <div class="eq-card" style="margin:0;">
+                <div class="eq-header" style="background:rgba(0,113,227,0.08);color:#0071e3;font-size:10px;">기계적 이득</div>
+                <div class="eq-body" style="padding:14px 20px;align-items:center;">
+                  <div class="eq-row">
+                    <span class="eq-sym" style="font-style:normal;font-family:sans-serif;font-size:16px;font-weight:600;">MA</span>
+                    <span class="eq-eq">=</span>
+                    <div class="frac">
+                      <div class="frac-num"><span class="var-red">T<span class="sub">4</span></span></div>
+                      <div class="frac-line"></div>
+                      <div class="frac-den"><span class="var-blue">T<span class="sub">2</span></span></div>
+                    </div>
+                    <span class="eq-eq">=</span>
+                    <div class="frac">
+                      <div class="frac-num"><span class="var-blue">ω<span class="sub">2</span></span></div>
+                      <div class="frac-line"></div>
+                      <div class="frac-den"><span class="var-red">ω<span class="sub">4</span></span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="eq-legend">
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-blue">T<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">2</span></span>입력 토크 (크랭크)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-red">T<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">4</span></span>출력 토크 (팔로워)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-blue">ω<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">2</span></span>크랭크 각속도</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-red">ω<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">4</span></span>팔로워 각속도</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="term-row">
+            <span id="anc-grashof"></span><div class="term-name">Grashof 조건
+              <span class="term-symbol">s + l ≤ p + q</span>
+            </div>
+            <div class="term-desc" style="display:flex;flex-direction:column;gap:10px;">
+              <span>4절 링크에서 완전 회전 가능한 링크가 존재하기 위한 조건. 이 조건을 만족하면 최단 링크는 크랭크로 사용 가능합니다.</span>
+              <div class="eq-card" style="margin:0;">
+                <div class="eq-header" style="background:rgba(40,167,69,0.08);color:#28a745;font-size:10px;">Grashof 조건식</div>
+                <div class="eq-body" style="padding:14px 20px;align-items:center;">
+                  <div class="eq-row">
+                    <span class="eq-sym"><span class="var-blue">s</span></span>
+                    <span class="eq-op">+</span>
+                    <span class="eq-sym"><span class="var-red">l</span></span>
+                    <span class="eq-eq" style="font-size:22px;">≤</span>
+                    <span class="eq-sym"><span class="var-orange">p</span></span>
+                    <span class="eq-op">+</span>
+                    <span class="eq-sym"><span class="var-purple">q</span></span>
+                  </div>
+                </div>
+                <div class="eq-legend">
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-blue">s</span>최단 링크 길이</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-red">l</span>최장 링크 길이</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-orange">p, </span><span class="eq-legend-sym var-purple">q</span>나머지 두 링크</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="term-row">
+            <span id="anc-loop-term"></span><div class="term-name">루프 폐합 방정식
+              <span class="term-symbol">Loop Closure Eq.</span>
+            </div>
+            <div class="term-desc">4절 링크의 폐루프 벡터 합이 영(0)이 되는 조건으로, 기구의 기하학적 해를 구하는 기본 방정식입니다. θ₂를 입력으로 θ₃, θ₄를 구하며, Freudenstein 방정식으로 대수적 해가 가능합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 캔버스에서 링크 중간 부분을 호버하면 각 링크의 길이 레이블이 표시됩니다. 절점 A, B를 드래그하여 실시간으로 기구 형태를 바꿀 수 있고, 마우스 휠·핀치·줌 버튼으로 확대/축소, 사이드바 경계를 드래그해 패널 폭을 조절할 수 있습니다.</div>
+      </div>
+      <div class="tip-box">
+        <div class="tip-icon">🤖</div>
+        <div class="tip-text"><strong>추천 워크플로우:</strong> ① 타각 범위 ±δ 입력 → <strong>"✦ 최적값 계산"</strong>으로 c·b·θ₄₀ 초안 확보 → ② <strong>"설계변수별 토크·전달각 검토"</strong> 스윕으로 링크 값에 따른 토크·전달각 여유 확인 → ③ <strong>힌지모멘트 계산기</strong>로 보내 공력 힌지모멘트 대비 링크 가용 토크를 검증합니다.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ HINGE MOMENT ══════════════ -->
+    <!-- ══════════════ HINGE MOMENT ══════════════ -->
+    <section class="section" id="sec-hinge">
+      <div class="page-header">
+        <div class="page-icon" style="background:linear-gradient(150deg,rgba(155,93,229,0.15),rgba(191,90,242,0.1));">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#bf5af2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 8 Q6 5 12 5 Q18 5 22 8"/>
+            <path d="M2 8 Q6 11 12 11 Q18 11 22 8"/>
+            <circle cx="16" cy="8" r="1.8" fill="#bf5af2" stroke="none"/>
+            <line x1="16" y1="8" x2="16" y2="16" stroke-width="1.4"/>
+          </svg>
+        </div>
+        <div>
+          <h2>힌지모멘트 계산기</h2>
+          <p>기체 타입별 조종면 힌지모멘트 H 계산 · DATCOM 형상 보정 · 트림 타각 · 속도×타각 테이블 · 4바 링키지 연동</p>
+          <div class="page-tags">
+            <span class="page-tag">항공역학</span>
+            <span class="page-tag">조종면 설계</span>
+            <span class="page-tag">DATCOM</span>
+            <span class="page-tag">트림 타각</span>
+            <span class="page-tag">속도×타각 테이블</span>
+            <span class="page-tag">링키지 연동</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 도구 개요 -->
+      <div class="card">
+        <span id="anc-hinge-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          조종면(엘러본, 에일러론, 엘리베이터, 러더, 플랩, 러더베이터, 올무빙 테일 등)이 공기 중에서 편향될 때 힌지 축 주변에 발생하는 모멘트를 계산합니다. 계산기는 <strong>기체 타입 4종</strong>과 <strong>기본 모드 / DATCOM 보정 모드</strong>를 지원하며, 힌지모멘트를 바탕으로 <strong>종방향 공력 미분계수 기반 트림 타각 계산</strong>, <strong>속도×타각 힌지모멘트 테이블</strong>, <strong>받음각 α(V) 근사</strong>, <strong>4바 링키지 연동</strong>, <strong>풍동 시뮬레이션</strong>까지 한 화면에서 수행합니다.
+        </p>
+
+        <!-- 메인 공식 카드 -->
+        <div class="eq-card" style="margin-top:16px;">
+          <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v12M2 8h12"/></svg>
+            <span id="anc-hinge-formula" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>힌지모멘트 기본 공식
+          </div>
+          <div class="eq-body" style="align-items:center;">
+            <div>
+              <div class="eq-label">힌지모멘트</div>
+              <div class="eq-row">
+                <span class="eq-sym" style="font-size:26px;"><span class="var-purple">H</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-teal">C<span class="sub">H</span></span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-orange">q</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-blue">S<span class="sub">f</span></span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-green">c̄</span></span>
+              </div>
+            </div>
+            <div class="eq-divider"></div>
+            <div>
+              <div class="eq-label">힌지모멘트 계수 (선형 분해)</div>
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-teal">C<span class="sub">H</span></span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym">C<span class="sub">H,0</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">H,δ</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym">δ</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">H,α</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym">α</span>
+              </div>
+            </div>
+            <div class="eq-divider"></div>
+            <div>
+              <div class="eq-label">동압 (Dynamic Pressure)</div>
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-orange">q</span></span>
+                <span class="eq-eq">=</span>
+                <div class="frac">
+                  <div class="frac-num">1</div>
+                  <div class="frac-line"></div>
+                  <div class="frac-den">2</div>
+                </div>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-red">ρ</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-blue">V</span><span class="sup">2</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-purple">H</span>힌지모멘트 (N·m)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-teal">C<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">H</span></span>힌지모멘트 계수 (무차원)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">q</span>동압 (Pa)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">S<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">f</span></span>조종면 면적 (m²)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-green">c̄</span>평균공력시위 MAC (m)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">ρ</span>공기 밀도 (kg/m³)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">V</span>비행 속도 (m/s)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">C<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">H,0</span></span>영위 힌지모멘트 계수</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">C<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">H,δ</span></span>편향각 계수 (/°)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">C<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">H,α</span></span>받음각 계수 (/°)</div>
+          </div>
+
+        <!-- 힌지모멘트 공식 다이어그램 -->
+        <div style="margin-top:20px; background:rgba(191,90,242,0.03); border:1px solid rgba(191,90,242,0.12); border-radius:14px; padding:16px 20px;">
+          <div style="font-size:10.5px;font-weight:700;color:#bf5af2;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;">에어포일 단면도 — 힌지모멘트 구성 요소</div>
+          <svg viewBox="0 0 720 235" width="100%" style="display:block;font-family:-apple-system,'Helvetica Neue',sans-serif;">
+  <defs>
+    <marker id="f1a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0,8 4,0 8" fill="#94a3b8"/></marker>
+    <marker id="f1pa" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><polygon points="0 0,9 4.5,0 9" fill="#bf5af2"/></marker>
+    <marker id="f1ba" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0,8 4,0 8" fill="#2563eb"/></marker>
+    <marker id="f1oa" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0,8 4,0 8" fill="#ff9f0a"/></marker>
+    <marker id="f1oa2" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto"><polygon points="8 0,0 4,8 8" fill="#ff9f0a"/></marker>
+    <marker id="f1ga" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0,8 4,0 8" fill="#64748b"/></marker>
+    <marker id="f1gb" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto"><polygon points="8 0,0 4,8 8" fill="#64748b"/></marker>
+  </defs>
+  <rect width="720" height="235" fill="#f8fafc" rx="10"/>
+
+  <!-- ① 기울어진 유속 화살표 (α=8°) -->
+  <line x1="-20.3" y1="103.6" x2="55" y2="93" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#f1a)" opacity="0.6"/>
+  <line x1="-20.3" y1="120.6" x2="55" y2="110" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#f1a)" opacity="0.85"/>
+  <line x1="-20.3" y1="137.6" x2="55" y2="127" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#f1a)" opacity="0.6"/>
+  <text x="-24" y="100" font-size="9" fill="#94a3b8" font-weight="600" text-anchor="middle">V</text>
+
+  <!-- ② 수평 기준점선 (α 측정 기준) -->
+  <line x1="8" y1="110" x2="55" y2="110" stroke="#ff9f0a" stroke-width="1.1" stroke-dasharray="4,2.5"/>
+
+  <!-- ③ α 호 (수평 기준선과 유속방향 사이) -->
+  <path d="M93.0,110.0 A38,38 0 0,0 92.6,104.7" fill="none" stroke="#ff9f0a" stroke-width="1.6"/>
+  <!-- α 레이블 -->
+  <text x="110.9" y="103.1" font-size="13" fill="#ff9f0a" font-weight="700" font-style="italic" text-anchor="middle">α</text>
+
+  <!-- 시위 점선 -->
+  <line x1="60" y1="110" x2="424.0" y2="110" stroke="#cbd5e1" stroke-width="0.9" stroke-dasharray="5,3"/>
+
+  <!-- 날개 (LE~힌지) -->
+  <path d="M60.0,110.0 L67.3,99.6 L74.6,95.7 L81.8,92.9 L89.1,90.6 L96.4,88.8 L103.7,87.2 L111.0,85.8 L118.2,84.7 L125.5,83.6 L132.8,82.8 L140.1,82.0 L147.4,81.3 L154.6,80.8 L161.9,80.3 L169.2,79.9 L176.5,79.6 L183.8,79.3 L191.0,79.1 L198.3,78.9 L205.6,78.8 L212.9,78.8 L220.2,78.8 L227.4,78.8 L234.7,78.9 L242.0,79.1 L249.3,79.2 L256.6,79.4 L263.8,79.7 L271.1,79.9 L278.4,80.2 L285.7,80.6 L293.0,80.9 L300.2,81.3 L307.5,81.7 L314.8,82.1 L322.1,82.6 L329.4,83.1 L336.6,83.6 L343.9,84.1 L351.2,84.6 L358.5,85.2 L365.8,85.8 L373.0,86.4 L380.3,87.0 L387.6,87.6 L394.9,88.2 L402.2,88.9 L409.4,89.6 L416.7,90.2 L424.0,90.9 Z M424.0,129.1 L416.7,129.8 L409.4,130.4 L402.2,131.1 L394.9,131.8 L387.6,132.4 L380.3,133.0 L373.0,133.6 L365.8,134.2 L358.5,134.8 L351.2,135.4 L343.9,135.9 L336.6,136.4 L329.4,136.9 L322.1,137.4 L314.8,137.9 L307.5,138.3 L300.2,138.7 L293.0,139.1 L285.7,139.4 L278.4,139.8 L271.1,140.1 L263.8,140.3 L256.6,140.6 L249.3,140.8 L242.0,140.9 L234.7,141.1 L227.4,141.2 L220.2,141.2 L212.9,141.2 L205.6,141.2 L198.3,141.1 L191.0,140.9 L183.8,140.7 L176.5,140.4 L169.2,140.1 L161.9,139.7 L154.6,139.2 L147.4,138.7 L140.1,138.0 L132.8,137.2 L125.5,136.4 L118.2,135.3 L111.0,134.2 L103.7,132.8 L96.4,131.2 L89.1,129.4 L81.8,127.1 L74.6,124.3 L67.3,120.4 L60.0,110.0 Z" fill="#dbeafe" stroke="#2563eb" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- 조종면 (편향) -->
+  <path d="M428.9,91.6 L433.8,93.4 L438.7,95.3 L443.6,97.1 L448.5,99.0 L453.4,100.9 L458.2,102.7 L463.1,104.6 L468.0,106.5 L472.9,108.4 L477.8,110.3 L482.6,112.2 L487.5,114.1 L492.4,116.0 L497.2,117.9 L502.1,119.9 L507.0,121.8 L511.8,123.8 L516.7,125.7 L521.5,127.7 L526.4,129.6 L531.3,131.6 L536.1,133.6 L541.0,135.6 L545.8,137.6 L550.7,139.6 L555.5,141.6 L560.3,143.6 L565.2,145.7 L570.0,147.7 L574.9,149.7 Z M574.5,151.0 L569.3,150.4 L564.1,149.7 L558.9,149.0 L553.7,148.4 L548.5,147.7 L543.3,147.0 L538.1,146.3 L532.9,145.6 L527.7,144.9 L522.5,144.2 L517.3,143.5 L512.1,142.7 L506.9,142.0 L501.8,141.2 L496.6,140.5 L491.4,139.7 L486.2,139.0 L481.0,138.2 L475.9,137.4 L470.7,136.6 L465.5,135.8 L460.4,135.0 L455.2,134.2 L450.0,133.4 L444.9,132.6 L439.7,131.8 L434.5,130.9 L429.4,130.1 L424.2,129.3 L419.1,128.4 Z" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- ④ δ 기준선들 -->
+  <!-- 수평 기준점선 (힌지에서 오른쪽) -->
+  <line x1="424.0" y1="110" x2="512.0" y2="110" stroke="#2563eb" stroke-width="1.1" stroke-dasharray="4,2.5"/>
+  <!-- 조종면 방향선 -->
+  <line x1="424.0" y1="110" x2="510.9" y2="133.3" stroke="#2563eb" stroke-width="1.1" stroke-dasharray="4,2.5"/>
+  <!-- δ 호 -->
+  <path d="M486.0,110.0 A62,62 0 0,1 483.9,126.0" fill="none" stroke="#2563eb" stroke-width="1.8"/>
+  <!-- δ 레이블 -->
+  <text x="503.3" y="124.4" font-size="13" fill="#2563eb" font-weight="700" font-style="italic" text-anchor="middle">δ</text>
+  <text x="503.3" y="136.4" font-size="8.5" fill="#2563eb" text-anchor="middle">편향각</text>
+
+  <!-- 힌지 축 -->
+  <circle cx="424.0" cy="110" r="7" fill="#ef4444" stroke="white" stroke-width="2"/>
+  <circle cx="424.0" cy="110" r="2.8" fill="white"/>
+  <text x="424.0" y="80.9" text-anchor="middle" font-size="9" fill="#ef4444" font-weight="700">힌지축</text>
+
+  <!-- ⑤ H 힌지모멘트 호 -->
+  <path d="M419.5,161.8 A52,52 0 0,0 376.9,88.0"
+        fill="none" stroke="#bf5af2" stroke-width="2.8" marker-end="url(#f1pa)"/>
+  <text x="363.4" y="150.0" font-size="14" fill="#bf5af2" font-weight="700" font-style="italic" text-anchor="middle">H</text>
+  <text x="363.4" y="163.0" font-size="8.5" fill="#bf5af2" text-anchor="middle">[N·m]</text>
+
+  <!-- t/c 두께 치수 -->
+  <line x1="198" y1="78.8" x2="198" y2="141.2" stroke="#64748b" stroke-width="0.9" marker-start="url(#f1gb)" marker-end="url(#f1ga)"/>
+  <line x1="194" y1="78.8" x2="214" y2="78.8" stroke="#94a3b8" stroke-width="0.7"/>
+  <line x1="194" y1="141.2" x2="214" y2="141.2" stroke="#94a3b8" stroke-width="0.7"/>
+  <text x="192" y="114" text-anchor="end" font-size="10" fill="#64748b" font-style="italic">t/c</text>
+
+  <!-- c̄ 시위 치수선 -->
+  <line x1="60" y1="177" x2="424.0" y2="177" stroke="#64748b" stroke-width="1" marker-start="url(#f1gb)" marker-end="url(#f1ga)"/>
+  <text x="242" y="190" text-anchor="middle" font-size="10" fill="#64748b" font-style="italic">c̄  (평균공력시위 / MAC)</text>
+
+  <!-- cf 치수선 -->
+  <line x1="424.0" y1="195" x2="580" y2="195" stroke="#7c3aed" stroke-width="1" marker-start="url(#f1gb)" marker-end="url(#f1ga)"/>
+  <text x="502" y="208" text-anchor="middle" font-size="9" fill="#7c3aed" font-style="italic">c&#x2091; = cf/c · c̄</text>
+
+  <!-- 날개 레이블 -->
+  <text x="240" y="69" text-anchor="middle" font-size="10" fill="#1d4ed8" font-weight="700">날개 (wing)</text>
+  <!-- 조종면 레이블 -->
+  <text x="509" y="106" text-anchor="middle" font-size="10" fill="#6d28d9" font-weight="700">조종면</text>
+
+  <!-- 우측 정보 박스 -->
+  <rect x="612" y="28" width="100" height="54" rx="8" fill="rgba(48,176,199,0.07)" stroke="rgba(48,176,199,0.22)" stroke-width="1"/>
+  <text x="662" y="48" text-anchor="middle" font-size="9" fill="#0e7490" font-weight="700">동압</text>
+  <text x="662" y="63" text-anchor="middle" font-size="10.5" fill="#0e7490" font-style="italic" font-weight="600">q = ½ρV²</text>
+  <text x="662" y="74" text-anchor="middle" font-size="8" fill="#64748b">[Pa]</text>
+
+  <rect x="612" y="94" width="100" height="58" rx="8" fill="rgba(124,58,237,0.06)" stroke="rgba(124,58,237,0.2)" stroke-width="1"/>
+  <text x="662" y="112" text-anchor="middle" font-size="9" fill="#6d28d9" font-weight="700">CH 계수</text>
+  <text x="662" y="127" text-anchor="middle" font-size="8.5" fill="#6d28d9">CH₀+CH𝛿·δ</text>
+  <text x="662" y="141" text-anchor="middle" font-size="8.5" fill="#6d28d9">+CH𝛼·α</text>
+
+  <rect x="612" y="164" width="100" height="52" rx="8" fill="rgba(191,90,242,0.07)" stroke="rgba(191,90,242,0.22)" stroke-width="1"/>
+  <text x="662" y="182" text-anchor="middle" font-size="9" fill="#bf5af2" font-weight="700">힌지모멘트</text>
+  <text x="662" y="200" text-anchor="middle" font-size="9.5" fill="#bf5af2" font-style="italic" font-weight="700">H = CH·q·Sf·c̄</text>
+
+</svg>
+        </div>
+      </div>
+      </div>
+
+      <!-- 기체 타입 & 조종면 선택 -->
+      <div class="card">
+        <span id="anc-hinge-actype" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">기체 타입 & 조종면 선택</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:16px;">
+          계산기 상단의 <strong>기체 타입</strong> 버튼으로 항공기 구성을 선택하면, 해당 기체에 적합한 조종면 탭이 자동으로 전환됩니다. 각 조종면 탭은 독립적인 입력값을 유지하며, 탭 헤더에 현재 힌지모멘트 H가 실시간으로 표시됩니다.
+        </p>
+        <table class="input-table">
+          <tr><th>기체 타입</th><th>설명</th><th>제공 조종면</th></tr>
+          <tr>
+            <td><strong>델타윙</strong> <span class="unit">기본</span></td>
+            <td>꼬리 없는 델타/플라잉윙 구성. 기본 선택 기체</td>
+            <td>엘러본 아웃, 엘러본 인, 러더</td>
+          </tr>
+          <tr>
+            <td><strong>일반 고정익</strong></td>
+            <td>표준 테일 구성 고정익기</td>
+            <td>플랩, 에일러론, 엘리베이터, 러더</td>
+          </tr>
+          <tr>
+            <td><strong>V-tail 고정익</strong></td>
+            <td>V자형 꼬리날개 구성. 러더베이터가 피치/요 모멘트를 동시에 담당</td>
+            <td>플랩, 에일러론, 러더베이터</td>
+          </tr>
+          <tr>
+            <td><strong>올무빙 테일</strong></td>
+            <td>꼬리날개 전체가 피벗 회전. 피벗 위치가 힌지모멘트에 직접 영향</td>
+            <td>플랩, 에일러론, 올무빙 테일</td>
+          </tr>
+        </table>
+        <div class="tip-box" style="margin-top:14px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-text">조종면 탭 헤더에 표시되는 H 값은 각 조종면별 현재 힌지모멘트를 보여줍니다. 주황색 점(●)이 표시된 탭은 해당 조종면의 힌지모멘트가 전체 중 가장 큰 <strong>피크 조종면</strong>임을 의미합니다.</div>
+        </div>
+      </div>
+
+      <!-- 사용 방법 -->
+      <div class="card">
+        <span id="anc-hinge-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>기체 타입 & 조종면 선택</h4>
+              <p>상단 <strong>기체 타입</strong> 버튼(델타윙 / 일반 고정익 / V-tail / 올무빙 테일)에서 설계 대상 항공기를 선택합니다. 이후 조종면 탭에서 분석할 조종면을 선택합니다. 각 탭은 독립 입력값을 유지하며 헤더에 현재 H가 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>비행 조건 입력</h4>
+              <p><strong>조종면 면적(S<sub>f</sub>)</strong>, <strong>에어스피드(V)</strong>, <strong>편향각(δ)</strong>, <strong>평균 시위(c̄)</strong>를 슬라이더 또는 숫자 입력란에 설정합니다. 에어스피드는 <strong>m/s · km/h · Mach</strong> 단위를 전환할 수 있습니다. <strong>대기 조건(ISA)</strong> 패널에서 고도와 온도편차(ΔT)를 입력하거나 ISA 프리셋(ISA−15 / ISA / ISA+15 / ISA+20 / ISA+30)을 선택하면 공기 밀도(ρ)가 자동 계산됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>C<sub>H</sub> 계수 설정 (기본 모드)</h4>
+              <p>비행 조건 패널의 <strong>"기본"</strong> 모드에서 C<sub>H,0</sub>, C<sub>H,δ</sub>, C<sub>H,α</sub>와 받음각 α를 직접 입력합니다. 계수 단위는 <strong>/° 또는 /rad</strong>로 전환 가능하며, 각 조종면 타입의 경험 기본값이 미리 채워져 있습니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background: linear-gradient(135deg,#6e40c9,#bf5af2);">D</div>
+            <div class="step-body">
+              <h4>DATCOM 보정 모드 (고급)</h4>
+              <p><strong>"DATCOM 보정"</strong> 버튼 클릭 시 형상 파라미터 패널이 활성화됩니다. 시위비(c<sub>f</sub>/c), 두께비(t/c), 힌지위치(x<sub>h</sub>/c<sub>f</sub>), 밸런스비, 종횡비(AR), 후퇴각(Λ) 등을 입력하면 DATCOM 방법론에 따라 C<sub>H</sub> 계수가 자동 산출됩니다. 입력 필드 클릭 시 형상 도식의 해당 파라미터가 파란색으로 강조됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>결과 확인 & 감도 분석</h4>
+              <p>상단 KPI 카드에서 <strong>힌지모멘트 H</strong>, <strong>최대속도 트림 타각 δ</strong>(n=1), <strong>최대속도·최대하중배수 타각 δ</strong>(n=n<sub>max</sub>)를 실시간으로 확인합니다. 하단 <strong>파라미터 감도</strong> 차트에서 속도 / 편향각 / 면적 변화에 따른 감도 곡선을, <strong>중간 계산값</strong> 패널에서 ρ·q·C<sub>H</sub> 분해값을, <strong>풍동 시뮬레이션</strong> 패널에서 유동·음속·Mach·Re를 확인합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h4>트림 타각 · 속도×타각 테이블</h4>
+              <p>우측 <strong>트림 타각 계산</strong> 패널에 기체 질량·기준 면적·최대속도·최대 하중배수와 종방향 공력 미분계수를 입력하면 정해진 하중배수를 만드는 <strong>받음각 α와 타각 δ</strong>가 동시에 계산됩니다. 중앙 <strong>속도 × 타각 힌지모멘트 테이블</strong>에서 속도·타각 범위를 지정하고 <strong>"테이블 생성 (팝업)"</strong>을 누르면 (δ, V) 격자별 H와 한계 초과 여부가 색으로 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#30b0c7,#0071e3);">α</div>
+            <div class="step-body">
+              <h4>받음각 α(V) 근사 & 4바 링키지 연동</h4>
+              <p>테이블 패널의 <strong>받음각 α(V) 근사식</strong> 박스에 실속속도·마하별 받음각 데이터점을 넣고 체크하면, 속도에 따라 변하는 α가 테이블 전체에 반영됩니다(공력데이터 기반 타각정보). <strong>4바 링키지 연동</strong> 박스는 링크 해석기에서 전달된 기하로 타각별 가용 토크 한계 |T₂·MA(θ₄₀±δ)|를 자동 적용합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 입력 파라미터 -->
+      <div class="card">
+        <span id="anc-hinge-params" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">입력 파라미터 — 비행 조건</div>
+        <table class="input-table">
+          <tr><th>파라미터</th><th>설명</th><th>단위</th></tr>
+          <tr><td>S<sub>f</sub></td><td>조종면 면적 (Control Surface Area)</td><td>m²</td></tr>
+          <tr><td>V</td><td>에어스피드 (Airspeed)</td><td>m/s</td></tr>
+          <tr><td>δ</td><td>편향각 (Deflection Angle) — 조종면 회전 각도 (±30°)</td><td>°</td></tr>
+          <tr><td>c̄</td><td>평균공력시위 MAC (Mean Aerodynamic Chord)</td><td>m</td></tr>
+          <tr><td>고도</td><td>비행 고도 — ISA 대기 모델로 ρ 자동 계산</td><td>m</td></tr>
+          <tr><td>ΔT</td><td>ISA 온도 편차 — 핫데이/콜드데이 보정</td><td>°C</td></tr>
+          <tr><td>ρ</td><td>공기 밀도 — 고도·ΔT에서 자동 산출 또는 수동 입력</td><td>kg/m³</td></tr>
+          <tr><td>C<sub>H,0</sub></td><td>영위 힌지모멘트 계수 (Zero Deflection)</td><td>무차원</td></tr>
+          <tr><td>C<sub>H,δ</sub></td><td>편향각에 대한 힌지모멘트 계수</td><td>/°</td></tr>
+          <tr><td>C<sub>H,α</sub></td><td>받음각에 대한 힌지모멘트 계수</td><td>/°</td></tr>
+          <tr><td>α</td><td>받음각 (Angle of Attack)</td><td>°</td></tr>
+        </table>
+      </div>
+
+      <!-- DATCOM 파라미터 -->
+      <div class="card">
+        <span id="anc-datcom-params" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">DATCOM 형상 파라미터</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;">
+          DATCOM 보정 모드에서 입력하는 조종면 기하학적 파라미터입니다. thin-airfoil 이론 기반의 2D 기저값에 3D 보정(AR, 후퇴각, 힌지위치, 밸런스), 실측 보정(K_exp), 편향각 비선형 감소(K_def)를 적용해 C<sub>H</sub> 계수를 자동 산출합니다. <strong>아음속(Mach ≤ 0.8) 범위에서 유효합니다.</strong>
+        </p>
+        <table class="input-table">
+          <tr><th>파라미터</th><th>설명</th><th>권장 범위</th></tr>
+          <tr><td>c<sub>f</sub>/c</td><td>시위비 — 조종면 시위 / 전체 시위 길이 비율</td><td>0.05 ~ 0.50</td></tr>
+          <tr><td>t/c</td><td>두께비 — 에어포일 최대 두께 / 시위 비율</td><td>0.04 ~ 0.20</td></tr>
+          <tr><td>x<sub>h</sub>/c<sub>f</sub></td><td>힌지 위치 — 힌지 축이 조종면 시위 내 위치 (0 = 앞전)</td><td>-0.3 ~ 0.5</td></tr>
+          <tr><td>밸런스비</td><td>힌지 앞쪽(앞연 보상) 면적 비율. 값이 클수록 C<sub>H,δ</sub> 감소</td><td>0.0 ~ 0.4</td></tr>
+          <tr><td>η<sub>i</sub></td><td>스팬 내측 위치 (반스팬 기준 0~1)</td><td>0.0 ~ 1.0</td></tr>
+          <tr><td>η<sub>o</sub></td><td>스팬 외측 위치 (반스팬 기준 0~1)</td><td>0.0 ~ 1.0</td></tr>
+          <tr><td>AR</td><td>조종면 종횡비 (Aspect Ratio)</td><td>2.0 ~ 15.0</td></tr>
+          <tr><td>Λ</td><td>후퇴각 (Sweep Angle) — 앞전 기준</td><td>0° ~ 45°</td></tr>
+          <tr><td>Γ</td><td>V-tail 경사각 (V-tail 전용) — 수평면 기준 경사각</td><td>20° ~ 55°</td></tr>
+          <tr><td>x<sub>p</sub>/c</td><td>피벗 위치 (올무빙 테일 전용) — 시위 기준 피벗 축 위치</td><td>0.0 ~ 0.5</td></tr>
+        </table>
+
+        <!-- DATCOM 형상 파라미터 다이어그램 -->
+        <div style="margin-top:18px; background:linear-gradient(170deg,#fafafa,#f0f0f5); border:1px solid rgba(0,0,0,0.07); border-radius:14px; padding:18px 20px;">
+          <div style="font-size:10.5px;font-weight:700;color:#6e6e73;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:14px;">DATCOM 형상 파라미터 도식 — 단면도 (좌) · 평면도 (우)</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+            <!-- 단면도 -->
+            <div style="background:white; border:1px solid rgba(0,0,0,0.07); border-radius:10px; padding:10px;">
+              <div style="font-size:9px;font-weight:700;color:#aeaeb2;letter-spacing:0.4px;text-transform:uppercase;text-align:center;margin-bottom:8px;">단면도 — Section View</div>
+              <svg viewBox="0 0 380 210" width="100%" style="display:block;font-family:-apple-system,'Helvetica Neue',sans-serif;">
+  <defs>
+    <marker id="s3a" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0 0,6 3,0 6" fill="#64748b"/></marker>
+    <marker id="s3b" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto"><polygon points="6 0,0 3,6 6" fill="#64748b"/></marker>
+    <marker id="s3p" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0 0,6 3,0 6" fill="#7c3aed"/></marker>
+    <marker id="s3pb" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto"><polygon points="6 0,0 3,6 6" fill="#7c3aed"/></marker>
+    <marker id="s3ba" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0 0,6 3,0 6" fill="#2563eb"/></marker>
+  </defs>
+
+  <!-- 시위 점선 -->
+  <line x1="30" y1="100" x2="232" y2="100" stroke="#cbd5e1" stroke-width="0.8" stroke-dasharray="4,3"/>
+
+  <!-- 날개 -->
+  <path d="M30.0,100.0 L35.0,93.7 L40.1,91.4 L45.1,89.7 L50.2,88.4 L55.2,87.4 L60.3,86.5 L65.3,85.8 L70.4,85.2 L75.5,84.7 L80.5,84.3 L85.6,84.0 L90.6,83.7 L95.7,83.5 L100.7,83.3 L105.8,83.3 L110.8,83.2 L115.8,83.2 L120.9,83.2 L125.9,83.3 L131.0,83.4 L136.1,83.5 L141.1,83.7 L146.1,83.9 L151.2,84.1 L156.2,84.4 L161.3,84.7 L166.4,85.0 L171.4,85.3 L176.4,85.6 L181.5,86.0 L186.6,86.3 L191.6,86.7 L196.6,87.1 L201.7,87.5 L206.8,88.0 L211.8,88.4 L216.9,88.9 L221.9,89.3 L226.9,89.8 L232.0,90.3 Z M232.0,109.7 L226.9,110.2 L221.9,110.7 L216.9,111.1 L211.8,111.6 L206.8,112.0 L201.7,112.5 L196.6,112.9 L191.6,113.3 L186.6,113.7 L181.5,114.0 L176.4,114.4 L171.4,114.7 L166.4,115.0 L161.3,115.3 L156.2,115.6 L151.2,115.9 L146.1,116.1 L141.1,116.3 L136.1,116.5 L131.0,116.6 L125.9,116.7 L120.9,116.8 L115.8,116.8 L110.8,116.8 L105.8,116.7 L100.7,116.7 L95.7,116.5 L90.6,116.3 L85.6,116.0 L80.5,115.7 L75.5,115.3 L70.4,114.8 L65.3,114.2 L60.3,113.5 L55.2,112.6 L50.2,111.6 L45.1,110.3 L40.1,108.6 L35.0,106.3 L30.0,100.0 Z" fill="#dbeafe" stroke="#2563eb" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- 조종면 -->
+  <path d="M234.0,90.5 L237.7,91.7 L241.5,92.9 L245.2,94.2 L248.9,95.4 L252.7,96.6 L256.4,97.8 L260.1,99.1 L263.8,100.3 L267.5,101.6 L271.3,102.8 L275.0,104.1 L278.7,105.4 L282.4,106.7 L286.1,108.0 L289.8,109.3 L293.5,110.6 L297.3,111.9 L301.0,113.2 L304.7,114.5 L308.4,115.9 Z M308.2,116.6 L304.3,116.3 L300.4,116.0 L296.4,115.7 L292.5,115.4 L288.6,115.1 L284.7,114.8 L280.8,114.4 L276.9,114.1 L272.9,113.7 L269.0,113.4 L265.1,113.0 L261.2,112.7 L257.3,112.3 L253.4,111.9 L249.5,111.5 L245.6,111.1 L241.7,110.7 L237.8,110.3 L233.9,109.9 L230.0,109.5 Z" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- 밸런스 영역 -->
+  <path d="M192.8,93.4 L232.0,90.3 L232.0,109.7 L192.8,106.6 Z"
+        fill="rgba(124,58,237,0.20)" stroke="#7c3aed" stroke-width="1.1" stroke-dasharray="3,2"/>
+  <text x="212" y="103" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-weight="700">밸런스</text>
+
+  <!-- 힌지 축 -->
+  <circle cx="232" cy="100" r="5.5" fill="#ef4444" stroke="white" stroke-width="1.8"/>
+  <circle cx="232" cy="100" r="2.2" fill="white"/>
+  <text x="232" y="82" text-anchor="middle" font-size="8" fill="#ef4444" font-weight="700">힌지</text>
+
+  <!-- δ 수평 기준점선 -->
+  <line x1="232" y1="100" x2="322.0" y2="100" stroke="#2563eb" stroke-width="1.0" stroke-dasharray="4,2.5"/>
+  <!-- δ 조종면방향 기준점선 -->
+  <line x1="232" y1="100" x2="322.0" y2="119.1" stroke="#2563eb" stroke-width="1.0" stroke-dasharray="4,2.5"/>
+  <!-- δ 호 -->
+  <path d="M302.0,100.0 A70,70 0 0,1 300.5,114.6" fill="none" stroke="#2563eb" stroke-width="1.6"/>
+  <!-- δ 레이블 -->
+  <text x="317.5" y="113.0" font-size="12" fill="#2563eb" font-weight="700" font-style="italic" text-anchor="middle">δ</text>
+
+  <!-- t/c 두께 치수 -->
+  <line x1="97" y1="83.2" x2="97" y2="116.8" stroke="#64748b" stroke-width="0.9" marker-start="url(#s3b)" marker-end="url(#s3a)"/>
+  <line x1="93" y1="83.2" x2="113" y2="83.2" stroke="#94a3b8" stroke-width="0.7"/>
+  <line x1="93" y1="116.8" x2="113" y2="116.8" stroke="#94a3b8" stroke-width="0.7"/>
+  <text x="91" y="104" text-anchor="end" font-size="9.5" fill="#64748b" font-style="italic">t/c</text>
+
+  <!-- c 전체 시위 치수 -->
+  <line x1="30" y1="175" x2="310" y2="175" stroke="#64748b" stroke-width="0.9" marker-start="url(#s3b)" marker-end="url(#s3a)"/>
+  <text x="170" y="188" text-anchor="middle" font-size="9.5" fill="#64748b" font-style="italic">c (전체 시위)</text>
+
+  <!-- cf 조종면 시위 치수 -->
+  <line x1="232" y1="137" x2="310" y2="137" stroke="#7c3aed" stroke-width="0.9" marker-start="url(#s3pb)" marker-end="url(#s3p)"/>
+  <text x="271" y="150" text-anchor="middle" font-size="8.5" fill="#7c3aed" font-style="italic">c&#x2091; (cf/c)</text>
+
+  <!-- xh 힌지위치 표시 -->
+  <line x1="232" y1="109.7" x2="232" y2="157" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="2,2"/>
+  <text x="232" y="166" text-anchor="middle" font-size="8" fill="#ef4444">xh / c&#x2091;</text>
+
+  <!-- 레이블 -->
+  <text x="131" y="73" text-anchor="middle" font-size="9" fill="#1d4ed8" font-weight="700">날개</text>
+  <text x="262" y="90" text-anchor="middle" font-size="9" fill="#6d28d9" font-weight="700">조종면</text>
+</svg>
+            </div>
+
+            <!-- 평면도 -->
+            <div style="background:white; border:1px solid rgba(0,0,0,0.07); border-radius:10px; padding:10px;">
+              <div style="font-size:9px;font-weight:700;color:#aeaeb2;letter-spacing:0.4px;text-transform:uppercase;text-align:center;margin-bottom:8px;">평면도 — Planform View</div>
+              <svg viewBox="0 0 380 200" width="100%" style="display:block;font-family:-apple-system,'Helvetica Neue',sans-serif;">
+  <defs>
+    <marker id="p3a" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0 0,6 3,0 6" fill="#64748b"/></marker>
+    <marker id="p3b" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto"><polygon points="6 0,0 3,6 6" fill="#64748b"/></marker>
+    <marker id="p3oa" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0 0,6 3,0 6" fill="#ff9f0a"/></marker>
+    <marker id="p3ob" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto"><polygon points="6 0,0 3,6 6" fill="#ff9f0a"/></marker>
+  </defs>
+
+  <!-- FLOW 화살표 -->
+  <line x1="70" y1="10" x2="70" y2="24" stroke="#94a3b8" stroke-width="1.1" marker-end="url(#p3a)"/>
+  <text x="70" y="8" text-anchor="middle" font-size="7.5" fill="#94a3b8" font-weight="600">FLOW</text>
+
+  <!-- 날개 패널 -->
+  <polygon points="55,30 320,83 320,173 55,120"
+           fill="#dbeafe" stroke="#2563eb" stroke-width="1.4"/>
+
+  <!-- 조종면 -->
+  <polygon points="55,94.8 320,147.8 320,173 55,120"
+           fill="#ede9fe" stroke="#7c3aed" stroke-width="1.3"/>
+
+  <!-- 힌지 라인 -->
+  <line x1="55" y1="94.8" x2="320" y2="147.8"
+        stroke="#7c3aed" stroke-width="1.4" stroke-dasharray="5,3"/>
+
+  <!-- Λ 수평 기준점선 (루트LE에서 오른쪽, 스팬방향) -->
+  <line x1="55" y1="30" x2="125.0" y2="30" stroke="#2563eb" stroke-width="1.0" stroke-dasharray="4,2.5"/>
+  <!-- Λ LE방향 기준점선 -->
+  <line x1="55" y1="30" x2="122.7" y2="54.6" stroke="#2563eb" stroke-width="1.0" stroke-dasharray="4,2.5"/>
+  <!-- Λ 호: 수평(0°) → LE방향(+Lv_deg°) 시계방향(sweep=1) -->
+  <path d="M105.0,30.0 A50,50 0 0,1 102.0,47.1"
+        fill="none" stroke="#2563eb" stroke-width="1.6"/>
+  <!-- Λ 레이블 -->
+  <text x="118.0" y="45.1" font-size="13" fill="#2563eb" font-weight="700" font-style="italic" text-anchor="middle">Λ</text>
+
+  <!-- η_i 경계 -->
+  <line x1="121.2" y1="43.2" x2="121.2" y2="133.2"
+        stroke="#ff9f0a" stroke-width="1.3" stroke-dasharray="3,2"/>
+  <!-- η_o 경계 -->
+  <line x1="280.2" y1="75.0" x2="280.2" y2="165.1"
+        stroke="#ff9f0a" stroke-width="1.3" stroke-dasharray="3,2"/>
+
+  <!-- η 레이블 -->
+  <text x="121" y="146" text-anchor="middle" font-size="9" fill="#ff9f0a" font-style="italic" font-weight="600">η&#x1D62;</text>
+  <text x="280" y="178" text-anchor="middle" font-size="9" fill="#ff9f0a" font-style="italic" font-weight="600">η&#x2092;</text>
+
+  <!-- 스팬 치수 -->
+  <line x1="121.2" y1="155.2" x2="280.2" y2="187.1"
+        stroke="#ff9f0a" stroke-width="0.9" marker-start="url(#p3ob)" marker-end="url(#p3oa)"/>
+  <text x="201" y="183" text-anchor="middle" font-size="8" fill="#ff9f0a" font-weight="600">조종면 스팬</text>
+
+  <!-- c 시위 치수 -->
+  <line x1="43" y1="30" x2="43" y2="120"
+        stroke="#64748b" stroke-width="0.9" marker-start="url(#p3b)" marker-end="url(#p3a)"/>
+  <line x1="40" y1="30" x2="49" y2="30" stroke="#94a3b8" stroke-width="0.7"/>
+  <line x1="40" y1="120" x2="49" y2="120" stroke="#94a3b8" stroke-width="0.7"/>
+  <text x="37" y="79" text-anchor="end" font-size="9.5" fill="#64748b" font-style="italic">c</text>
+
+  <!-- AR 표기 -->
+  <text x="330" y="123" font-size="9" fill="#64748b" font-style="italic" font-weight="700">AR</text>
+  <text x="330" y="135" font-size="7.5" fill="#94a3b8">종횡비</text>
+
+  <!-- LE/TE 레이블 -->
+  <text x="187" y="52" text-anchor="middle" font-size="8.5" fill="#64748b" font-weight="700">LE (앞전)</text>
+  <text x="187" y="161" text-anchor="middle" font-size="8.5" fill="#64748b" font-weight="700">TE (뒷전)</text>
+
+  <!-- 루트/팁 -->
+  <text x="55" y="192" text-anchor="middle" font-size="8" fill="#64748b">루트</text>
+  <text x="320" y="192" text-anchor="middle" font-size="8" fill="#64748b">팁</text>
+
+  <!-- 날개/조종면 레이블 -->
+  <text x="147" y="66" text-anchor="middle" font-size="9.5" fill="#1d4ed8" font-weight="700">날개</text>
+  <text x="217" y="111" text-anchor="middle" font-size="9.5" fill="#6d28d9" font-weight="700">조종면</text>
+</svg>
+            </div>
+
+          </div><!-- end grid -->
+
+          <!-- 파라미터 색상 범례 -->
+          <div style="display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:12px; padding:10px 14px; background:rgba(0,0,0,0.02); border-radius:8px;">
+            <div style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:#6e6e73;">
+              <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:rgba(139,92,246,0.25); border:1.5px solid #8b5cf6;"></span> 조종면 / c&#x2091;/c · x&#x2095;/c&#x2091; · 밸런스
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:#6e6e73;">
+              <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:rgba(37,99,235,0.15); border:1.5px solid #2563eb;"></span> 날개 / 후퇴각 Λ
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:#6e6e73;">
+              <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:rgba(255,159,10,0.18); border:1.5px solid #ff9f0a;"></span> 스팬 위치 η&#x1D62; · η&#x2092; · AR
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:#6e6e73;">
+              <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:rgba(239,68,68,0.15); border:1.5px solid #ef4444;"></span> 힌지축 위치 x&#x2095;/c&#x2091;
+            </div>
+          </div>
+        </div>
+        <div class="tip-box" style="margin-top:14px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-text"><strong>형상 도식 상호작용:</strong> DATCOM 모드에서 각 입력 필드를 클릭하면 우측의 단면도·평면도·추가 도식에서 해당 파라미터가 파란색으로 강조 표시됩니다. V-tail 모드에서는 경사각별 피치/요 분배 벡터 다이어그램이, 올무빙 테일 모드에서는 피벗 위치와 공력중심(AC) 관계도가 추가로 표시됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 트림 타각 계산 -->
+      <div class="card">
+        <span id="anc-trim" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">트림 타각 계산</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;">
+          우측 <strong>트림 타각 계산</strong> 패널은 종방향 공력 미분계수(C<sub>L</sub>·C<sub>m</sub>)로 <strong>양력 평형과 피칭모멘트 평형을 동시에</strong> 만족시키는 받음각 α와 타각 δ를 구합니다. 지정한 하중배수 n을 최대속도 V<sub>max</sub>에서 만들어내는 조종면 편향을 산출하여, KPI에 <strong>n = 1(순항 트림)</strong>과 <strong>n = n<sub>max</sub>(기동)</strong> 두 경우를 표시합니다.
+        </p>
+        <div class="eq-card" style="margin-bottom:14px;">
+          <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">종방향 2×2 평형 (V = V<sub>max</sub>)</div>
+          <div class="eq-body" style="align-items:center;">
+            <div>
+              <div class="eq-label">양력 평형 — 요구 양력계수</div>
+              <div class="eq-row" style="flex-wrap:wrap;">
+                <span class="eq-sym">C<span class="sub">L,0</span></span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">L,α</span>·α</span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">L,δ</span>·δ</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym">C<span class="sub">L,req</span> = n·m·g / (q·S<span class="sub">ref</span>)</span>
+              </div>
+            </div>
+            <div class="eq-divider"></div>
+            <div>
+              <div class="eq-label">피칭모멘트 평형</div>
+              <div class="eq-row" style="flex-wrap:wrap;">
+                <span class="eq-sym">C<span class="sub">m,0</span></span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">m,α</span>·α</span><span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">m,δ</span>·δ</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym">C<span class="sub">m,q</span>·q̂</span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">n</span>하중배수 (g)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">q̂</span>무차원 피치각속도 = q<sub>rate</sub>·c̄<sub>ref</sub>/(2V)</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym">C<span style="font-size:0.65em;vertical-align:sub;">L,δ</span></span>타각 양력 미분계수</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym">C<span style="font-size:0.65em;vertical-align:sub;">m,δ</span></span>조종력 미분계수</div>
+          </div>
+        </div>
+        <table class="input-table">
+          <tr><th>파라미터</th><th>설명</th><th>기본값</th></tr>
+          <tr><td>기체 질량 m</td><td>총 기체 질량</td><td>100 kg</td></tr>
+          <tr><td>기준 면적 S<sub>ref</sub></td><td>양력 기준 날개 면적</td><td>1.20 m²</td></tr>
+          <tr><td>최대속도 V<sub>max</sub></td><td>트림 계산 기준 속도 (m/s·km/h·M 전환, 비행속도+10% 자동추적)</td><td>220 m/s</td></tr>
+          <tr><td>최대 하중배수 n<sub>max</sub></td><td>기동 시 최대 g</td><td>3.5 g</td></tr>
+          <tr><td>기동 형태</td><td>대칭 풀업 q=(n−1)g/V 또는 정상 선회 q=(g/V)(n−1/n)</td><td>대칭 풀업</td></tr>
+          <tr><td>C<sub>L,0/α/δ</sub></td><td>양력계수 · 양력곡선 기울기 · 타각 양력 미분계수</td><td>0 / 2.80 / 0.60</td></tr>
+          <tr><td>C<sub>m,0/α/δ</sub></td><td>피칭모멘트 계수 · 정적 종안정 · 조종력 미분계수</td><td>0 / −0.40 / −0.50</td></tr>
+          <tr><td>C<sub>L,q</sub> · C<sub>m,q</sub></td><td>피치각속도 동미분계수 (선택)</td><td>0 / 0</td></tr>
+        </table>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-text">공력 미분계수는 <strong>/rad · /°</strong> 단위를 전환할 수 있습니다. |δ| &gt; 30° 또는 |α| &gt; 20°이면 범위 주의 표시가 나타납니다. 4바 링키지가 연동된 경우 KPI에 링크 가용 토크 대비 여유/초과가 함께 판정됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 속도 × 타각 테이블 -->
+      <div class="card">
+        <span id="anc-htable" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">속도 × 타각 힌지모멘트 테이블</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;">
+          중앙 <strong>속도 × 타각 힌지모멘트 테이블</strong> 패널에서 속도 범위(시작·상한·간격)와 타각 범위(최소·최대·간격), <strong>기준 |H| 한계</strong>를 지정하고 <strong>"테이블 생성 (팝업)"</strong>을 누르면 (δ, V) 격자의 힌지모멘트가 팝업 모달로 출력됩니다. 속도 상한은 비행속도의 1.1배로 자동 추적되며 직접 수정할 수 있습니다.
+        </p>
+        <table class="input-table">
+          <tr><th>셀 색상</th><th>의미</th></tr>
+          <tr><td><strong style="color:#c0392b;">빨강 (over)</strong></td><td>|H| ≥ 한계 — 한계 초과</td></tr>
+          <tr><td><strong style="color:#c77a00;">노랑 (warn)</strong></td><td>|H| ≥ 한계 × 0.8 — 80~100% 주의</td></tr>
+          <tr><td><strong style="color:#6e6e73;">회색 (unreach)</strong></td><td>4바 링키지가 해당 θ₄에 도달 불가</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          링키지 연동 시 각 타각별 <strong>한계 |H|</strong> 열이 추가되고, α(V) 근사가 켜져 있으면 속도별 적용 받음각을 보여주는 <strong>α(V)° 행</strong>이 표시됩니다. 팝업에는 조종면명·모드·한계식·속도범위·S<sub>f</sub>·c̄·ρ 메타와 범례가 포함되며, <strong>"이미지 저장"</strong>으로 PNG를 내보낼 수 있습니다(최대 400행).
+        </p>
+      </div>
+
+      <!-- 받음각 α(V) 근사 -->
+      <div class="card">
+        <span id="anc-aoav" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">받음각 α(V) 근사식 — 공력데이터 기반 타각정보</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;">
+          받음각은 속도에 따라 변하므로, 테이블 패널의 <strong>받음각 α(V) 근사식</strong> 박스에 실속속도(V<sub>s</sub>)와 마하별 받음각 데이터점을 입력하면 속도의 함수 α(V)를 근사해 속도×타각 테이블 전체에 반영합니다. 이것이 "공력데이터를 통한 타각정보" 기능입니다.
+        </p>
+        <div class="eq-card" style="margin-bottom:14px;">
+          <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;">1/V² 공간 구간별 선형 보간</div>
+          <div class="eq-body" style="align-items:center;">
+            <div class="eq-row">
+              <span class="eq-sym">α(V)</span>
+              <span class="eq-eq">=</span>
+              <span class="eq-sym">a</span>
+              <span class="eq-op">+</span>
+              <div class="frac">
+                <div class="frac-num"><span>k</span></div>
+                <div class="frac-line"></div>
+                <div class="frac-den"><span class="var-blue">V</span><span class="sup">2</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item">데이터점: (V<sub>s</sub>, α₁), (1.15V<sub>s</sub>, α₂), (M0.3, α₃), (M0.5, α₄), (M0.6, α₅)</div>
+            <div class="eq-legend-item">양력 평형 형태 α ∝ 1/V² — 입력점을 모두 정확히 통과</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;">
+          마하 지점의 속도는 현재 고도·ΔT의 음속 <strong>sos = √(1.4·287.05·T)</strong>로 자동 환산됩니다. 최고속점 이상에서는 마지막 α로 수렴하고, 최저속점 이하에서는 첫 구간 기울기로 외삽합니다. 체크박스를 끄면 비행 조건의 고정 α가 사용됩니다.
+        </p>
+      </div>
+
+      <!-- 4바 링키지 연동 & 풍동 -->
+      <div class="card">
+        <span id="anc-hinge-linkage" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">4바 링키지 연동 & 풍동 시뮬레이션</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#0071e3,#bf5af2);">L</div>
+            <div class="step-body">
+              <h4>4바 링키지 연동 — 타각별 가용 토크 한계</h4>
+              <p>링크 해석기의 <strong>"힌지모멘트 계산기로 보내기"</strong>로 전달된 기하(a·b·c·d·해유형·T₂·θ₄₀·δ+방향)가 <strong>4바 링키지 연동</strong> 박스에 자동 채워집니다. 링키지 기계이득 MA로 타각별 한계 <strong>|H|<sub>lim</sub>(δ) = |T₂ × MA(θ₄₀ ± δ)|</strong>가 계산되어 트림 KPI·테이블의 판정 기준이 이 값으로 대체됩니다. <strong>연동 해제</strong>(수동 편집) / <strong>재연동</strong> / <strong>삭제</strong>가 가능하며, 조립 불가 θ₄는 "도달 불가"로 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:linear-gradient(135deg,#30b0c7,#1a7a8a);">W</div>
+            <div class="step-body">
+              <h4>풍동 시뮬레이션 & 중간 계산값</h4>
+              <p>하단 <strong>풍동 시뮬레이션</strong> 패널은 비행 조건(V·α·δ)과 형상(c<sub>f</sub>/c·t/c)을 반영한 유동 애니메이션과 함께 <strong>온도·음속·Mach·Re</strong>(Sutherland 점성 기반)를 실시간 표시합니다. <strong>중간 계산값</strong> 패널에서 ρ, q = ½ρV², C<sub>H</sub> 분해(C<sub>H,0</sub> / C<sub>H,δ</sub>·δ / C<sub>H,α</sub>·α / 합산), q·S<sub>f</sub>를 확인할 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 핵심 용어 -->
+      <div class="card">
+        <span id="anc-hinge-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>
+        <div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <span id="anc-hinge-h"></span>
+            <div class="term-name">힌지모멘트 (H)
+              <span class="term-symbol">Hinge Moment</span>
+            </div>
+            <div class="term-desc">공기력이 조종면 힌지 축에 가하는 모멘트. 단위는 N·m이며, 이 값이 클수록 더 강력한 액추에이터(서보)가 필요합니다. <strong>서보 토크 선정의 핵심 기준값</strong>입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-dynamic-pressure"></span>
+            <div class="term-name">동압 (q)
+              <span class="term-symbol">Dynamic Pressure</span>
+            </div>
+            <div class="term-desc">유체의 운동 에너지를 압력으로 표현한 것: <code>q = ½ρV²</code>. 속도의 제곱에 비례하므로, 속도가 2배 증가하면 동압(힌지모멘트)은 4배 증가합니다. 항공 하중 계산의 기본 단위입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-ch"></span>
+            <div class="term-name">힌지모멘트 계수 (C<sub>H</sub>)
+              <span class="term-symbol">Hinge Moment Coefficient</span>
+            </div>
+            <div class="term-desc">무차원 힌지모멘트 계수로, 풍동 시험 또는 DATCOM 방법론을 통해 획득합니다. 영위 성분 <code>C<sub>H,0</sub></code>, 편향각 성분 <code>C<sub>H,δ</sub></code>, 받음각 성분 <code>C<sub>H,α</sub></code>로 분리됩니다. 대부분의 조종면에서 음수(restoring 방향)입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-datcom-method"></span>
+            <div class="term-name">DATCOM 방법론
+              <span class="term-symbol">USAF Digital DATCOM</span>
+            </div>
+            <div class="term-desc">미 공군 DATCOM(Data Compendium)을 기반으로 한 반경험적 공력 계수 산출 방법. thin-airfoil 이론으로 2D 기저값을 계산하고, AR·후퇴각·힌지위치·밸런스에 의한 3D 보정, 점성/경계층/갭 누설 영향을 반영한 실측 보정(K_exp=1.4~1.8), 편향각 비선형 감소(K_def)를 순차 적용합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-balance"></span>
+            <div class="term-name">밸런스비 (Balance Ratio)
+              <span class="term-symbol">Horn Balance</span>
+            </div>
+            <div class="term-desc">힌지 앞쪽(앞전 쪽)에 돌출된 보상 면적과 조종면 총 면적의 비율. 밸런스가 크면 공기력이 반대 방향으로 작용해 <code>C<sub>H,δ</sub></code>가 감소하여 조종력이 가벼워집니다. 지나친 밸런스는 불안정(float)을 유발할 수 있습니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-aoa"></span>
+            <div class="term-name">받음각 (AoA)
+              <span class="term-symbol">Angle of Attack α</span>
+            </div>
+            <div class="term-desc">항공기 기준선(시위선)과 유입 기류 방향 사이의 각도. 받음각이 커지면 양력이 증가하고 동시에 힌지모멘트에도 영향을 미칩니다. 실속(Stall)은 임계 받음각 초과 시 발생합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-mac"></span>
+            <div class="term-name">평균공력시위 (MAC)
+              <span class="term-symbol">Mean Aerodynamic Chord</span>
+            </div>
+            <div class="term-desc">날개 또는 조종면의 공력적으로 동등한 평균 시위 길이. 테이퍼 날개에서 직사각형 날개와 동일한 공력 특성을 나타내는 등가 시위로, 힌지모멘트 계산의 기준 길이로 사용됩니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-rudvat"></span>
+            <div class="term-name">러더베이터 (Ruddervator)
+              <span class="term-symbol">V-tail Control Surface</span>
+            </div>
+            <div class="term-desc">V-tail 항공기에서 러더(yaw)와 엘리베이터(pitch) 기능을 겸하는 조종면. V-tail 경사각 Γ에 따라 피치 성분 <code>cos(Γ)</code>와 요 성분 <code>sin(Γ)</code>으로 분배됩니다. 계산기의 V-tail 모드에서는 이 분배 비율과 벡터 분해 도식이 자동으로 표시됩니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-elvon"></span>
+            <div class="term-name">엘러본 (Elevon)
+              <span class="term-symbol">Flying Wing Control Surface</span>
+            </div>
+            <div class="term-desc">델타윙/플라잉윙에서 에일러론(roll)과 엘리베이터(pitch) 기능을 겸하는 조종면. 꼬리날개가 없는 구성에서 필수적이며, <strong>델타윙</strong> 기체 타입에서 엘러본 아웃·엘러본 인으로 선택 가능합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-deflection"></span>
+            <div class="term-name">편향각 (δ)
+              <span class="term-symbol">Deflection Angle</span>
+            </div>
+            <div class="term-desc">조종면이 중립 위치에서 회전한 각도 (±30°). 힌지모멘트는 편향각의 선형 함수로 근사되며, 대편향(±10° 초과)에서는 흐름 박리에 의한 비선형 감소(K_def)가 발생합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-isa"></span>
+            <div class="term-name">ISA 대기 모델
+              <span class="term-symbol">International Standard Atmosphere</span>
+            </div>
+            <div class="term-desc">고도에 따른 기온·기압·밀도 변화를 정의하는 국제 표준 대기 모델. 대류권(0~11 km)에서 고도 1 km당 약 6.5°C 온도 감소, 밀도 감소를 계산합니다. ISA±15, ISA+20, ISA+30 등의 온도 편차 프리셋으로 핫데이/콜드데이 조건을 반영합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn-box">
+        <div class="tip-icon">⚠️</div>
+        <div class="tip-text"><strong>주의:</strong> DATCOM 방법론은 아음속(Mach ≤ 0.8) 적용을 전제로 합니다. C<sub>H</sub> 계수는 조종면 형상(밸런스비, 시위비, 에어포일, 갭 크기)에 따라 실제와 상당히 차이날 수 있습니다. 풍동 시험 데이터를 보유하고 있다면 기본 모드에서 실측값을 직접 입력하고, DATCOM 모드는 설계 초기 추정 또는 경향 분석 용도로 활용하십시오. 트림 타각·서보 토크 최종 검토에는 반드시 충분한 안전 마진을 적용하십시오.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ REGRESSION ══════════════ -->
+    <section class="section" id="sec-regression">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(255,159,10,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 20 4 4"/><polyline points="4 20 20 20"/>
+            <circle cx="7" cy="14" r="1.2" fill="#ff9f0a"/>
+            <circle cx="10" cy="11" r="1.2" fill="#ff9f0a"/>
+            <circle cx="13" cy="13" r="1.2" fill="#ff9f0a"/>
+            <circle cx="17" cy="8" r="1.2" fill="#ff9f0a"/>
+            <line x1="5" y1="16" x2="19" y2="7" stroke-dasharray="2 1"/>
+          </svg>
+        </div>
+        <div>
+          <h2>회귀분석 도구</h2>
+          <p>다양한 회귀 모델 자동 피팅 및 적합도 평가</p>
+          <div class="page-tags">
+            <span class="page-tag">통계</span>
+            <span class="page-tag">데이터 분석</span>
+            <span class="page-tag">모델 피팅</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-reg-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          X-Y 데이터를 <strong>스프레드시트형 그리드</strong>에 입력하면 선택한 회귀 모델로 자동 피팅하고, 결정계수(R²), 잔차, RMSE 등 통계 지표를 제공합니다. 엔지니어링 데이터 경향 파악, 보정 곡선 작성, 센서 캘리브레이션은 물론 <strong>다중 Y·다중 X 회귀</strong>와 <strong>조종면 리깅</strong> 계수 산출까지 지원합니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-reg-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>데이터 입력 (그리드)</h4>
+              <p>화면의 <strong>스프레드시트형 그리드</strong>에 값을 입력하거나, 엑셀·시트에서 복사한 뒤 첫 셀에 <kbd>Ctrl+V</kbd>로 붙여넣습니다(탭·쉼표·세미콜론·공백 구분 자동 인식, 부족한 행 자동 추가). <strong>+10행</strong>·<strong>초기화</strong>·<strong>데이터 복사</strong> 버튼과 드래그 셀 선택·복사/잘라내기/삭제 툴바를 사용할 수 있습니다. <strong>샘플 데이터</strong> 버튼은 유형별 3세트를 순환 제공합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>분석 모드 선택</h4>
+              <p>세그먼트에서 <strong>X → Y1~Y4</strong>(하나의 X에 최대 4개 Y 계열 동시 회귀), <strong>X1~X4 → Y</strong>(다중선형회귀), <strong>조종면 리깅</strong>(명령·실제·피드백 각도로 리깅 계수 산출) 중 선택합니다. 모드에 따라 그리드 열 구성과 선택 가능한 회귀 유형이 바뀝니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>회귀 유형 선택</h4>
+              <p><strong>선형 · 2차 · 3차 · 지수 · 로그 · 거듭제곱</strong> 중 데이터 형태에 맞는 모델을 선택합니다. 다중선형(X1~X4→Y) 모드는 선형만, 조종면 리깅 모드는 3차만 사용됩니다. 입력을 바꾸면 약 0.6초 후 자동으로 재분석됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>결과 확인</h4>
+              <p>회귀 방정식, R² · Adjusted R² · RMSE · MAE 지표, 산점도+회귀곡선·잔차 분포 차트, 그리고 <strong>RMSE 배율·평가(우수/보통/불량)</strong> 배지가 포함된 예측값·잔차 테이블을 확인합니다. 계수는 배열 형태로 원클릭 복사할 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-reg-models" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">지원 회귀 모델</div>
+
+        <!-- 회귀 모델 공식 그리드 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:4px;">
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3; font-size:10px;"><span id="anc-linear" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>선형 회귀 · Linear</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-red">x</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">b</span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">직선 관계. 최소제곱법(OLS)으로 추정</div>
+          </div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(191,90,242,0.08); color:#bf5af2; font-size:10px;"><span id="anc-polynomial" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>2차 회귀 · Quadratic</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row" style="font-size:17px;">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">2</span></span><span class="var-red">x</span><span class="sup">2</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">1</span></span><span class="var-red">x</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">0</span></span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">U자형 곡선. 3차는 별도 버튼으로 제공</div>
+          </div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;"><span id="anc-exponential" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>지수 회귀 · Exponential</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span style="font-style:normal;font-size:15px;font-family:sans-serif;">e</span><span class="sup"><span class="var-orange">b</span><span class="var-red">x</span></span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">성장·감쇠 현상. 세균 증식, 방사성 붕괴</div>
+          </div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;"><span id="anc-logarithmic" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>대수 회귀 · Logarithmic</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;">ln</span>
+                <span class="eq-sym">(</span>
+                <span class="eq-sym"><span class="var-red">x</span></span>
+                <span class="eq-sym">)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">b</span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">포화 경향. 데시벨, 학습 곡선</div>
+          </div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;"><span id="anc-power" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>멱함수 회귀 · Power</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a</span></span>
+                <span class="eq-op">·</span>
+                <span class="eq-sym"><span class="var-red">x</span><span class="sup"><span class="var-orange">b</span></span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">스케일링 법칙. 케플러 제3법칙</div>
+          </div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(40,167,69,0.08); color:#28a745; font-size:10px;"><span id="anc-cubic" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>3차 회귀 · Cubic</div>
+            <div class="eq-body" style="padding:16px 20px; align-items:center;">
+              <div class="eq-row" style="font-size:15px;">
+                <span class="eq-sym"><span class="var-blue">y</span></span>
+                <span class="eq-eq">=</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">3</span></span><span class="var-red">x</span><span class="sup">3</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">2</span></span><span class="var-red">x</span><span class="sup">2</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">1</span></span><span class="var-red">x</span></span>
+                <span class="eq-op">+</span>
+                <span class="eq-sym"><span class="var-orange">a<span class="sub">0</span></span></span>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">S자·변곡 포함 곡선. 조종면 리깅 계수에 사용</div>
+          </div>
+
+        </div>
+        <p style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-top:10px;">
+          ※ 회귀 유형은 <strong>선형 · 2차 · 3차 · 지수 · 로그 · 거듭제곱</strong> 6종입니다. 다항은 <strong>2차·3차 버튼으로 분리</strong>되어 있으며, 다중선형(X1~X4→Y) 모드는 선형만, 조종면 리깅 모드는 3차만 사용합니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-reg-modes" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">분석 모드 & 조종면 리깅</div>
+        <table class="input-table">
+          <tr><th>모드</th><th>그리드 열</th><th>내용</th></tr>
+          <tr><td><strong>X → Y1~Y4</strong><br>(기본)</td><td>X, Y1, Y2, Y3, Y4</td><td>하나의 X에 대해 최대 4개 Y 계열을 동시에 회귀. 6종 회귀 유형 모두 선택 가능</td></tr>
+          <tr><td><strong>X1~X4 → Y</strong></td><td>X1, X2, X3, X4, Y</td><td>다중선형회귀(가우스 소거). 실제값 대 예측값 일치선 차트 제공</td></tr>
+          <tr><td><strong>조종면 리깅</strong></td><td>명령각도, 실제각도기, 피드백각도</td><td>3차 회귀로 CMD·FB·REV 3개 식을 산출. 목표 실제각(−30/0/30°)에 대한 명령각·피드백 예측·역산값 카드 출력</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          조종면 리깅 모드는 CS Rigging 도구와 동일한 규약(FCA_RIG 정방향, FCA_RIG_REVERS 역방향)으로 계수를 계산하며, 계수 배열을 <code>[a,b,c,d]</code> 형식으로 원클릭 복사해 비행제어 컴퓨터(FCC) 파라미터로 사용할 수 있습니다. 최소 데이터 수는 3차=5, 2차=4, 그 외=3(다중선형=변수수+2, 리깅=4)입니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-gof" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">적합도 지표 해석</div>
+
+        <div class="eq-card" style="margin-bottom:12px;">
+          <div class="eq-header" style="background:rgba(0,113,227,0.08); color:#0071e3;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2 14 2 2"/><polyline points="2 14 14 14"/><circle cx="4.5" cy="10" r="1" fill="currentColor"/><circle cx="7" cy="7.5" r="1" fill="currentColor"/><circle cx="9.5" cy="9" r="1" fill="currentColor"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
+            <span id="anc-r2" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>R² — 결정계수 (Coefficient of Determination)
+          </div>
+          <div class="eq-body">
+            <div class="eq-row">
+              <span class="eq-sym" style="font-style:normal;font-weight:700;font-size:20px;font-family:sans-serif;">R<span class="sup" style="font-style:normal;">2</span></span>
+              <span class="eq-eq">=</span>
+              <span class="eq-sym" style="font-style:normal;font-size:17px;">1</span>
+              <span class="eq-op">−</span>
+              <div class="frac">
+                <div class="frac-num">SS<span style="font-size:0.65em;vertical-align:sub;">res</span></div>
+                <div class="frac-line"></div>
+                <div class="frac-den">SS<span style="font-size:0.65em;vertical-align:sub;">tot</span></div>
+              </div>
+              <span class="eq-op">=</span>
+              <span class="eq-sym" style="font-style:normal;font-size:17px;">1</span>
+              <span class="eq-op">−</span>
+              <div class="frac">
+                <div class="frac-num"><span class="big-sym" style="font-size:18px;">Σ</span>(<span class="var-blue">y<span class="sub">i</span></span> − <span class="var-red">ŷ<span class="sub">i</span></span>)<span class="sup">2</span></div>
+                <div class="frac-line"></div>
+                <div class="frac-den"><span class="big-sym" style="font-size:18px;">Σ</span>(<span class="var-blue">y<span class="sub">i</span></span> − <span class="var-orange">ȳ</span>)<span class="sup">2</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="eq-legend">
+            <div class="eq-legend-item"><span class="eq-legend-sym var-blue">y<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">i</span></span>실제값</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-red">ŷ<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">i</span></span>예측값</div>
+            <div class="eq-legend-item"><span class="eq-legend-sym var-orange">ȳ</span>평균값</div>
+            <div class="eq-legend-item" style="flex-basis:100%; color:#1d1d1f;">0~1 범위. <strong>R² ≥ 0.95</strong>면 통상 양호. Adjusted R²는 파라미터 수에 패널티를 적용한 보정값.</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,69,58,0.08); color:#ff453a; font-size:10px;"><span id="anc-rmse" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>RMSE — Root Mean Square Error</div>
+            <div class="eq-body" style="padding:18px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;font-weight:600;">RMSE</span>
+                <span class="eq-eq">=</span>
+                <span class="big-sym" style="font-size:28px;color:var(--text2);">√</span>
+                <div class="frac">
+                  <div class="frac-num"><span class="big-sym" style="font-size:16px;">Σ</span>(<span class="var-blue">y<span class="sub">i</span></span>−<span class="var-red">ŷ<span class="sub">i</span></span>)<span class="sup">2</span></div>
+                  <div class="frac-line"></div>
+                  <div class="frac-den" style="font-style:normal;">n</div>
+                </div>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">이상값에 민감. 낮을수록 좋음</div>
+          </div>
+
+          <div class="eq-card" style="margin:0;">
+            <div class="eq-header" style="background:rgba(255,159,10,0.08); color:#c77a00; font-size:10px;"><span id="anc-mae" style="display:block;position:relative;top:-80px;visibility:hidden;"></span>MAE — Mean Absolute Error</div>
+            <div class="eq-body" style="padding:18px 20px; align-items:center;">
+              <div class="eq-row">
+                <span class="eq-sym" style="font-style:normal;font-size:15px;font-family:sans-serif;font-weight:600;">MAE</span>
+                <span class="eq-eq">=</span>
+                <div class="frac">
+                  <div class="frac-num"><span class="big-sym" style="font-size:16px;">Σ</span>|<span class="var-blue">y<span class="sub">i</span></span>−<span class="var-red">ŷ<span class="sub">i</span></span>|</div>
+                  <div class="frac-line"></div>
+                  <div class="frac-den" style="font-style:normal;">n</div>
+                </div>
+              </div>
+            </div>
+            <div class="eq-legend" style="padding:8px 14px; font-size:11px;">이상값에 강건. 직관적 오차 크기</div>
+          </div>
+
+        </div>
+
+        <div style="margin-top:12px; padding:12px 16px; background:rgba(0,0,0,0.03); border-radius:10px; font-size:13px; color:var(--text2); line-height:1.6;">
+          <strong style="color:var(--text);">잔차 (Residual)</strong> <span style="font-family:'Georgia',serif;font-style:italic;">e<span style="font-size:0.75em;vertical-align:sub;font-style:normal;">i</span></span> = <span style="font-family:'Georgia',serif;font-style:italic;">y<span style="font-size:0.75em;vertical-align:sub;font-style:normal;">i</span></span> − <span style="font-family:'Georgia',serif;font-style:italic;">ŷ<span style="font-size:0.75em;vertical-align:sub;font-style:normal;">i</span></span> — 잔차가 무작위 분포이면 모델 적합, 패턴이 보이면 더 복잡한 모델이 필요한 신호입니다.
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 어떤 모델을 선택할지 모를 때는 데이터 산점도를 먼저 확인하세요. 직선이면 선형, U자형이면 2차, 변곡이 있으면 3차, 급격한 증가/감소면 지수, 포화 경향이면 로그가 적합합니다. 조종면 리깅 데이터는 3차 회귀를 사용합니다.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SERVO FRA ══════════════ -->
+    <section class="section" id="sec-servo">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(48,176,199,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 20 5 14 8 17 11 8 14 13 17 6 21 4"/>
+            <line x1="3" y1="20" x2="21" y2="20"/>
+          </svg>
+        </div>
+        <div>
+          <h2>주파수 응답 분석기 (FRA)</h2>
+          <p>서보 스윕 데이터 기반 Bode Plot · 전달함수 추정</p>
+          <div class="page-tags">
+            <span class="page-tag">제어공학</span>
+            <span class="page-tag">서보 분석</span>
+            <span class="page-tag">주파수 응답</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-servo-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          서보 시스템에 정현파 스윕(Chirp) 신호를 인가하고 측정한 명령(u)과 응답(y) 데이터를 CSV로 업로드하면, Bode Plot, 코히런스(Coherence), 2차 시스템 전달함수를 자동으로 추정합니다. <strong>연속 스윕</strong>(Welch FFT)과 <strong>스텝 주파수</strong>(구간별 RMS/위상) 두 분석 모드를 지원하며, 서보의 <strong>진폭 대역폭(−3 dB)</strong>·<strong>위상 대역폭(−90°)</strong>·고유진동수·감쇠비를 평가합니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-servo-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>CSV 파일 준비</h4>
+              <p>두 가지 CSV 포맷을 자동 인식합니다 — ① <strong>표준</strong>: 시간·명령 u·응답 y 열, ② <strong>FRF 로그</strong>: <code>ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg</code>(mdeg는 ÷1000 변환). 헤더·주석(<code>#</code>)·터미널 로그가 섞여 있어도 자동 스킵되며, <code># freq_mHz=</code> 구간 마커가 있으면 스텝 모드가 자동 추천됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>CSV 업로드</h4>
+              <p>드롭존에 파일을 드래그&드롭하거나 <strong>파일 선택</strong> 버튼을 클릭합니다(또는 <strong>샘플 데이터</strong> 버튼). 업로드 후 파형 차트가 즉시 표시됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>분석 모드 & 설정 후 실행</h4>
+              <p><strong>연속 스윕</strong>(시간에 따라 주파수 연속 변화 · Welch FFT) 또는 <strong>스텝 주파수</strong>(주파수별 구간 데이터 · 구간 RMS/위상)를 선택합니다. 샘플링 주파수(Fs, 자동 감지)·주파수 스케일(Log/Linear)·테이블 행 수(20/50/100/전체)를 확인한 뒤 <strong>분석 실행</strong>을 누르면 Bode·Coherence·전달함수 피팅이 생성됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>결과 해석 및 내보내기</h4>
+              <p>KPI에서 <strong>진폭 대역폭(−3 dB)</strong>·<strong>위상 대역폭(−90°)</strong>·고유진동수 f<sub>n</sub>·감쇠비 ζ를 확인하고, 스윕 파형 / Bode / Coherence / Transfer Function 탭을 전환하며 표와 함께 분석합니다. 각 탭의 CSV 버튼 또는 <strong>전체 결과 CSV</strong>로 <code>bode_plot·coherence·transfer_function·servo_fra_results</code> 4종을 내보낼 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-servo-modes" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">분석 모드 & 전달함수 피팅</div>
+        <table class="input-table">
+          <tr><th>항목</th><th>연속 스윕</th><th>스텝 주파수</th></tr>
+          <tr><td>입력</td><td>연속 로그/선형 chirp</td><td>주파수별 구간 데이터(<code># freq_mHz=</code> 마커)</td></tr>
+          <tr><td>스펙트럼</td><td>radix-2 FFT · Hann · 50% overlap Welch</td><td>구간 앞 20% 과도 제거 후 단일-빈 DFT</td></tr>
+          <tr><td>H, γ²</td><td>H=P<sub>xy</sub>/P<sub>xx</sub>, γ²=|P<sub>xy</sub>|²/(P<sub>xx</sub>P<sub>yy</sub>)</td><td>구간 RMS 게인·위상, Coherence=1 고정</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          2차 표준형 전달함수 <strong>H(s)=ω<sub>n</sub>²/(s²+2ζω<sub>n</sub>s+ω<sub>n</sub>²)</strong>는 그리드서치(w<sub>n</sub>×ζ)로 초기값을 잡은 뒤 <strong>Adam 최적화(멀티스타트)</strong>로 정밀 피팅합니다. 스윕 상한은 누적 파워 99% 지점으로 자동 검출하고, 저주파 기준으로 크기·위상을 정규화합니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-servo-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <span id="anc-bode"></span><div class="term-name">Bode Plot
+              <span class="term-symbol">보드 선도</span>
+            </div>
+            <div class="term-desc">시스템의 주파수 응답을 크기(Magnitude, dB)와 위상(Phase, °) 두 그래프로 나타낸 것. X축은 주파수(Hz), 크기 Y축은 <code>20·log₁₀(|H(f)|)</code>입니다. 제어 시스템 안정성 분석의 핵심 도구입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-bandwidth"></span><div class="term-name">대역폭 (Bandwidth)
+              <span class="term-symbol">−3 dB · −90° Frequency</span>
+            </div>
+            <div class="term-desc">시스템이 입력 신호를 충실히 추종할 수 있는 최대 주파수. 이 도구는 두 가지를 함께 산출합니다 — 크기가 −3 dB(약 70.7%)로 떨어지는 <strong>진폭 대역폭</strong>과 위상이 −90°에 도달하는 <strong>위상 대역폭</strong>. 두 값 모두 선형 보간으로 계산되며, 대역폭이 높을수록 빠른 명령을 추종할 수 있습니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-coherence"></span><div class="term-name">코히런스 γ²(f)
+              <span class="term-symbol">Coherence</span>
+            </div>
+            <div class="term-desc">입력과 출력 신호 간의 인과성 신뢰도를 나타내는 지표. 0~1 범위이며 <strong>γ² = 1</strong>이면 완벽한 선형 인과 관계, 낮으면 노이즈나 비선형성이 있음을 의미합니다. <strong>γ² ≥ 0.8</strong>인 주파수 범위만 신뢰할 수 있습니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-transfer-fn"></span><div class="term-name">전달함수 H(s)
+              <span class="term-symbol">Transfer Function</span>
+            </div>
+            <div class="term-desc" style="display:flex; flex-direction:column; gap:10px;">
+              <span>라플라스 영역에서 입출력 관계를 나타내는 함수. 이 도구는 아래 2차 표준형으로 피팅합니다.</span>
+              <div class="eq-card" style="margin:0;">
+                <div class="eq-header" style="background:rgba(48,176,199,0.08); color:#1a7a8a; font-size:10px;"><span id="anc-2nd-order"></span>2차 표준형 전달함수</div>
+                <div class="eq-body" style="padding:18px 24px; align-items:center;">
+                  <div class="eq-row">
+                    <span class="eq-sym"><span class="var-teal">H</span>(s)</span>
+                    <span class="eq-eq">=</span>
+                    <div class="frac">
+                      <div class="frac-num"><span class="var-teal">ω<span class="sub">n</span></span><span class="sup">2</span></div>
+                      <div class="frac-line"></div>
+                      <div class="frac-den">s<span class="sup">2</span> + 2<span class="var-orange">ζ</span><span class="var-teal">ω<span class="sub">n</span></span>s + <span class="var-teal">ω<span class="sub">n</span></span><span class="sup">2</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="eq-legend">
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-teal">ω<span style="font-size:0.65em;vertical-align:sub;font-style:normal;">n</span></span>고유진동수 (rad/s)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym var-orange">ζ</span>감쇠비 (무차원)</div>
+                  <div class="eq-legend-item"><span class="eq-legend-sym" style="font-family:'Georgia',serif;font-style:italic;">s</span>라플라스 변수</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="term-row">
+            <span id="anc-natural-freq"></span><div class="term-name">고유진동수 ωₙ
+              <span class="term-symbol">Natural Frequency</span>
+            </div>
+            <div class="term-desc">감쇠가 없을 때 시스템이 자유 진동하는 각주파수 (rad/s). 2차 시스템 응답 특성의 핵심 파라미터로, <code>fₙ = ωₙ / (2π)</code>로 Hz로 변환합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-damping"></span><div class="term-name">감쇠비 ζ
+              <span class="term-symbol">Damping Ratio</span>
+            </div>
+            <div class="term-desc">
+              시스템이 얼마나 빨리 진동을 감쇠시키는지의 비율. 일반 서보는 <strong>0.5 ~ 0.8</strong>이 적합합니다.
+              <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                <span style="padding:4px 12px; border-radius:20px; font-size:12px; background:rgba(255,69,58,0.08); color:#ff453a;font-weight:500;">ζ &lt; 1 · 부족감쇠 (진동)</span>
+                <span style="padding:4px 12px; border-radius:20px; font-size:12px; background:rgba(40,167,69,0.08); color:#28a745;font-weight:500;">ζ = 1 · 임계감쇠 (최적)</span>
+                <span style="padding:4px 12px; border-radius:20px; font-size:12px; background:rgba(255,159,10,0.08); color:#c77a00;font-weight:500;">ζ &gt; 1 · 과감쇠 (느린 응답)</span>
+              </div>
+            </div>
+          </div>
+          <div class="term-row">
+            <span id="anc-chirp"></span><div class="term-name">스윕 신호 (Chirp)
+              <span class="term-symbol">Frequency Sweep</span>
+            </div>
+            <div class="term-desc">시간에 따라 주파수가 증가(또는 감소)하는 정현파 신호. 서보 FRA 시험에서 넓은 주파수 범위의 응답을 한 번의 시험으로 측정할 수 있어 효율적입니다. 선형 스윕과 로그 스윕이 있습니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 코히런스가 낮은 고주파 영역의 Bode Plot 결과는 신뢰하기 어렵습니다. γ² ≥ 0.8인 범위만을 대역폭 판단 기준으로 사용하세요. 노이즈가 많은 경우 스윕 진폭을 키우거나 여러 번 평균화(Averaging)하면 코히런스가 개선됩니다.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════ CS RIGGING ══════════════ -->
+    <section class="section" id="sec-rigging">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(50,215,75,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 L2 18 L7 17 L10 13 L10 19 L12 21 L14 19 L14 13 L17 17 L22 18 Z"/>
+            <line x1="2" y1="18" x2="7" y2="17"/>
+            <line x1="17" y1="17" x2="22" y2="18"/>
+          </svg>
+        </div>
+        <div>
+          <h2>CS Rigging 도구</h2>
+          <p>비행체 조종면 3차(SFP: 1차) 회귀 리깅 · FCA_RIG / FCA_RIG_REVERS 이중 계수 · 이론 검증 · JSON 출력</p>
+          <div class="page-tags">
+            <span class="page-tag">항공 정비</span>
+            <span class="page-tag">조종면 리깅</span>
+            <span class="page-tag">3차 회귀</span>
+            <span class="page-tag">이론 검증</span>
+            <span class="page-tag">JSON 출력</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-rigging-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          비행체 조종면(CS: Control Surface)의 리깅(Rigging) 작업 시 측정한 <strong>명령각도 · 실제출력각도 · 피드백각도</strong> 데이터를 체계적으로 입력·관리하고, <strong>3차 회귀</strong>(SFP는 1차)를 통해 <strong>FCA_RIG</strong>(정방향)와 <strong>FCA_RIG_REVERS</strong>(역방향) 이중 계수를 산출합니다. 8개 조종면(ELV_LI/LO/RI/RO, RUD_L/R, SFP_L/R)을 관리하며, 4절 링크 기구로부터 이론 리깅식을 생성해 실측과 비교하는 <strong>이론 검증</strong> 기능을 제공합니다. 결과는 <code>TYPE-SID_YYMMDD_R{rev}.json</code> 형식으로 저장되어 비행제어 컴퓨터(FCC)에서 직접 활용할 수 있습니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-rigging-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">사용 방법 (3단계)</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">①</div>
+            <div class="step-body">
+              <h4>설정 파일 & 배치도</h4>
+              <p>기존 <strong>JSON / TXT</strong> 파일을 불러오거나 새 리깅을 시작합니다. 상단에 <strong>비행체 타입</strong>(예: M2), <strong>호기 번호(SID)</strong>, <strong>리비전 R</strong>을 입력합니다. 좌측 항공기 배치도(SVG)에서 8개 조종면 중 하나를 클릭해 선택하거나 상단 탭으로 전환합니다. JSON을 불러오면 FCA_RIG_REVERS 계수로 피드백 각도가 자동 역산 채움됩니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">②</div>
+            <div class="step-body">
+              <h4>측정값 입력</h4>
+              <p>선택한 조종면의 <strong>명령 각도(편집 가능) · 실제 출력 각도 · 피드백 각도</strong>를 입력합니다(스프레드시트에서 <kbd>Ctrl+V</kbd> 다중열 붙여넣기 지원). <strong>균등 오프셋 · 선형 오프셋</strong>으로 부호별·각도별 보정을 적용할 수 있습니다. <strong>"회귀식 계산"</strong>을 누르면 FCA_RIG·FCA_RIG_REVERS 계수와 R²가 실시간으로 표시됩니다. <strong>단일 / 전체 / 이론 검증</strong> 3가지 뷰를 전환할 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">③</div>
+            <div class="step-body">
+              <h4>리깅 실행 & JSON 출력</h4>
+              <p><strong>메모</strong>를 입력하고 <strong>"리깅 시작"</strong>을 누르면 전 조종면 계수가 포함된 JSON이 생성됩니다. 편집 가능한 하이라이트 JSON에서 <strong>a₀ 오프셋</strong> 미세조정, <strong>비교 파일 diff</strong>, <strong>정렬</strong>이 가능하며, <strong>JSON 복사 / JSON 다운로드 / TXT 다운로드</strong>로 내보냅니다. 파일명은 <code>TYPE-SID_YYMMDD_R{rev}.json</code> 형식으로 자동 생성됩니다(메모는 TXT에만 저장).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 뷰 모드 & 조종면 -->
+      <div class="card">
+        <span id="anc-rigging-views" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">뷰 모드 · 조종면 · 회귀 규약</div>
+        <table class="input-table">
+          <tr><th>구분</th><th>내용</th></tr>
+          <tr><td><strong>뷰 모드</strong></td><td><strong>단일</strong>(선택 조종면 상세 입력·회귀) · <strong>전체</strong>(4열 미니 테이블 일괄 계산) · <strong>이론 검증</strong>(4절 링크 이론식 비교)</td></tr>
+          <tr><td><strong>조종면 8종</strong></td><td>ELV_LI, ELV_LO, ELV_RI, ELV_RO(엘리베이터 좌우 내·외측), RUD_L, RUD_R(러더), SFP_L, SFP_R</td></tr>
+          <tr><td><strong>회귀 차수</strong></td><td>ELV·RUD = <strong>3차</strong>(y=a₃x³+a₂x²+a₁x+a₀), SFP = <strong>1차</strong>(y=a₁x+a₀). 최소 데이터 수 SFP=2, 그 외=4</td></tr>
+          <tr><td><strong>FCA_RIG</strong> (정방향)</td><td>x = 실제 출력각도 → y = 명령각. 명령을 물리 편향으로 변환하는 보정식</td></tr>
+          <tr><td><strong>FCA_RIG_REVERS</strong> (역방향)</td><td>x = 피드백 각도 → y = 실제 출력각도. 피드백 센서값을 실제 편향으로 환산</td></tr>
+          <tr><td><strong>오프셋</strong></td><td>균등(부호별 상수 가감) · 선형(명령각 절댓값 비례 보간) · a₀(출력 다항 상수항 미세조정, ELV·RUD 6면)</td></tr>
+        </table>
+      </div>
+
+      <!-- 이론 검증 -->
+      <div class="card">
+        <span id="anc-rigging-theory" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">이론 검증 (4절 링크 연동)</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          <strong>이론 검증</strong> 뷰는 4절 링크 기구 기하(a·b·c·d·중립각 θ₄₀·개방/교차형·δ+ 방향·운용범위)로부터 <strong>Freudenstein 역기구학</strong>을 풀어 타각을 0.25° 간격으로 샘플링하고, 이를 3차 회귀해 <strong>이론 리깅식</strong>(FCA_RIG 축 규약)을 생성합니다. 링크 해석기에서 <strong>"조종면 리깅 계산기로 보내기"</strong>로 넘긴 기하는 URL 해시 또는 localStorage로 자동 수신되어 이론 탭이 열립니다.
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">🔍</div>
+          <div class="tip-text">이론식은 <strong>도달 가능 범위 · 단조성(극점/변곡점)</strong>과 <strong>REVERS 오수렴 위험</strong>을 배지로 표시하고, 3차 근사 오차·R²와 함께 실측 회귀(FCA_RIG)와의 계수 차이(Δh·Δp·Δa)를 비교합니다. 기구가 비단조이면 역함수가 다중해를 가질 수 있으므로 리깅 신뢰성 판단에 활용합니다.</div>
+        </div>
+      </div>
+
+      <!-- JSON 구조 -->
+      <div class="card">
+        <span id="anc-rigging-json" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">JSON 출력 구조 & 파일명</div>
+        <table class="input-table">
+          <tr><th>키</th><th>내용</th></tr>
+          <tr><td><code>SID</code></td><td>호기 번호</td></tr>
+          <tr><td><code>FCA_RIG_0 ~ 7</code></td><td>조종면별 정방향 3차 계수 <code>[a3,a2,a1,a0]</code> (SFP는 a3=a2=0)</td></tr>
+          <tr><td><code>FCA_RIG_REVERS_0 ~ 7</code></td><td>조종면별 역방향 계수</td></tr>
+          <tr><td><code>FCA_RIG_{i}_Note</code></td><td>조종면명 주석 (인덱스 0~7: ELV_LI, ELV_LO, ELV_RI, ELV_RO, RUD_L, RUD_R, SFP_L, SFP_R)</td></tr>
+          <tr><td><code>ANALONG_*, Reserb_*</code></td><td>원본 JSON의 비-리깅 키는 그대로 유지(pass-through), 없으면 기본값 생성</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          파일명 예시: <code>M2-01_260515_R0.json</code> = 타입 M2 · SID 01 · 2026-05-15 · 리비전 0. 측정 원자료와 메모는 별도 <strong>TXT</strong> 파일로 저장/복원되며 JSON에는 포함되지 않습니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <span id="anc-rigging-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">핵심 공학 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <span id="anc-rigging-def"></span><div class="term-name">리깅 (Rigging)
+              <span class="term-symbol">Control Surface Rigging</span>
+            </div>
+            <div class="term-desc">조종 입력(명령)과 조종면의 실제 편향 각도 사이의 관계를 조정하는 작업. 기계적 링키지의 마모, 온도 변화, 조립 오차로 인한 편차를 보정하여 설계된 게인(이득)을 유지합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-rigging-coef"></span><div class="term-name">리깅 계수
+              <span class="term-symbol">FCA_RIG / FCA_RIG_REVERS</span>
+            </div>
+            <div class="term-desc">조종면 편향과 명령·피드백 각도의 관계를 나타내는 <strong>3차 다항 계수</strong>(SFP는 1차) <code>[a₃, a₂, a₁, a₀]</code>. 정방향 <strong>FCA_RIG</strong>(실제각→명령)와 역방향 <strong>FCA_RIG_REVERS</strong>(피드백→실제각) 두 세트로 산출되어, 비행제어 소프트웨어에서 명령·센서값을 물리적 편향으로 상호 변환합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-control-surface"></span><div class="term-name">조종면 (CS)
+              <span class="term-symbol">Control Surface</span>
+            </div>
+            <div class="term-desc">항공기의 자세와 비행 경로를 제어하는 가동 표면. 주요 조종면: <strong>에일러론</strong>(Aileron, 롤), <strong>엘리베이터</strong>(Elevator, 피치), <strong>러더</strong>(Rudder, 요), <strong>플랩</strong>(Flap, 양력증가), <strong>스포일러</strong>(Spoiler, 항력).</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-sid"></span><div class="term-name">SID
+              <span class="term-symbol">Serial / Ship ID</span>
+            </div>
+            <div class="term-desc">개별 항공기 호기 번호. 동일 기종의 여러 항공기를 구별하는 식별자로, 각 항공기마다 고유한 리깅 데이터를 관리합니다. 리깅 JSON 파일명과 메타데이터에 포함됩니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-revision"></span><div class="term-name">리비전 (Revision)
+              <span class="term-symbol">Rev.</span>
+            </div>
+            <div class="term-desc">리깅 데이터의 개정 번호. 정기 점검 또는 수정 후 재리깅 시 리비전을 올려 데이터 이력을 관리합니다. 형상 관리(Configuration Management)의 핵심 요소입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-rigging-r2"></span><div class="term-name">R² (회귀 품질)
+              <span class="term-symbol">Goodness of Fit</span>
+            </div>
+            <div class="term-desc">측정 데이터와 3차(SFP는 1차) 리깅 회귀 모델의 적합도. <strong>R²가 1.0에 가까울수록</strong> 기구가 잘 정합된 것이며, 낮은 R²는 기계적 결함(백래시, 마찰, 결함 링키지)의 신호일 수 있습니다. 이론 검증 뷰에서 이론식과의 계수 차이·근사 오차를 함께 확인해 신뢰성을 판단합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>팁:</strong> 측정 데이터를 스프레드시트에서 복사 후 입력 테이블에 <kbd>Ctrl+V</kbd>로 붙여넣기하면 빠르게 대량 데이터를 입력할 수 있습니다. JSON 출력 파일은 비행제어 컴퓨터(FCC) 파라미터 로딩에 직접 사용하도록 형식이 설계되었습니다.</div>
+      </div>
+
+      <div class="warn-box">
+        <div class="tip-icon">⚠️</div>
+        <div class="tip-text"><strong>주의:</strong> 리깅 데이터는 항공기 안전에 직결됩니다. 반드시 해당 기종의 정비 매뉴얼(AMM) 리깅 절차를 따르고, 인증된 정비사가 검토 및 승인해야 합니다.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ── 검색 인덱스 (anchor 포함) ──
+const SEARCH_INDEX = [
+  // ── 4-BAR LINKAGE ──
+  { id:'linkage', anchor:'anc-linkage-overview',   title:'4-Bar Linkage — 도구 개요',        keywords:'4절 링크 기구 기구학 kinematics 크랭크 커플러 팔로워 고정링크 액추에이터 서스펜션 AI 최적설계 역설계 워크벤치' },
+  { id:'linkage', anchor:'anc-loop-closure',        title:'루프 폐합 방정식',                  keywords:'loop closure equation 루프 폐합 방정식 θ₂ θ₃ θ₄ cos sin a b c d X Y방향' },
+  { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 각도 조정 입력 토크 T₂ 조종면 각도 전달각 플롯 슬라이더 드래그 개방형 교차형 θ₂ 역해 AI 최적화 그래프 힌지모멘트 리깅 연동' },
+  { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm θ₄ θ₂ T₂ 타각범위 토크요구도 끝단마진 중립각 기본값 고정링크 크랭크 커플러 팔로워 각도 범위 자동연동' },
+  { id:'linkage', anchor:'anc-linkage-svangle',     title:'서보각도 (Δθ₂) 카드',              keywords:'서보각도 서보 각도 Δθ₂ 크랭크 회전량 총 행정 스트로크 상향 끝 하향 끝 중립 0도 반시계 CCW 부호 180도 초과 누적 unwrap 접힘 없음 좌우 반전 좌측 우측 거울상 반대편 날개 되꺾임 단조 아님 함수 아님 연동 미반영 변환식 3차식 최소제곱 계수 잔차 식 복사 개방형 교차형 방향 뒤집힘 읽기 전용 서보 선정 가동각 대응 그래프 비선형성 직선 대비 최대 리깅 3차 회귀 접이 축 전환 축 바꾸기 xy 스왑 FCA_RIG 방향 설계용 리깅용' },
+  { id:'linkage', anchor:'anc-linkage-cs',          title:'조종면 각도 (δ) 카드',              keywords:'조종면 각도 δ 타각 부호 규약 상향 마이너스 하향 플러스 중립 지정 트림 1도 일의자리 버림 상향 하향 버튼 출력토크 T₄ 입력측 출력측 전달각 μ 47 40 슬라이더' },
+  { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 목적함수 세토크 합 제약 전달각 불균형 차선 fallback 승격 커플러 b 출력링크 c 중립각 θ₄₀ 이 값 적용 자동연동 0.2 0.8 설계변수 고정 변수 자물쇠 탐색범위 대칭 비대칭 상세 접기 펼치기' },
+  { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암 렌더',           keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 암길이 M3 스플라인 허브 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 자동 배치 표시 토글 금속 렌더링 inch 25.4 mm 장착 기울기 tilt 180 360 y오프셋 편심 offY 지상링크' },
+  { id:'linkage', anchor:'anc-linkage-graphs',      title:'출력토크·커플러·설계변수 스윕 그래프',  keywords:'출력토크 변화 커플러 길이 영향 설계변수 스윕 역설계 전달각 47 기준선 그래프 T₄ 물리 가용 토크 가용 각도 μ반영 토크 요구도 끝단마진 그래프 복사 저장 png' },
+  { id:'linkage', anchor:'anc-linkage-link',        title:'도구 간 연동 — 힌지모멘트·리깅',    keywords:'힌지모멘트 계산기로 보내기 조종면 리깅 계산기로 보내기 개방형 교차형 중립각 θ₄₀ 중립 지정 부호 규약 상향 마이너스 하향 플러스 |T₄(δ)| MA localStorage 연동' },
+  { id:'linkage', anchor:'anc-crank',               title:'크랭크 (Crank)',                    keywords:'크랭크 crank 링크 a 구동 모터 360 로커 rocker Grashof' },
+  { id:'linkage', anchor:'anc-coupler',             title:'커플러 (Coupler)',                  keywords:'커플러 coupler 링크 b 커플러곡선 coupler curve 중간링크' },
+  { id:'linkage', anchor:'anc-follower',            title:'팔로워 (Follower)',                 keywords:'팔로워 follower 링크 c 출력 θ₄ 조종면 아암 레버' },
+  { id:'linkage', anchor:'anc-solution-type',       title:'개방형 / 교차형 (Open/Cross)',      keywords:'개방형 교차형 open cross 조립 형태 분기해 세그먼트 자세' },
+  { id:'linkage', anchor:'anc-neutral-angle',       title:'중립각 θ₄₀ (Neutral Angle)',        keywords:'중립각 neutral θ₄₀ 타각 delta 0 기준 출력각 뉴트럴 작동범위 힌지모멘트 리깅 기준' },
+  { id:'linkage', anchor:'anc-phys-span',           title:'물리(기계적) 가용 각도',            keywords:'물리 기계적 가용 각도 mechanical span 전달각 μ 47 끝단 마진 연속구간 유효해' },
+  { id:'linkage', anchor:'anc-torque-span',         title:'토크 가용 각도',                    keywords:'토크 가용 각도 torque span T₄ 토크 요구도 하중 감당 범위' },
+  { id:'linkage', anchor:'anc-transmission-angle',  title:'전달각 (Transmission Angle)',       keywords:'전달각 μ 40도 47도 90도 전달효율 커플러 팔로워 입력측 출력측 transmission angle 최적화' },
+  { id:'linkage', anchor:'anc-ma',                  title:'기계적 이득 (MA)',                  keywords:'기계적이득 MA mechanical advantage T₄ T₂ ω₂ ω₄ 가상일 virtual work 힘증폭 속도증폭' },
+  { id:'linkage', anchor:'anc-grashof',             title:'Grashof 조건',                     keywords:'Grashof 조건 s l p q 완전회전 크랭크 로커 최단 최장' },
+  { id:'linkage', anchor:'anc-loop-term',           title:'루프 폐합 방정식 (용어)',            keywords:'루프 폐합 loop closure Freudenstein 벡터 합 영 기하학적 해' },
+
+  // ── HINGE MOMENT ──
+  { id:'hinge', anchor:'anc-hinge-overview',        title:'힌지모멘트 계산기 — 도구 개요',    keywords:'힌지모멘트 hinge moment 조종면 엘러본 에일러론 aileron 엘리베이터 elevator 러더 rudder 플랩 flap 트림 타각 속도 타각 테이블 링키지 연동 풍동 aerodynamics 공기역학 기체타입 델타윙 V-tail 올무빙' },
+  { id:'hinge', anchor:'anc-hinge-formula',         title:'힌지모멘트 공식 H = CH·q·Sf·c̄',   keywords:'H q Sf c̄ MAC CH CH0 CHd CHa delta alpha 힌지모멘트 공식 동압 formula 편향각 받음각 선형분해' },
+  { id:'hinge', anchor:'anc-hinge-actype',          title:'기체 타입 & 조종면 선택',           keywords:'기체타입 델타윙 일반고정익 V-tail 올무빙테일 조종면탭 플랩 에일러론 엘리베이터 러더 러더베이터 엘러본 아웃 인 피크 조종면' },
+  { id:'hinge', anchor:'anc-hinge-how',             title:'힌지모멘트 — 사용 방법',            keywords:'날개면적 비행속도 편향각 MAC 고도 프리셋 공기밀도 감도분석 차트 DATCOM 트림 타각 속도 테이블 α(V) 링키지 단계 mach km/h rad' },
+  { id:'hinge', anchor:'anc-hinge-params',          title:'힌지모멘트 — 비행조건 입력 파라미터', keywords:'Sf m² V m/s δ 편향각 MAC m CH0 받음각 α ρ kg/m³ ΔT ISA 온도편차 단위' },
+  { id:'hinge', anchor:'anc-datcom-params',         title:'DATCOM 형상 파라미터',              keywords:'DATCOM 시위비 cf/c 두께비 t/c 힌지위치 밸런스 ηi ηo 스팬 AR 종횡비 후퇴각 Λ 경사각 Γ 피벗 thin airfoil K_exp K_def' },
+  { id:'hinge', anchor:'anc-trim',                  title:'트림 타각 계산',                    keywords:'트림 타각 trim deflection 종방향 공력 미분계수 CL0 CLa CLd Cm0 Cma Cmd 평형 하중배수 n 풀업 선회 α δ 동시 2x2 Vmax 기동' },
+  { id:'hinge', anchor:'anc-htable',                title:'속도 × 타각 힌지모멘트 테이블',     keywords:'속도 타각 테이블 힌지모멘트 팝업 한계 초과 색상 over warn 도달불가 이미지 저장 html2canvas 속도범위 자동 400행' },
+  { id:'hinge', anchor:'anc-aoav',                  title:'받음각 α(V) 근사 — 공력 타각정보',  keywords:'받음각 α(V) alpha V 근사식 공력데이터 타각정보 1/V² 실속속도 Vs 마하 M0.3 M0.5 M0.6 음속 sos 보간 수렴 외삽' },
+  { id:'hinge', anchor:'anc-hinge-linkage',         title:'4바 링키지 연동 & 풍동 시뮬레이션', keywords:'4바 링키지 연동 타각별 가용 토크 한계 T₂ MA θ₄₀ 도달불가 연동해제 재연동 풍동 시뮬레이션 음속 mach re 중간계산값 q' },
+  { id:'hinge', anchor:'anc-dynamic-pressure',      title:'동압 (Dynamic Pressure) q',        keywords:'동압 dynamic pressure q 0.5 ρ V² 속도제곱 비례 항공하중 Pa' },
+  { id:'hinge', anchor:'anc-ch',                    title:'힌지모멘트 계수 C_H',               keywords:'힌지모멘트계수 CH CH0 영위 편향각계수 CH_delta 받음각계수 CH_alpha 풍동 무차원 음수 restoring' },
+  { id:'hinge', anchor:'anc-datcom-method',         title:'DATCOM 방법론',                    keywords:'DATCOM USAF 반경험 공력계수 thin airfoil 2D 3D 보정 K_exp 실측보정 K_def 편향각비선형 아음속 Mach 0.8' },
+  { id:'hinge', anchor:'anc-balance',               title:'밸런스비 (Balance Ratio)',          keywords:'밸런스 balance horn 앞연 보상 CHd 감소 조종력 float 불안정' },
+  { id:'hinge', anchor:'anc-aoa',                   title:'받음각 (Angle of Attack) α',       keywords:'받음각 AoA angle of attack α 양력 실속 stall 임계' },
+  { id:'hinge', anchor:'anc-mac',                   title:'평균공력시위 (MAC)',                keywords:'평균공력시위 MAC mean aerodynamic chord 테이퍼 날개 등가 시위 기준길이' },
+  { id:'hinge', anchor:'anc-rudvat',                title:'러더베이터 (Ruddervator)',          keywords:'러더베이터 ruddervator V-tail 피치 요 분배 cos sin Γ 경사각 벡터 분해' },
+  { id:'hinge', anchor:'anc-elvon',                 title:'엘러본 (Elevon)',                   keywords:'엘러본 elevon 델타윙 플라잉윙 에일러론 엘리베이터 꼬리없는 조종면 아웃 인' },
+  { id:'hinge', anchor:'anc-deflection',            title:'편향각 (δ)',                        keywords:'편향각 deflection angle δ 조종면 중립 하향 상향 선형 비선형 K_def 박리' },
+  { id:'hinge', anchor:'anc-isa',                   title:'ISA 대기 모델',                    keywords:'ISA 국제표준대기 고도 기온 밀도 대류권 11km ISA+15 ISA-15 핫데이 콜드데이 온도편차 ΔT' },
+
+  // ── REGRESSION ──
+  { id:'regression', anchor:'anc-reg-overview',     title:'회귀분석 — 도구 개요',              keywords:'회귀분석 regression 데이터 피팅 보정곡선 센서 캘리브레이션 통계 경향 그리드 다중 조종면 리깅' },
+  { id:'regression', anchor:'anc-reg-how',          title:'회귀분석 — 사용 방법',              keywords:'데이터 입력 그리드 스프레드시트 붙여넣기 분석 모드 회귀 유형 선택 자동 결과 확인 차트 잔차 테이블 rmse 배율 평가' },
+  { id:'regression', anchor:'anc-reg-models',       title:'지원 회귀 모델 전체',               keywords:'회귀 모델 선형 2차 3차 지수 로그 대수 거듭제곱 멱함수 6가지' },
+  { id:'regression', anchor:'anc-linear',           title:'선형 회귀 (Linear)',                keywords:'선형 linear y=ax+b 직선 최소제곱 OLS 선형관계' },
+  { id:'regression', anchor:'anc-polynomial',       title:'2차 회귀 (Quadratic)',              keywords:'2차 quadratic 다항 polynomial y=a2x²+a1x+a0 U자형 곡선 비선형' },
+  { id:'regression', anchor:'anc-cubic',            title:'3차 회귀 (Cubic)',                  keywords:'3차 cubic y=a3x³ 변곡 S자 조종면 리깅 계수 다항' },
+  { id:'regression', anchor:'anc-exponential',      title:'지수 회귀 (Exponential)',           keywords:'지수 exponential y=a*e^bx 성장 감쇠 세균증식 방사성붕괴 복리' },
+  { id:'regression', anchor:'anc-logarithmic',      title:'로그 회귀 (Logarithmic)',           keywords:'로그 대수 logarithmic y=a*ln(x)+b 포화 데시벨 학습곡선 인구성장' },
+  { id:'regression', anchor:'anc-power',            title:'거듭제곱 회귀 (Power)',             keywords:'거듭제곱 멱함수 power y=a*x^b 케플러 스케일링 로그로그 log-log' },
+  { id:'regression', anchor:'anc-reg-modes',        title:'분석 모드 & 조종면 리깅',           keywords:'분석 모드 X Y1 Y4 다중 Y X1 X4 다중선형회귀 조종면 리깅 명령 실제 피드백 FCA_RIG 목표각 30 계수 배열 복사 fcc' },
+  { id:'regression', anchor:'anc-gof',              title:'적합도 지표 전체',                  keywords:'적합도 goodness of fit R² RMSE MAE MSE 잔차 지표' },
+  { id:'regression', anchor:'anc-r2',               title:'R² 결정계수',                      keywords:'R squared R² 결정계수 SS_res SS_tot 0~1 0.95 분산 설명' },
+  { id:'regression', anchor:'anc-rmse',             title:'RMSE (Root Mean Square Error)',     keywords:'RMSE root mean square error 제곱평균제곱근 잔차 이상값 민감' },
+  { id:'regression', anchor:'anc-mae',              title:'MAE (Mean Absolute Error)',         keywords:'MAE mean absolute error 절대오차 평균 이상값 강건 robust' },
+
+  // ── SERVO FRA ──
+  { id:'servo', anchor:'anc-servo-overview',        title:'주파수 응답 분석기 — 도구 개요',    keywords:'주파수응답 FRA frequency response 서보 스윕 chirp bode coherence 전달함수 대역폭 위상 연속 스텝 제어공학' },
+  { id:'servo', anchor:'anc-servo-how',             title:'주파수 응답 분석기 — 사용 방법',   keywords:'CSV 파일 업로드 FRF 로그 freq_mHz cmd_mdeg angle_mdeg 샘플링 주파수 Fs 드래그드롭 분석 모드 연속 스텝 실행 테이블 행수 차트 내보내기 csv 4종' },
+  { id:'servo', anchor:'anc-servo-modes',           title:'분석 모드 & 전달함수 피팅',         keywords:'연속 스윕 스텝 주파수 welch fft hann overlap dft rms 그리드서치 adam 최적화 멀티스타트 스윕 상한 정규화 2차 피팅' },
+  { id:'servo', anchor:'anc-bode',                  title:'Bode Plot (보드선도)',              keywords:'bode plot 보드선도 크기 magnitude dB 위상 phase 주파수 Hz 안정성' },
+  { id:'servo', anchor:'anc-bandwidth',             title:'대역폭 (진폭·위상)',                keywords:'대역폭 bandwidth BW -3dB -90도 위상 진폭 주파수 추종 서보 응답속도 선형보간' },
+  { id:'servo', anchor:'anc-coherence',             title:'코히런스 γ²(f)',                   keywords:'코히런스 coherence γ² 0.8 신뢰도 노이즈 비선형성 인과성' },
+  { id:'servo', anchor:'anc-transfer-fn',           title:'전달함수 H(s)',                    keywords:'전달함수 transfer function H(s) 라플라스 laplace 2차 입출력' },
+  { id:'servo', anchor:'anc-2nd-order',             title:'2차 표준형 전달함수 공식',          keywords:'2차 표준형 ωn² s² 2ζωns ωn² standard second order 공식' },
+  { id:'servo', anchor:'anc-natural-freq',          title:'고유진동수 ωₙ (Natural Frequency)', keywords:'고유진동수 natural frequency ωn rad/s fn Hz 2π 자유진동' },
+  { id:'servo', anchor:'anc-damping',               title:'감쇠비 ζ (Damping Ratio)',          keywords:'감쇠비 damping ratio ζ 부족감쇠 임계감쇠 과감쇠 0.5 0.707 진동' },
+  { id:'servo', anchor:'anc-chirp',                 title:'스윕 신호 (Chirp)',                 keywords:'스윕 신호 chirp sweep 정현파 주파수증가 선형스윕 로그스윕 FRA 시험' },
+
+  // ── CS RIGGING ──
+  { id:'rigging', anchor:'anc-rigging-overview',    title:'CS Rigging — 도구 개요',           keywords:'리깅 rigging 조종면 CS 명령각도 실제 피드백 3차 회귀 FCA_RIG FCA_RIG_REVERS 이중 계수 8 조종면 이론 검증 비행체 타입 JSON 비행제어 FCC' },
+  { id:'rigging', anchor:'anc-rigging-how',         title:'CS Rigging — 사용 방법 3단계',     keywords:'설정파일 JSON TXT 배치도 비행체 타입 M2 측정값 입력 명령 실제 피드백 균등 선형 오프셋 뷰 단일 전체 이론 리깅 시작 출력 파일명 SID 리비전' },
+  { id:'rigging', anchor:'anc-rigging-views',       title:'뷰 모드 · 조종면 · 회귀 규약',      keywords:'뷰 모드 단일 전체 이론 검증 조종면 ELV_LI LO RI RO RUD SFP 3차 1차 FCA_RIG 정방향 FCA_RIG_REVERS 역방향 오프셋 균등 선형 a0' },
+  { id:'rigging', anchor:'anc-rigging-theory',      title:'이론 검증 (4절 링크 연동)',         keywords:'이론 검증 4절 링크 freudenstein 역기구학 타각 샘플링 3차 이론식 단조성 극점 변곡점 REVERS 오수렴 도달 범위 토크 계산기 연동 localstorage 비교' },
+  { id:'rigging', anchor:'anc-rigging-json',        title:'JSON 출력 구조 & 파일명',           keywords:'JSON 구조 SID FCA_RIG_0 7 REVERS Note ANALONG Reserb pass-through 파일명 TYPE SID YYMMDD R rev TXT 메모' },
+  { id:'rigging', anchor:'anc-rigging-def',         title:'리깅 (Rigging)',                   keywords:'리깅 rigging 조종 입력 편향 각도 링키지 마모 온도 조립 오차 보정 게인' },
+  { id:'rigging', anchor:'anc-rigging-coef',        title:'리깅 계수 (FCA_RIG/REVERS)',        keywords:'리깅계수 rigging coefficient FCA_RIG FCA_RIG_REVERS 3차 다항 a3 a2 a1 a0 정방향 역방향 보정계수' },
+  { id:'rigging', anchor:'anc-control-surface',     title:'조종면 (Control Surface)',          keywords:'조종면 control surface 엘리베이터 elevator 러더 rudder SFP 엘러본 롤 피치 요' },
+  { id:'rigging', anchor:'anc-sid',                 title:'SID (호기번호)',                   keywords:'SID serial ship id 호기 번호 식별자 항공기 기종 비행체 타입' },
+  { id:'rigging', anchor:'anc-revision',            title:'리비전 (Revision)',                 keywords:'리비전 revision 개정번호 이력 정기점검 형상관리 configuration management' },
+  { id:'rigging', anchor:'anc-rigging-r2',          title:'R² 리깅 품질',                    keywords:'R² 리깅 1.0 3차 백래시 마찰 링키지 결함 이론 검증' },
+];
+
+const NAV_IDS = ['linkage','hinge','regression','servo','rigging'];
+let highlightTimer = null;
+
+// ── 섹션 전환 ──
+function showSection(id, anchor) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const sec = document.getElementById('sec-' + id);
+  if (sec) sec.classList.add('active');
+
+  const idx = NAV_IDS.indexOf(id);
+  const navItems = document.querySelectorAll('.nav-item');
+  if (idx !== -1 && navItems[idx]) navItems[idx].classList.add('active');
+
+  clearSearch();
+
+  // 앵커로 스크롤
+  if (anchor) {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(anchor);
+        if (el) {
+          const target = el.nextElementSibling || el;
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          flashHighlight(target);
+        }
+      }, 60);
+    });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ── 하이라이트 애니메이션 ──
+function flashHighlight(el) {
+  if (!el) return;
+  if (highlightTimer) clearTimeout(highlightTimer);
+  el.classList.remove('search-highlight');
+  void el.offsetWidth; // reflow
+  el.classList.add('search-highlight');
+  highlightTimer = setTimeout(() => el.classList.remove('search-highlight'), 2200);
+}
+
+// ── 검색 ──
+function doSearch(q) {
+  const qTrim = q.trim();
+  const clearBtn = document.getElementById('searchClear');
+  const resultsEl = document.getElementById('searchResults');
+  const navTitle = document.getElementById('navTitle');
+
+  clearBtn.style.display = qTrim ? 'flex' : 'none';
+
+  if (!qTrim) {
+    resultsEl.style.display = 'none';
+    resultsEl.innerHTML = '';
+    navTitle.style.display = '';
+    document.querySelectorAll('.nav-item').forEach(n => n.style.display = '');
+    return;
+  }
+
+  navTitle.style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(n => n.style.display = 'none');
+
+  const tokens = qTrim.toLowerCase().split(/\s+/).filter(Boolean);
+
+  // 모든 항목 스코어링 — anchor 중복 제거만 (같은 앵커 두 번 표시 방지)
+  const seenAnchors = new Set();
+  const hits = [];
+
+  SEARCH_INDEX.forEach(entry => {
+    if (seenAnchors.has(entry.anchor)) return;
+    const hay = (entry.title + ' ' + entry.keywords).toLowerCase();
+    // 각 토큰의 매칭 횟수 합산 (부분 일치 포함)
+    const score = tokens.reduce((s, t) => {
+      const count = (hay.match(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g')) || []).length;
+      return s + count;
+    }, 0);
+    if (score > 0) {
+      seenAnchors.add(entry.anchor);
+      const kws = entry.keywords.split(' ');
+      const snippet = kws
+        .filter(k => tokens.some(t => k.toLowerCase().includes(t)))
+        .slice(0, 4).join(' · ');
+      hits.push({ ...entry, score, snippet });
+    }
+  });
+
+  hits.sort((a, b) => b.score - a.score);
+
+  resultsEl.style.display = 'flex';
+  if (hits.length === 0) {
+    resultsEl.innerHTML = `<div class="search-no-result">검색 결과가 없습니다</div>`;
+    return;
+  }
+
+  // 섹션별 그룹핑
+  const sectionLabel = {
+    linkage:'4-Bar Linkage',
+    hinge:'힌지모멘트',
+    regression:'회귀분석',
+    servo:'주파수 응답',
+    rigging:'CS Rigging'
+  };
+  const sectionColor = {
+    linkage:'#0071e3', hinge:'#bf5af2', regression:'#ff9f0a',
+    servo:'#30b0c7', rigging:'#28a745'
+  };
+
+  // 섹션 순서 유지하되 스코어 높은 섹션 먼저
+  const sectionOrder = [];
+  const grouped = {};
+  hits.forEach(h => {
+    if (!grouped[h.id]) { grouped[h.id] = []; sectionOrder.push(h.id); }
+    grouped[h.id].push(h);
+  });
+
+  // 섹션 내 최고 스코어 기준으로 섹션 정렬
+  sectionOrder.sort((a, b) => grouped[b][0].score - grouped[a][0].score);
+
+  const totalCount = hits.length;
+  let html = `<div style="font-size:10px;color:var(--text3);padding:4px 12px 6px;font-weight:600;letter-spacing:0.3px;">${totalCount}개 결과</div>`;
+
+  sectionOrder.forEach(sid => {
+    const group = grouped[sid];
+    const color = sectionColor[sid];
+    const label = sectionLabel[sid];
+
+    html += `<div class="search-group-label" style="color:${color};">
+      <span style="width:6px;height:6px;border-radius:50%;background:${color};display:inline-block;margin-right:5px;flex-shrink:0;"></span>
+      ${label}
+    </div>`;
+
+    group.forEach(h => {
+      const snip = highlightTokens(h.snippet || '', tokens);
+      const titleHl = highlightTokens(h.title, tokens);
+      html += `<button class="search-result-item" onclick="showSection('${h.id}','${h.anchor}')">
+        <span class="search-result-title">${titleHl}</span>
+        ${snip ? `<span class="search-result-snippet">${snip}</span>` : ''}
+      </button>`;
+    });
+  });
+
+  resultsEl.innerHTML = html;
+}
+
+function highlightTokens(text, tokens) {
+  let result = text;
+  tokens.forEach(t => {
+    if (!t) return;
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    result = result.replace(re, '<mark>$1</mark>');
+  });
+  return result;
+}
+
+function clearSearch() {
+  const inp = document.getElementById('searchInput');
+  if (inp) inp.value = '';
+  const clearBtn = document.getElementById('searchClear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const resultsEl = document.getElementById('searchResults');
+  if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+  const navTitle = document.getElementById('navTitle');
+  if (navTitle) navTitle.style.display = '';
+  document.querySelectorAll('.nav-item').forEach(n => n.style.display = '');
+}
+
+// 초기화
+document.addEventListener('DOMContentLoaded', () => { showSection('linkage'); });
+</script>
+</body>
+</html>
