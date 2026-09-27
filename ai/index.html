@@ -89,6 +89,8 @@ a{color:inherit;text-decoration:none}
 }
 .dark .sec-head{border-color:rgba(242,240,235,.9)}
 .sec-head .idx{font-size:18px;font-weight:800;letter-spacing:.2em;color:var(--accent)}
+/* 01~04 성과 장은 번호를 크게 — 4장 목록의 번호와 같은 강조 */
+.sec-head .idx.n{font-size:76px;font-weight:900;letter-spacing:-.05em;line-height:.9;color:var(--accent)!important;font-variant-numeric:tabular-nums}
 .sec-head.c2 .idx{color:var(--accent2)}
 .sec-head h2{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1.1}
 .sec-head .en{font-size:15px;font-weight:700;letter-spacing:.3em;color:var(--grey)}
@@ -690,7 +692,7 @@ body.notes #notes{display:block}
 <!-- ======================= 5. ① 작동기 자동점검 ======================= -->
 <section class="slide te" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li class="on">점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head" data-a><span class="idx">(01)</span><h2>작동기 자동점검</h2><span class="en">ACTUATOR AUTO TEST</span></div>
+  <div class="sec-head" data-a><span class="idx n">01</span><h2>작동기 자동점검</h2><span class="en">ACTUATOR AUTO TEST</span></div>
   <div class="grid2 grow">
     <div>
       <p class="statement" data-a style="--d:.2s">점검 기준을 <mark>코드</mark>로 옮겼습니다.<br>사람이 달라도 판정은 같습니다.</p>
@@ -734,7 +736,7 @@ body.notes #notes{display:block}
 <!-- ======================= 6. ② 설계툴 ======================= -->
 <section class="slide" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li class="on">설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head c2" data-a><span class="idx">(02)</span><h2>설계툴</h2><span class="en">DESIGN TOOLS</span></div>
+  <div class="sec-head c2" data-a><span class="idx n">02</span><h2>설계툴</h2><span class="en">DESIGN TOOLS</span></div>
   <div class="cards grow" style="margin-bottom:34px">
     <a class="card" href="https://jaegukang.com/cs_rigging.html" target="_blank" rel="noopener" data-a style="--d:.2s">
       <div class="th"><span class="no">A</span><b>조종면 리깅</b></div>
@@ -774,7 +776,7 @@ body.notes #notes{display:block}
 <!-- ======================= 7. ③ 기억지식저장소 ======================= -->
 <section class="slide" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head" data-a><span class="idx">(03)</span><h2>기억지식저장소</h2><span class="en">AIKE BRAIN</span></div>
+  <div class="sec-head" data-a><span class="idx n">03</span><h2>기억지식저장소</h2><span class="en">AIKE BRAIN</span></div>
   <div class="grid2 grow" style="grid-template-columns:1fr 1.05fr;gap:80px;margin-bottom:30px">
     <div>
       <p class="statement" data-a style="--d:.2s">메일함을<br><mark>쌓이는 지식</mark>으로 바꿉니다.</p>
@@ -811,7 +813,7 @@ body.notes #notes{display:block}
 <!-- ======================= 8. ③ 파이프라인 ======================= -->
 <section class="slide" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head" data-a><span class="idx">(03)</span><h2>메일이 지식이 되는 길</h2><span class="en">PIPELINE</span></div>
+  <div class="sec-head" data-a><span class="idx n">03</span><h2>메일이 지식이 되는 길</h2><span class="en">PIPELINE</span></div>
   <figure class="dia">
     <svg viewBox="0 0 1680 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="기억지식저장소 파이프라인">
       <defs>
@@ -907,7 +909,7 @@ body.notes #notes{display:block}
 <!-- ======================= 9. ③ 마크다운 계층 ======================= -->
 <section class="slide" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li class="on">지식저장소</li><li>CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head" data-a><span class="idx">(03)</span><h2>지식을 층으로 쌓는다</h2><span class="en">MARKDOWN HIERARCHY</span></div>
+  <div class="sec-head" data-a><span class="idx n">03</span><h2>지식을 층으로 쌓는다</h2><span class="en">MARKDOWN HIERARCHY</span></div>
   <div class="grid2 grow" style="grid-template-columns:1.2fr 1fr;gap:56px">
     <figure class="dia">
       <div class="kinds" data-a style="--d:.1s">
@@ -986,7 +988,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 <!-- ======================= 10. ④ CLAW ======================= -->
 <section class="slide dark" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head" data-a><span class="idx">(04)</span><h2>CLAW — 비행제어법칙 설계툴</h2><span class="en">CONTROL LAW WORKBENCH</span></div>
+  <div class="sec-head" data-a><span class="idx n">04</span><h2>CLAW — 비행제어법칙 설계툴</h2><span class="en">CONTROL LAW WORKBENCH</span></div>
   <p class="statement" data-a style="--d:.2s;font-size:64px;margin-top:20px">MATLAB 없이, 제어법칙 설계부터 <mark>탑재 C 코드</mark>까지.</p>
   <div class="chain" data-a style="--d:.6s">
     <span>트림</span><i></i><span>선형화 · 안정성 마진</span><i></i><span>게인 설계</span><i></i><span>폐루프 시뮬레이션</span><i></i><span>영향성 판정</span><i></i><span class="o">C 코드 생성 · 검증</span>
@@ -1013,7 +1015,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 <!-- ======================= 11. ④ CLAW 14개 모드 ======================= -->
 <section class="slide" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head" data-a><span class="idx">(04)</span><h2>업무 순서대로 놓인 14개 모드</h2><span class="en">14 MODES · LIVE</span></div>
+  <div class="sec-head" data-a><span class="idx n">04</span><h2>업무 순서대로 놓인 14개 모드</h2><span class="en">14 MODES · LIVE</span></div>
   <div class="phases" data-a style="--d:.2s">
     <div class="phase">대상</div><div class="phase" style="grid-column:span 3">구조와 영역</div><div class="phase" style="grid-column:span 3">선형 설계</div><div class="phase c" style="grid-column:span 2">날려 보기</div><div class="phase o">판정</div><div class="phase" style="grid-column:span 2">코드</div><div class="phase">열람</div>
   </div>
@@ -1050,7 +1052,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 <!-- ======================= 12. CLAW 영향성 ======================= -->
 <section class="slide dark" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
-  <div class="sec-head" data-a><span class="idx">(04)</span><h2>CLAW 영향성 — 값 하나가 번지는 길</h2><span class="en">INFLUENCE</span></div>
+  <div class="sec-head" data-a><span class="idx n">04</span><h2>CLAW 영향성 — 값 하나가 번지는 길</h2><span class="en">INFLUENCE</span></div>
   <div class="cw">
     <div class="cw-l">
       <p class="statement" data-a style="--d:.2s">파라미터 하나를 바꾸면 <mark>어디까지 번지는지</mark> 선으로 봅니다.</p>
