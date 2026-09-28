@@ -513,6 +513,15 @@ body.m-script #stage,body.m-script #vlayer,body.m-script #bar,body.m-script #hud
 #qr .qn{margin-top:8px;font-size:13px;color:var(--grey)}
 #qr .qx{position:absolute;right:12px;top:10px;font:inherit;font-size:13px;font-weight:800;border:1.5px solid var(--ink);border-radius:999px;background:none;padding:4px 12px;cursor:pointer}
 
+/* 인트로 위에 먼저 뜨는 이름 */
+.intro-name{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:radial-gradient(ellipse at center,rgba(17,17,17,.55),rgba(17,17,17,.2) 70%);opacity:0;transition:opacity .9s ease}
+.intro-name b{font-size:150px;font-weight:900;letter-spacing:-.05em;line-height:1;color:var(--paper);text-shadow:0 6px 40px rgba(0,0,0,.55);transform:translateY(24px);transition:transform 1.1s cubic-bezier(.2,.8,.2,1)}
+.intro-name span{font-size:30px;font-weight:800;letter-spacing:.42em;color:var(--accent);text-shadow:0 2px 20px rgba(0,0,0,.6);opacity:0;transition:opacity .8s ease .35s}
+.slide.named .intro-name{opacity:1}
+.slide.named .intro-name b{transform:none}
+.slide.named .intro-name span{opacity:1}
+
 /* ---------- 영상 층 (무대 밖, 화면 전체) ---------- */
 #vlayer{position:fixed;inset:0;z-index:1;opacity:0;transition:opacity .8s ease;pointer-events:none;background:var(--ink)}
 body.vid #vlayer{opacity:1}
@@ -605,7 +614,8 @@ body.notes #notes{display:block}
 
 <!-- ======================= 1. 인트로 영상 ======================= -->
 <section class="slide video" data-video="intro" data-sec="">
-  <aside class="note" data-t="10"><p>(인트로 영상이 반복 재생됩니다. 청중이 자리에 앉으면 넘깁니다.)</p></aside>
+  <div class="intro-name" aria-hidden="true"><b>강재구</b><span>JAEGU KANG</span></div>
+  <aside class="note" data-t="10"><p>(인트로 영상이 반복 재생됩니다. 청중이 자리에 앉으면 넘깁니다. 넘기면 영상 위에 이름이 먼저 뜨고, 잠시 뒤 표지로 자동으로 넘어갑니다.)</p></aside>
 </section>
 
 <!-- ======================= 2. 표지 ======================= -->
@@ -1607,13 +1617,17 @@ window.InfluencePlayer = function(o){
   setInterval(function(){ if(body.classList.contains('notes')) renderClock(); }, 1000);
 
   /* 6. 이동 */
+  /* 이름이 떠 있는 인트로를 거둔다 (← · Home · QR 을 열 때) */
+  function unname(){ clearTimeout(nameT); if(cur >= 0) slides[cur].classList.remove('named'); }
   function goTo(n){
+    if(n === cur && n >= 0 && slides[n].classList.contains('named')){ unname(); return; }   /* 같은 장으로 가기 = 초기화 */
     if(n < 0 || n >= total || n === cur) return;
     var prev = slides[cur];
     if(prev){
       prev.classList.remove('active'); prev.classList.add('leaving');
       (function(p){ setTimeout(function(){ if(!p.classList.contains('active')) p.classList.remove('leaving'); }, 520); })(prev);
     }
+    clearTimeout(nameT); if(prev) prev.classList.remove('named');
     cur = n;
     var next = slides[n];
     next.classList.remove('active', 'leaving');
@@ -1629,13 +1643,27 @@ window.InfluencePlayer = function(o){
     renderNotes();
     try { history.replaceState(null, '', '#' + (n + 1)); } catch(e){}
   }
+  /* 인트로에서 넘기면 영상 위에 이름만 먼저 띄우고, 잠시 뒤 표지로 자동으로 넘어간다 (한 번 더 누르면 바로) */
+  var NAME_HOLD = 2200, nameT = 0;
   function next(){
     /* 아웃트로 장에서 대기 중이면 넘기는 대신 재생을 시작한다 */
     var k = cur >= 0 ? slides[cur].getAttribute('data-video') : null, v = k && vids[k];
     if(v && v._armed && v.classList.contains('on')){ v._armed = false; playVideo(v); return; }
+    var sl = slides[cur];
+    if(k === 'intro' && sl.querySelector('.intro-name') && !sl.classList.contains('named')){
+      sl.classList.add('named');
+      var ro = document.getElementById('rot'); if(ro) ro.classList.add('gone');
+      var at = cur; clearTimeout(nameT);
+      nameT = setTimeout(function(){ if(cur === at) goTo(at + 1); }, NAME_HOLD);
+      return;
+    }
     goTo(cur + 1);
   }
-  function prev(){ goTo(cur - 1); }
+  function prev(){
+    /* 인트로에서 이름이 떠 있으면 ← 는 이름을 거두고 자동 넘김을 취소한다 */
+    if(cur >= 0 && slides[cur].classList.contains('named')){ unname(); return; }
+    goTo(cur - 1);
+  }
 
   /* 7. 녹화 영상 */
   function openDemo(src){
@@ -1764,6 +1792,7 @@ window.InfluencePlayer = function(o){
         document.head.appendChild(sc);
       }
     }
+    if(!qrBox.classList.contains('on')) unname();          /* 여는 순간 자동 넘김을 멈춘다 */
     qrBox.classList.toggle('on');
   }
 

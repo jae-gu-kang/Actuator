@@ -99,8 +99,10 @@ async function sweep(page, tag){
     const seq = [];
     for(let i = 0; i < SLIDES - 1; i++){ await page.keyboard.press('ArrowRight'); await sleep(90); seq.push(await idx(page)); }
     /* 아웃트로 장(끝에서 두 번째)은 들어와서 한 번 멈춘다 — 그다음 → 는 넘기지 않고 영상을 튼다 */
-    const expect = [...Array(SLIDES - 2)].map((_, i) => i + 1).concat([SLIDES - 2]);
-    rec('→ 1회 = 1장 전진 (아웃트로는 한 번 더 눌러 재생)', JSON.stringify(seq) === JSON.stringify(expect), seq.join(','));
+    /* 인트로(0)는 첫 → 에 이름만 띄우고 머문다. 아웃트로 장(끝에서 두 번째)은 들어와서 한 번 멈춘다 */
+    const expect = [0].concat([...Array(SLIDES - 2)].map((_, i) => i + 1));
+    rec('→ 1회 = 1장 전진 (인트로는 이름 먼저, 아웃트로는 한 번 더 눌러 재생)', JSON.stringify(seq) === JSON.stringify(expect), seq.join(','));
+    await page.keyboard.press('ArrowRight'); await sleep(90);          /* 대기 중인 아웃트로 재생 */
     await page.keyboard.press('ArrowRight'); await sleep(90);          /* 재생 중인 아웃트로 → 마지막 장 */
     rec('아웃트로 재생 중 → : 마지막 장', (await idx(page)) === SLIDES - 1);
     await page.keyboard.press('ArrowRight'); await sleep(90);          /* 마지막 장에서 한 번 더 */
@@ -110,17 +112,42 @@ async function sweep(page, tag){
     await page.keyboard.press('Home'); await sleep(90);
     await page.keyboard.press('ArrowLeft'); await sleep(90);
     rec('첫 장에서 더 안 넘어감', (await idx(page)) === 0);
+    await page.evaluate(() => window.__deck.goTo(1)); await sleep(90);
     for(const k of ['Space', 'PageDown', 'Enter']){
       const before = await idx(page);
       await page.keyboard.press(k); await sleep(90);
       rec(k + ' 도 한 장 전진', (await idx(page)) === before + 1);
     }
     /* 키를 누르고 있으면(자동 반복) 여러 장이 넘어가면 안 된다 */
-    await page.keyboard.press('Home'); await sleep(90);
+    await page.evaluate(() => window.__deck.goTo(1)); await sleep(90);
     await page.keyboard.down('ArrowRight'); await sleep(40);
     for(let i = 0; i < 4; i++){ await page.keyboard.down('ArrowRight', { autoRepeat: true }); await sleep(30); }
     await page.keyboard.up('ArrowRight'); await sleep(90);
-    rec('키를 누르고 있어도 한 장만', (await idx(page)) === 1, 'idx=' + await idx(page));
+    rec('키를 누르고 있어도 한 장만', (await idx(page)) === 2, 'idx=' + await idx(page));
+
+    /* ── 인트로: 넘기면 이름만 먼저, 잠시 뒤 표지로 자동 ── */
+    await page.keyboard.press('Home'); await sleep(300);
+    await page.keyboard.press('ArrowRight'); await sleep(1000);
+    const nm = await page.evaluate(() => { const s = document.querySelectorAll('.slide')[0], n = s.querySelector('.intro-name');
+      return { cur: window.__deck.cur(), named: s.classList.contains('named'), op: +getComputedStyle(n).opacity, name: n.textContent, vid: document.body.classList.contains('vid') }; });
+    rec('인트로에서 넘기면 영상 위에 이름만 먼저', nm.cur === 0 && nm.named && nm.op > .9 && /강재구/.test(nm.name) && nm.vid, JSON.stringify(nm));
+    await sleep(1500);
+    const nm2 = await page.evaluate(() => ({ cur: window.__deck.cur(), named: document.querySelectorAll('.slide')[0].classList.contains('named') }));
+    rec('잠시 뒤 표지로 자동으로 넘어감', nm2.cur === 1 && !nm2.named, JSON.stringify(nm2));
+    await page.keyboard.press('ArrowLeft'); await sleep(200);
+    await page.keyboard.press('ArrowRight'); await sleep(150); await page.keyboard.press('ArrowRight'); await sleep(200);
+    rec('이름이 떠 있을 때 한 번 더 누르면 바로 표지', (await idx(page)) === 1);
+    await sleep(2400);
+    rec('바로 넘긴 뒤 남은 타이머가 한 장 더 넘기지 않음', (await idx(page)) === 1);
+    await page.keyboard.press('ArrowLeft'); await sleep(200);
+    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('ArrowLeft'); await sleep(2400);
+    const cancel = await page.evaluate(() => ({ cur: window.__deck.cur(), named: document.querySelectorAll('.slide')[0].classList.contains('named') }));
+    rec('이름이 뜬 뒤 ← : 이름을 거두고 자동 넘김 취소', cancel.cur === 0 && !cancel.named, JSON.stringify(cancel));
+    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('Home'); await sleep(2400);
+    rec('이름이 뜬 뒤 Home : 초기화하고 자동 넘김 취소', await page.evaluate(() => window.__deck.cur() === 0 && !document.querySelectorAll('.slide')[0].classList.contains('named')));
+    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('KeyP'); await sleep(2400);
+    rec('이름이 뜬 뒤 QR 창을 열면 자동 넘김 멈춤', await page.evaluate(() => window.__deck.cur() === 0));
+    await page.keyboard.press('Escape'); await sleep(200);
 
     /* ── 쪽 번호 ── */
     const foots = await page.$$eval('.slide', ss => ss.map((s, i) => { const r = s.querySelector('.foot .r'); return !r || r.textContent === String(i + 1).padStart(2, '0') + ' / ' + ss.length; }));
@@ -132,7 +159,7 @@ async function sweep(page, tag){
       vid: document.body.classList.contains('vid'), on: v.classList.contains('on'), playing: !v.paused && v.currentTime > 0,
       loop: v.loop, muted: v.muted, ph: document.querySelector('.vph[data-for="intro"]').classList.contains('on'), w: v.videoWidth }; });
     rec('인트로: 화면 가득 소리 없이 반복 재생', v1.vid && v1.on && v1.playing && v1.loop && v1.muted && !v1.ph && v1.w === 1920, JSON.stringify(v1));
-    await page.keyboard.press('ArrowRight'); await sleep(700);
+    await page.keyboard.press('ArrowRight'); await sleep(2900);          /* 이름 → 자동으로 표지 */
     const v1b = await page.evaluate(() => ({ vid: document.body.classList.contains('vid'), paused: document.getElementById('v-intro').paused }));
     rec('다음 장으로 가면 영상 층 꺼지고 인트로 멈춤', !v1b.vid && v1b.paused, JSON.stringify(v1b));
 
@@ -401,21 +428,22 @@ async function sweep(page, tag){
       await ph.touchscreen.touchEnd(); await sleep(250);
     }
     const pidx = () => ph.evaluate(() => window.__deck.cur());
+    await ph.evaluate(() => window.__deck.goTo(1)); await sleep(200);
     await swipe(640, 200);
-    rec('폰: 왼쪽으로 밀면 다음 장', (await pidx()) === 1, 'idx=' + await pidx());
+    rec('폰: 왼쪽으로 밀면 다음 장', (await pidx()) === 2, 'idx=' + await pidx());
     await swipe(200, 640);
-    rec('폰: 오른쪽으로 밀면 이전 장', (await pidx()) === 0, 'idx=' + await pidx());
+    rec('폰: 오른쪽으로 밀면 이전 장', (await pidx()) === 1, 'idx=' + await pidx());
     await swipe(420, 440, 60, 330);
-    rec('폰: 세로로 밀면 넘기지 않음', (await pidx()) === 0);
+    rec('폰: 세로로 밀면 넘기지 않음', (await pidx()) === 1);
     /* 두 손가락으로 확대한 상태에서 한 손가락으로 화면을 옮기면 넘기지 않는다 (확대 배율을 흉내 낸다) */
     await ph.evaluate(() => Object.defineProperty(window.visualViewport, 'scale', { configurable: true, get: () => 2 }));
     await swipe(640, 200);
-    rec('폰: 확대한 채 밀면 넘기지 않음', (await pidx()) === 0);
+    rec('폰: 확대한 채 밀면 넘기지 않음', (await pidx()) === 1);
     await ph.evaluate(() => delete window.visualViewport.scale);
     await ph.touchscreen.tap(780, 200); await sleep(250);
-    rec('폰: 오른쪽 탭 = 다음 장', (await pidx()) === 1);
+    rec('폰: 오른쪽 탭 = 다음 장', (await pidx()) === 2);
     await ph.touchscreen.tap(60, 200); await sleep(250);
-    rec('폰: 왼쪽 탭 = 이전 장', (await pidx()) === 0);
+    rec('폰: 왼쪽 탭 = 이전 장', (await pidx()) === 1);
     const pfit = await ph.evaluate(() => { const b = document.getElementById('stage').getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height) }; });
     rec('폰 가로 화면에 무대가 맞음', pfit.w <= 844 && pfit.h <= 390, JSON.stringify(pfit));
     /* 세로로 들고 있으면 가로로 돌리라는 안내, 넘기면 사라짐 */
