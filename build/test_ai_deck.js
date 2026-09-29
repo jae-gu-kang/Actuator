@@ -207,19 +207,14 @@ async function sweep(page, tag){
     const syn = await page.evaluate(() => { const e = document.querySelector('.slide.end');
       const d = sel => parseFloat(getComputedStyle(e.querySelector(sel)).getPropertyValue('--d'));
       return { synced: e.classList.contains('synced'), verse: d('.verse'), lead: d('.lead'), tf: d('.tf') }; });
-    rec('마무리 장 글이 박자에 맞춰 빠르게 나옴 (문장 → 셋째 박 → 9마디)', syn.synced && syn.verse < 1 && Math.abs(syn.lead - 1.75) < .3 && Math.abs(syn.tf - 3.5) < .3, JSON.stringify(syn));
+    rec('마무리 장 글이 박자에 맞춰 나옴 (문장 → 8마디 넷째 박 → 9마디 셋째 박)', syn.synced && syn.verse < 1 && Math.abs(syn.lead - 2.63) < .3 && Math.abs(syn.tf - 5.26) < .3, JSON.stringify(syn));
     await sleep(1500);
     const v3 = await sgs();
     rec('영상 화면은 사라지고 노래는 이어짐', v3.cur === SLIDES - 1 && !(await page.evaluate(() => document.body.classList.contains('vid'))) && v3.sPlaying && v3.st > 29.5, JSON.stringify(v3));
-    await page.evaluate(() => { document.getElementById('a-outro').currentTime = 35.3; }); await sleep(120);
-    const preLift = await page.evaluate(() => document.querySelector('.slide.end').classList.contains('lift'));
-    await sleep(900);
-    const postLift = await page.evaluate(() => document.querySelector('.slide.end').classList.contains('lift'));
-    rec('리프트(35.81 s) 전에는 그대로, 그 박에서 주황 글자가 빛남', !preLift && postLift, JSON.stringify({ preLift, postLift }));
-    await page.evaluate(() => { document.getElementById('a-outro').currentTime = 38.9; }); await sleep(480);   /* 다섯 번째(39.26) 뒤, 곡 끝(39.72) 전 */
-    rec('"헤이" 다섯 번마다 번쩍 (5회)', await page.evaluate(() => document.querySelector('.slide.end').getAttribute('data-hey')) === '5');
+    await page.evaluate(() => { document.getElementById('a-outro').currentTime = 38.9; }); await sleep(480);   /* 헤이 구간 */
+    rec('끝부분에 번쩍이는 효과 없음', await page.evaluate(() => { const e = document.querySelector('.slide.end'); return !e.classList.contains('lift') && !e.hasAttribute('data-hey') && window.__deck.cur() === 15; }));
     await page.evaluate(() => { const a = document.getElementById('a-outro'); a.currentTime = a.duration - .3; }); await sleep(1200);
-    rec('노래는 다섯 번째 헤이 뒤 딱 끊기고 장은 그대로', await page.evaluate(() => document.getElementById('a-outro').ended && window.__deck.cur()) === SLIDES - 1);
+    rec('노래는 약 39초에 페이드로 끝나고 장은 그대로', await page.evaluate(() => document.getElementById('a-outro').ended && window.__deck.cur()) === SLIDES - 1);
     /* 다시 들어오면 처음 장면에서 대기, 노래도 멈추고 처음으로 */
     await page.keyboard.press('ArrowLeft'); await sleep(900);
     const v4 = await sgs();
