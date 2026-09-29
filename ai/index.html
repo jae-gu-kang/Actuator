@@ -513,6 +513,9 @@ body.m-script #stage,body.m-script #vlayer,body.m-script #bar,body.m-script #hud
 #qr .qn{margin-top:8px;font-size:13px;color:var(--grey)}
 #qr .qx{position:absolute;right:12px;top:10px;font:inherit;font-size:13px;font-weight:800;border:1.5px solid var(--ink);border-radius:999px;background:none;padding:4px 12px;cursor:pointer}
 
+#blackout{position:fixed;inset:0;z-index:70;background:#000;display:none;cursor:none}
+#blackout.on{display:block}
+
 /* 인트로 위에 먼저 뜨는 이름 */
 .intro-name{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:radial-gradient(ellipse at center,rgba(17,17,17,.55),rgba(17,17,17,.2) 70%);opacity:0;transition:opacity .9s ease}
@@ -1152,7 +1155,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 </div><!-- /stage -->
 
 <div id="bar"></div>
-<div id="hud"><span class="n"></span><span class="k">← → 또는 화면 좌·우 클릭 · N 대본 · P 폰 대본 · F 전체 화면</span></div>
+<div id="hud"><span class="n"></span><span class="k">← → · 리모컨 · 화면 좌·우 클릭 · N 대본 · P 폰 대본 · F/F5 전체 화면 · B 가리기</span></div>
 <div id="rot">가로로 돌리면 크게 보입니다 · 화면을 <b>좌우로 밀거나</b> 좌·우를 눌러 넘기세요</div>
 <div id="notes"><div class="top"></div><div class="txt"></div></div>
 <div id="demo" role="dialog" aria-label="녹화 영상">
@@ -1687,9 +1690,23 @@ window.InfluencePlayer = function(o){
   /* 8. 키보드 */
   var NEXT = {ArrowRight:1, ArrowDown:1, PageDown:1, ' ':1, Enter:1, Spacebar:1};
   var PREV = {ArrowLeft:1, ArrowUp:1, PageUp:1, Backspace:1};
+  /* 발표 리모컨: 다음/이전은 PageDown/PageUp(또는 화살표)로 이미 된다. '슬라이드쇼' 버튼은 F5 · Shift+F5 를,
+     '화면 가리기' 버튼은 B 또는 . 을 보낸다 — F5 가 브라우저 새로 고침이 되지 않게 전체 화면으로 돌리고,
+     B · . 는 파워포인트처럼 검은 화면을 켜고 끈다(검은 화면에서 넘기기 키는 화면만 되돌린다). */
+  var black = null;
+  function toggleBlack(on){
+    if(!black){ black = document.createElement('div'); black.id = 'blackout'; body.appendChild(black); }
+    black.classList.toggle('on', on === undefined ? !black.classList.contains('on') : on);
+  }
   document.addEventListener('keydown', function(e){
     if(MODE !== 'deck' || e.metaKey || e.ctrlKey || e.altKey) return;
     var k = e.key, code = e.code;
+    if(k === 'F5'){ e.preventDefault(); if(!e.repeat) toggleFull(); return; }
+    if(black && black.classList.contains('on')){
+      if(!e.repeat && (code === 'KeyB' || code === 'Period' || NEXT[k] || PREV[k] || k === 'Escape')) toggleBlack(false);
+      e.preventDefault(); return;
+    }
+    if((code === 'KeyB' || code === 'Period') && !e.repeat){ toggleBlack(true); e.preventDefault(); return; }
     if(qrBox && qrBox.classList.contains('on')){ if(!e.repeat && (k === 'Escape' || code === 'KeyP')) toggleQR(); e.preventDefault(); return; }
     if(demo.classList.contains('on')){        /* 영상 보는 중에는 장표를 넘기지 않는다 */
       if(k === 'Escape'){ closeDemo(); e.preventDefault(); }

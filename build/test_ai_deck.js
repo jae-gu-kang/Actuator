@@ -149,6 +149,21 @@ async function sweep(page, tag){
     rec('이름이 뜬 뒤 QR 창을 열면 자동 넘김 멈춤', await page.evaluate(() => window.__deck.cur() === 0));
     await page.keyboard.press('Escape'); await sleep(200);
 
+    /* ── 발표 리모컨: PageDown/PageUp · F5 · B/. ── */
+    await page.evaluate(() => window.__deck.goTo(3)); await sleep(100);
+    await page.keyboard.press('PageDown'); await sleep(90);
+    await page.keyboard.press('PageUp'); await sleep(90);
+    rec('리모컨 다음/이전(PageDown/PageUp)', (await idx(page)) === 3);
+    const f5 = await page.evaluate(() => { const e = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true }); document.dispatchEvent(e); return e.defaultPrevented; });
+    rec('리모컨 슬라이드쇼(F5): 새로 고침 막고 전체 화면으로', f5);
+    await page.keyboard.press('KeyB'); await sleep(90);
+    const bk = await page.evaluate(() => { const b = document.getElementById('blackout'); return b && getComputedStyle(b).display === 'block'; });
+    await page.keyboard.press('PageDown'); await sleep(90);
+    const bk2 = await page.evaluate(() => ({ black: getComputedStyle(document.getElementById('blackout')).display === 'block', cur: window.__deck.cur() }));
+    rec('리모컨 화면 가리기(B): 검은 화면, 넘기기 키는 화면만 되돌림', bk && !bk2.black && bk2.cur === 3, JSON.stringify({ bk, bk2 }));
+    await page.keyboard.press('Period'); await sleep(90); await page.keyboard.press('Period'); await sleep(90);
+    rec('리모컨 화면 가리기(.): 켜고 끔', await page.evaluate(() => getComputedStyle(document.getElementById('blackout')).display === 'none' && window.__deck.cur() === 3));
+
     /* ── 쪽 번호 ── */
     const foots = await page.$$eval('.slide', ss => ss.map((s, i) => { const r = s.querySelector('.foot .r'); return !r || r.textContent === String(i + 1).padStart(2, '0') + ' / ' + ss.length; }));
     rec('쪽 번호가 실제 순서와 일치', foots.every(Boolean));
