@@ -296,7 +296,7 @@ async function sweep(page, tag){
     rec('영상 창이 열려 있으면 장이 안 넘어감', (await idx(page)) === 4);
     await page.keyboard.press('Escape'); await sleep(120);
     /* 설계툴 녹화도 재생, 아직 없는 brain · CLAW 는 안내 */
-    for(const [n, src, has] of [[5, 'media/demo-tools.mp4', true], [6, 'media/demo-brain.mp4', false]]){
+    for(const [n, src, has] of [[5, 'media/demo-tools.mp4', true], [6, 'media/demo-brain.mp4', true], [9, 'media/demo-claw.mp4', false]]){
       await page.evaluate(k => window.__deck.goTo(k), n); await sleep(1200);
       await page.click('.slide.active [data-demo]'); await sleep(900);
       const d2 = await page.evaluate(() => { const v = document.querySelector('#demo video'); return { miss: document.getElementById('demo').classList.contains('missing'), playing: !v.paused, src: v.getAttribute('src') }; });
