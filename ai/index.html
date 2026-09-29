@@ -525,13 +525,6 @@ body.m-script #stage,body.m-script #vlayer,body.m-script #bar,body.m-script #hud
 .slide.named .outro-name{opacity:1}
 .slide.named .outro-name b{transform:none}
 
-/* 헤이마다 끼어드는 군무 장면 — 전환 없이 딱 켜지고, 켜질 때마다 살짝 당겨 들어온다 */
-#heylayer{position:fixed;inset:0;z-index:42;background:#000;display:none;pointer-events:none}
-#heylayer.on{display:block}
-#heylayer video{width:100%;height:100%;object-fit:cover}
-#heylayer.on video{animation:heyPunch .32s cubic-bezier(.2,.8,.2,1)}
-@keyframes heyPunch{from{transform:scale(1.08)}to{transform:none}}
-
 /* 인트로 위에 먼저 뜨는 이름 */
 .intro-name{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:radial-gradient(ellipse at center,rgba(17,17,17,.55),rgba(17,17,17,.2) 70%);opacity:0;transition:opacity .9s ease}
@@ -627,10 +620,6 @@ body.notes #notes{display:block}
   <audio id="a-outro" preload="auto" src="media/outro-song.m4a"></audio>
   <div class="vph" data-for="intro"><b>INTRO</b><p>인트로 영상 자리 · media/intro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
   <div class="vph" data-for="outro"><b>OUTRO</b><p>아웃트로 영상 자리 · media/outro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
-</div>
-<!-- "헤이" 다섯 번에 번쩍 끼어드는 아웃트로 군무 장면 (아웃트로 영상 20~27 s 에서 박자에 맞춘 5조각, 3.917 s) -->
-<div id="heylayer" aria-hidden="true">
-  <video id="v-heys" muted playsinline preload="auto" src="media/outro-heys.mp4"></video>
 </div>
 
 <div id="stage">
@@ -1589,26 +1578,7 @@ window.InfluencePlayer = function(o){
      노래 파일은 다섯 번째 헤이 직후 39.72 s 에 페이드 없이 끊긴다. */
   var BEAT = {cut: 28.81, verse: 29.25, lead: 30.56, thanks: 32.31, lift: 35.81};
   var HEYS = [35.81, 36.70, 37.55, 38.43, 39.26], heyN = 0;
-  /* 헤이마다 군무 장면을 0.32 s 끼워 넣고, 다섯 번째는 노래가 끊길 때까지 — 끊기는 순간 마무리 장으로 딱 돌아온다 */
-  var HEY_WIN = HEYS.map(function(h, i){ return [h, i < HEYS.length - 1 ? h + .32 : 1e9]; });
-  var hv = document.getElementById('v-heys'), hl = document.getElementById('heylayer'), heyShow = false;
-  function heys(t){
-    if(!hv || hv.error || !hl) return;
-    var ct = t - HEYS[0], on = HEY_WIN.some(function(w){ return t >= w[0] && t < w[1]; });
-    /* 맞추는 중(seeking)에는 다시 맞추지 않는다 — 느린 노트북에서 탐색을 서로 취소하며 화면이 멈추는 것을 막는다.
-       끝난 클립에 play() 를 부르면 처음으로 돌아가 첫 장면이 번쩍이므로 클립 길이 안에서만 튼다 */
-    if(ct >= -.05 && ct < (hv.duration || 0) - .02 && !hv.seeking){
-      if(hv.paused){ try { hv.currentTime = Math.max(0, ct); } catch(err){} var p = hv.play(); if(p && p.catch) p.catch(function(){}); }
-      else if(Math.abs(hv.currentTime - ct) > .15) hv.currentTime = Math.max(0, ct);
-    }
-    if(on && !heyShow){ hl.classList.remove('on'); void hl.offsetWidth; }
-    hl.classList.toggle('on', on); heyShow = on;
-  }
-  function hideHeys(){
-    heyShow = false;
-    if(hl) hl.classList.remove('on');
-    if(hv && !hv.paused) hv.pause();
-  }
+
   var endSlide = document.querySelector('.slide.end'), viaCut = false, musicRaf = 0;
   var endEls = endSlide ? [['.kick', null], ['.verse', 'verse'], ['.lead', 'lead'], ['.tf', 'thanks']].map(function(x){
     var el = endSlide.querySelector(x[0]); return {el: el, key: x[1], style: el.getAttribute('style')};
@@ -1617,7 +1587,7 @@ window.InfluencePlayer = function(o){
   function syncEnd(on, t){
     if(!endSlide) return;
     endSlide.classList.toggle('synced', on); endSlide.classList.remove('lift');
-    heyN = 0; endSlide.removeAttribute('data-hey'); hideHeys();
+    heyN = 0; endSlide.removeAttribute('data-hey');
     endEls.forEach(function(x){
       if(on) x.el.style.setProperty('--d', (x.key ? Math.max(0, BEAT[x.key] - t) : 0).toFixed(2) + 's');
       else if(x.style === null) x.el.removeAttribute('style'); else x.el.setAttribute('style', x.style);
@@ -1626,7 +1596,7 @@ window.InfluencePlayer = function(o){
   function musicLoop(){
     cancelAnimationFrame(musicRaf);
     (function f(){
-      if(!song || song.paused){ musicRaf = 0; hideHeys(); return; }
+      if(!song || song.paused){ musicRaf = 0; return; }
       var t = song.currentTime, home = outroHome();
       if(cur === home && t >= BEAT.cut){ syncEnd(true, t); viaCut = true; goTo(home + 1); }
       else if(cur === home + 1 && endSlide.classList.contains('synced')){
@@ -1635,12 +1605,11 @@ window.InfluencePlayer = function(o){
           endSlide.classList.remove('lift'); void endSlide.offsetWidth; endSlide.classList.add('lift');
           heyN++; endSlide.setAttribute('data-hey', heyN);
         }
-        heys(t);
       }
       musicRaf = requestAnimationFrame(f);
     })();
   }
-  if(song){ song.addEventListener('play', musicLoop); song.addEventListener('ended', hideHeys); song.addEventListener('pause', hideHeys); }
+  if(song) song.addEventListener('play', musicLoop);
   Object.keys(vids).forEach(function(k){
     var v = vids[k];
     if(v.hasAttribute('data-once')) v.addEventListener('ended', function(){
