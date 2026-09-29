@@ -216,8 +216,16 @@ async function sweep(page, tag){
     await sleep(900);
     const postLift = await page.evaluate(() => document.querySelector('.slide.end').classList.contains('lift'));
     rec('리프트(35.82 s) 전에는 그대로, 그 박에서 주황 글자가 빛남', !preLift && postLift, JSON.stringify({ preLift, postLift }));
+    await page.evaluate(() => { document.getElementById('a-outro').currentTime = 38.9; }); await sleep(480);   /* 다섯 번째(39.26) 뒤, 곡 끝(39.72) 전 */
+    rec('"헤이" 다섯 번마다 번쩍 (5회)', await page.evaluate(() => document.querySelector('.slide.end').getAttribute('data-hey')) === '5');
+    /* 헤이 군무 장면: 헤이 순간에만 켜지고, 사이에는 꺼지고, 다섯 번째는 끝까지 */
+    const hs = async t => { await page.evaluate(x => { document.getElementById('a-outro').currentTime = x; }, t); await sleep(160);
+      return page.evaluate(() => ({ on: document.getElementById('heylayer').classList.contains('on'), vt: +document.getElementById('v-heys').currentTime.toFixed(2), playing: !document.getElementById('v-heys').paused })); };
+    const h1 = await hs(35.82), h1b = await hs(36.35), h4 = await hs(38.45), h5 = await hs(39.40);
+    rec('군무 장면: 헤이 순간 켜짐 · 사이 꺼짐 · 다섯 번째 유지', h1.on && h1.playing && !h1b.on && h4.on && h5.on && Math.abs(h5.vt - (39.56 - 35.81)) < .3, JSON.stringify({ h1, h1b, h4, h5 }));
     await page.evaluate(() => { const a = document.getElementById('a-outro'); a.currentTime = a.duration - .3; }); await sleep(1200);
-    rec('노래는 약 39초에 끝나고 장은 그대로', await page.evaluate(() => document.getElementById('a-outro').ended && window.__deck.cur()) === SLIDES - 1);
+    rec('노래는 다섯 번째 헤이 뒤 딱 끊기고 장은 그대로', await page.evaluate(() => document.getElementById('a-outro').ended && window.__deck.cur()) === SLIDES - 1);
+    rec('노래가 끊기는 순간 군무 장면도 사라짐', await page.evaluate(() => !document.getElementById('heylayer').classList.contains('on') && document.getElementById('v-heys').paused));
     /* 다시 들어오면 처음 장면에서 대기, 노래도 멈추고 처음으로 */
     await page.keyboard.press('ArrowLeft'); await sleep(900);
     const v4 = await sgs();
