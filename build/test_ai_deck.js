@@ -215,7 +215,7 @@ async function sweep(page, tag){
     const preLift = await page.evaluate(() => document.querySelector('.slide.end').classList.contains('lift'));
     await sleep(900);
     const postLift = await page.evaluate(() => document.querySelector('.slide.end').classList.contains('lift'));
-    rec('리프트(35.82 s) 전에는 그대로, 그 박에서 주황 글자가 빛남', !preLift && postLift, JSON.stringify({ preLift, postLift }));
+    rec('리프트(35.81 s) 전에는 그대로, 그 박에서 주황 글자가 빛남', !preLift && postLift, JSON.stringify({ preLift, postLift }));
     await page.evaluate(() => { document.getElementById('a-outro').currentTime = 38.9; }); await sleep(480);   /* 다섯 번째(39.26) 뒤, 곡 끝(39.72) 전 */
     rec('"헤이" 다섯 번마다 번쩍 (5회)', await page.evaluate(() => document.querySelector('.slide.end').getAttribute('data-hey')) === '5');
     /* 헤이 군무 장면: 헤이 순간에만 켜지고, 사이에는 꺼지고, 다섯 번째는 끝까지 */

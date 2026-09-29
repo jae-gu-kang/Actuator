@@ -1595,9 +1595,11 @@ window.InfluencePlayer = function(o){
   function heys(t){
     if(!hv || hv.error || !hl) return;
     var ct = t - HEYS[0], on = HEY_WIN.some(function(w){ return t >= w[0] && t < w[1]; });
-    if(ct >= -.05 && ct < hv.duration + .5){
+    /* 맞추는 중(seeking)에는 다시 맞추지 않는다 — 느린 노트북에서 탐색을 서로 취소하며 화면이 멈추는 것을 막는다.
+       끝난 클립에 play() 를 부르면 처음으로 돌아가 첫 장면이 번쩍이므로 클립 길이 안에서만 튼다 */
+    if(ct >= -.05 && ct < (hv.duration || 0) - .02 && !hv.seeking){
       if(hv.paused){ try { hv.currentTime = Math.max(0, ct); } catch(err){} var p = hv.play(); if(p && p.catch) p.catch(function(){}); }
-      else if(Math.abs(hv.currentTime - ct) > .08) hv.currentTime = Math.max(0, ct);
+      else if(Math.abs(hv.currentTime - ct) > .15) hv.currentTime = Math.max(0, ct);
     }
     if(on && !heyShow){ hl.classList.remove('on'); void hl.offsetWidth; }
     hl.classList.toggle('on', on); heyShow = on;
