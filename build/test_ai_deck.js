@@ -102,7 +102,8 @@ async function sweep(page, tag){
     /* 인트로(0)는 첫 → 에 이름만 띄우고 머문다. 아웃트로 장(끝에서 두 번째)은 들어와서 한 번 멈춘다 */
     const expect = [0].concat([...Array(SLIDES - 2)].map((_, i) => i + 1));
     rec('→ 1회 = 1장 전진 (인트로는 이름 먼저, 아웃트로는 한 번 더 눌러 재생)', JSON.stringify(seq) === JSON.stringify(expect), seq.join(','));
-    await page.keyboard.press('ArrowRight'); await sleep(90);          /* 대기 중인 아웃트로 재생 */
+    await page.keyboard.press('ArrowRight'); await sleep(90);          /* 대기 중인 아웃트로: 이름 */
+    await page.keyboard.press('ArrowRight'); await sleep(90);          /* 재생 */
     await page.keyboard.press('ArrowRight'); await sleep(90);          /* 재생 중인 아웃트로 → 마지막 장 */
     rec('아웃트로 재생 중 → : 마지막 장', (await idx(page)) === SLIDES - 1);
     await page.keyboard.press('ArrowRight'); await sleep(90);          /* 마지막 장에서 한 번 더 */
@@ -186,7 +187,12 @@ async function sweep(page, tag){
     const v2a = await page.evaluate(() => { const v = document.getElementById('v-outro'); return {
       cur: window.__deck.cur(), on: v.classList.contains('on'), paused: v.paused, t: +v.currentTime.toFixed(2) }; });
     rec('아웃트로 장으로 넘어가면 첫 장면에서 대기', v2a.cur === outroIdx && v2a.on && v2a.paused && v2a.t === 0, JSON.stringify(v2a));
+    await page.keyboard.press('ArrowRight'); await sleep(1200);
+    const onm = await page.evaluate(() => { const s = document.querySelectorAll('.slide')[14], n = s.querySelector('.outro-name'), v = document.getElementById('v-outro');
+      return { cur: window.__deck.cur(), named: s.classList.contains('named'), op: +getComputedStyle(n).opacity, paused: v.paused, left: n.getBoundingClientRect().left, bottom: innerHeight - n.getBoundingClientRect().bottom }; });
+    rec('아웃트로에서 한 번 넘기면 왼쪽 아래에 이름 (영상은 대기)', onm.cur === 14 && onm.named && onm.op > .9 && onm.paused && onm.left < 200 && onm.bottom < 200, JSON.stringify(onm));
     await page.keyboard.press('ArrowRight'); await sleep(1500);
+    rec('한 번 더 넘기면 재생되고 이름은 사라짐', await page.evaluate(() => !document.querySelectorAll('.slide')[14].classList.contains('named')));
     const sgs = () => page.evaluate(() => { const v = document.getElementById('v-outro'), a = document.getElementById('a-outro'); return {
       cur: window.__deck.cur(), vOn: v.classList.contains('on'), vPlaying: !v.paused, vMuted: v.muted, vt: +v.currentTime.toFixed(2),
       sPlaying: !a.paused, st: +a.currentTime.toFixed(2), sd: Math.round(a.duration), loop: v.loop }; });
@@ -201,7 +207,7 @@ async function sweep(page, tag){
     const syn = await page.evaluate(() => { const e = document.querySelector('.slide.end');
       const d = sel => parseFloat(getComputedStyle(e.querySelector(sel)).getPropertyValue('--d'));
       return { synced: e.classList.contains('synced'), verse: d('.verse'), lead: d('.lead'), tf: d('.tf') }; });
-    rec('마무리 장 글이 마디에 맞춰 나옴 (문장 → 9마디 → 리프트)', syn.synced && syn.verse < 1 && Math.abs(syn.lead - 3.5) < .3 && Math.abs(syn.tf - 7) < .3, JSON.stringify(syn));
+    rec('마무리 장 글이 박자에 맞춰 빠르게 나옴 (문장 → 셋째 박 → 9마디)', syn.synced && syn.verse < 1 && Math.abs(syn.lead - 1.75) < .3 && Math.abs(syn.tf - 3.5) < .3, JSON.stringify(syn));
     await sleep(1500);
     const v3 = await sgs();
     rec('영상 화면은 사라지고 노래는 이어짐', v3.cur === SLIDES - 1 && !(await page.evaluate(() => document.body.classList.contains('vid'))) && v3.sPlaying && v3.st > 29.5, JSON.stringify(v3));
@@ -216,7 +222,7 @@ async function sweep(page, tag){
     await page.keyboard.press('ArrowLeft'); await sleep(900);
     const v4 = await sgs();
     rec('아웃트로로 돌아오면 영상 · 노래 모두 처음에서 대기', v4.cur === SLIDES - 2 && v4.vt === 0 && !v4.vPlaying && !v4.sPlaying && v4.st === 0, JSON.stringify(v4));
-    await page.keyboard.press('ArrowRight'); await sleep(900);
+    await page.keyboard.press('ArrowRight'); await sleep(200); await page.keyboard.press('ArrowRight'); await sleep(900);
     rec('다시 넘기면 처음부터 재생', await page.evaluate(() => { const v = document.getElementById('v-outro'); return !v.paused && v.currentTime > 0 && v.currentTime < 2; }));
     /* 재생 도중 넘기면 마무리 장 — 영상은 멈추고 노래는 이어진다 */
     await page.keyboard.press('ArrowRight'); await sleep(900);
@@ -229,7 +235,7 @@ async function sweep(page, tag){
     const v5b = await page.evaluate(() => ({ cur: window.__deck.cur(), ended: document.getElementById('a-outro').ended }));
     rec('마무리 장에서 노래가 끝나도 장은 그대로', v5b.cur === SLIDES - 1 && v5b.ended, JSON.stringify(v5b));
     /* 마무리 장에서 다른 장으로 가면 노래 멈춤 */
-    await page.keyboard.press('ArrowLeft'); await sleep(300); await page.keyboard.press('ArrowRight'); await sleep(900);
+    await page.keyboard.press('ArrowLeft'); await sleep(300); await page.keyboard.press('ArrowRight'); await sleep(200); await page.keyboard.press('ArrowRight'); await sleep(900);
     await page.keyboard.press('ArrowRight'); await sleep(300);
     await page.keyboard.press('Home'); await sleep(300);
     rec('마무리 장에서 다른 장으로 가면 노래 멈춤', await page.evaluate(() => document.getElementById('a-outro').paused));
@@ -246,7 +252,7 @@ async function sweep(page, tag){
       HTMLMediaElement.prototype.play = function(){ if(!this.muted) return Promise.reject(new DOMException('blocked', 'NotAllowedError')); return orig.call(this); };
     });
     await ctx.goto(FILE.replace(/#.*$/, '') + '#' + (SLIDES - 1), { waitUntil: 'networkidle2' }); await sleep(600);
-    await ctx.keyboard.press('ArrowRight'); await sleep(800);
+    await ctx.keyboard.press('ArrowRight'); await sleep(200); await ctx.keyboard.press('ArrowRight'); await sleep(800);
     const v7 = await ctx.evaluate(() => { const v = document.getElementById('v-outro'); return { cur: window.__deck.cur(), paused: v.paused, muted: v.muted }; });
     rec('노래가 막혀도 아웃트로 영상은 재생', v7.cur === SLIDES - 2 && !v7.paused && v7.muted, JSON.stringify(v7));
     await ctx.close();
@@ -260,7 +266,7 @@ async function sweep(page, tag){
           HTMLMediaElement.prototype.play = function(){ if(!this.muted) return Promise.reject(new DOMException('blocked', 'NotAllowedError')); return orig.call(this); }; }
       }, blocked);
       await nb.goto(FILE.replace(/#.*$/, '') + '#' + (SLIDES - 1), { waitUntil: 'networkidle2' }); await sleep(600);
-      await nb.keyboard.press('ArrowRight'); await sleep(900);
+      await nb.keyboard.press('ArrowRight'); await sleep(200); await nb.keyboard.press('ArrowRight'); await sleep(900);
       const r = await nb.evaluate(() => { const v = document.getElementById('v-outro'); return { cur: window.__deck.cur(), paused: v.paused, muted: v.muted }; });
       rec(blocked ? '노래 파일 없음 + 소리 막힘: 영상을 소리 없이 재생' : '노래 파일 없음: 영상 자체 소리로 재생',
           r.cur === SLIDES - 2 && !r.paused && r.muted === blocked, JSON.stringify(r));
