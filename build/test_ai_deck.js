@@ -296,7 +296,7 @@ async function sweep(page, tag){
     rec('영상 창이 열려 있으면 장이 안 넘어감', (await idx(page)) === 4);
     await page.keyboard.press('Escape'); await sleep(120);
     /* 설계툴 녹화도 재생, 아직 없는 brain · CLAW 는 안내 */
-    for(const [n, src, has] of [[5, 'media/demo-tools.mp4', true], [6, 'media/demo-brain.mp4', true], [9, 'media/demo-claw.mp4?v=6', true]]){
+    for(const [n, src, has] of [[5, 'media/demo-tools.mp4', true], [6, 'media/demo-brain.mp4', true], [9, 'media/demo-claw.mp4?v=8', true]]){
       await page.evaluate(k => window.__deck.goTo(k), n); await sleep(1200);
       await page.click('.slide.active [data-demo]'); await sleep(900);
       const d2 = await page.evaluate(() => { const v = document.querySelector('#demo video'); return { miss: document.getElementById('demo').classList.contains('missing'), playing: !v.paused, src: v.getAttribute('src') }; });
@@ -323,7 +323,7 @@ async function sweep(page, tag){
     const bad = links.filter(l => !/^https:\/\//.test(l.h) || l.t !== '_blank' || !/noopener/.test(l.r));
     rec('라이브 링크 ' + links.length + '개 모두 https · 새 탭 · noopener', links.length >= 20 && bad.length === 0, bad.map(b => b.h).join(' '));
     const demos = await page.$$eval('[data-demo]', bs => bs.map(b => b.getAttribute('data-demo')));
-    rec('프로젝트 장마다 녹화 영상 버튼', ['media/demo-te.mp4', 'media/demo-tools.mp4', 'media/demo-brain.mp4', 'media/demo-claw.mp4?v=6'].every(d => demos.includes(d)), demos.join(','));
+    rec('프로젝트 장마다 녹화 영상 버튼', ['media/demo-te.mp4', 'media/demo-tools.mp4', 'media/demo-brain.mp4', 'media/demo-claw.mp4?v=8'].every(d => demos.includes(d)), demos.join(','));
 
     /* ── 링크를 누른 뒤 Space 가 링크를 다시 열지 않아야 한다 ── */
     await page.evaluate(() => window.__deck.goTo(5)); await sleep(1500);
