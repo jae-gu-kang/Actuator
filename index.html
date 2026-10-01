@@ -178,7 +178,7 @@ nav {
 
 footer { text-align: center; padding: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text3); }
 
-/* jaegukang.com ↔ brain ↔ claw 순환 이동 — 좁은 화면에서는 손가락 조작을 방해해 숨긴다. */
+/* jaegukang.com → brain → claw → te → jaegukang.com 순환 이동 — 좁은 화면에서는 손가락 조작을 방해해 숨긴다. */
 .portal-arrow {
   position: fixed; top: 50%; transform: translateY(-50%); z-index: 50;
   width: 44px; height: 44px; border-radius: 999px;
@@ -203,7 +203,7 @@ footer { text-align: center; padding: 24px; border-top: 1px solid var(--border);
 </head>
 <body>
 
-<!-- 왼쪽: 작동기 자동점검(te), 오른쪽: brain. claw 를 다시 넣을 때 자리 배치를 다시 정한다. -->
+<!-- 순환의 시작점: 왼쪽 = 이전(te), 오른쪽 = 다음(brain) -->
 <a class="portal-arrow left" href="https://te.jaegukang.com" title="작동기 자동점검으로 이동" aria-label="작동기 자동점검으로 이동">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
 </a>
