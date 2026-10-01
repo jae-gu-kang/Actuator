@@ -126,28 +126,25 @@ async function sweep(page, tag){
     await page.keyboard.up('ArrowRight'); await sleep(90);
     rec('키를 누르고 있어도 한 장만', (await idx(page)) === 2, 'idx=' + await idx(page));
 
-    /* ── 인트로: 넘기면 이름만 먼저, 잠시 뒤 표지로 자동 ── */
+    /* ── 인트로: 첫 입력은 이름만, 두 번째 입력에서 표지 ── */
     await page.keyboard.press('Home'); await sleep(300);
     await page.keyboard.press('ArrowRight'); await sleep(1000);
     const nm = await page.evaluate(() => { const s = document.querySelectorAll('.slide')[0], n = s.querySelector('.intro-name');
       return { cur: window.__deck.cur(), named: s.classList.contains('named'), op: +getComputedStyle(n).opacity, name: n.textContent, vid: document.body.classList.contains('vid') }; });
     rec('인트로에서 넘기면 영상 위에 이름만 먼저', nm.cur === 0 && nm.named && nm.op > .9 && /강재구/.test(nm.name) && nm.vid, JSON.stringify(nm));
-    await sleep(1500);
+    await sleep(2600);
     const nm2 = await page.evaluate(() => ({ cur: window.__deck.cur(), named: document.querySelectorAll('.slide')[0].classList.contains('named') }));
-    rec('잠시 뒤 표지로 자동으로 넘어감', nm2.cur === 1 && !nm2.named, JSON.stringify(nm2));
+    rec('기다려도 표지로 자동 전환되지 않음', nm2.cur === 0 && nm2.named, JSON.stringify(nm2));
+    await page.keyboard.press('ArrowRight'); await sleep(200);
+    rec('이름이 떠 있을 때 한 번 더 누르면 표지', (await idx(page)) === 1);
     await page.keyboard.press('ArrowLeft'); await sleep(200);
-    await page.keyboard.press('ArrowRight'); await sleep(150); await page.keyboard.press('ArrowRight'); await sleep(200);
-    rec('이름이 떠 있을 때 한 번 더 누르면 바로 표지', (await idx(page)) === 1);
-    await sleep(2400);
-    rec('바로 넘긴 뒤 남은 타이머가 한 장 더 넘기지 않음', (await idx(page)) === 1);
-    await page.keyboard.press('ArrowLeft'); await sleep(200);
-    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('ArrowLeft'); await sleep(2400);
+    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('ArrowLeft'); await sleep(300);
     const cancel = await page.evaluate(() => ({ cur: window.__deck.cur(), named: document.querySelectorAll('.slide')[0].classList.contains('named') }));
-    rec('이름이 뜬 뒤 ← : 이름을 거두고 자동 넘김 취소', cancel.cur === 0 && !cancel.named, JSON.stringify(cancel));
-    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('Home'); await sleep(2400);
-    rec('이름이 뜬 뒤 Home : 초기화하고 자동 넘김 취소', await page.evaluate(() => window.__deck.cur() === 0 && !document.querySelectorAll('.slide')[0].classList.contains('named')));
-    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('KeyP'); await sleep(2400);
-    rec('이름이 뜬 뒤 QR 창을 열면 자동 넘김 멈춤', await page.evaluate(() => window.__deck.cur() === 0));
+    rec('이름이 뜬 뒤 ← : 이름만 거둠', cancel.cur === 0 && !cancel.named, JSON.stringify(cancel));
+    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('Home'); await sleep(300);
+    rec('이름이 뜬 뒤 Home : 첫 화면 초기화', await page.evaluate(() => window.__deck.cur() === 0 && !document.querySelectorAll('.slide')[0].classList.contains('named')));
+    await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('KeyP'); await sleep(300);
+    rec('이름이 뜬 뒤 QR 창을 열면 이름 표시 초기화', await page.evaluate(() => window.__deck.cur() === 0 && !document.querySelectorAll('.slide')[0].classList.contains('named')));
     await page.keyboard.press('Escape'); await sleep(200);
 
     /* ── 발표 리모컨: PageDown/PageUp · F5 · B/. ── */
@@ -175,7 +172,9 @@ async function sweep(page, tag){
       vid: document.body.classList.contains('vid'), on: v.classList.contains('on'), playing: !v.paused && v.currentTime > 0,
       loop: v.loop, muted: v.muted, ph: document.querySelector('.vph[data-for="intro"]').classList.contains('on'), w: v.videoWidth }; });
     rec('인트로: 화면 가득 소리 없이 반복 재생', v1.vid && v1.on && v1.playing && v1.loop && v1.muted && !v1.ph && v1.w === 1920, JSON.stringify(v1));
-    await page.keyboard.press('ArrowRight'); await sleep(2900);          /* 이름 → 자동으로 표지 */
+    await page.keyboard.press('ArrowRight'); await sleep(2900);          /* 이름을 띄운 채 대기 */
+    rec('인트로 이름은 자동 전환 없이 계속 표시', await page.evaluate(() => window.__deck.cur() === 0 && document.querySelectorAll('.slide')[0].classList.contains('named')));
+    await page.keyboard.press('ArrowRight'); await sleep(300);           /* 두 번째 입력 → 표지 */
     const v1b = await page.evaluate(() => ({ vid: document.body.classList.contains('vid'), paused: document.getElementById('v-intro').paused }));
     rec('다음 장으로 가면 영상 층 꺼지고 인트로 멈춤', !v1b.vid && v1b.paused, JSON.stringify(v1b));
 

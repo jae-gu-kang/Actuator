@@ -623,7 +623,7 @@ body.notes #notes{display:block}
 <!-- ======================= 1. 인트로 영상 ======================= -->
 <section class="slide video" data-video="intro" data-sec="">
   <div class="intro-name" aria-hidden="true"><b>강재구</b><span>JAEGU KANG</span></div>
-  <aside class="note" data-t="10"><p>(인트로 영상이 반복 재생됩니다. 청중이 자리에 앉으면 넘깁니다. 넘기면 영상 위에 이름이 먼저 뜨고, 잠시 뒤 표지로 자동으로 넘어갑니다.)</p></aside>
+  <aside class="note" data-t="10"><p>(인트로 영상이 반복 재생됩니다. 청중이 자리에 앉으면 한 번 눌러 이름을 띄우고, 한 번 더 눌러 표지로 넘어갑니다.)</p></aside>
 </section>
 
 <!-- ======================= 2. 표지 ======================= -->
@@ -1628,7 +1628,7 @@ window.InfluencePlayer = function(o){
 
   /* 6. 이동 */
   /* 이름이 떠 있는 인트로를 거둔다 (← · Home · QR 을 열 때) */
-  function unname(){ clearTimeout(nameT); if(cur >= 0) slides[cur].classList.remove('named'); }
+  function unname(){ if(cur >= 0) slides[cur].classList.remove('named'); }
   function goTo(n){
     if(n === cur && n >= 0 && slides[n].classList.contains('named')){ unname(); return; }   /* 같은 장으로 가기 = 초기화 */
     if(n < 0 || n >= total || n === cur) return;
@@ -1637,7 +1637,7 @@ window.InfluencePlayer = function(o){
       prev.classList.remove('active'); prev.classList.add('leaving');
       (function(p){ setTimeout(function(){ if(!p.classList.contains('active')) p.classList.remove('leaving'); }, 520); })(prev);
     }
-    clearTimeout(nameT); if(prev) prev.classList.remove('named');
+    if(prev) prev.classList.remove('named');
     cur = n;
     var next = slides[n];
     next.classList.remove('active', 'leaving');
@@ -1653,8 +1653,7 @@ window.InfluencePlayer = function(o){
     renderNotes();
     try { history.replaceState(null, '', '#' + (n + 1)); } catch(e){}
   }
-  /* 인트로에서 넘기면 영상 위에 이름만 먼저 띄우고, 잠시 뒤 표지로 자동으로 넘어간다 (한 번 더 누르면 바로) */
-  var NAME_HOLD = 2200, nameT = 0;
+  /* 인트로: 첫 번째 입력은 이름만 띄우고, 두 번째 입력에서 표지로 넘어간다. */
   function next(){
     /* 아웃트로 장에서 대기 중이면 넘기는 대신 재생을 시작한다 */
     var k = cur >= 0 ? slides[cur].getAttribute('data-video') : null, v = k && vids[k];
@@ -1669,14 +1668,12 @@ window.InfluencePlayer = function(o){
     if(k === 'intro' && sl.querySelector('.intro-name') && !sl.classList.contains('named')){
       sl.classList.add('named');
       var ro = document.getElementById('rot'); if(ro) ro.classList.add('gone');
-      var at = cur; clearTimeout(nameT);
-      nameT = setTimeout(function(){ if(cur === at) goTo(at + 1); }, NAME_HOLD);
       return;
     }
     goTo(cur + 1);
   }
   function prev(){
-    /* 인트로에서 이름이 떠 있으면 ← 는 이름을 거두고 자동 넘김을 취소한다 */
+    /* 인트로에서 이름이 떠 있으면 ← 는 이름만 거둔다. */
     if(cur >= 0 && slides[cur].classList.contains('named')){ unname(); return; }
     goTo(cur - 1);
   }
@@ -1822,7 +1819,7 @@ window.InfluencePlayer = function(o){
         document.head.appendChild(sc);
       }
     }
-    if(!qrBox.classList.contains('on')) unname();          /* 여는 순간 자동 넘김을 멈춘다 */
+    if(!qrBox.classList.contains('on')) unname();          /* QR을 열면 이름 표시를 초기화한다. */
     qrBox.classList.toggle('on');
   }
 
