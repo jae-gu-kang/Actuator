@@ -13,7 +13,7 @@ const path = require('path');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FILE = 'file://' + path.resolve(process.argv[2] ||
   path.join(__dirname, '..', 'ai', 'index.html'));
-const SLIDES = 16;
+const SLIDES = 18;
 const LIMIT = 15 * 60;                 /* 발표 시간 15분 */
 
 const results = [];
@@ -97,11 +97,11 @@ async function sweep(page, tag){
 
     /* ── 화살표 한 번에 한 장 ── */
     const seq = [];
-    for(let i = 0; i < SLIDES - 1; i++){ await page.keyboard.press('ArrowRight'); await sleep(90); seq.push(await idx(page)); }
+    for(let i = 0; i < SLIDES; i++){ await page.keyboard.press('ArrowRight'); await sleep(90); seq.push(await idx(page)); }
     /* 아웃트로 장(끝에서 두 번째)은 들어와서 한 번 멈춘다 — 그다음 → 는 넘기지 않고 영상을 튼다 */
     /* 인트로(0)는 첫 → 에 이름만 띄우고 머문다. 아웃트로 장(끝에서 두 번째)은 들어와서 한 번 멈춘다 */
-    const expect = [0].concat([...Array(SLIDES - 2)].map((_, i) => i + 1));
-    rec('→ 1회 = 1장 전진 (인트로는 이름 먼저, 아웃트로는 한 번 더 눌러 재생)', JSON.stringify(seq) === JSON.stringify(expect), seq.join(','));
+    const expect = [0, 0].concat([...Array(SLIDES - 2)].map((_, i) => i + 1));
+    rec('→ 전진 (인트로 시작·이름, 아웃트로 대기 포함)', JSON.stringify(seq) === JSON.stringify(expect), seq.join(','));
     await page.keyboard.press('ArrowRight'); await sleep(90);          /* 대기 중인 아웃트로: 이름 */
     await page.keyboard.press('ArrowRight'); await sleep(90);          /* 재생 */
     await page.keyboard.press('ArrowRight'); await sleep(90);          /* 재생 중인 아웃트로 → 마지막 장 */
@@ -126,18 +126,20 @@ async function sweep(page, tag){
     await page.keyboard.up('ArrowRight'); await sleep(90);
     rec('키를 누르고 있어도 한 장만', (await idx(page)) === 2, 'idx=' + await idx(page));
 
-    /* ── 인트로: 첫 입력은 이름만, 두 번째 입력에서 표지 ── */
+    /* ── 인트로: 검정 대기 → 시작 → 이름 → 3초 후 자동 표지 ── */
     await page.keyboard.press('Home'); await sleep(300);
+    rec('인트로 시작 전 검정 화면과 무음', await page.evaluate(() => document.body.classList.contains('intro-wait') && document.getElementById('v-intro').paused && document.getElementById('a-intro').paused));
+    await page.keyboard.press('ArrowRight'); await sleep(1400);
+    rec('첫 입력은 영상과 음악 페이드인', await page.evaluate(() => !document.body.classList.contains('intro-wait') && !document.getElementById('v-intro').paused && !document.getElementById('a-intro').paused && !document.querySelectorAll('.slide')[0].classList.contains('named')));
     await page.keyboard.press('ArrowRight'); await sleep(1000);
     const nm = await page.evaluate(() => { const s = document.querySelectorAll('.slide')[0], n = s.querySelector('.intro-name');
       return { cur: window.__deck.cur(), named: s.classList.contains('named'), op: +getComputedStyle(n).opacity, name: n.textContent, vid: document.body.classList.contains('vid') }; });
     rec('인트로에서 넘기면 영상 위에 이름만 먼저', nm.cur === 0 && nm.named && nm.op > .9 && /강재구/.test(nm.name) && nm.vid, JSON.stringify(nm));
     await sleep(2600);
     const nm2 = await page.evaluate(() => ({ cur: window.__deck.cur(), named: document.querySelectorAll('.slide')[0].classList.contains('named') }));
-    rec('기다려도 표지로 자동 전환되지 않음', nm2.cur === 0 && nm2.named, JSON.stringify(nm2));
-    await page.keyboard.press('ArrowRight'); await sleep(200);
-    rec('이름이 떠 있을 때 한 번 더 누르면 표지', (await idx(page)) === 1);
+    rec('이름 등장 3초 후 자동 표지 전환', nm2.cur === 1 && !nm2.named, JSON.stringify(nm2));
     await page.keyboard.press('ArrowLeft'); await sleep(200);
+    await page.keyboard.press('ArrowRight'); await sleep(300);
     await page.keyboard.press('ArrowRight'); await sleep(300); await page.keyboard.press('ArrowLeft'); await sleep(300);
     const cancel = await page.evaluate(() => ({ cur: window.__deck.cur(), named: document.querySelectorAll('.slide')[0].classList.contains('named') }));
     rec('이름이 뜬 뒤 ← : 이름만 거둠', cancel.cur === 0 && !cancel.named, JSON.stringify(cancel));
@@ -167,14 +169,15 @@ async function sweep(page, tag){
     rec('쪽 번호가 실제 순서와 일치', foots.every(Boolean));
 
     /* ── 인트로: 소리 없이 반복 재생 ── */
-    await page.keyboard.press('Home'); await sleep(1200);
+    await page.keyboard.press('Home'); await sleep(100);
+    await page.keyboard.press('ArrowRight'); await sleep(1200);
     const v1 = await page.evaluate(() => { const v = document.getElementById('v-intro'); return {
       vid: document.body.classList.contains('vid'), on: v.classList.contains('on'), playing: !v.paused && v.currentTime > 0,
       loop: v.loop, muted: v.muted, ph: document.querySelector('.vph[data-for="intro"]').classList.contains('on'), w: v.videoWidth }; });
     rec('인트로: 화면 가득 소리 없이 반복 재생', v1.vid && v1.on && v1.playing && v1.loop && v1.muted && !v1.ph && v1.w === 1920, JSON.stringify(v1));
     await page.keyboard.press('ArrowRight'); await sleep(2900);          /* 이름을 띄운 채 대기 */
-    rec('인트로 이름은 자동 전환 없이 계속 표시', await page.evaluate(() => window.__deck.cur() === 0 && document.querySelectorAll('.slide')[0].classList.contains('named')));
-    await page.keyboard.press('ArrowRight'); await sleep(300);           /* 두 번째 입력 → 표지 */
+    rec('인트로 이름은 자동 전환 직전까지 표시', await page.evaluate(() => window.__deck.cur() === 0 && document.querySelectorAll('.slide')[0].classList.contains('named')));
+    await sleep(450);                                                /* 이름 등장 3초 후 표지 */
     const v1b = await page.evaluate(() => ({ vid: document.body.classList.contains('vid'), paused: document.getElementById('v-intro').paused }));
     rec('다음 장으로 가면 영상 층 꺼지고 인트로 멈춤', !v1b.vid && v1b.paused, JSON.stringify(v1b));
 
@@ -187,11 +190,11 @@ async function sweep(page, tag){
       cur: window.__deck.cur(), on: v.classList.contains('on'), paused: v.paused, t: +v.currentTime.toFixed(2) }; });
     rec('아웃트로 장으로 넘어가면 첫 장면에서 대기', v2a.cur === outroIdx && v2a.on && v2a.paused && v2a.t === 0, JSON.stringify(v2a));
     await page.keyboard.press('ArrowRight'); await sleep(1200);
-    const onm = await page.evaluate(() => { const s = document.querySelectorAll('.slide')[14], n = s.querySelector('.outro-name'), v = document.getElementById('v-outro');
+    const onm = await page.evaluate(() => { const s = document.querySelector('.slide[data-video=outro]'), n = s.querySelector('.outro-name'), v = document.getElementById('v-outro');
       return { cur: window.__deck.cur(), named: s.classList.contains('named'), op: +getComputedStyle(n).opacity, paused: v.paused, left: n.getBoundingClientRect().left, bottom: innerHeight - n.getBoundingClientRect().bottom }; });
-    rec('아웃트로에서 한 번 넘기면 왼쪽 아래에 이름 (영상은 대기)', onm.cur === 14 && onm.named && onm.op > .9 && onm.paused && onm.left < 200 && onm.bottom < 200, JSON.stringify(onm));
+    rec('아웃트로에서 한 번 넘기면 왼쪽 아래에 이름 (영상은 대기)', onm.cur === outroIdx && onm.named && onm.op > .9 && onm.paused && onm.left < 200 && onm.bottom < 200, JSON.stringify(onm));
     await page.keyboard.press('ArrowRight'); await sleep(1500);
-    rec('한 번 더 넘기면 재생되고 이름은 사라짐', await page.evaluate(() => !document.querySelectorAll('.slide')[14].classList.contains('named')));
+    rec('한 번 더 넘기면 재생되고 이름은 사라짐', await page.evaluate(() => !document.querySelector('.slide[data-video=outro]').classList.contains('named')));
     const sgs = () => page.evaluate(() => { const v = document.getElementById('v-outro'), a = document.getElementById('a-outro'); return {
       cur: window.__deck.cur(), vOn: v.classList.contains('on'), vPlaying: !v.paused, vMuted: v.muted, vt: +v.currentTime.toFixed(2),
       sPlaying: !a.paused, st: +a.currentTime.toFixed(2), sd: Math.round(a.duration), loop: v.loop }; });
@@ -211,7 +214,7 @@ async function sweep(page, tag){
     const v3 = await sgs();
     rec('영상 화면은 사라지고 노래는 이어짐', v3.cur === SLIDES - 1 && !(await page.evaluate(() => document.body.classList.contains('vid'))) && v3.sPlaying && v3.st > 29.5, JSON.stringify(v3));
     await page.evaluate(() => { document.getElementById('a-outro').currentTime = 38.9; }); await sleep(480);   /* 헤이 구간 */
-    rec('끝부분에 번쩍이는 효과 없음', await page.evaluate(() => { const e = document.querySelector('.slide.end'); return !e.classList.contains('lift') && !e.hasAttribute('data-hey') && window.__deck.cur() === 15; }));
+    rec('끝부분에 번쩍이는 효과 없음', await page.evaluate(() => { const e = document.querySelector('.slide.end'); return !e.classList.contains('lift') && !e.hasAttribute('data-hey') && window.__deck.cur() === window.__deck.total - 1; }));
     await page.evaluate(() => { const a = document.getElementById('a-outro'); a.currentTime = a.duration - .3; }); await sleep(1200);
     rec('노래는 약 39초에 페이드로 끝나고 장은 그대로', await page.evaluate(() => document.getElementById('a-outro').ended && window.__deck.cur()) === SLIDES - 1);
     /* 다시 들어오면 처음 장면에서 대기, 노래도 멈추고 처음으로 */
@@ -382,8 +385,8 @@ async function sweep(page, tag){
       tag: document.querySelector('#clawgraph .sl').classList.contains('on') }));
     rec('12장을 떠나면 재생이 멈춤', !cwOff.dim && cwOff.lit === 0 && cwOff.pts === 0 && !cwOff.tag, JSON.stringify(cwOff));
 
-    /* ── 13장: 항공기 전체 노드 그래프 재생 (CLAW 영향성 방식) ── */
-    await page.evaluate(() => window.__deck.goTo(12)); await sleep(5200);
+    /* ── 15장: 항공기 전체 노드 그래프 재생 (CLAW 영향성 방식) ── */
+    await page.evaluate(() => window.__deck.goTo(14)); await sleep(5200);
     const ac1 = await page.evaluate(() => ({
       nodes: document.querySelectorAll('#acgraph .nd').length,
       tools: document.querySelectorAll('#acgraph .nd.tool').length,
@@ -392,33 +395,33 @@ async function sweep(page, tag){
       dim: document.getElementById('acgraph').classList.contains('dim'),
       hot: document.querySelectorAll('#acgraph .hot.on').length,
       read: document.getElementById('acread').textContent }));
-    rec('13장: 노드 24개 중 네 도구 노드 10개', ac1.nodes === 24 && ac1.tools === 10, ac1.nodes + ' / ' + ac1.tools);
-    rec('13장: 선택 노드 하나에서 영향이 번짐', ac1.src === 1 && ac1.lit >= 5 && ac1.dim && ac1.hot >= 5, JSON.stringify(ac1));
-    rec('13장: 재생 판독 문구', /링크 · 힌지모멘트 변경 →/.test(ac1.read), ac1.read);
+    rec('15장: 노드 24개 중 네 도구 노드 10개', ac1.nodes === 24 && ac1.tools === 10, ac1.nodes + ' / ' + ac1.tools);
+    rec('15장: 선택 노드 하나에서 영향이 번짐', ac1.src === 1 && ac1.lit >= 5 && ac1.dim && ac1.hot >= 5, JSON.stringify(ac1));
+    rec('15장: 재생 판독 문구', /링크 · 힌지모멘트 변경 →/.test(ac1.read), ac1.read);
     await sleep(700);                    /* 층이 다 켜진 뒤(약 5.2 s)부터 입자가 흐른다 */
     /* 세로 간선 위 입자는 x 가 그대로라 x·y 를 함께 본다 */
     const ptsMoving = await page.evaluate(() => new Promise(r => { const c = document.querySelector('#acgraph .pt'); if(!c) return r(false); const at = () => c.getAttribute('cx') + ',' + c.getAttribute('cy'); const x = at(); setTimeout(() => r(at() !== x), 300); }));
-    rec('13장: 켜진 선을 따라 입자가 흐름', ptsMoving);
+    rec('15장: 켜진 선을 따라 입자가 흐름', ptsMoving);
     /* 입자가 흐르는 중에 떠나면 즉시 멈춰야 한다 */
     const acState = () => page.evaluate(() => ({ dim: document.getElementById('acgraph').classList.contains('dim'),
       lit: document.querySelectorAll('#acgraph .nd.lit, #acgraph .nd.src').length,
       on: document.querySelectorAll('#acgraph .hot.on').length, pts: document.querySelectorAll('#acgraph .pt').length }));
     await page.keyboard.press('ArrowRight'); await sleep(300);
     const off1 = await acState();
-    rec('13장: 입자 재생 중 떠나면 즉시 멈춤', !off1.dim && off1.lit === 0 && off1.on === 0 && off1.pts === 0, JSON.stringify(off1));
+    rec('15장: 입자 재생 중 떠나면 즉시 멈춤', !off1.dim && off1.lit === 0 && off1.on === 0 && off1.pts === 0, JSON.stringify(off1));
     /* 바로 돌아와 층이 번지는 도중(3.6–5.2 s)에 다시 떠나면, 남은 점등 타이머가 나중에 켜면 안 된다 */
     await page.keyboard.press('ArrowLeft'); await sleep(200);
     const back0 = await acState();
-    rec('13장: 다시 들어오면 깨끗한 상태', !back0.dim && back0.lit === 0 && back0.pts === 0, JSON.stringify(back0));
+    rec('15장: 다시 들어오면 깨끗한 상태', !back0.dim && back0.lit === 0 && back0.pts === 0, JSON.stringify(back0));
     await sleep(3900);
     await page.keyboard.press('ArrowRight'); await sleep(2500);
     const off2 = await acState();
-    rec('13장: 번지는 도중 떠나면 남은 타이머가 켜지 않음', !off2.dim && off2.lit === 0 && off2.on === 0 && off2.pts === 0, JSON.stringify(off2));
+    rec('15장: 번지는 도중 떠나면 남은 타이머가 켜지 않음', !off2.dim && off2.lit === 0 && off2.on === 0 && off2.pts === 0, JSON.stringify(off2));
     /* 곧바로 돌아오면 이전 회차의 play() 가 아직 예약돼 있을 수 있다 — 회차가 겹치면 선택 노드가 둘이 된다 */
     await page.keyboard.press('ArrowLeft'); await sleep(5300);
     const back1 = await page.evaluate(() => ({ src: [...document.querySelectorAll('#acgraph .nd.src')].map(g => g.textContent),
       read: document.getElementById('acread').textContent }));
-    rec('13장: 다시 들어오면 첫 노드부터 한 회차만 재생', back1.src.length === 1 && /^링크 · 힌지모멘트/.test(back1.read), JSON.stringify(back1));
+    rec('15장: 다시 들어오면 첫 노드부터 한 회차만 재생', back1.src.length === 1 && /^링크 · 힌지모멘트/.test(back1.read), JSON.stringify(back1));
     /* 회차가 바뀌는 순간 지난 선이 되살아나며 거꾸로 줄어들면 안 된다 — 매 프레임 표본을 뜬다 */
     const ghost = await page.evaluate(() => new Promise(resolve => {
       let max = 0, seenDimOff = false, t0 = performance.now();
@@ -433,7 +436,7 @@ async function sweep(page, tag){
         requestAnimationFrame(f);
       })();
     }));
-    rec('13장: 다음 회차에 지난 선이 되살아나지 않음', ghost.seenDimOff && ghost.max === 0, JSON.stringify(ghost));
+    rec('15장: 다음 회차에 지난 선이 되살아나지 않음', ghost.seenDimOff && ghost.max === 0, JSON.stringify(ghost));
 
     /* ── 배치 · 표시 ── */
     await sweep(page, '[1920]');
@@ -514,7 +517,7 @@ async function sweep(page, tag){
       notes: [...document.querySelectorAll('#scr .c-b')].filter(b => b.textContent.trim().length > 10).length,
       stage: getComputedStyle(document.getElementById('stage')).display,
       sw: document.documentElement.scrollWidth, cur: window.__script.cur() }));
-    rec('폰 대본: 16장 모두 대본이 있음', sc0.cards === 16 && sc0.notes === 16, JSON.stringify(sc0));
+    rec('폰 대본: 모든 장에 대본이 있음', sc0.cards === SLIDES && sc0.notes === SLIDES, JSON.stringify(sc0));
     rec('폰 대본: 무대는 숨김 · 가로 넘침 없음', sc0.stage === 'none' && sc0.sw <= 390, JSON.stringify(sc0));
     await sp.tap('[data-s="next"]'); await sleep(200); await sp.tap('[data-s="next"]'); await sleep(200); await sp.tap('[data-s="prev"]'); await sleep(200);
     rec('폰 대본: 다음 · 이전', (await sp.evaluate(() => window.__script.cur())) === 1);
@@ -542,7 +545,7 @@ async function sweep(page, tag){
       const r = await sp.evaluate(() => ({ cur: window.__script.cur(), el: window.__script.elapsed(),
         diff: document.querySelector('#scr .s-diff').textContent, pos: document.querySelector('#scr .s-pos').textContent,
         top: document.querySelector('#scr .s-el').textContent }));
-      rec('폰 대본: 깨진 저장값 ' + bad.slice(0, 28), Number.isFinite(r.el) && r.el >= 0 && !/NaN/.test(r.diff + r.top) && /^\d\d \/ 16$/.test(r.pos) && r.cur >= 0 && r.cur < 16, JSON.stringify(r));
+      rec('폰 대본: 깨진 저장값 ' + bad.slice(0, 28), Number.isFinite(r.el) && r.el >= 0 && !/NaN/.test(r.diff + r.top) && new RegExp('^\\d\\d / ' + SLIDES + '$').test(r.pos) && r.cur >= 0 && r.cur < SLIDES, JSON.stringify(r));
     }
     /* 키보드: 버튼을 누른 뒤 Enter 가 그 버튼을 다시 누르거나 장을 넘기지 않아야 한다 */
     await sp.evaluate(() => localStorage.removeItem('ai-script-v1')); await sp.reload({ waitUntil: 'networkidle2' }); await sleep(300);
@@ -571,10 +574,10 @@ async function sweep(page, tag){
       }, 8000);
     });
     await bg.goto(FILE, { waitUntil: 'networkidle2' });
-    await bg.evaluate(() => window.__deck.goTo(12)); await sleep(26000);
-    await bg.evaluate(() => window.__deck.goTo(13)); await sleep(9000);
+    await bg.evaluate(() => window.__deck.goTo(14)); await sleep(26000);
+    await bg.evaluate(() => window.__deck.goTo(15)); await sleep(9000);
     const bgOn = await bg.evaluate(() => document.querySelectorAll('#acgraph .hot.on, #acgraph .nd.lit').length);
-    rec('백그라운드 탭: 13장을 떠난 뒤 늦게 터진 타이머가 선을 켜지 않음', bgOn === 0, bgOn + '개');
+    rec('백그라운드 탭: 15장을 떠난 뒤 늦게 터진 타이머가 선을 켜지 않음', bgOn === 0, bgOn + '개');
     await bg.close();
 
     /* ── 모션 감소 설정: 모든 요소가 처음부터 보여야 한다 ── */

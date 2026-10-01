@@ -373,6 +373,29 @@ svg text{font-family:var(--sans)}
 .flowbar span{font-size:19px;color:var(--grey)}
 
 /* ---------- 비전 ---------- */
+/* CLAW 평가·개선 — 기존 영향성 그래프 다음에 이어지는 설명용 차트 */
+.gain-story .sec-head{margin-bottom:22px}
+.gain-story .sec-head h2{font-size:60px}
+.gain-story .gain-lead{font-size:29px;line-height:1.5;margin-bottom:16px;color:var(--dpaper)}
+.gain-story .gain-lead b{color:var(--paper)}
+.gain-story .gain-lead em{font-style:normal;color:var(--accent)}
+.gain-story figure{margin:0}
+.gain-story figure.dia figcaption{color:var(--dpaper);font-size:16px;gap:20px}
+.gain-story figure.dia figcaption b{color:var(--paper)}
+.gain-chart text{fill:var(--paper);font-size:21px;font-weight:600;letter-spacing:-.025em}
+.gain-chart .chart-k{fill:#a9a7a3;font-size:17px;font-weight:800;letter-spacing:.06em}
+.gain-chart .chart-h{font-size:29px;font-weight:800}
+.gain-chart .chart-big{font-size:82px;font-weight:900;letter-spacing:-.05em}
+.gain-chart .chart-num{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums}
+.gain-chart .chart-small{font-size:16px;fill:#a9a7a3;font-weight:500;letter-spacing:0}
+.gain-chart .chart-axis{stroke:rgba(242,240,235,.3);stroke-width:1.5;fill:none}
+.gain-chart .chart-grid{stroke:rgba(242,240,235,.1);stroke-width:1;fill:none}
+.gain-chart .chart-o{fill:#FF6C2B}
+.gain-chart .chart-c{fill:#36D1DD}
+.gain-chart .chart-link{stroke:#FF6C2B;stroke-width:2;stroke-dasharray:6 7;fill:none}
+.gain-chart .chart-curve{fill:none;stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
+.gain-chart .chart-dot{fill:#F4F1E8;stroke:#FF6C2B;stroke-width:4}
+@media print{.gain-chart .chart-link{stroke-dasharray:none}}
 .cw{display:grid;grid-template-columns:540px 1fr;grid-template-rows:minmax(0,1fr);gap:48px;flex:1;min-height:0}
 .cw .statement{font-size:42px}
 .cw-b{margin-top:22px;display:flex;flex-direction:column;gap:14px;font-size:21px;line-height:1.7;color:var(--dpaper)}
@@ -1065,12 +1088,12 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
     <button class="btn rec" type="button" data-demo="media/demo-claw.mp4?v=14">녹화 영상 <span class="arr">▶</span></button>
   </div>
   <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
-  <aside class="note" data-t="210">
-    <p>(라이브: 로그인 화면부터. 모드당 약 15초.)</p>
+  <aside class="note" data-t="150">
+    <p>(라이브: 로그인 화면부터. 모드당 약 10초.)</p>
     <p>탭은 <b>업무 순서</b> 그대로입니다. 기체를 고르고 → 블록도로 구조를 보고 → 엔벨로프와 트림 → 게인과 마진 → <b>자동 설계</b>가 격자 전체를 스스로 튜닝합니다.</p>
     <p>그다음 시뮬레이션과 가상환경에서 실제로 날려 보고 → <b>영향성</b>에서 격자 전체를 판정하고 → Autocode 로 C 코드를 만들고 → 검증에서 코드와 모델을 대조합니다. 결과 탭에는 모든 실행의 계보가 남습니다.</p>
     <p>설계 흐름 탭은 이 전체를 한 화면에서 끝까지 실행합니다.</p>
-    <p><b>시간 조절:</b> 14개 모두 보이면 약 3분 30초. 줄일 때는 자동 설계 · 시뮬레이션 · 영향성 · Autocode 넷만.</p>
+    <p><b>시간 조절:</b> 14개 모두 보이면 약 2분 30초. 줄일 때는 자동 설계 · 시뮬레이션 · 영향성 · Autocode 넷만. 평가와 개선은 다음 장표에서 설명합니다.</p>
   </aside>
 </section>
 
@@ -1107,7 +1130,44 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
   </aside>
 </section>
 
-<!-- ======================= 13. 비전 B — 네 도구에서 항공기 전체로 ======================= -->
+<!-- ======================= 13. CLAW 게인 평가 ======================= -->
+<section class="slide dark gain-story" data-sec="" data-gain-story="evaluation">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx n">04</span><h2>게인 변경을 전 운용점에서 평가</h2><span class="en">EVALUATE · TREND</span></div>
+  <p class="gain-lead" data-a style="--d:.2s">게인을 바꾸면 <b>전체 정량적 영향과 경향성</b>을 봅니다. <em>추종 성능과 안정여유가 함께 어떻게 변하는지</em> 확인합니다.</p>
+  <figure class="dia" data-a style="--d:.4s">
+    <svg id="gain-evaluation" class="gain-chart" viewBox="0 0 1680 650" preserveAspectRatio="xMidYMid meet" data-loop role="img" aria-label="게인 변경의 정량적 평가와 운용점별 경향을 보여주는 설명용 예시"></svg>
+    <figcaption><span><b>설명용 예시</b> · 수치와 곡선은 기능 설명을 위한 가상 데이터</span><span>선택 운용점 전체 평가 · 평균 변화와 최악 조건 · 미측정과 기준 위반도 표시</span></figcaption>
+  </figure>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="40">
+    <p>앞 장은 영향이 어디로 번지는지를 보여 줬습니다. 이제는 <b>얼마나 변하는지</b>를 평가합니다. 이 그림의 수치와 곡선은 기능을 설명하기 위한 예시이며 실제 기체 성능 결과가 아닙니다.</p>
+    <p>게인을 바꿔 선택한 운용점 전체를 평가하면 추종 RMS, 정착시간, GM과 PM, 제어권한 등을 수치로 비교합니다. 평균적인 개선뿐 아니라 어떤 운용점에서 효과가 작거나 제약이 나빠지는지도 봅니다.</p>
+    <p>왼쪽 곡선처럼 게인을 여러 값으로 바꿔 스윕하면 <b>전체적 경향성</b>을 읽을 수 있습니다. 추종은 좋아져도 안정여유가 줄 수 있으므로, 지표를 함께 보고 목표와 하드 제약을 구분해 판정합니다.</p>
+    <p>구현 근거: CLAW pipeline/evaluate.py의 대표 지표와 운용점 집계, web/js/lib/influence.js의 trendMatrix. 합산 점수 J는 하드 제약을 통과한 후보끼리 비교하며, 미측정 지표는 합격으로 처리하지 않습니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 14. CLAW 다중 게인 개선 ======================= -->
+<section class="slide dark gain-story" data-sec="" data-gain-story="optimization">
+  <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li class="on">CLAW</li><li class="cta">목표</li></ul></header>
+  <div class="sec-head" data-a><span class="idx n">04</span><h2>목표성능을 맞추는 게인 조합</h2><span class="en">IMPROVE · CONFIRM</span></div>
+  <p class="gain-lead" data-a style="--d:.2s">목표와 제약을 넣으면 <b>게인을 얼마나 바꿀지</b> 계산합니다. <em>2·3개 이상의 게인을 함께 조정</em>하고, 후보를 다시 평가합니다.</p>
+  <figure class="dia" data-a style="--d:.4s">
+    <svg id="gain-optimization" class="gain-chart" viewBox="0 0 1680 650" preserveAspectRatio="xMidYMid meet" data-loop role="img" aria-label="목표성능과 조정 범위를 바탕으로 여러 게인을 동시에 변경하고 재평가하는 설명용 예시"></svg>
+    <figcaption><span><b>설명용 예시</b> · 목표값·조정량·탐색 지형은 가상 데이터</span><span>측정한 표본과 설정 범위 안에서 탐색 · 전체 운용점 재평가를 통과한 후보만 저장</span></figcaption>
+  </figure>
+  <div class="foot"><span>강재구 · 기억에서 데이터로</span><span class="r"></span></div>
+  <aside class="note" data-t="40">
+    <p>다음은 평가에서 <b>개선</b>으로 넘어가는 과정입니다. RMS와 정착시간 목표, 안정여유와 타면·제어권한 제약, 게인 변화폭과 변경 개수 상한을 지정합니다. 그림의 목표값과 변경량은 설명용 예시입니다.</p>
+    <p>감도 측정으로 어느 방향으로 얼마나 바꿀지를 계산합니다. 한 게인만 바꾸기 어렵다면 <b>Kp, Ki, K_rate처럼 여러 게인을 동시에 조정</b>해 목표를 만족하는 조합을 제안합니다. 목표를 맞추는 최소 수정과 성능 최적화를 선택할 수 있습니다.</p>
+    <p>게인을 얼마나 올릴 수 있는지는 표본 범위와 안정여유·포화 같은 제약에 따라 달라집니다. 측정하지 않은 범위의 절대 최대값이나 전역 최적해를 보장하는 것은 아닙니다.</p>
+    <p>제안은 예측 후보입니다. 선택 운용점 전체에서 다시 평가해 <b>목표와 하드 제약을 함께 통과한 후보만</b> 설계안으로 저장합니다. 미달하면 다시 측정하고 제안하는 과정을 반복합니다.</p>
+    <p>구현 근거: CLAW pipeline/improve.py의 constrained_proposal, pipeline/prescribe.py의 solve_joint, server routes/influence.py의 /influence/improve. 조정변수 1–8개, 변경 개수 상한과 변화폭, 목표 충족 및 성능 최적화, 전체 선택 운용점 재평가를 지원합니다.</p>
+  </aside>
+</section>
+
+<!-- ======================= 15. 비전 B — 네 도구에서 항공기 전체로 ======================= -->
 <section class="slide dark" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta on">목표</li></ul></header>
   <div class="sec-head" data-a><span class="idx">(05)</span><h2>네 도구에서 항공기 전체로</h2><span class="en">ONE AIRCRAFT · ONE GRAPH</span></div>
@@ -1124,7 +1184,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
   </aside>
 </section>
 
-<!-- ======================= 14. 비전 C — 기억 vs 데이터 ======================= -->
+<!-- ======================= 16. 비전 C — 기억 vs 데이터 ======================= -->
 <section class="slide" data-sec="">
   <header class="rail"><div class="logo">기억에서 데이터로<sup>AI REPORT</sup></div><ul><li>문제</li><li>점검</li><li>설계툴</li><li>지식저장소</li><li>CLAW</li><li class="cta on">목표</li></ul></header>
   <div class="sec-head" data-a><span class="idx">(05)</span><h2>기억에서 데이터로</h2><span class="en">MEMORY → DATA</span></div>
@@ -1145,13 +1205,13 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
   </aside>
 </section>
 
-<!-- ======================= 15. 아웃트로 영상 — 한 번 재생, 끝나면 마무리 장으로 ======================= -->
+<!-- ======================= 17. 아웃트로 영상 — 한 번 재생, 끝나면 마무리 장으로 ======================= -->
 <section class="slide video" data-video="outro" data-sec="">
   <div class="outro-name" aria-hidden="true"><b>강재구</b><span>JAEGU KANG</span></div>
   <aside class="note" data-t="29"><p>(아웃트로 장은 첫 장면에서 멈춰 있습니다. <b>한 번 넘기면</b> 왼쪽 아래에 이름이 뜨고, <b>한 번 더 넘기면</b> 영상이 노래와 함께 재생되고, 노래 박자에 맞춰 마무리 장으로 넘어가 글이 차례로 나옵니다. 노래는 약 39초에 마디 끝에서 서서히 끝납니다. 넘기지 말고 기다리세요.)</p></aside>
 </section>
 
-<!-- ======================= 16. 마무리 ======================= -->
+<!-- ======================= 18. 마무리 ======================= -->
 <section class="slide dark end" data-sec="">
   <div class="kick" data-a="fade"><span class="dot"></span>설계지식의 자산화</div>
   <div class="verse" data-a="left" style="--d:.3s">
@@ -1178,8 +1238,9 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
   <div class="msg">녹화 영상이 아직 없습니다.<small></small></div>
 </div>
 
+<script src="graphics/claw-gain-story.js"></script>
 <script>
-/* ===== 영향성 재생기 — CLAW 영향성 탭의 재생 방식 (12장 · 13장 공용) =====
+/* ===== 영향성 재생기 — CLAW 영향성 탭의 재생 방식 (12장 · 15장 공용) =====
    노드 하나를 고르면 모두 어두워지고, 영향 원뿔이 층(최장 경로 순위)을 타고 켜진다.
    층 슬롯 150 ms · 층 안 시차 30 ms · 간선 성장 180 ms, 완성 뒤 3.8 s 입자가 흐르고 되감는다.
    o: svg · read · N(id→{g,out,label}) · order · hot('a>b'→path) · gP(입자 층) · sources
@@ -1366,7 +1427,7 @@ window.InfluencePlayer = function(o){
   });
 })();
 
-/* ===== 13장 : 항공기 전체 노드 그래프 (개념도) — 재생은 공용 InfluencePlayer ===== */
+/* ===== 15장 : 항공기 전체 노드 그래프 (개념도) — 재생은 공용 InfluencePlayer ===== */
 (function(){
   var svg = document.getElementById('acgraph'); if(!svg) return;
   var NS = 'http://www.w3.org/2000/svg';
