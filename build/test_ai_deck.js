@@ -385,6 +385,16 @@ async function sweep(page, tag){
       tag: document.querySelector('#clawgraph .sl').classList.contains('on') }));
     rec('12장을 떠나면 재생이 멈춤', !cwOff.dim && cwOff.lit === 0 && cwOff.pts === 0 && !cwOff.tag, JSON.stringify(cwOff));
 
+    /* ── 14장: 다중 게인 개선 애니메이션 반복 ── */
+    await page.evaluate(() => window.__deck.goTo(13)); await sleep(8500);
+    const optAccepted = await page.evaluate(() => ({ phase: document.getElementById('gain-optimization').getAttribute('data-phase'),
+      cycle: document.getElementById('gain-optimization').getAttribute('data-cycle') }));
+    rec('14장: 탐색 후 재평가 통과 상태', optAccepted.phase === 'accepted' && optAccepted.cycle === '0', JSON.stringify(optAccepted));
+    await sleep(4200);
+    const optLoop = await page.evaluate(() => ({ phase: document.getElementById('gain-optimization').getAttribute('data-phase'),
+      cycle: document.getElementById('gain-optimization').getAttribute('data-cycle') }));
+    rec('14장: 완료 뒤 처음부터 반복', optLoop.phase === 'search' && optLoop.cycle === '1', JSON.stringify(optLoop));
+
     /* ── 15장: 항공기 전체 노드 그래프 재생 (CLAW 영향성 방식) ── */
     await page.evaluate(() => window.__deck.goTo(14)); await sleep(5200);
     const ac1 = await page.evaluate(() => ({
@@ -402,6 +412,10 @@ async function sweep(page, tag){
     /* 세로 간선 위 입자는 x 가 그대로라 x·y 를 함께 본다 */
     const ptsMoving = await page.evaluate(() => new Promise(r => { const c = document.querySelector('#acgraph .pt'); if(!c) return r(false); const at = () => c.getAttribute('cx') + ',' + c.getAttribute('cy'); const x = at(); setTimeout(() => r(at() !== x), 300); }));
     rec('15장: 켜진 선을 따라 입자가 흐름', ptsMoving);
+    const acCycle0 = await page.evaluate(() => document.getElementById('acgraph').getAttribute('data-cycle'));
+    await page.waitForFunction(c => document.getElementById('acgraph').getAttribute('data-cycle') !== c, { timeout: 9000 }, acCycle0).catch(() => {});
+    const acCycle1 = await page.evaluate(() => ({ cycle: document.getElementById('acgraph').getAttribute('data-cycle'), read: document.getElementById('acread').textContent }));
+    rec('15장: 완료 뒤 다음 영향 경로를 반복', acCycle1.cycle === '1' && /^공력 DB/.test(acCycle1.read), JSON.stringify(acCycle1));
     /* 입자가 흐르는 중에 떠나면 즉시 멈춰야 한다 */
     const acState = () => page.evaluate(() => ({ dim: document.getElementById('acgraph').classList.contains('dim'),
       lit: document.querySelectorAll('#acgraph .nd.lit, #acgraph .nd.src').length,

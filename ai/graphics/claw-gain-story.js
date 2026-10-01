@@ -35,11 +35,13 @@
 
   // A player belongs to its slide. Leaving, hiding the tab, and printing stop RAF.
   function player(svg, draw, seconds){
-    var slide = svg.closest('.slide'), raf = 0, started = 0, printing = false;
+    var slide = svg.closest('.slide'), raf = 0, started = 0, printing = false, cycle = -1;
     function stop(){ cancelAnimationFrame(raf); raf = 0; svg.removeAttribute('data-playing'); }
     function frame(now){
       if(!slide.classList.contains('active') || document.hidden || printing){ stop(); return; }
-      var t = (now - started) / 1000 % seconds;
+      var elapsed = (now - started) / 1000, nextCycle = Math.floor(elapsed / seconds);
+      if(nextCycle !== cycle){ cycle = nextCycle; svg.setAttribute('data-cycle', cycle); }
+      var t = elapsed % seconds;
       draw(t); raf = requestAnimationFrame(frame);
     }
     function sync(){
@@ -47,7 +49,8 @@
       if(!slide.classList.contains('active')) return;
       if(reduce || printing){ draw(seconds - 2); return; }
       if(document.hidden) return;
-      started = performance.now(); draw(0); svg.setAttribute('data-playing', 'true');
+      started = performance.now(); cycle = 0; draw(0);
+      svg.setAttribute('data-cycle', '0'); svg.setAttribute('data-playing', 'true');
       raf = requestAnimationFrame(frame);
     }
     draw(seconds - 2);
@@ -250,7 +253,9 @@
     text(svg, 1145, 606, '최소 수정으로 목표 충족 또는 성능 최적화', 'chart-small');
 
     player(svg, function(t){
-      var u = Math.min(1, Math.max(0, (t - 1) / 5));
+      /* 10초에 결과를 거두고 처음 상태로 돌아간 뒤 같은 탐색을 다시 시작한다. */
+      var restarting = t >= 10;
+      var u = restarting ? 0 : Math.min(1, Math.max(0, (t - 1) / 5));
       var section = Math.min(2, Math.floor(u * 3)), local = u * 3 - section;
       var kp = candidates[section][0] + (candidates[section + 1][0] - candidates[section][0]) * local;
       var ki = candidates[section][1] + (candidates[section + 1][1] - candidates[section][1]) * local;
@@ -266,14 +271,14 @@
         g.bar.setAttribute('width', Math.abs(v) * 11);
       });
       rangeDot.setAttribute('cx', rx + rw * (kp + 20) / 40);
-      var confirmed = t >= 8;
-      outcome.textContent = confirmed ? 'RMS 4.8 m · Ts 5.6 s · PM 47°' : t >= 6 ? '선택 운용점 전체에서 확인 중' : '후보 변경량을 계산하는 중';
-      checked.textContent = confirmed ? '목표 + 하드 제약 통과' : t >= 6 ? '재평가 중' : '후보 탐색 중';
+      var confirming = t >= 6 && t < 8, confirmed = t >= 8 && t < 10;
+      outcome.textContent = confirmed ? 'RMS 4.8 m · Ts 5.6 s · PM 47°' : confirming ? '선택 운용점 전체에서 확인 중' : restarting ? '다음 탐색을 준비하는 중' : '후보 변경량을 계산하는 중';
+      checked.textContent = confirmed ? '목표 + 하드 제약 통과' : confirming ? '재평가 중' : restarting ? '초기화 중' : '후보 탐색 중';
       checked.setAttribute('class', 'chart-num ' + (confirmed ? 'chart-c' : 'chart-o'));
       save.setAttribute('opacity', confirmed ? 1 : .25);
-      searchState.textContent = confirmed ? '재평가 통과 · 설계안으로 저장 가능' : t >= 6 ? '예측 후보를 실제 계산으로 확인' : '감도를 바탕으로 게인 조합을 탐색';
-      svg.setAttribute('data-phase', confirmed ? 'accepted' : t >= 6 ? 'confirm' : 'search');
-    }, 16);
+      searchState.textContent = confirmed ? '재평가 통과 · 설계안으로 저장 가능' : confirming ? '예측 후보를 실제 계산으로 확인' : restarting ? '같은 과정을 처음부터 반복' : '감도를 바탕으로 게인 조합을 탐색';
+      svg.setAttribute('data-phase', confirmed ? 'accepted' : confirming ? 'confirm' : restarting ? 'restart' : 'search');
+    }, 12);
   }
   evaluation(); optimization();
 })();

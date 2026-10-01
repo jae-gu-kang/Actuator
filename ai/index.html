@@ -1248,7 +1248,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 window.InfluencePlayer = function(o){
   var svg = o.svg, N = o.N, order = o.order, hot = o.hot, read = o.read;
   var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
-  var timers = [], raf = 0, running = false, si = 0;
+  var timers = [], raf = 0, running = false, si = 0, cycle = 0;
   /* 끝난 타이머는 스스로 목록에서 빠진다 — 목록을 통째로 비우면, 백그라운드 탭에서 한꺼번에 몰려 실행될 때
      아직 안 끝난 타이머 번호까지 잃어 clearAll 이 못 끈다 */
   function later(fn, ms){ var id = setTimeout(function(){ var j = timers.indexOf(id); if(j >= 0) timers.splice(j, 1); fn(); }, ms); timers.push(id); }
@@ -1264,6 +1264,7 @@ window.InfluencePlayer = function(o){
     order.forEach(function(id){ N[id].g.classList.remove('lit', 'src'); });
     resetHot(Object.keys(hot).map(function(k){ return hot[k]; }));
     o.gP.textContent = '';
+    svg.removeAttribute('data-playing'); svg.removeAttribute('data-cycle');
     if(o.onClear) o.onClear();
   }
   /* 최장 경로 순위: 층 번호가 곧 켜지는 순서 (CLAW assignRanks 와 같은 뜻).
@@ -1282,12 +1283,14 @@ window.InfluencePlayer = function(o){
   }
   function play(){
     if(!running) return;
+    svg.setAttribute('data-playing', 'true'); svg.setAttribute('data-cycle', cycle++);
     var src = o.sources[si++ % o.sources.length], r = ranks(src);
     var ids = order.filter(function(id){ return r[id] !== undefined; });
     var R = 0; ids.forEach(function(id){ R = Math.max(R, r[id]); });
     var byRank = []; ids.forEach(function(id){ (byRank[r[id]] = byRank[r[id]] || []).push(id); });
     svg.classList.add('dim');
     if(o.onSource) o.onSource(src);
+    read.innerHTML = o.step(src, 0, R, src);
     var lit = [], T0 = 300, spill = 0;
     byRank.forEach(function(list, k){
       /* 한 층의 시차는 층 간격(150 ms) 안에 끝나야 한다 — 넘치면 다음 층 노드가 부모보다 먼저 켜져
@@ -1310,8 +1313,8 @@ window.InfluencePlayer = function(o){
       order.forEach(function(id){ N[id].g.classList.remove('lit', 'src'); });
       svg.classList.remove('dim');
       if(o.onClear) o.onClear();
-    }, done + 3800);
-    later(function(){ resetHot(lit); play(); }, done + 3800 + 700);
+    }, done + (o.holdMs || 3800));
+    later(function(){ resetHot(lit); play(); }, done + (o.holdMs || 3800) + (o.gapMs || 700));
   }
   /* 켜진 간선을 따라 흐르는 입자 (많으면 고르게 솎는다) */
   function flow(paths){
@@ -1333,7 +1336,7 @@ window.InfluencePlayer = function(o){
   document.addEventListener('deck:slide', function(){
     var on = slide.classList.contains('active');
     if(on && !running){
-      running = true; si = 0; read.innerHTML = '&nbsp;';
+      running = true; si = 0; cycle = 0; read.innerHTML = '&nbsp;';
       if(reduce){ read.innerHTML = o.still(); return; }
       later(play, o.startDelay || 3300);             /* 등장 모션이 끝난 뒤 재생 */
     } else if(!on && running){
@@ -1509,6 +1512,7 @@ window.InfluencePlayer = function(o){
   var gPl = gP;
   window.InfluencePlayer({
     svg: svg, read: document.getElementById('acread'), N: N, order: order, hot: hot, gP: gPl, sources: SOURCES,
+    holdMs: 1800, gapMs: 500,
     step: function(src, k, R, id){ return '<b>' + N[src].label + '</b> 변경 → 층 ' + k + ' / ' + R + ' · ' + N[id].label + ' 도달'; },
     done: function(src, ids, R){ return '<b>' + N[src].label + '</b> 변경 → 영향 노드 <b>' + (ids.length - 1) + '</b>개 · ' + R + '개 층에 번짐'; },
     still: function(){ return '노드 <b>' + order.length + '</b>개 · 간선 ' + EDGES.length + '개 · 되먹임 ' + FEEDBACK.length + '개'; }
