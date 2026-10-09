@@ -641,9 +641,7 @@ body.notes #notes{display:block}
 <div id="vlayer">
   <video id="v-intro" data-for="intro" muted loop playsinline preload="auto" src="media/intro.mp4"></video>
   <video id="v-outro" data-for="outro" data-once playsinline preload="auto" src="media/outro.mp4"></video>
-  <!-- 아웃트로 노래: 원곡에서 아웃트로 시작 지점(4:20.440)부터 39.8 s (끝 세 박 페이드). 영상과 함께 시작해 마무리 장에서도 이어진다 -->
   <audio id="a-intro" loop preload="auto" src="media/intro-music.m4a"></audio>
-  <audio id="a-outro" preload="auto" src="media/outro-song.m4a"></audio>
   <div class="vph" data-for="intro"><b>INTRO</b><p>인트로 영상 자리 · media/intro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
   <div class="vph" data-for="outro"><b>OUTRO</b><p>아웃트로 영상 자리 · media/outro.mp4 를 넣으면 화면 가득 반복 재생됩니다</p></div>
 </div>
@@ -1208,7 +1206,7 @@ summary: </span><span class="c">한 줄 요약 → 색인이 이것으로 만들
 <!-- ======================= 17. 아웃트로 영상 — 한 번 재생, 끝나면 마무리 장으로 ======================= -->
 <section class="slide video" data-video="outro" data-sec="">
   <div class="outro-name" aria-hidden="true"><b>강재구</b><span>JAEGU KANG</span></div>
-  <aside class="note" data-t="29"><p>(아웃트로 장은 첫 장면에서 멈춰 있습니다. <b>한 번 넘기면</b> 왼쪽 아래에 이름이 뜨고, <b>한 번 더 넘기면</b> 영상이 노래와 함께 재생되고, 노래 박자에 맞춰 마무리 장으로 넘어가 글이 차례로 나옵니다. 노래는 약 39초에 마디 끝에서 서서히 끝납니다. 넘기지 말고 기다리세요.)</p></aside>
+  <aside class="note" data-t="29"><p>(아웃트로 장은 첫 장면에서 멈춰 있습니다. <b>한 번 넘기면</b> 왼쪽 아래에 이름이 뜨고, <b>한 번 더 넘기면</b> 영상이 재생되고(소리 없음), 영상이 끝나기 직전에 마무리 장으로 넘어가 글이 차례로 나옵니다. 넘기지 말고 기다리세요.)</p></aside>
 </section>
 
 <!-- ======================= 18. 마무리 ======================= -->
@@ -1637,29 +1635,10 @@ window.InfluencePlayer = function(o){
   }
   introStart.addEventListener('click', function(e){ e.stopPropagation(); introStart.blur(); startIntro(); });
   introSong.addEventListener('error', stopIntro);
-  /* 아웃트로 노래 트랙 — 있으면 영상은 소리 없이 틀고 노래는 이 트랙으로 낸다(영상과 같은 순간 시작).
-     영상이 끝나거나 마무리 장으로 넘어가도 노래는 곡 끝까지 이어진다. 파일이 없으면 영상 소리를 쓴다. */
-  var song = document.getElementById('a-outro');
-  if(song) song.addEventListener('error', function(){ song.setAttribute('data-missing', ''); });
-  function songOK(){ return song && !song.error && !song.hasAttribute('data-missing'); }
-  function stopSong(){ if(song){ song.pause(); try { song.currentTime = 0; } catch(err){} } }
+  /* 아웃트로 영상은 소리 없이 튼다 — 저작권 위험이 없도록 음악은 쓰지 않는다(영상 파일에도 소리 트랙이 없다) */
   function playVideo(v){
-    if(!v.hasAttribute('data-once')){ var p = v.play(); if(p && p.catch) p.catch(function(){}); return; }
-    if(songOK()){
-      v.muted = true;
-      var pv = v.play(); if(pv && pv.catch) pv.catch(function(){});
-      try { song.currentTime = v.currentTime || 0; } catch(err){}
-      var ps = song.play(); if(ps && ps.catch) ps.catch(function(){});
-      return;
-    }
-    v.muted = false;
-    var q = v.play();
-    /* 소리 재생이 막혔을 때(NotAllowedError)만, 그리고 아직 이 영상 장에 있을 때만 소리 없이 다시 튼다.
-       장을 떠나며 pause() 로 취소된 재생(AbortError)을 되살리면 안 보이는 곳에서 영상이 계속 돈다 */
-    if(q && q.catch) q.catch(function(err){
-      if(!err || err.name !== 'NotAllowedError' || !v.classList.contains('on')) return;
-      v.muted = true; var r = v.play(); if(r && r.catch) r.catch(function(){});
-    });
+    v.muted = true;
+    var p = v.play(); if(p && p.catch) p.catch(function(){});
   }
   function syncVideo(){
     var want = cur >= 0 ? slides[cur].getAttribute('data-video') : null;
@@ -1672,7 +1651,7 @@ window.InfluencePlayer = function(o){
       phs[k].classList.toggle('on', on && miss);
       if(on && !miss){
         if(v.hasAttribute('data-once')){
-          if(shown !== k){ v.pause(); try { v.currentTime = 0; } catch(err){} v._armed = true; stopSong(); }   /* 들어오면 대기 */
+          if(shown !== k){ v.pause(); try { v.currentTime = 0; } catch(err){} v._armed = true; }   /* 들어오면 대기 */
           else if(!v._armed) playVideo(v);
         } else playVideo(v);
       } else {
@@ -1682,13 +1661,8 @@ window.InfluencePlayer = function(o){
     });
     shown = want;
     syncIntro();
-    /* 음악 박자에 맞춘 마무리는 노래가 넘겼을 때만 — 직접 넘기거나 다시 들어오면 평소 순서로 */
+    /* 영상 시계에 맞춘 마무리는 영상이 넘겼을 때만 — 직접 넘기거나 다시 들어오면 평소 순서로 */
     if(typeof viaCut !== 'undefined'){ if(!viaCut) syncEnd(false); viaCut = false; }
-    /* 노래는 아웃트로 장과 바로 다음 장(마무리)에서만 — 그 밖으로 가면 멈춘다 */
-    if(song && !song.paused){
-      var home = slides.findIndex(function(sl){ return sl.getAttribute('data-video') === 'outro'; });
-      if(cur !== home && cur !== home + 1) stopSong();
-    }
   }
   function beginIntro(){
     if(MODE !== 'deck' || cur < 0 || slides[cur].getAttribute('data-video') !== 'intro' || introStarted) return false;
@@ -1697,17 +1671,12 @@ window.InfluencePlayer = function(o){
     syncVideo();
     return true;
   }
-  if(vids.outro && song) vids.outro.addEventListener('timeupdate', function(){
-    var v = vids.outro;
-    if(!v.paused && !song.paused && Math.abs(song.currentTime - v.currentTime) > .15) song.currentTime = v.currentTime;
-  });
 
-  /* 음악에 맞춘 엔딩 — 노래 시계(초) 기준. 곡은 68.53 BPM, 한 마디 3.502 s, 첫 박 0.795 s.
-     28.81 = 8마디 첫 박(영상 끝 29.04 직전)에 마무리 장으로, 31.44 = 8마디 넷째 박에 설명, 34.07 = 9마디 셋째 박에
-     감사합니다. 노래 파일은 35.82 s 리프트 뒤 36.7→39.32 s 세 박 동안 페이드로 마디 끝에서 멈춘다(약 39.8 s). */
+  /* 영상 시계에 맞춘 엔딩(초) — 28.81 s(영상 끝 29.04 직전)에 마무리 장으로 넘기고,
+     설명 · 감사합니다는 그 시각을 기준으로 차례로 나온다. */
   var BEAT = {cut: 28.81, verse: 29.25, lead: 31.44, thanks: 34.07};
 
-  var endSlide = document.querySelector('.slide.end'), viaCut = false, musicRaf = 0;
+  var endSlide = document.querySelector('.slide.end'), viaCut = false, endRaf = 0;
   var endEls = endSlide ? [['.kick', null], ['.verse', 'verse'], ['.lead', 'lead'], ['.tf', 'thanks']].map(function(x){
     var el = endSlide.querySelector(x[0]); return {el: el, key: x[1], style: el.getAttribute('style')};
   }) : [];
@@ -1720,17 +1689,18 @@ window.InfluencePlayer = function(o){
       else if(x.style === null) x.el.removeAttribute('style'); else x.el.setAttribute('style', x.style);
     });
   }
-  function musicLoop(){
-    cancelAnimationFrame(musicRaf);
+  function endLoop(){
+    cancelAnimationFrame(endRaf);
     (function f(){
-      if(!song || song.paused){ musicRaf = 0; return; }
-      var t = song.currentTime, home = outroHome();
+      var v = vids.outro;
+      if(!v || v.paused){ endRaf = 0; return; }
+      var t = v.currentTime, home = outroHome();
       if(cur === home && t >= BEAT.cut){ syncEnd(true, t); viaCut = true; goTo(home + 1); }
-      if(cur !== home){ musicRaf = 0; return; }          /* 전환이 끝나면 더 볼 것이 없다 */
-      musicRaf = requestAnimationFrame(f);
+      if(cur !== home){ endRaf = 0; return; }          /* 전환이 끝나면 더 볼 것이 없다 */
+      endRaf = requestAnimationFrame(f);
     })();
   }
-  if(song) song.addEventListener('play', musicLoop);
+  if(vids.outro) vids.outro.addEventListener('play', endLoop);
   Object.keys(vids).forEach(function(k){
     var v = vids[k];
     if(v.hasAttribute('data-once')) v.addEventListener('ended', function(){
