@@ -1,0 +1,257 @@
+{
+  "passed": true,
+  "blend_file": "/Users/wlsekffo/orca/Actuator/ai/banshee_model/Banshee_TwinJet.blend",
+  "airframe": {
+    "vertices": 24116,
+    "faces": 23390,
+    "connected_components": 1,
+    "component_diagnostics": [
+      {
+        "vertices": 24116,
+        "faces": 23390,
+        "bounds": {
+          "min": [
+            -1.7200000286102295,
+            -1.3300000429153442,
+            1.11899995803833
+          ],
+          "max": [
+            1.440000057220459,
+            1.3300000429153442,
+            1.4809999465942383
+          ],
+          "size": [
+            3.1600000858306885,
+            2.6600000858306885,
+            0.3619999885559082
+          ]
+        }
+      }
+    ],
+    "regions": {
+      "forward_fuselage": {
+        "vertex_count": 9024,
+        "all_in_main_component": true
+      },
+      "left_wingtip": {
+        "vertex_count": 85,
+        "all_in_main_component": true
+      },
+      "right_wingtip": {
+        "vertex_count": 85,
+        "all_in_main_component": true
+      }
+    },
+    "bounds": {
+      "min": [
+        -1.7200000286102295,
+        -1.3300000429153442,
+        1.11899995803833
+      ],
+      "max": [
+        1.440000057220459,
+        1.3300000429153442,
+        1.4809999465942383
+      ],
+      "size": [
+        3.1600000858306885,
+        2.6600000858306885,
+        0.3619999885559082
+      ]
+    }
+  },
+  "proportions": {
+    "yellow_nose_cap": {
+      "min": [
+        -1.7200000286102295,
+        -0.14591428637504578,
+        1.1550081968307495
+      ],
+      "max": [
+        -1.2100000381469727,
+        0.14591428637504578,
+        1.4449917078018188
+      ],
+      "size": [
+        0.5099999904632568,
+        0.29182857275009155,
+        0.28998351097106934
+      ]
+    },
+    "fuselage_length_approx": 3.1600000858306885,
+    "yellow_nose_fraction": 0.16139239766165703,
+    "forward_body_section": {
+      "min": [
+        -0.8960000276565552,
+        -0.15800000727176666,
+        1.1430000066757202
+      ],
+      "max": [
+        -0.7099999785423279,
+        0.15800000727176666,
+        1.4570000171661377
+      ],
+      "size": [
+        0.1860000491142273,
+        0.3160000145435333,
+        0.3140000104904175
+      ]
+    },
+    "vertical_tail": {
+      "min": [
+        0.6200000047683716,
+        -0.02449963055551052,
+        1.437999963760376
+      ],
+      "max": [
+        1.559999942779541,
+        0.02449963055551052,
+        1.9279999732971191
+      ],
+      "size": [
+        0.9399999380111694,
+        0.04899926111102104,
+        0.49000000953674316
+      ]
+    },
+    "reference_basis": "Visual reconstruction from photo 1; not measured engineering dimensions"
+  },
+  "control_motion": {
+    "passed": true,
+    "controls": {
+      "Left_Elevon": {
+        "affected_objects": 5,
+        "poses": [
+          {
+            "degrees": -15.0,
+            "vertex_movement": 0.02172789947443882,
+            "axis_error": 0.0,
+            "rotation_error": 1.2013700229374393e-07
+          },
+          {
+            "degrees": 15.0,
+            "vertex_movement": 0.021727968415047736,
+            "axis_error": 0.0,
+            "rotation_error": 1.4901161193847656e-08
+          }
+        ]
+      },
+      "Right_Elevon": {
+        "affected_objects": 5,
+        "poses": [
+          {
+            "degrees": -15.0,
+            "vertex_movement": 0.021728000834272797,
+            "axis_error": 0.0,
+            "rotation_error": 2.669762502188819e-07
+          },
+          {
+            "degrees": 15.0,
+            "vertex_movement": 0.021728057384572817,
+            "axis_error": 0.0,
+            "rotation_error": 1.6924465733171325e-07
+          }
+        ]
+      },
+      "Rudder": {
+        "affected_objects": 2,
+        "poses": [
+          {
+            "degrees": -15.0,
+            "vertex_movement": 0.035951729446482804,
+            "axis_error": 0.0,
+            "rotation_error": 1.7120130796843852e-07
+          },
+          {
+            "degrees": 15.0,
+            "vertex_movement": 0.035951714875026505,
+            "axis_error": 0.0,
+            "rotation_error": 1.6924465733171325e-07
+          }
+        ]
+      }
+    },
+    "restored_values": {
+      "Left_Elevon": 0.0,
+      "Right_Elevon": 0.0,
+      "Rudder": 0.0
+    }
+  },
+  "elevon_planform": {
+    "Port · elevon": {
+      "inboard_x_chord": 0.08164000511169434,
+      "outboard_x_chord": 0.07300007343292236,
+      "inboard_outboard_ratio": 1.1183551094193207,
+      "spanwise_length": 1.12752003967762
+    },
+    "Starboard · elevon": {
+      "inboard_x_chord": 0.08164000511169434,
+      "outboard_x_chord": 0.07300007343292236,
+      "inboard_outboard_ratio": 1.1183551094193207,
+      "spanwise_length": 1.1275199353694916
+    }
+  },
+  "glb": {
+    "bytes": 4798784,
+    "meshes": 148,
+    "checked_position_accessors": 148,
+    "airframe_bounds_y_up": {
+      "min": [
+        -1.7200000286102295,
+        1.11899995803833,
+        -1.3300000429153442
+      ],
+      "max": [
+        1.440000057220459,
+        1.4809999465942383,
+        1.3300000429153442
+      ],
+      "size": [
+        3.1600000858306885,
+        0.3619999885559082,
+        2.6600000858306885
+      ]
+    },
+    "geometry_matches_blend": true
+  },
+  "scene_assets": {
+    "cameras": [
+      "CAM 01 · rear three-quarter",
+      "CAM 02 · nose three-quarter",
+      "CAM 03 · top",
+      "CAM 04 · side",
+      "CAM 05 · rear"
+    ],
+    "packed_reference_images": [
+      "스크린샷 2026-10-10 오전 12.49.33.png",
+      "스크린샷 2026-10-10 오전 12.49.56.png",
+      "스크린샷 2026-10-10 오전 12.50.34.png"
+    ]
+  },
+  "previews": [
+    {
+      "name": "banshee_hero.png",
+      "width": 1680,
+      "height": 1260,
+      "bytes": 2004747
+    },
+    {
+      "name": "banshee_front.png",
+      "width": 1680,
+      "height": 1260,
+      "bytes": 1949172
+    },
+    {
+      "name": "banshee_top.png",
+      "width": 1400,
+      "height": 1400,
+      "bytes": 1709958
+    },
+    {
+      "name": "banshee_side.png",
+      "width": 1680,
+      "height": 1000,
+      "bytes": 1455206
+    }
+  ]
+}

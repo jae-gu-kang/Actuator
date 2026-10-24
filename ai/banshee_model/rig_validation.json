@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "controls": {
+    "Left_Elevon": {
+      "affected_objects": 5,
+      "poses": [
+        {
+          "degrees": -15.0,
+          "vertex_movement": 0.02172789947443882,
+          "axis_error": 0.0,
+          "rotation_error": 1.2013700229374393e-07
+        },
+        {
+          "degrees": 15.0,
+          "vertex_movement": 0.021727968415047736,
+          "axis_error": 0.0,
+          "rotation_error": 1.4901161193847656e-08
+        }
+      ]
+    },
+    "Right_Elevon": {
+      "affected_objects": 5,
+      "poses": [
+        {
+          "degrees": -15.0,
+          "vertex_movement": 0.021728000834272797,
+          "axis_error": 0.0,
+          "rotation_error": 2.669762502188819e-07
+        },
+        {
+          "degrees": 15.0,
+          "vertex_movement": 0.021728057384572817,
+          "axis_error": 0.0,
+          "rotation_error": 1.6924465733171325e-07
+        }
+      ]
+    },
+    "Rudder": {
+      "affected_objects": 2,
+      "poses": [
+        {
+          "degrees": -15.0,
+          "vertex_movement": 0.035951729446482804,
+          "axis_error": 0.0,
+          "rotation_error": 1.7120130796843852e-07
+        },
+        {
+          "degrees": 15.0,
+          "vertex_movement": 0.035951714875026505,
+          "axis_error": 0.0,
+          "rotation_error": 1.6924465733171325e-07
+        }
+      ]
+    }
+  },
+  "restored_values": {
+    "Left_Elevon": 0.0,
+    "Right_Elevon": 0.0,
+    "Rudder": 0.0
+  }
+}

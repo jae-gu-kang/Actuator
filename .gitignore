@@ -16,3 +16,12 @@ ai/*.mp4
 ai/*.MP4
 ai/*.mov
 ai/*.MOV
+
+# Banshee Blender 모델 — .blend·.glb 원본과 중간 산출물은 로컬에만 둔다 (생성 스크립트·미리보기만 추적)
+ai/banshee_model/*.blend
+ai/banshee_model/*.blend1
+ai/banshee_model/*.glb
+ai/banshee_model/*.log
+ai/banshee_model/versions/
+ai/banshee_model/previews/control_frames/
+__pycache__/
