@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T06:45:40.994Z
+  built: 2026-10-24T07:10:59.359Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -57,7 +57,7 @@
     src/main/ui/column-picker.js
     src/main/app.js
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Efxtq2lT1g1JxVpp5h31cCK/gsAhGf3HZ8Cly/lxg1c='; style-src 'sha256-kERI4ByXmLLRCQNrYWwu3Mil9HCUn9QViW8/5JNM/pQ='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9k+b/UZWEiDkybPZLoW83HSSDaPo1I3gT5LpaB2LZFg='; style-src 'sha256-bUwsY618KOOXn0E3be8WwShc2/eAcYgeIddL2lESWd8='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -588,6 +588,20 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
 .graph__skip:hover { background: var(--bg-elev); }
 .graph-mini .graph__canvas { margin: 4px 0 6px; }
 .graph__mininote { font-size: 12px; margin-bottom: 6px; }
+/* 「값이 나온 때」 — 입력·자주 나온 값, 요약(횟수·비율·처음/마지막), 범례 점 */
+.graph__markbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.graph__marklabel { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-muted); }
+.graph__markin { width: 150px; font-family: var(--mono); }
+.graph__markchips { align-items: center; }
+.graph__markchips .chip { border: 0; color: var(--fg); }
+.graph__markchips .chip.is-active { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.graph__marksum { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.graph__markpct { color: var(--fg-muted); }
+.graph__markpct::before { content: '·'; margin-right: 8px; }
+.graph__markacts { gap: 6px; margin-left: auto; }
+.graph__dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.graph__minival { margin-top: 6px; }
+.graph__miniin { flex: 1; min-width: 0; font-family: var(--mono); }
 </style>
 </head>
 <body>
@@ -2006,6 +2020,16 @@ function groupConditions(cols, parts) {
   return cols.map((col, i) => (parts[i] === GROUP_MISSING || parts[i] === GROUP_EMPTY ? { col, op: 'empty' } : { col, op: 'eq', value: parts[i] }));
 }
 
+/**
+ * 「값이 나온 때」에 넣은 값 → 비교할 값. 16진수 열에서 숫자만 넣으면 16진수로 본다 (10 → 0x10).
+ * 필터 「=」 은 숫자만 넣으면 10진·16진 둘 다와 비교해 0x000A 와 0x0010 을 함께 세지만, 한 값의 나온 때·비율은 한 값이어야 한다.
+ * 5 = 05 = 0x05 처럼 두 해석이 같은 값은 그대로.
+ */
+function markQuery(value, isHex) {
+  const v = String(value == null ? '' : value).trim();
+  return isHex && /^\d+$/.test(v) ? `0x${v}` : v;
+}
+
 /** 값 입력이 필요한 연산인지 (값 있음·없음은 열만 고르면 된다) */
 function filterNeedsValue(op) { return op !== 'nonempty' && op !== 'empty'; }
 
@@ -2062,7 +2086,7 @@ function compileFilter(conds, meta = {}) {
     return true;
   };
 }
-return { FILTER_OPS, GROUP_MISSING, GROUP_EMPTY, groupConditions, filterNeedsValue, compileFilter };
+return { FILTER_OPS, GROUP_MISSING, GROUP_EMPTY, groupConditions, markQuery, filterNeedsValue, compileFilter };
 })();
 
 // ===== src/shared/groupby.js =====
@@ -2486,14 +2510,20 @@ const parseHex = (str, s, e) => parseHexNumber(str, s, e);
 
 /**
  * plan: planSeries 결과 중 그릴 항목들, xCol: -1 = 행 번호(표처럼 1부터), [x0, x1]: 이 범위만(양 끝 포함), buckets: 구간 수
+ * mark: 「이 값이 나온 때」 — { col, test(text, fi, k) → boolean, parse: 'hex'|'dec'|null } 이면 구간마다 그 값이 나온 횟수,
+ *   그 열에 값(공백 아닌 글자)이 있는 행 수(비율의 분모), 처음·마지막으로 나온 행과 X,
+ *   그 값의 수치(parse 가 있을 때 — 그래프에 기준선을 긋는다)를 함께 센다.
  * addRecord(text, fi, k, row) 로 레코드를 넣고 result() 로 꺼낸다.
  */
-function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
+function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
   const B = Math.max(1, buckets | 0);
   const span = x1 - x0;
   const scale = span > 0 ? B / span : 0;
   const rows = new Uint32Array(B);
   let outside = 0, noX = 0;
+  const hits = mark ? new Uint32Array(B) : null, have = mark ? new Uint32Array(B) : null;
+  const markParse = mark && mark.parse ? (mark.parse === 'hex' ? parseHex : parseDec) : null;
+  let hitN = 0, haveN = 0, firstRow = -1, lastRow = -1, firstX = NaN, lastX = NaN, markNum = NaN;
   const series = plan.map((p) => {
     if (p.kind === 'cat') {
       // 키는 프로파일과 같게 — 앞뒤 공백만 자른 원래 글자(따옴표 안 "" 그대로). 보이는 이름만 따옴표를 푼다.
@@ -2517,6 +2547,16 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
     if (x < x0 || x > x1) { outside++; return; }
     const b = scale ? Math.min(B - 1, Math.floor((x - x0) * scale)) : 0;
     rows[b]++;
+    if (mark && mark.col < fc) {
+      const [a, e] = trimSpan(text, fi.fieldStart[f0 + mark.col], fi.fieldEnd[f0 + mark.col]);
+      if (e > a) { have[b]++; haveN++; }
+    }
+    if (mark && mark.test(text, fi, k)) {
+      hits[b]++; hitN++;
+      if (firstRow < 0) { firstRow = row; firstX = x; }
+      lastRow = row; lastX = x;
+      if (markParse && Number.isNaN(markNum) && mark.col < fc) markNum = markParse(text, fi.fieldStart[f0 + mark.col], fi.fieldEnd[f0 + mark.col]);
+    }
     for (let i = 0; i < series.length; i++) {
       const s = series[i];
       if (s.col >= fc) continue;
@@ -2544,6 +2584,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
   function result() {
     return {
       buckets: B, x0, x1, xCol, rows, outside, noX,
+      mark: mark ? { col: mark.col, hits, total: hitN, have, haveTotal: haveN, firstRow, lastRow, firstX, lastX, num: Number.isFinite(markNum) ? markNum : null } : null,
       series: series.map((s) => {
         if (s.kind === 'cat') return { col: s.col, kind: 'cat', labels: s.labels, counts: s.counts, other: s.other };
         const mean = new Float64Array(B);
@@ -2569,7 +2610,7 @@ const { MSG } = M_shared_protocol;
 const { createColumnProfiler, provisionalForColumn, topN } = M_shared_profiler;
 const { makeRng } = M_shared_rng;
 const { compileCellMatcher, searchBlock } = M_shared_search_cells;
-const { compileFilter, GROUP_MISSING, GROUP_EMPTY } = M_shared_filter;
+const { compileFilter, markQuery, GROUP_MISSING, GROUP_EMPTY } = M_shared_filter;
 const { createGroupCounter } = M_shared_groupby;
 const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
@@ -3348,14 +3389,22 @@ class Engine {
    * xCol: X축 열(-1 = 행 번호), range: [x0, x1] 확대 범위(없으면 전체), buckets: 구간 수,
    * cols: 그릴 열(없으면 그릴 수 있는 모든 열), filter: 행 필터. 한 번 훑어 구간별로 모은다.
    */
-  async series({ reqId, id, xCol = -1, range = null, buckets = 400, cols = null, filter = null }) {
+  async series({ reqId, id, xCol = -1, range = null, buckets = 400, cols = null, filter = null, mark = null }) {
     const ds = this.need();
     if (!ds.stats) throw new Error('프로파일이 끝난 뒤에 그래프를 그릴 수 있습니다');
     if (xCol >= 0 && !xAxisOptions(ds.stats, ds.hexLike).some((o) => o.col === xCol)) throw new Error('이 열은 X축으로 쓸 수 없습니다 (16진수가 아닌 숫자 열만)');
     const plan = planSeries(ds.stats, ds.hexLike, xCol);
     const draw = plan.filter((p) => p.kind !== 'skip' && (!cols || cols.includes(p.col)));
     const [x0, x1] = range || (xCol < 0 ? [1, Math.max(1, ds.rowCount)] : [ds.stats[xCol].numMin, ds.stats[xCol].numMax]);
-    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)) });
+    // mark: { col, value } — 그 열이 이 값인(필터 「=」 과 같은 비교: 5 = 05 = 0x05, 16진수 열의 숫자만은 16진수) 행이 구간마다 몇 번 나왔는지도 센다
+    const markOk = !!(mark && mark.col >= 0 && mark.col < ds.columnCount);
+    const markValue = markOk ? markQuery(mark.value, !!(ds.hexLike && ds.hexLike[mark.col])) : '';
+    const markOpt = markValue ? {
+      col: mark.col,
+      test: compileFilter([{ col: mark.col, op: 'eq', value: markValue }], { hexLike: ds.hexLike }),
+      parse: plan[mark.col] && plan[mark.col].kind === 'num' ? plan[mark.col].parse : null,
+    } : null;
+    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)), mark: markOpt });
     const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
 
     const gen = this.gen;
@@ -3384,6 +3433,7 @@ class Engine {
         type: MSG.SERIES_RESULT, reqId, id, cancelled: false,
         xCol, xName: xCol < 0 ? '행 번호' : ds.header[xCol], x0: r.x0, x1: r.x1, buckets: r.buckets,
         rows: r.rows, outside: r.outside, noX: r.noX, filteredOut,
+        mark: r.mark ? { ...r.mark, value: markValue } : null,
         series: r.series.map((s) => ({ ...s, name: ds.header[s.col], width: ds.padNibbles ? ds.padNibbles[s.col] || 4 : 4 })),
         skipped: plan.filter((p) => p.kind === 'skip').map(({ col, name, reason }) => ({ col, name, reason })),
         elapsed: Date.now() - t0,
@@ -4805,6 +4855,16 @@ function groupConditions(cols, parts) {
   return cols.map((col, i) => (parts[i] === GROUP_MISSING || parts[i] === GROUP_EMPTY ? { col, op: 'empty' } : { col, op: 'eq', value: parts[i] }));
 }
 
+/**
+ * 「값이 나온 때」에 넣은 값 → 비교할 값. 16진수 열에서 숫자만 넣으면 16진수로 본다 (10 → 0x10).
+ * 필터 「=」 은 숫자만 넣으면 10진·16진 둘 다와 비교해 0x000A 와 0x0010 을 함께 세지만, 한 값의 나온 때·비율은 한 값이어야 한다.
+ * 5 = 05 = 0x05 처럼 두 해석이 같은 값은 그대로.
+ */
+function markQuery(value, isHex) {
+  const v = String(value == null ? '' : value).trim();
+  return isHex && /^\d+$/.test(v) ? `0x${v}` : v;
+}
+
 /** 값 입력이 필요한 연산인지 (값 있음·없음은 열만 고르면 된다) */
 function filterNeedsValue(op) { return op !== 'nonempty' && op !== 'empty'; }
 
@@ -4861,7 +4921,7 @@ function compileFilter(conds, meta = {}) {
     return true;
   };
 }
-return { FILTER_OPS, GROUP_MISSING, GROUP_EMPTY, groupConditions, filterNeedsValue, compileFilter };
+return { FILTER_OPS, GROUP_MISSING, GROUP_EMPTY, groupConditions, markQuery, filterNeedsValue, compileFilter };
 })();
 
 // ===== src/shared/groupby.js =====
@@ -5285,14 +5345,20 @@ const parseHex = (str, s, e) => parseHexNumber(str, s, e);
 
 /**
  * plan: planSeries 결과 중 그릴 항목들, xCol: -1 = 행 번호(표처럼 1부터), [x0, x1]: 이 범위만(양 끝 포함), buckets: 구간 수
+ * mark: 「이 값이 나온 때」 — { col, test(text, fi, k) → boolean, parse: 'hex'|'dec'|null } 이면 구간마다 그 값이 나온 횟수,
+ *   그 열에 값(공백 아닌 글자)이 있는 행 수(비율의 분모), 처음·마지막으로 나온 행과 X,
+ *   그 값의 수치(parse 가 있을 때 — 그래프에 기준선을 긋는다)를 함께 센다.
  * addRecord(text, fi, k, row) 로 레코드를 넣고 result() 로 꺼낸다.
  */
-function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
+function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
   const B = Math.max(1, buckets | 0);
   const span = x1 - x0;
   const scale = span > 0 ? B / span : 0;
   const rows = new Uint32Array(B);
   let outside = 0, noX = 0;
+  const hits = mark ? new Uint32Array(B) : null, have = mark ? new Uint32Array(B) : null;
+  const markParse = mark && mark.parse ? (mark.parse === 'hex' ? parseHex : parseDec) : null;
+  let hitN = 0, haveN = 0, firstRow = -1, lastRow = -1, firstX = NaN, lastX = NaN, markNum = NaN;
   const series = plan.map((p) => {
     if (p.kind === 'cat') {
       // 키는 프로파일과 같게 — 앞뒤 공백만 자른 원래 글자(따옴표 안 "" 그대로). 보이는 이름만 따옴표를 푼다.
@@ -5316,6 +5382,16 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
     if (x < x0 || x > x1) { outside++; return; }
     const b = scale ? Math.min(B - 1, Math.floor((x - x0) * scale)) : 0;
     rows[b]++;
+    if (mark && mark.col < fc) {
+      const [a, e] = trimSpan(text, fi.fieldStart[f0 + mark.col], fi.fieldEnd[f0 + mark.col]);
+      if (e > a) { have[b]++; haveN++; }
+    }
+    if (mark && mark.test(text, fi, k)) {
+      hits[b]++; hitN++;
+      if (firstRow < 0) { firstRow = row; firstX = x; }
+      lastRow = row; lastX = x;
+      if (markParse && Number.isNaN(markNum) && mark.col < fc) markNum = markParse(text, fi.fieldStart[f0 + mark.col], fi.fieldEnd[f0 + mark.col]);
+    }
     for (let i = 0; i < series.length; i++) {
       const s = series[i];
       if (s.col >= fc) continue;
@@ -5343,6 +5419,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
   function result() {
     return {
       buckets: B, x0, x1, xCol, rows, outside, noX,
+      mark: mark ? { col: mark.col, hits, total: hitN, have, haveTotal: haveN, firstRow, lastRow, firstX, lastX, num: Number.isFinite(markNum) ? markNum : null } : null,
       series: series.map((s) => {
         if (s.kind === 'cat') return { col: s.col, kind: 'cat', labels: s.labels, counts: s.counts, other: s.other };
         const mean = new Float64Array(B);
@@ -5368,7 +5445,7 @@ const { MSG } = M_shared_protocol;
 const { createColumnProfiler, provisionalForColumn, topN } = M_shared_profiler;
 const { makeRng } = M_shared_rng;
 const { compileCellMatcher, searchBlock } = M_shared_search_cells;
-const { compileFilter, GROUP_MISSING, GROUP_EMPTY } = M_shared_filter;
+const { compileFilter, markQuery, GROUP_MISSING, GROUP_EMPTY } = M_shared_filter;
 const { createGroupCounter } = M_shared_groupby;
 const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
@@ -6147,14 +6224,22 @@ class Engine {
    * xCol: X축 열(-1 = 행 번호), range: [x0, x1] 확대 범위(없으면 전체), buckets: 구간 수,
    * cols: 그릴 열(없으면 그릴 수 있는 모든 열), filter: 행 필터. 한 번 훑어 구간별로 모은다.
    */
-  async series({ reqId, id, xCol = -1, range = null, buckets = 400, cols = null, filter = null }) {
+  async series({ reqId, id, xCol = -1, range = null, buckets = 400, cols = null, filter = null, mark = null }) {
     const ds = this.need();
     if (!ds.stats) throw new Error('프로파일이 끝난 뒤에 그래프를 그릴 수 있습니다');
     if (xCol >= 0 && !xAxisOptions(ds.stats, ds.hexLike).some((o) => o.col === xCol)) throw new Error('이 열은 X축으로 쓸 수 없습니다 (16진수가 아닌 숫자 열만)');
     const plan = planSeries(ds.stats, ds.hexLike, xCol);
     const draw = plan.filter((p) => p.kind !== 'skip' && (!cols || cols.includes(p.col)));
     const [x0, x1] = range || (xCol < 0 ? [1, Math.max(1, ds.rowCount)] : [ds.stats[xCol].numMin, ds.stats[xCol].numMax]);
-    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)) });
+    // mark: { col, value } — 그 열이 이 값인(필터 「=」 과 같은 비교: 5 = 05 = 0x05, 16진수 열의 숫자만은 16진수) 행이 구간마다 몇 번 나왔는지도 센다
+    const markOk = !!(mark && mark.col >= 0 && mark.col < ds.columnCount);
+    const markValue = markOk ? markQuery(mark.value, !!(ds.hexLike && ds.hexLike[mark.col])) : '';
+    const markOpt = markValue ? {
+      col: mark.col,
+      test: compileFilter([{ col: mark.col, op: 'eq', value: markValue }], { hexLike: ds.hexLike }),
+      parse: plan[mark.col] && plan[mark.col].kind === 'num' ? plan[mark.col].parse : null,
+    } : null;
+    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)), mark: markOpt });
     const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
 
     const gen = this.gen;
@@ -6183,6 +6268,7 @@ class Engine {
         type: MSG.SERIES_RESULT, reqId, id, cancelled: false,
         xCol, xName: xCol < 0 ? '행 번호' : ds.header[xCol], x0: r.x0, x1: r.x1, buckets: r.buckets,
         rows: r.rows, outside: r.outside, noX: r.noX, filteredOut,
+        mark: r.mark ? { ...r.mark, value: markValue } : null,
         series: r.series.map((s) => ({ ...s, name: ds.header[s.col], width: ds.padNibbles ? ds.padNibbles[s.col] || 4 : 4 })),
         skipped: plan.filter((p) => p.kind === 'skip').map(({ col, name, reason }) => ({ col, name, reason })),
         elapsed: Date.now() - t0,
@@ -8703,9 +8789,11 @@ const { setupCanvas, cssVar } = M_main_ui_charts;
 const { niceScale, hexScale, formatTick, formatValue, bucketRange, formatX, formatSpan } = M_main_chart_scale;
 const { fmtInt, fmtDuration } = M_main_format;
 const { xAxisOptions, defaultXColumn } = M_shared_series;
+const { markQuery } = M_shared_filter;
 // 「그래프」 탭: 열마다 X축(시간 열 또는 행 번호)에 따른 변화.
 //   전체 — 그릴 수 있는 열을 작은 그래프로 한꺼번에 (작은 다중 그래프, 열마다 축 하나)
 //   크게 — 하나를 고르면 위에 크게: 기준선+툴팁, 끌어서 확대, 두 번 눌러 전체, 표로 보기
+//          「값이 나온 때」: 값을 넣으면 그 값이 나온 시각을 점(+ 아래 구간별 횟수 막대)으로, 횟수·비율·처음/마지막 행을 함께
 // 숫자·16진수 열은 구간 평균 선(2px) + 최소~최대 띠(옅게), 값 종류가 적은 글자 열은 구간별 값 비율(100% 누적 영역).
 // 계산은 워커(engine.series), 축 계산은 chart-scale.js, 무엇을 그릴지는 shared/series.js.
 // 필터는 이 뷰가 들고 있다가 요청에 실어 보낸다 — 앱의 필터 막대와 두 군데서 따로 읽으면 어긋난다.
@@ -8715,13 +8803,21 @@ const { xAxisOptions, defaultXColumn } = M_shared_series;
 
 
 
+
 const OVERVIEW_BUCKETS = 400;
 const CARD_PLOT_H = 72;
 const FOCUS_PLOT_H = 220;
+const STRIP_H = 56, STRIP_GAP = 26; // 「값이 나온 때」 구간별 횟수 막대 칸 (위 간격에 칸 이름)
 const CAT_COLORS = ['--viz-1', '--viz-2', '--viz-3', '--viz-4', '--viz-5'];
 const KIND_LABEL = { num: '숫자', hex: '16진수', cat: '범주' };
 
 const kindOf = (s) => (s.kind === 'cat' ? 'cat' : s.hex ? 'hex' : 'num');
+/** 비율 — 작은 값도 0% 로 뭉개지지 않게 자릿수를 늘린다 (3.5% · 0.42% · 0.0031%) */
+function fmtShare(f) {
+  const p = f * 100;
+  return `${p >= 10 ? p.toFixed(1) : p >= 0.1 ? p.toFixed(2) : p.toPrecision(2)}%`;
+}
+const sumOf = (a) => { let n = 0; for (let i = 0; i < a.length; i++) n += a[i]; return n; };
 function rgba(hex, a) {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   return m ? `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})` : hex;
@@ -8849,12 +8945,13 @@ function legendEl(s) {
   return h('div', { class: 'legend graph__legend' }, h('span', { class: 'legend__item' }, line, h('span', { text: '구간 평균' })), h('span', { class: 'legend__item' }, band, h('span', { text: '구간 최소 ~ 최대' })));
 }
 
-function createGraphView({ container, request, cancel, onOpenColumn }) {
+function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, onFilterValue }) {
   let ds = null, prof = null, xCol = -1;
   let filterConds = null, filterKey = '';
   let overview = null, overviewKey = '', overviewPending = null, overviewError = '';
   let focusCol = null, focusData = null, zoom = null, tableOpen = false, focusPending = null, lastShown = null;
   let seq = 0, progressFor = null, hoverB = -1, visibleSet = null, autoFocused = false; // visibleSet: 표에서 고른 보이는 열 (null = 모두)
+  let markValue = '', markDraft = ''; // 크게 보는 열에서 「나온 때」를 볼 값 (markDraft: 입력란에 치는 중인 글자 — 다시 그려도 남게)
   const minis = new Set();
 
   const root = h('div', { class: 'graph' });
@@ -8880,6 +8977,25 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
   function resetFocus(col = null) {
     if (focusPending) { cancel(focusPending); focusPending = null; }
     focusCol = col; focusData = null; zoom = null; tableOpen = false; hoverB = -1; lastShown = null;
+    markValue = ''; markDraft = '';
+  }
+
+  /** 값을 넣어 볼 수 있는 열: X축이 아니고 값이 있는 열 (그래프로 그리지 않는 글자 열도 「나온 때」는 볼 수 있다) */
+  const canMark = (col) => !!(prof && col != null && col !== xCol && prof.stats[col] && prof.stats[col].count > 0);
+  const drawable = (col) => !overview || overview.series.some((x) => x.col === col);
+  /** 지금 넣은 값으로 센 결과만 (다른 값·다른 열의 것은 버린다) */
+  const markOf = (r) => (markValue && r && r.mark && r.mark.col === focusCol && r.mark.value === markValue ? r.mark : null);
+
+  /** 넣은 값 → 비교할 값 (16진수 열의 숫자만은 16진수 — 워커와 「이 값인 행만」 필터도 같은 값) */
+  const normMark = (col, v) => markQuery(v, !!(prof && prof.hexLike && prof.hexLike[col]));
+
+  function setMark(v, refocus = false) {
+    const next = normMark(focusCol, v);
+    markDraft = next;
+    if (next !== markValue) { markValue = next; hoverB = -1; }
+    renderFocus();
+    if (refocus) { const i = focusBox.querySelector('.graph__markin'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } // 단추를 눌러도 키보드 초점은 입력란에
+    if (markValue) refineFocus();
   }
 
   function invalidate() {
@@ -8916,17 +9032,17 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
 
   async function refineFocus() {
     if (focusCol == null || !overview) return;
-    if (!overview.series.some((x) => x.col === focusCol)) { renderFocus(); return; }
+    if (!drawable(focusCol) && !(markValue && canMark(focusCol))) { renderFocus(); return; }
     if (focusPending) cancel(focusPending);
     const id = 'g' + (++seq);
     focusPending = id; progressFor = id;
     focusBox.dataset.ready = 'false'; // 화면 폭에 맞춘 데이터로 다시 그리기 전 (e2e 가 이걸 기다린다)
     const width = Math.max(200, Math.min(2000, Math.round(focusBox.clientWidth || 800)));
     try {
-      const r = await request({ id, xCol, buckets: width, cols: [focusCol], range: zoom, filter: filterConds });
+      const r = await request({ id, xCol, buckets: width, cols: [focusCol], range: zoom, filter: filterConds, mark: markValue ? { col: focusCol, value: markValue } : null });
       if (focusPending !== id) return;
       focusPending = null;
-      if (!r.cancelled && r.series.length) focusData = r;
+      if (!r.cancelled && (r.series.length || r.mark)) focusData = r;
       renderFocus();
     } catch (e) {
       if (focusPending !== id) return;
@@ -9014,16 +9130,21 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
   // ---------- 크게 보기 ----------
   /** 지금 그릴 데이터: 화면 폭에 맞춘 데이터 → (확대 전이면) 전체 그래프 데이터 → 계산 중이면 직전 그림(흐리게) */
   function focusSeries() {
-    if (focusData && focusData.series[0] && focusData.series[0].col === focusCol) return { r: focusData, s: focusData.series[0], stale: false };
+    // s 가 null 이면 그래프로 그리지 않는 열 — 넣은 값이 나온 횟수 막대만 그린다
+    const colOf = (r) => (r.series[0] ? r.series[0].col : r.mark ? r.mark.col : -1);
+    if (focusData && colOf(focusData) === focusCol) return { r: focusData, s: focusData.series[0] || null, stale: false };
     if (overview && !zoom) {
       const s = overview.series.find((x) => x.col === focusCol);
       if (s) return { r: overview, s, stale: false };
     }
-    if (lastShown && lastShown.s.col === focusCol) return { ...lastShown, stale: true };
+    if (lastShown && colOf(lastShown.r) === focusCol) return { ...lastShown, stale: true };
     return null;
   }
 
   function renderFocus() {
+    // 값 입력란에 치는 중이었으면 다시 그린 뒤에도 그 자리에 (계산 결과·화면 크기 변화로 다시 그린다)
+    const ae = document.activeElement;
+    const typing = ae && ae.classList && ae.classList.contains('graph__markin') && focusBox.contains(ae) ? { a: ae.selectionStart, b: ae.selectionEnd } : null;
     clear(focusBox);
     focusBox.dataset.ready = focusPending ? 'false' : 'true';
     focusBox.classList.toggle('is-hidden', focusCol == null);
@@ -9032,82 +9153,223 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
     const name = ds ? ds.header[focusCol] : '';
     const btnClose = h('button', { class: 'btn btn--sm', type: 'button', text: '닫기' });
     btnClose.addEventListener('click', () => { resetFocus(); renderFocus(); });
-    // 그릴 수 없는 열 (예: X 로 바꾼 열, 값 종류가 많은 글자 열) — 끝없는 「계산 중」 대신 이유를
-    const skip = overview && !overview.series.some((x) => x.col === focusCol) ? overview.skipped.find((x) => x.col === focusCol) : null;
-    if (overview && !overview.series.some((x) => x.col === focusCol)) {
+    // 그릴 수 없는 열 (예: X 로 바꾼 열, 값 종류가 많은 글자 열) — 끝없는 「계산 중」 대신 이유를. 값이 있는 열이면 「나온 때」는 볼 수 있다
+    const canDraw = drawable(focusCol), markable = canMark(focusCol);
+    const skip = overview && !canDraw ? overview.skipped.find((x) => x.col === focusCol) : null;
+    const skipText = `그래프로 그리지 않은 열 — ${skip ? skip.reason : '그릴 값이 없음'}`;
+    if (!canDraw && !markable) {
       focusBox.append(h('div', { class: 'graph__fhead' }, h('div', { class: 'graph__ftitle' }, h('h2', { class: 'mono', text: name })), h('div', { class: 'row' }, btnClose)),
-        h('div', { class: 'detail__empty', text: `그래프로 그리지 않은 열 — ${skip ? skip.reason : '그릴 값이 없음'}` }));
+        h('div', { class: 'detail__empty', text: skipText }));
       return;
     }
     const fs = focusSeries();
     const titleBox = h('div', { class: 'graph__ftitle' }, h('h2', { class: 'mono', text: name }));
     if (fs) {
       const res = (fs.r.x1 - fs.r.x0) / 1000;
-      titleBox.append(h('span', { class: 'badge' + (fs.s.hex ? ' badge--hex' : ''), text: KIND_LABEL[kindOf(fs.s)] }),
-        h('span', { class: 'muted graph__frange', text: `${fs.r.xName} ${formatX(fs.r.x0, res)} ~ ${formatX(fs.r.x1, res)}${zoom ? ' (확대)' : ''}${fs.stale ? ' · 계산 중…' : ''}` }));
+      if (fs.s) titleBox.append(h('span', { class: 'badge' + (fs.s.hex ? ' badge--hex' : ''), text: KIND_LABEL[kindOf(fs.s)] }));
+      titleBox.append(h('span', { class: 'muted graph__frange', text: `${fs.r.xName} ${formatX(fs.r.x0, res)} ~ ${formatX(fs.r.x1, res)}${zoom ? ' (확대)' : ''}${fs.stale ? ' · 계산 중…' : ''}` }));
     }
     const btnReset = h('button', { class: 'btn btn--sm', type: 'button', text: '전체 범위', disabled: !zoom, title: '확대 전으로 (그래프를 두 번 눌러도 됩니다)' });
     btnReset.addEventListener('click', resetZoom);
     const btnTable = h('button', { class: 'btn btn--sm' + (tableOpen ? ' is-active' : ''), type: 'button', text: tableOpen ? '표 닫기' : '표로 보기', disabled: !fs });
     btnTable.addEventListener('click', () => { tableOpen = !tableOpen; renderFocus(); });
     focusBox.appendChild(h('div', { class: 'graph__fhead' }, titleBox, h('div', { class: 'row' }, btnReset, btnTable, btnClose)));
-    if (!fs) { focusBox.appendChild(h('div', { class: 'detail__empty', text: overviewError || '계산 중…' })); return; }
+    if (markable) {
+      const bar = markBarEl();
+      focusBox.appendChild(bar);
+      if (typing) { const i = bar.querySelector('.graph__markin'); i.focus(); i.setSelectionRange(typing.a, typing.b); }
+    }
+    if (!canDraw) focusBox.appendChild(h('div', { class: 'faint graph__hint', text: `${skipText} — 값을 넣으면 그 값이 나온 때를 막대로 그립니다.` }));
+    if (!fs || (!fs.s && !markValue)) {
+      if (canDraw || markValue) focusBox.appendChild(h('div', { class: 'detail__empty', text: overviewError || '계산 중…' }));
+      return;
+    }
     if (!fs.stale) lastShown = { r: fs.r, s: fs.s };
 
+    const marked = markOf(fs.r);
     const canvas = h('canvas', { class: 'graph__fcanvas', tabindex: '0', role: 'img', 'aria-label': `${name} — ${fs.r.xName}에 따른 변화. 끌어서 확대, 두 번 눌러 전체 범위, ← → 로 구간 이동` });
     const cross = h('div', { class: 'graph__cross is-hidden' });
     const sel = h('div', { class: 'graph__sel is-hidden' });
     const tip = h('div', { class: 'graph__tip is-hidden', role: 'status' });
     focusBox.appendChild(h('div', { class: 'graph__fwrap' + (fs.stale ? ' is-stale' : '') }, canvas, cross, sel, tip));
-    focusBox.appendChild(legendEl(fs.s));
-    focusBox.appendChild(h('div', { class: 'faint graph__hint', text: '끌어서 확대 · 두 번 눌러 전체 범위 · 그래프를 누른 뒤 ← → 로 구간 이동' }));
+    const sum = markSumEl(fs.r, fs.s, fs.stale);
+    if (sum) focusBox.appendChild(sum);
+    focusBox.appendChild(legendFor(fs));
+    focusBox.appendChild(h('div', { class: 'faint graph__hint', text: `끌어서 확대 · 두 번 눌러 전체 범위 · 그래프를 누른 뒤 ← → 로 ${marked && marked.total ? '그 값이 나온 구간' : '구간'} 이동` }));
     if (tableOpen) focusBox.appendChild(tableEl(fs.r, fs.s));
     requestAnimationFrame(() => { if (canvas.isConnected) drawFocus(canvas, fs, { cross, sel, tip }); });
   }
 
+  /** 넣은 값의 색: 범주 열이면 그 값의 범주 색(색은 값을 따른다), 아니면 선(--viz-1)과 구별되는 다음 색 */
+  function markColor(s) {
+    if (s && s.kind === 'cat') {
+      const k = s.labels.indexOf(markValue);
+      return k >= 0 && k !== s.other ? catColor(s, k) : cssVar('--fg');
+    }
+    return cssVar('--viz-2');
+  }
+  const dotEl = (s) => { const d = h('span', { class: 'graph__dot' }); d.style.background = markColor(s); return d; };
+
+  /** 「값이 나온 때」 입력 — Enter·표시, 지우기, 이 열에서 자주 나온 값 (눌러서 바로) */
+  function markBarEl() {
+    const st = prof.stats[focusCol];
+    const input = h('input', { class: 'input graph__markin', type: 'text', placeholder: st.hexLike ? '값 (예: 0x1234)' : '값', spellcheck: 'false', autocomplete: 'off', value: markDraft, 'aria-label': `${st.name} 에서 나온 때를 볼 값` });
+    input.addEventListener('input', () => { markDraft = input.value; });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); setMark(input.value, true); } else if (e.key === 'Escape' && markValue) { e.preventDefault(); setMark('', true); }
+    });
+    const show = h('button', { class: 'btn btn--sm btn--accent', type: 'button', text: '표시' });
+    show.addEventListener('click', () => setMark(input.value, true));
+    const clr = h('button', { class: 'btn btn--sm', type: 'button', text: '지우기', disabled: !markValue });
+    clr.addEventListener('click', () => setMark('', true));
+    const bar = h('div', { class: 'graph__markbar' }, h('label', { class: 'graph__marklabel' }, h('span', { text: '값이 나온 때' }), input), show, clr);
+    const top = (st.top || []).filter(([v]) => v !== '').slice(0, 6);
+    if (top.length) {
+      bar.appendChild(h('div', { class: 'chips graph__markchips' }, h('span', { class: 'faint', text: '자주 나온 값' }), ...top.map(([v, n]) => {
+        const c = h('button', { class: 'chip' + (normMark(focusCol, v) === markValue ? ' is-active' : ''), type: 'button', text: v, title: `${fmtInt(n)}회 — 눌러서 나온 때 보기` });
+        c.addEventListener('click', () => setMark(v, true));
+        return c;
+      })));
+    }
+    return bar;
+  }
+
+  /** 「값이 나온 때」 요약 — 횟수, 값 있는 행·(필터 통과/전체) 행 중 비율, 처음·마지막으로 나온 행(눌러서 표로), 그 행만 표에서 */
+  function markSumEl(r, s, stale) {
+    if (!markValue) return null;
+    const m = stale ? null : markOf(r); // 확대 계산 중의 직전 그림은 다른 범위의 수 — 섞어 보이지 않게
+    const el = h('div', { class: 'graph__marksum', role: 'status' });
+    if (!m) { el.appendChild(h('span', { class: 'muted', text: `「${markValue}」 세는 중…` })); return el; }
+    const base = sumOf(r.rows);
+    // 비율의 범위: 확대 범위 · 필터 통과 · X(시간) 값이 있는 행 (X 가 없는 행은 그래프에 놓을 자리가 없어 빠진다)
+    const scope = `${zoom ? '확대 범위의 ' : ''}${filterConds ? '필터 통과 ' : '전체 '}${fmtInt(base)}행${r.noX ? `(${r.xName} 값 없는 ${fmtInt(r.noX)}행 제외)` : ''}`;
+    el.append(dotEl(s), h('strong', { class: 'mono', text: markValue }));
+    if (!m.total) { el.appendChild(h('span', { text: `— ${scope} 중에 없음` })); return el; }
+    el.appendChild(h('strong', { text: `${fmtInt(m.total)}회` }));
+    if (m.haveTotal) el.appendChild(h('span', { class: 'graph__markpct', text: `값 있는 ${fmtInt(m.haveTotal)}행 중 ${fmtShare(m.total / m.haveTotal)}` }));
+    el.appendChild(h('span', { class: 'graph__markpct', text: `${scope} 중 ${fmtShare(m.total / Math.max(1, base))}` }));
+    const at = (row, x) => (r.xCol < 0 ? `행 ${fmtInt(row + 1)}` : `${formatX(x, 1e-6)} (행 ${fmtInt(row + 1)})`);
+    const jump = (label, row, x) => {
+      const b = h('button', { class: 'btn btn--sm', type: 'button', text: `${label} ${at(row, x)}`, title: '표에서 이 행으로' });
+      b.addEventListener('click', () => onGotoRow && onGotoRow(row, focusCol));
+      return b;
+    };
+    const acts = h('span', { class: 'row graph__markacts' }, jump('처음', m.firstRow, m.firstX));
+    if (m.total > 1) acts.appendChild(jump('마지막', m.lastRow, m.lastX));
+    const only = h('button', { class: 'btn btn--sm btn--accent', type: 'button', text: '이 값인 행만 표에서', title: '필터에 「=」 조건을 더해, 표에서 그 값이 나온 행(과 시각)을 차례로 봅니다' });
+    only.addEventListener('click', () => onFilterValue && onFilterValue(focusCol, markValue));
+    acts.appendChild(only);
+    el.appendChild(acts);
+    return el;
+  }
+
+  function legendFor(fs) {
+    const lg = fs.s ? legendEl(fs.s) : h('div', { class: 'legend graph__legend' });
+    const m = markOf(fs.r);
+    if (m && m.total) {
+      const what = !fs.s ? '구간별 나온 횟수' : fs.s.kind === 'num' && m.num != null ? '나온 때 (점선 위 점) · 아래 막대는 구간별 횟수' : '구간별 나온 횟수 (아래 막대)';
+      lg.appendChild(h('span', { class: 'legend__item' }, dotEl(fs.s), h('span', { text: `${markValue} ${what}` })));
+    }
+    return lg;
+  }
+
   function drawFocus(canvas, fs, ui) {
     const { r, s } = fs;
+    const m = markOf(r);
+    const strip = !!(m && m.total); // 값을 넣었으면 아래에 구간별 횟수 칸 (축 하나씩 — 위 값, 아래 횟수)
+    const ys = s ? yScaleOf(s, 4) : null;
+    const main = !!ys; // 위 칸(값) — 범위 안에 숫자로 읽히는 값이 하나도 없으면 아래 칸만
+    if (!main && !strip) return;
+    const H = (main ? FOCUS_PLOT_H : 8) + (strip ? STRIP_GAP + STRIP_H : 0) + 26;
+    canvas.style.height = `${H}px`;
     const W = canvas.clientWidth || 800;
-    const ctx = setupCanvas(canvas, W, FOCUS_PLOT_H + 26);
-    const ys = yScaleOf(s, 4);
-    if (!ys) return;
+    const ctx = setupCanvas(canvas, W, H);
     ctx.font = `11px ${cssVar('--sans')}`;
     const tickText = (v) => (s.kind === 'cat' ? `${Math.round(v * 100)}%` : formatTick(v, { hex: s.hex, step: ys.step }));
-    const gut = Math.ceil(Math.max(...ys.ticks.map((v) => ctx.measureText(tickText(v)).width))) + 10;
-    const plot = { l: gut, t: 8, w: W - gut - 4, h: FOCUS_PLOT_H - 8 };
-    // 가로 격자(실선 머리카락, 뒤로 물러난 색)와 Y 눈금
-    ctx.strokeStyle = cssVar('--viz-grid'); ctx.lineWidth = 1;
-    ctx.fillStyle = cssVar('--fg-muted'); ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
-    for (const v of ys.ticks) {
-      const y = Math.round(plot.t + plot.h - ((v - ys.lo) / (ys.hi - ys.lo)) * plot.h) + 0.5;
-      ctx.beginPath(); ctx.moveTo(plot.l, y); ctx.lineTo(plot.l + plot.w, y); ctx.stroke();
-      ctx.fillText(tickText(v), plot.l - 6, y);
+    let maxHit = 0;
+    if (strip) for (let b = 0; b < m.hits.length; b++) if (m.hits[b] > maxHit) maxHit = m.hits[b];
+    const labels = [...(ys ? ys.ticks.map(tickText) : []), ...(strip ? [`${fmtInt(maxHit)}회`] : [])];
+    const gut = Math.ceil(Math.max(0, ...labels.map((t) => ctx.measureText(t).width))) + 10;
+    const plot = { l: gut, t: 8, w: W - gut - 4, h: main ? FOCUS_PLOT_H - 8 : 0 };
+    if (main) {
+      // 가로 격자(실선 머리카락, 뒤로 물러난 색)와 Y 눈금
+      ctx.strokeStyle = cssVar('--viz-grid'); ctx.lineWidth = 1;
+      ctx.fillStyle = cssVar('--fg-muted'); ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+      for (const v of ys.ticks) {
+        const y = Math.round(plot.t + plot.h - ((v - ys.lo) / (ys.hi - ys.lo)) * plot.h) + 0.5;
+        ctx.beginPath(); ctx.moveTo(plot.l, y); ctx.lineTo(plot.l + plot.w, y); ctx.stroke();
+        ctx.fillText(tickText(v), plot.l - 6, y);
+      }
+      drawSeries(ctx, s, plot, ys);
+      if (strip && s.kind === 'num' && m.num != null && m.num >= ys.lo && m.num <= ys.hi) drawMarkLine(ctx, s, m, plot, ys);
     }
-    drawSeries(ctx, s, plot, ys);
-    // X 축 — 범위는 데이터 그대로, 눈금만 깔끔하게
+    let bottom = plot.t + plot.h;
+    if (strip) bottom = drawStrip(ctx, s, m, maxHit, { l: plot.l, t: bottom + STRIP_GAP, w: plot.w, h: STRIP_H });
+    plot.bottom = bottom; // 기준선·끌기 선택은 아래 칸까지
+    // X 축 (맨 아래 칸 밑에 한 번) — 범위는 데이터 그대로, 눈금만 깔끔하게
     const xsc = niceScale(r.x0, r.x1, Math.max(2, Math.floor(plot.w / 110)));
-    ctx.strokeStyle = cssVar('--viz-axis');
-    ctx.beginPath(); ctx.moveTo(plot.l, plot.t + plot.h + 0.5); ctx.lineTo(plot.l + plot.w, plot.t + plot.h + 0.5); ctx.stroke();
+    ctx.strokeStyle = cssVar('--viz-axis'); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(plot.l, bottom + 0.5); ctx.lineTo(plot.l + plot.w, bottom + 0.5); ctx.stroke();
     ctx.fillStyle = cssVar('--fg-muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     for (const v of xsc.ticks) {
       if (v < r.x0 || v > r.x1) continue;
       const x = plot.l + ((v - r.x0) / (r.x1 - r.x0 || 1)) * plot.w;
-      ctx.fillText(formatTick(v, { step: xsc.step }), Math.min(Math.max(x, plot.l + 18), plot.l + plot.w - 18), plot.t + plot.h + 6);
+      ctx.fillText(formatTick(v, { step: xsc.step }), Math.min(Math.max(x, plot.l + 18), plot.l + plot.w - 18), bottom + 6);
     }
     if (!fs.stale) wireFocus(canvas, fs, plot, ui); // 계산 중인 흐린 그림은 조작하지 않는다
+  }
+
+  /** 넣은 값의 높이에 가는 점선, 그 값이 나온 구간마다 8px 점(표면색 테두리 — 선과 겹쳐도 보이게) */
+  function drawMarkLine(ctx, s, m, plot, ys) {
+    const B = m.hits.length;
+    const y = Math.round(plot.t + plot.h - ((m.num - ys.lo) / (ys.hi - ys.lo)) * plot.h) + 0.5;
+    const color = markColor(s);
+    ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(plot.l, y); ctx.lineTo(plot.l + plot.w, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = color; ctx.strokeStyle = cssVar('--bg-panel'); ctx.lineWidth = 2;
+    for (let b = 0; b < B; b++) {
+      if (!m.hits[b]) continue;
+      ctx.beginPath(); ctx.arc(plot.l + ((b + 0.5) / B) * plot.w, y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  /** 아래 칸: 구간마다 그 값이 나온 횟수 막대 (축 하나 — 0 ~ 최대 횟수). 칸 이름은 위 간격에, 글자는 글자색 */
+  function drawStrip(ctx, s, m, maxHit, st) {
+    const B = m.hits.length;
+    ctx.fillStyle = cssVar('--fg-muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`${markValue} — 구간별 나온 횟수`, st.l, st.t - 6);
+    ctx.strokeStyle = cssVar('--viz-grid'); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(st.l, Math.round(st.t) + 0.5); ctx.lineTo(st.l + st.w, Math.round(st.t) + 0.5); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${fmtInt(maxHit)}회`, st.l - 6, st.t);
+    ctx.fillText('0', st.l - 6, st.t + st.h);
+    ctx.fillStyle = markColor(s);
+    const bw = st.w / B;
+    const wpx = Math.max(2, bw > 4 ? bw - 1 : bw); // 막대 사이 1px 간격 (구간이 넓을 때), 아무리 좁아도 2px — 한 번 나온 것도 보이게
+    for (let b = 0; b < B; b++) {
+      const n = m.hits[b];
+      if (!n) continue;
+      const hh = Math.max(2, (n / maxHit) * st.h);
+      ctx.fillRect(st.l + b * bw + (bw - wpx) / 2, st.t + st.h - hh, wpx, hh);
+    }
+    return st.t + st.h;
   }
 
   function wireFocus(canvas, fs, plot, { cross, sel, tip }) {
     const { r, s } = fs;
     const B = r.buckets;
+    const m = markOf(r);
+    const panelH = plot.bottom - plot.t;
     // 기준선은 가장 가까운 값 있는 구간에 붙는다 (듬성듬성한 데이터에서 빈 구간을 가리키지 않게)
-    const hasData = (b) => (s.kind === 'cat' ? s.labels.some((_, k) => s.counts[b * s.labels.length + k]) : s.cnt[b] > 0);
+    const hasData = (b) => (!s ? !!(m && m.hits[b]) : s.kind === 'cat' ? s.labels.some((_, k) => s.counts[b * s.labels.length + k]) : s.cnt[b] > 0);
+    const navHas = m && m.total ? (b) => m.hits[b] > 0 : hasData; // 값을 넣었으면 ←→ 는 그 값이 나온 구간으로
     const snap = (b) => { for (let d = 0; d < B; d++) { if (b - d >= 0 && hasData(b - d)) return b - d; if (b + d < B && hasData(b + d)) return b + d; } return b; };
     const pxToB = (px) => snap(Math.max(0, Math.min(B - 1, Math.floor(((px - plot.l) / plot.w) * B))));
     const show = (b) => {
       hoverB = b;
       const cx = plot.l + ((b + 0.5) / B) * plot.w;
-      cross.style.left = `${Math.round(cx)}px`; cross.style.top = `${plot.t}px`; cross.style.height = `${plot.h}px`;
+      cross.style.left = `${Math.round(cx)}px`; cross.style.top = `${plot.t}px`; cross.style.height = `${panelH}px`;
       cross.classList.remove('is-hidden');
       fillTip(tip, r, s, b);
       tip.classList.remove('is-hidden');
@@ -9129,7 +9391,7 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
       if (dragFrom != null && Math.abs(x - dragFrom) > 3) {
         sel.classList.remove('is-hidden');
         sel.style.left = `${Math.min(x, dragFrom)}px`; sel.style.width = `${Math.abs(x - dragFrom)}px`;
-        sel.style.top = `${plot.t}px`; sel.style.height = `${plot.h}px`;
+        sel.style.top = `${plot.t}px`; sel.style.height = `${panelH}px`;
       }
       show(pxToB(x));
     });
@@ -9151,10 +9413,10 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
     canvas.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
-        // ←→ 는 값 있는 다음 구간으로
+        // ←→ 는 값 있는 다음 구간으로 (값을 넣었으면 그 값이 나온 다음 구간으로)
         const dir = e.key === 'ArrowRight' ? 1 : -1;
-        let nb = hoverB < 0 ? snap(0) : hoverB + dir;
-        while (nb >= 0 && nb < B && !hasData(nb)) nb += dir;
+        let nb = hoverB < 0 ? (dir > 0 ? 0 : B - 1) : hoverB + dir;
+        while (nb >= 0 && nb < B && !navHas(nb)) nb += dir;
         if (nb >= 0 && nb < B) show(nb);
       } else if (e.key === 'Escape') hide();
     });
@@ -9168,32 +9430,41 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
     const res = (r.x1 - r.x0) / r.buckets;
     tip.appendChild(h('div', { class: 'graph__tiphead', text: `${r.xName} ${formatX(from, res)} ~ ${formatX(to, res)}` }));
     const rowEl = (key, label, value) => h('div', { class: 'graph__tiprow' }, key, h('strong', { text: value }), h('span', { class: 'muted', text: label }));
+    // 넣은 값: 이 구간에서 몇 번, 이 구간 값 중 몇 %
+    const m = markOf(r);
+    const markRow = () => { if (m) tip.appendChild(rowEl(dotEl(s), m.have[b] ? `${markValue} · 구간 값의 ${fmtShare(m.hits[b] / m.have[b])}` : markValue, `${fmtInt(m.hits[b])}회`)); };
+    const noValue = () => { if (m && m.hits[b]) markRow(); else tip.appendChild(h('div', { class: 'muted', text: '이 구간에 값 없음' })); };
+    if (!s) { markRow(); return; }
     if (s.kind === 'cat') {
       const K = s.labels.length;
       let tot = 0;
       for (let k = 0; k < K; k++) tot += s.counts[b * K + k];
-      if (!tot) { tip.appendChild(h('div', { class: 'muted', text: '이 구간에 값 없음' })); return; }
+      if (!tot) { noValue(); return; }
       for (let k = 0; k < K; k++) {
         const key = h('span', { class: 'graph__key' });
         key.style.background = catColor(s, k);
         const n = s.counts[b * K + k];
         tip.appendChild(rowEl(key, s.labels[k], `${((n / tot) * 100).toFixed(1)}% · ${fmtInt(n)}`));
       }
+      markRow();
       return;
     }
-    if (!s.cnt[b]) { tip.appendChild(h('div', { class: 'muted', text: '이 구간에 값 없음' })); return; }
+    if (!s.cnt[b]) { noValue(); return; }
     const line = h('span', { class: 'graph__key' });
     line.style.background = cssVar('--viz-1');
     const band = h('span', { class: 'graph__key graph__key--band' });
     band.style.background = rgba(cssVar('--viz-1'), 0.3);
     const fmt = (v) => formatValue(v, { hex: s.hex, width: s.width });
-    tip.append(rowEl(line, '평균', fmt(s.mean[b])), rowEl(band, '최소 ~ 최대', `${fmt(s.min[b])} ~ ${fmt(s.max[b])}`),
-      h('div', { class: 'muted graph__tipfoot', text: `값 ${fmtInt(s.cnt[b])}개` }));
+    tip.append(rowEl(line, '평균', fmt(s.mean[b])), rowEl(band, '최소 ~ 최대', `${fmt(s.min[b])} ~ ${fmt(s.max[b])}`));
+    markRow();
+    tip.appendChild(h('div', { class: 'muted graph__tipfoot', text: `값 ${fmtInt(s.cnt[b])}개` }));
   }
 
   /** 표로 보기 — 툴팁 없이도 모든 구간 값을 읽을 수 있게 (값이 없는 구간은 뺀다) */
   function tableEl(r, s) {
-    const head = s.kind === 'cat' ? ['구간', '행 수', ...s.labels] : ['구간', '값 개수', '최소', '평균', '최대'];
+    const m = markOf(r);
+    const head = !s ? ['구간'] : s.kind === 'cat' ? ['구간', '행 수', ...s.labels] : ['구간', '값 개수', '최소', '평균', '최대'];
+    if (m) head.push(`${markValue} 횟수`);
     const body = h('tbody');
     const fmt = (v) => formatValue(v, { hex: s.hex, width: s.width });
     const res = (r.x1 - r.x0) / r.buckets;
@@ -9201,7 +9472,10 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
       const [from, to] = bucketRange(b, r.x0, r.x1, r.buckets);
       const range = `${formatX(from, res)} ~ ${formatX(to, res)}`;
       let cells;
-      if (s.kind === 'cat') {
+      if (!s) {
+        if (!m || !m.hits[b]) continue; // 그리지 않는 열: 그 값이 나온 구간만 (값을 바꾼 직후 세기 전이면 빈 표)
+        cells = [range];
+      } else if (s.kind === 'cat') {
         const K = s.labels.length;
         const counts = Array.from({ length: K }, (_, k) => s.counts[b * K + k]);
         if (!counts.some(Boolean)) continue;
@@ -9210,6 +9484,7 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
         if (!s.cnt[b]) continue;
         cells = [range, fmtInt(s.cnt[b]), fmt(s.min[b]), fmt(s.mean[b]), fmt(s.max[b])];
       }
+      if (m) cells.push(fmtInt(m.hits[b]));
       body.appendChild(h('tr', {}, ...cells.map((c) => h('td', { text: c }))));
     }
     return h('div', { class: 'graph__tablewrap' }, h('table', { class: 'kv graph__table' }, h('thead', {}, h('tr', {}, ...head.map((x) => h('th', { text: x })))), body));
@@ -9222,9 +9497,12 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
     refineFocus();
   }
 
-  function focus(col) {
-    if (focusCol === col && (focusData || focusPending)) { focusBox.scrollIntoView?.({ block: 'nearest' }); return; } // 이미 크게 보는 열
+  /** col 을 크게. value 를 주면 그 값이 나온 때도 (열 상세의 값 입력에서) */
+  function focus(col, value) {
+    const want = value == null || String(value).trim() === '' ? null : String(value).trim();
+    if (focusCol === col && (want == null || normMark(col, want) === markValue) && (focusData || focusPending)) { focusBox.scrollIntoView?.({ block: 'nearest' }); return; } // 이미 크게 보는 열
     if (focusCol !== col) resetFocus(col);
+    if (want != null) { markValue = normMark(col, want); markDraft = markValue; hoverB = -1; }
     renderFocus();
     focusBox.scrollIntoView?.({ block: 'nearest' });
     if (overview) refineFocus(); else ensureOverview();
@@ -9284,14 +9562,22 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
       const note = h('div', { class: 'faint graph__mininote' });
       const btn = h('button', { class: 'btn btn--sm btn--accent', type: 'button', text: '그래프 탭에서 크게 보기' });
       btn.addEventListener('click', () => onOpenColumn(col));
+      // 값을 넣으면 그래프 탭에서 그 값이 나온 때(점·구간별 횟수·비율)를 — 그래프로 그리지 않는 글자 열도
+      const valIn = h('input', { class: 'input graph__miniin', type: 'text', placeholder: '값 (예: 0x1234)', spellcheck: 'false', autocomplete: 'off', 'aria-label': '그래프 탭에서 이 값이 나온 때 보기' });
+      const valBtn = h('button', { class: 'btn btn--sm', type: 'button', text: '이 값이 나온 때' });
+      const goVal = () => { if (valIn.value.trim()) onOpenColumn(col, valIn.value.trim()); else valIn.focus(); };
+      valBtn.addEventListener('click', goVal);
+      valIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); goVal(); } });
+      const valRow = h('div', { class: 'row graph__minival' }, valIn, valBtn);
       const titleEl = h('h3', { text: '시간에 따른 변화' });
-      const el = h('div', { class: 'graph-mini' }, titleEl, canvas, note, h('div', { class: 'row' }, btn));
+      const el = h('div', { class: 'graph-mini' }, titleEl, canvas, note, h('div', { class: 'row' }, btn), valRow);
       el.redraw = () => {
         if (!el.isConnected && !minis.has(el)) return;
         const s = overview && overview.series.find((x) => x.col === col);
         // 그릴 데이터가 있을 때만 그래프와 「크게 보기」 — 없으면 이유(계산 중·실패·그리지 않는 열)를
         canvas.classList.toggle('is-hidden', !s);
         btn.classList.toggle('is-hidden', !s);
+        valRow.classList.toggle('is-hidden', !canMark(col));
         if (!overview) { note.textContent = overviewPending ? '그래프 계산 중…' : overviewError; return; }
         titleEl.textContent = `${overview.xName}에 따른 변화`;
         const skip = overview.skipped.find((x) => x.col === col);
@@ -9315,7 +9601,7 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
     },
   };
 }
-return { createGraphView };
+return { fmtShare, createGraphView };
 })();
 
 // ===== src/main/view-cols.js =====
@@ -9567,7 +9853,18 @@ const graphView = createGraphView({
   // 필터는 그래프 뷰가 들고 있다가 실어 보낸다 (setDataset·setFilter 로 필터 막대와 맞춘다)
   request: (payload) => client.request(MSG.SERIES, payload),
   cancel: (id) => { if (client) client.send(MSG.CANCEL, { id }); },
-  onOpenColumn: (col) => { showTab('graph'); graphView.focus(col); },
+  onOpenColumn: (col, value) => { showTab('graph'); graphView.focus(col, value); },
+  onGotoRow: (row, col) => { gotoRow(row, col); selectCell(row, col); },
+  // 「이 값인 행만 표에서」: 필터에 「=」 조건을 더하고 표로 — 그 값이 나온 행과 시각을 차례로 본다
+  onFilterValue: (col, value) => {
+    const conds = filterBar.getConditions();
+    if (!conds.some((c) => c.col === col && c.op === 'eq' && c.value === value)) {
+      if (conds.length >= 4) { statusBar.setMessage('필터 조건은 4개까지입니다 — 필터 막대에서 하나를 지운 뒤 다시 누르세요.', 'error'); return; }
+      filterBar.setConditions([...conds, { col, op: 'eq', value }]);
+    }
+    searchBar.filterHost.classList.remove('is-hidden');
+    showTab('table');
+  },
 });
 const exportPanel = createExportPanel({
   button: $('#btn-export'), host: $('#export-panel'),
