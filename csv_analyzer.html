@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T03:05:48.023Z
+  built: 2026-10-24T04:33:46.881Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -21,6 +21,7 @@
     src/shared/filter.js
     src/shared/groupby.js
     src/shared/search-bytes.js
+    src/shared/xlsx.js
     src/worker/engine.js
     src/worker/worker.js
     src/main/worker-client.js
@@ -47,9 +48,11 @@
     src/main/ui/offset-bar.js
     src/main/ui/hex-view.js
     src/main/leave-guard.js
+    src/main/export-plan.js
+    src/main/ui/export-panel.js
     src/main/app.js
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MweDTVueNecqXlK0ho9F0E+X43lGk5BHYQ+6j/NIXp0='; style-src 'sha256-XwjOB0fQlTTPUYt7MEpaiuhwM8kY0YXwWDgbsnr02hg='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pWQTljpJvMTy+ANI0YTRQwWuNkTc/pYoI7NYQovE4e8='; style-src 'sha256-Pz7e+GWZmgLnOQxJ/f4fEQmZ2nwOSntG5WYvUDp5hA4='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -220,6 +223,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .btn--primary:hover { background: color-mix(in srgb, var(--accent-fill) 88%, #000000); }
 .btn--danger { color: var(--danger); background: var(--danger-soft); font-weight: 600; }
 .btn--danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--bg-panel)); }
+.btn--accent { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.btn--accent:hover { background: color-mix(in srgb, var(--accent) 14%, var(--bg-panel)); }
 .btn--sm { padding: 3px 9px; font-size: 12px; border-radius: 7px; }
 .btn--link { border: none; background: none; color: var(--accent); padding: 0; cursor: pointer; font-weight: 500; }
 .btn--link:hover { text-decoration: underline; background: none; }
@@ -489,6 +494,38 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
 .hex__bytes span[data-off] { cursor: default; }
 .hex__bytes span[data-off]:hover { outline: 1px solid var(--accent); border-radius: 2px; }
 .hex .table__empty { top: 90px; }
+
+/* ===== XLSX 내보내기 패널 (상단바 버튼 아래로 펼침) ===== */
+.topbar__actions { position: relative; display: flex; align-items: center; gap: 8px; }
+.export {
+  position: absolute; top: calc(100% + 12px); right: 0; z-index: 30; width: 400px; max-width: calc(100vw - 24px);
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.06);
+}
+.export__head { display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 1.5; }
+.export__head strong { font-size: 15px; letter-spacing: -0.2px; color: var(--fg); }
+.export__opts { display: flex; flex-direction: column; gap: 6px; }
+.export__opt {
+  display: grid; grid-template-columns: auto 1fr; grid-template-areas: "radio label" "radio detail"; column-gap: 10px; row-gap: 1px;
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.export__opt input { grid-area: radio; margin: 2px 0 0; }
+.export__label { grid-area: label; font-weight: 600; }
+.export__detail { grid-area: detail; font-size: 12px; color: var(--fg-muted); }
+.export__opt:hover { border-color: var(--border-strong); }
+.export__opt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg-panel)); }
+.export__opt.is-disabled { cursor: default; }
+.export__opt.is-disabled:hover { border-color: var(--border); }
+.export__opt.is-disabled .export__label { color: var(--fg-muted); font-weight: 500; }
+.export__note { font-size: 12px; line-height: 1.5; color: var(--fg-muted); }
+.export__msg { font-size: 12px; line-height: 1.5; padding: 8px 10px; border-radius: 8px; }
+.export__msg--ok { color: var(--ok); background: var(--ok-soft); }
+.export__msg--warn { color: var(--warn); background: var(--warn-soft); }
+.export__msg--error { color: var(--danger); background: var(--danger-soft); }
+.export__progress { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--fg-muted); }
+.export__progress .progress { flex: 1; width: auto; }
+.export__actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>
 </head>
 <body>
@@ -509,11 +546,13 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
         </svg>
       </span>
       <span class="topbar__name">CSV 분석기</span>
-      <span class="topbar__badge" title="네트워크 요청 없음 · 저장 안 함 · 탭을 닫으면 데이터가 사라집니다">오프라인 · 저장 안 함</span>
+      <span class="topbar__badge" title="네트워크 요청 없음 · 브라우저에 저장 안 함 (XLSX 내보내기를 누를 때만 파일 저장) · 탭을 닫으면 데이터가 사라집니다">오프라인 · 저장 안 함</span>
       <span id="engine-mode" class="topbar__mode"></span>
     </div>
     <div class="topbar__actions">
+      <button id="btn-export" class="btn btn--accent" type="button" disabled aria-haspopup="dialog" aria-expanded="false" aria-controls="export-panel" title="프로파일이 끝나면 내보낼 수 있습니다">XLSX 내보내기</button>
       <button id="btn-clear-all" class="btn btn--danger" type="button" title="워커를 종료하고 메모리의 모든 데이터를 해제합니다">모두 지우기</button>
+      <div id="export-panel" class="export is-hidden" role="dialog" aria-label="XLSX로 내보내기"></div>
     </div>
   </header>
   <aside id="input-panel" class="side side--left"></aside>
@@ -1013,13 +1052,14 @@ const MSG = {
   // main → worker
   OPEN: 'open', PROFILE: 'profile', ROWS: 'rows', ROW_DETAIL: 'rowDetail', BYTES: 'bytes',
   LOCATE: 'locate', SEARCH: 'search', GROUP_BY: 'groupBy', COLUMN_DETAIL: 'columnDetail', CANCEL: 'cancel', CLEAR: 'clear',
-  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping',
+  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export',
   // worker → main
   OPENED: 'opened', INDEX_PROGRESS: 'indexProgress', INDEXED: 'indexed', PROFILE_PROGRESS: 'profileProgress', PROFILED: 'profiled',
   ROWS_RESULT: 'rowsResult', ROW_DETAIL_RESULT: 'rowDetailResult', BYTES_RESULT: 'bytesResult', LOCATED: 'located',
   SEARCH_BATCH: 'searchBatch', SEARCH_PROGRESS: 'searchProgress', SEARCH_DONE: 'searchDone', SEARCH_ERROR: 'searchError',
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
+  EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -1995,6 +2035,308 @@ function findMasked(hay, bytes, mask, anchor, from, toExcl, onHit) {
 return { findMasked };
 })();
 
+// ===== src/shared/xlsx.js =====
+const M_shared_xlsx = (() => {
+// XLSX(Office Open XML) 작성기 — 라이브러리·네트워크 없이 워커/메인 스레드/Node 에서 동작한다.
+// 시트 하나, 공유 문자열, 첫 행 고정. 압축은 CompressionStream('deflate-raw'), 안 되면 무압축으로 저장.
+// 아래 http 주소들은 XML 네임스페이스 식별자일 뿐 요청하지 않는다 (CSP connect-src 'none').
+
+const XLSX_MAX_ROWS = 1048576;      // 엑셀 시트 행 한도 (머리글 포함)
+const XLSX_MAX_COLS = 16384;
+const XLSX_MAX_CELL_CHARS = 32767;
+const SHEETS_MAX_CELLS = 10000000;  // 구글 시트 파일 한도 (행 × 열)
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const SST_MAX = 16000000; // 공유 문자열 Map 은 2^24 개가 한계 — 넘으면 그 뒤 새 글자는 칸 안에 직접(inlineStr) 쓴다
+
+const NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+const NS_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const NS_PKG_REL = 'http://schemas.openxmlformats.org/package/2006/relationships';
+const NS_PKG_CT = 'http://schemas.openxmlformats.org/package/2006/content-types';
+const XML_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+
+// 스타일 번호 (styles.xml 의 cellXfs 순서). 4번부터는 소수 자릿수별 숫자 형식이 쓰이는 대로 붙는다.
+const S_TEXT = 1, S_HEAD = 2, S_PCT = 3, S_DEC0 = 4;
+
+const DECIMAL = /^-?(?:0|[1-9]\d*)(?:\.(\d+))?$/;
+/**
+ * 숫자 칸으로 옮겨도 되는 십진수면 { value, decimals }, 아니면 null.
+ * 숫자 칸은 원래 소수 자릿수 형식(0, 0.0, 0.000 …)으로 보이게 해 글자가 그대로 보인다 — 810.420 은 810.42 + "0.000".
+ * 글자로 남기는 것: 앞자리 0(0012·007), 지수(1E05), 부호 있는 0(-0), 공백·+부호, 유효숫자 16자리 이상(엑셀·시트는 15자리).
+ */
+function numericCell(s) {
+  if (typeof s !== 'string' || s.length > 48) return null;
+  const m = DECIMAL.exec(s);
+  if (!m) return null;
+  const decimals = m[1] ? m[1].length : 0;
+  if (decimals > 30) return null; // 엑셀 표시 형식의 소수 자릿수 한도
+  if (s.replace(/^-/, '').replace('.', '').replace(/^0+/, '').length > 15) return null;
+  const value = Number(s);
+  if (!Number.isFinite(value) || Object.is(value, -0)) return null;
+  return { value, decimals };
+}
+
+/** 0 → A, 26 → AA, 16383 → XFD */
+function columnName(i) {
+  let s = '';
+  for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
+  return s;
+}
+
+/** 엑셀 시트 이름 규칙: []:*?/\ 금지, 31자 이하, 비어 있으면 안 됨 */
+function sheetNameOf(name) {
+  const s = Array.from(String(name || '').replace(/[[\]:*?/\\]/g, '_')).slice(0, 31).join('').trim();
+  return s || 'Sheet1';
+}
+
+/** 이 환경에서 ZIP 용 압축(deflate-raw)을 쓸 수 있는지 — CompressionStream 이 있어도 'deflate-raw' 가 없는 브라우저가 있다 */
+function deflateRawSupported() {
+  if (typeof CompressionStream === 'undefined') return false;
+  try { new CompressionStream('deflate-raw'); return true; } catch { return false; }
+}
+
+// XML 1.0 에 넣을 수 없는 문자: 탭·줄바꿈 외 제어 문자, 짝 없는 서로게이트, U+FFFE/FFFF
+const INVALID_XML_SRC = '[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\uFFFE\\uFFFF]|[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]';
+const INVALID_XML = new RegExp(INVALID_XML_SRC);
+const INVALID_XML_ALL = new RegExp(INVALID_XML_SRC, 'g');
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r/g, '&#13;');
+const escAttr = (s) => esc(s).replace(/"/g, '&quot;');
+// 엑셀은 문자열 안의 _xHHHH_ 를 그 문자로 풀어 읽는다 — 글자 그대로 남기려면 앞 밑줄을 _x005F_ 로 쓴다
+const xmlText = (s) => esc(s.replace(/_(x[0-9A-Fa-f]{4}_)/g, '_x005F_$1'));
+const tOpen = (s) => (/^\s|\s$/.test(s) ? '<t xml:space="preserve">' : '<t>');
+
+// ---------- CRC32 ----------
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(crc, u8) {
+  let c = crc ^ 0xffffffff;
+  for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// ---------- ZIP 항목 (압축하며 CRC·크기를 센다) ----------
+function createEntry(name, compress) {
+  let crc = 0, size = 0, compSize = 0;
+  const chunks = [];
+  let writer = null, pump = null;
+  if (compress) {
+    const cs = new CompressionStream('deflate-raw');
+    writer = cs.writable.getWriter();
+    const reader = cs.readable.getReader();
+    pump = (async () => {
+      for (;;) { const { value, done } = await reader.read(); if (done) break; chunks.push(value); compSize += value.length; }
+    })();
+    pump.catch(() => {}); // abort() 하면 읽기가 거부된다 — close() 에서 기다릴 때만 오류로 본다
+  }
+  return {
+    async write(u8) {
+      if (!u8.length) return;
+      crc = crc32(crc, u8);
+      size += u8.length;
+      if (size > 0xffffffff) throw new RangeError('시트가 4GB 를 넘어 XLSX 로 만들 수 없습니다');
+      if (writer) { await writer.ready; await writer.write(u8); } else { chunks.push(u8); compSize += u8.length; }
+    },
+    async close() {
+      if (writer) { await writer.close(); await pump; }
+      return { name, crc, size, compSize, chunks, method: compress ? 8 : 0 };
+    },
+    abort() { if (writer) writer.abort().catch(() => {}); },
+  };
+}
+
+function dosDateTime(d) {
+  const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const date = (Math.max(0, d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  return { time, date };
+}
+
+function zipBlob(entries, now) {
+  const enc = new TextEncoder();
+  const { time, date } = dosDateTime(now);
+  const parts = [], central = [];
+  let offset = 0;
+  for (const e of entries) {
+    const name = enc.encode(e.name);
+    const head = new DataView(new ArrayBuffer(30));
+    head.setUint32(0, 0x04034b50, true); head.setUint16(4, 20, true); head.setUint16(6, 0, true); head.setUint16(8, e.method, true);
+    head.setUint16(10, time, true); head.setUint16(12, date, true); head.setUint32(14, e.crc, true);
+    head.setUint32(18, e.compSize, true); head.setUint32(22, e.size, true); head.setUint16(26, name.length, true); head.setUint16(28, 0, true);
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0, true); cd.setUint16(10, e.method, true);
+    cd.setUint16(12, time, true); cd.setUint16(14, date, true); cd.setUint32(16, e.crc, true); cd.setUint32(20, e.compSize, true); cd.setUint32(24, e.size, true);
+    cd.setUint16(28, name.length, true); cd.setUint32(42, offset, true); // 나머지(extra·comment·disk·속성)는 0
+    central.push(new Uint8Array(cd.buffer), name);
+    parts.push(new Uint8Array(head.buffer), name, ...e.chunks);
+    offset += 30 + name.length + e.compSize;
+    if (offset > 0xffffffff) throw new RangeError('파일이 4GB 를 넘어 XLSX 로 만들 수 없습니다');
+  }
+  const cdSize = central.reduce((n, p) => n + p.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: XLSX_MIME });
+}
+
+async function smallEntry(name, xml, compress) {
+  const e = createEntry(name, compress);
+  await e.write(new TextEncoder().encode(xml));
+  return e.close();
+}
+
+/** decimals: 쓰인 순서대로의 소수 자릿수 목록 (S_DEC0 + i 번 스타일) */
+function stylesXml(decimals) {
+  const custom = decimals.filter((d) => d !== 0 && d !== 2); // 0 → 내장 1("0"), 2 → 내장 2("0.00")
+  const fmtId = (d) => (d === 0 ? 1 : d === 2 ? 2 : 164 + custom.indexOf(d));
+  const xf = (numFmtId, extra = '') => `<xf numFmtId="${numFmtId}" fontId="0" fillId="0" borderId="0" xfId="0"${extra}/>`;
+  return XML_HEAD + `<styleSheet xmlns="${NS_MAIN}">`
+    + (custom.length ? `<numFmts count="${custom.length}">${custom.map((d, i) => `<numFmt numFmtId="${164 + i}" formatCode="0.${'0'.repeat(d)}"/>`).join('')}</numFmts>` : '')
+    + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font></fonts>'
+    + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+    + '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+    + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+    + `<cellXfs count="${S_DEC0 + decimals.length}">`
+    + xf(0) // 0 일반 (JS 숫자: 건수 등)
+    + xf(49, ' applyNumberFormat="1"') // 1 텍스트(@) — 편집해도 숫자로 바뀌지 않음
+    + '<xf numFmtId="49" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' // 2 머리글
+    + xf(10, ' applyNumberFormat="1"') // 3 퍼센트 0.00%
+    + decimals.map((d) => xf(fmtId(d), ' applyNumberFormat="1"')).join('') // 4~ 소수 자릿수별
+    + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+}
+
+/**
+ * columns: [{ name, type: 'text' | 'auto' | 'percent', width? }]
+ *   text    — 항상 글자 그대로 (16진수 열: 0012·1E05·1234 가 숫자로 바뀌지 않게)
+ *   auto    — numericCell 이 허락하면 숫자(원래 소수 자릿수로 표시), 아니면 글자
+ *   percent — 0~1 숫자를 0.00% 로 표시
+ * addRow(values): values[i] 는 문자열·숫자·빈 값(undefined/null/'' → 칸을 만들지 않음).
+ * 블록마다 await flush() 로 버퍼를 압축기에 넘기고, 끝에 await finish() 로 Blob 을 받는다.
+ */
+function createXlsxWriter({ columns, sheetName = 'Sheet1', compress = deflateRawSupported(), maxRows = XLSX_MAX_ROWS, sstMax = SST_MAX, now = new Date() }) {
+  const ncols = columns.length;
+  if (!ncols) throw new Error('열이 없습니다');
+  if (ncols > XLSX_MAX_COLS) throw new RangeError(`열이 ${XLSX_MAX_COLS.toLocaleString('ko-KR')}개를 넘어 XLSX 로 만들 수 없습니다`);
+  const refs = columns.map((_, i) => columnName(i));
+  const types = columns.map((c) => c.type || 'auto');
+  const sheet = createEntry('xl/worksheets/sheet1.xml', compress);
+  const enc = new TextEncoder();
+  const strings = new Map();
+  const decStyle = new Map(); // 소수 자릿수 → 스타일 번호
+  let stringRefs = 0, inlineCells = 0, rowNum = 0, rows = 0, removedChars = 0, truncatedCells = 0, buf = '', closed = false;
+
+  function cleanText(v) {
+    let s = v;
+    if (INVALID_XML.test(s)) s = s.replace(INVALID_XML_ALL, () => { removedChars++; return ''; });
+    if (s.length > XLSX_MAX_CELL_CHARS) {
+      let cut = XLSX_MAX_CELL_CHARS;
+      const c = s.charCodeAt(cut - 1);
+      if (c >= 0xd800 && c <= 0xdbff) cut--; // 서로게이트 쌍을 가르지 않는다
+      s = s.slice(0, cut);
+      truncatedCells++;
+    }
+    return s;
+  }
+  function textCell(ref, v, style) {
+    const s = cleanText(v);
+    let i = strings.get(s);
+    if (i === undefined) {
+      if (strings.size >= sstMax) { inlineCells++; return `<c r="${ref}" s="${style}" t="inlineStr"><is>${tOpen(s)}${xmlText(s)}</t></is></c>`; }
+      i = strings.size;
+      strings.set(s, i);
+    }
+    stringRefs++;
+    return `<c r="${ref}" s="${style}" t="s"><v>${i}</v></c>`;
+  }
+  function decimalStyle(d) {
+    let s = decStyle.get(d);
+    if (s === undefined) { s = S_DEC0 + decStyle.size; decStyle.set(d, s); }
+    return s;
+  }
+  function row(values, header) {
+    if (closed) throw new Error('이미 끝난 작성기입니다');
+    if (rowNum + 1 > maxRows) throw new RangeError(`행이 엑셀 한도(${(maxRows - 1).toLocaleString('ko-KR')}행)를 넘습니다`);
+    rowNum++;
+    let x = `<row r="${rowNum}">`;
+    for (let c = 0; c < ncols; c++) {
+      const v = values[c];
+      if (v == null || v === '') continue;
+      const ref = refs[c] + rowNum;
+      if (header) { x += textCell(ref, String(v), S_HEAD); continue; }
+      if (typeof v === 'number') {
+        if (Number.isFinite(v)) x += `<c r="${ref}"${types[c] === 'percent' ? ` s="${S_PCT}"` : ''}><v>${v}</v></c>`;
+        continue;
+      }
+      const num = types[c] === 'text' ? null : numericCell(v);
+      if (num) { x += `<c r="${ref}" s="${decimalStyle(num.decimals)}"><v>${v}</v></c>`; continue; }
+      x += textCell(ref, v, S_TEXT);
+    }
+    buf += x + '</row>';
+  }
+
+  const widths = columns.map((c) => Math.max(8, Math.min(40, c.width || Math.ceil(Array.from(c.name).length * 1.4) + 3)));
+  buf = XML_HEAD + `<worksheet xmlns="${NS_MAIN}" xmlns:r="${NS_REL}">`
+    + '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+    + '<sheetFormatPr defaultRowHeight="15"/>'
+    + '<cols>' + widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>'
+    + '<sheetData>';
+  row(columns.map((c) => c.name), true);
+
+  async function flush() {
+    if (!buf) return;
+    const u8 = enc.encode(buf);
+    buf = '';
+    await sheet.write(u8);
+  }
+
+  return {
+    addRow(values) { row(values, false); rows++; },
+    flush,
+    async finish() {
+      buf += '</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>';
+      await flush();
+      closed = true;
+      const sheetEntry = await sheet.close();
+      // 공유 문자열 — 시트를 다 쓴 뒤에야 목록이 확정된다
+      const sstEntry = createEntry('xl/sharedStrings.xml', compress);
+      let x = XML_HEAD + `<sst xmlns="${NS_MAIN}" count="${stringRefs}" uniqueCount="${strings.size}">`;
+      for (const s of strings.keys()) {
+        x += `<si>${tOpen(s)}${xmlText(s)}</t></si>`;
+        if (x.length > (1 << 20)) { await sstEntry.write(enc.encode(x)); x = ''; }
+      }
+      await sstEntry.write(enc.encode(x + '</sst>'));
+      const name = sheetNameOf(sheetName);
+      const entries = [
+        await smallEntry('[Content_Types].xml', XML_HEAD + `<Types xmlns="${NS_PKG_CT}">`
+          + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+          + '<Default Extension="xml" ContentType="application/xml"/>'
+          + '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+          + '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+          + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+          + '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
+          + '</Types>', compress),
+        await smallEntry('_rels/.rels', XML_HEAD + `<Relationships xmlns="${NS_PKG_REL}">`
+          + `<Relationship Id="rId1" Type="${NS_REL}/officeDocument" Target="xl/workbook.xml"/></Relationships>`, compress),
+        await smallEntry('xl/workbook.xml', XML_HEAD + `<workbook xmlns="${NS_MAIN}" xmlns:r="${NS_REL}">`
+          + `<bookViews><workbookView/></bookViews><sheets><sheet name="${escAttr(name)}" sheetId="1" r:id="rId1"/></sheets></workbook>`, compress),
+        await smallEntry('xl/_rels/workbook.xml.rels', XML_HEAD + `<Relationships xmlns="${NS_PKG_REL}">`
+          + `<Relationship Id="rId1" Type="${NS_REL}/worksheet" Target="worksheets/sheet1.xml"/>`
+          + `<Relationship Id="rId2" Type="${NS_REL}/styles" Target="styles.xml"/>`
+          + `<Relationship Id="rId3" Type="${NS_REL}/sharedStrings" Target="sharedStrings.xml"/></Relationships>`, compress),
+        await smallEntry('xl/styles.xml', stylesXml([...decStyle.keys()]), compress),
+        await sstEntry.close(),
+        sheetEntry,
+      ];
+      const blob = zipBlob(entries, now);
+      const gridCells = (rows + 1) * ncols;
+      return { blob, rows, columns: ncols, gridCells, sheetsOk: gridCells <= SHEETS_MAX_CELLS, removedChars, truncatedCells, inlineCells };
+    },
+    abort() { closed = true; buf = ''; sheet.abort(); },
+  };
+}
+return { XLSX_MAX_ROWS, XLSX_MAX_COLS, XLSX_MAX_CELL_CHARS, SHEETS_MAX_CELLS, XLSX_MIME, numericCell, columnName, sheetNameOf, deflateRawSupported, createXlsxWriter };
+})();
+
 // ===== src/worker/engine.js =====
 const M_worker_engine = (() => {
 const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
@@ -2009,7 +2351,9 @@ const { createGroupCounter } = M_shared_groupby;
 const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
 const { findMasked } = M_shared_search_bytes;
+const { createXlsxWriter, XLSX_MAX_ROWS } = M_shared_xlsx;
 // 데이터셋 엔진. 워커에서 실행되지만 메인 스레드 폴백으로도 동작한다 (DOM 사용 금지).
+
 
 
 
@@ -2042,6 +2386,7 @@ class Engine {
     this.profilePromise = null;
     this.activeSearch = 0;
     this.activeGroup = 0;
+    this.activeExport = 0;
   }
 
   /** 우선 작업 시작/종료. 종료 시 프로파일 재개. */
@@ -2071,6 +2416,7 @@ class Engine {
         case MSG.CELLS: await this.cells(msg); break;
         case MSG.GROUP_BY: await this.groupBy(msg); break;
         case MSG.LOCATE_MANY: await this.locateMany(msg); break;
+        case MSG.EXPORT: await this.exportXlsx(msg); break;
         case MSG.CLEAR: this.clear(); this.post({ type: 'cleared', reqId }); break;
         default:
           throw new Error('알 수 없는 메시지: ' + msg.type);
@@ -2427,6 +2773,8 @@ class Engine {
   cancel({ id }) {
     if (!id || this.activeSearch === id) this.activeSearch = 0;
     if (!id || this.activeGroup === id) this.activeGroup = 0;
+    // 내보내기는 자기 id 로만 취소한다 — 검색 지우기(id 0)가 진행 중인 저장을 끊으면 안 된다
+    if (id && this.activeExport === id) this.activeExport = 0;
   }
 
   async search({ query }) {
@@ -2652,6 +3000,84 @@ class Engine {
       this.post({ type: MSG.GROUP_BY_RESULT, reqId, id: myId, cols, header: cols.map((c) => ds.header[c]), groups: r.groups, total: r.total, otherCount: r.otherCount, capped: r.capped, distinct: r.distinct, rowsPassed: passed, elapsed: Date.now() - t0 });
     } finally {
       if (this.activeGroup === myId) this.activeGroup = 0;
+      this.endPriority();
+    }
+  }
+
+  // ---------- XLSX 내보내기 ----------
+  /**
+   * mode: 'all' | 'filter'(조건을 통과한 행) | 'search'(query 에 맞은 칸이 하나라도 있는 행, 한 번씩).
+   * 16진수 열은 글자 그대로(0012·1E05 보존), 나머지는 numericCell 이 허락할 때만 숫자. 결과는 Blob 으로 돌려준다.
+   * 엑셀 행 한도를 넘으면 잘린 파일을 만들지 않고 오류로 끝낸다.
+   */
+  async exportXlsx({ reqId, id, mode, filter, query }) {
+    const ds = this.need();
+    if (!ds.hexLike) throw new Error('프로파일이 끝난 뒤에 내보낼 수 있습니다');
+    const cols = ds.columnCount;
+    let filterFn = null, matcher = null;
+    if (mode === 'filter') {
+      if (!filter || !filter.length) throw new Error('필터 조건이 없습니다');
+      filterFn = compileFilter(filter, { hexLike: ds.hexLike });
+    } else if (mode === 'search') {
+      if (!query) throw new Error('내보낼 검색 결과가 없습니다');
+      if (query.kind === 'bytes') throw new Error('바이트 검색 결과는 행 단위가 아니어서 내보낼 수 없습니다');
+      matcher = compileCellMatcher(query, { columnCount: cols, hexLike: ds.hexLike, padNibbles: ds.padNibbles, header: ds.header });
+      filterFn = compileFilter(query.filter, { hexLike: ds.hexLike });
+    } else if (mode !== 'all') {
+      throw new Error('알 수 없는 내보내기 범위: ' + mode);
+    }
+    const limit = XLSX_MAX_ROWS - 1;
+    const tooMany = () => new Error(`행이 엑셀 한도(${limit.toLocaleString('ko-KR')}행)를 넘습니다 — 필터로 줄여 주세요`);
+    if (mode === 'all' && ds.rowCount > limit) throw tooMany();
+
+    const gen = this.gen;
+    this.activeExport = id;
+    this.beginPriority();
+    const t0 = Date.now();
+    let writer = null, finished = false;
+    try {
+      writer = createXlsxWriter({
+        columns: ds.header.map((name, c) => (ds.hexLike[c] ? { name, type: 'text', width: Math.max(10, (ds.padNibbles[c] || 4) + 4) } : { name, type: 'auto' })),
+        sheetName: { all: '전체', filter: '필터', search: '검색' }[mode],
+      });
+      const D = ds.delimiter.charCodeAt(0);
+      const fi = new FieldIndex(1 << 16, 1 << 12);
+      const values = new Array(cols);
+      const hits = { flags: null, base: 0, push(row) { this.flags[row - this.base] = 1; } };
+      let rows = 0, lastReport = Date.now();
+      const cancelled = () => this.activeExport !== id || gen !== this.gen;
+      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+        if (cancelled()) { this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: true }); return; }
+        const text = ds.decoder.decode(blk.u8);
+        scanFieldsString(text, D, 34, fi);
+        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+        if (matcher) {
+          hits.flags = new Uint8Array(nRec);
+          hits.base = blk.rowStart;
+          matcher.prepare(text);
+          searchBlock(text, fi, blk.rowStart, matcher, filterFn, hits, nRec);
+        }
+        for (let k = 0; k < nRec; k++) {
+          if (matcher ? !hits.flags[k] : filterFn && !filterFn(text, fi, k)) continue;
+          if (rows >= limit) throw tooMany();
+          const f0 = fi.recFirst[k], fc = Math.min(fi.recCount[k], cols);
+          for (let c = 0; c < cols; c++) values[c] = c < fc ? fieldText(text, fi, f0 + c) : undefined;
+          writer.addRow(values);
+          rows++;
+        }
+        await writer.flush();
+        const now = Date.now();
+        if (now - lastReport >= 250) { lastReport = now; this.post({ type: MSG.EXPORT_PROGRESS, id, done: blk.rowEnd, total: ds.rowCount, rows }); }
+      }
+      if (cancelled()) { this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: true }); return; }
+      const out = await writer.finish();
+      finished = true;
+      // 마무리(공유 문자열·압축) 중에 들어온 취소도 지킨다 — 파일을 넘기지 않는다
+      if (cancelled()) { this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: true }); return; }
+      this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: false, mode, ...out, bytes: out.blob.size, elapsed: Date.now() - t0 });
+    } finally {
+      if (writer && !finished) writer.abort();
+      if (this.activeExport === id) this.activeExport = 0;
       this.endPriority();
     }
   }
@@ -3153,13 +3579,14 @@ const MSG = {
   // main → worker
   OPEN: 'open', PROFILE: 'profile', ROWS: 'rows', ROW_DETAIL: 'rowDetail', BYTES: 'bytes',
   LOCATE: 'locate', SEARCH: 'search', GROUP_BY: 'groupBy', COLUMN_DETAIL: 'columnDetail', CANCEL: 'cancel', CLEAR: 'clear',
-  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping',
+  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export',
   // worker → main
   OPENED: 'opened', INDEX_PROGRESS: 'indexProgress', INDEXED: 'indexed', PROFILE_PROGRESS: 'profileProgress', PROFILED: 'profiled',
   ROWS_RESULT: 'rowsResult', ROW_DETAIL_RESULT: 'rowDetailResult', BYTES_RESULT: 'bytesResult', LOCATED: 'located',
   SEARCH_BATCH: 'searchBatch', SEARCH_PROGRESS: 'searchProgress', SEARCH_DONE: 'searchDone', SEARCH_ERROR: 'searchError',
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
+  EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -4135,6 +4562,308 @@ function findMasked(hay, bytes, mask, anchor, from, toExcl, onHit) {
 return { findMasked };
 })();
 
+// ===== src/shared/xlsx.js =====
+const M_shared_xlsx = (() => {
+// XLSX(Office Open XML) 작성기 — 라이브러리·네트워크 없이 워커/메인 스레드/Node 에서 동작한다.
+// 시트 하나, 공유 문자열, 첫 행 고정. 압축은 CompressionStream('deflate-raw'), 안 되면 무압축으로 저장.
+// 아래 http 주소들은 XML 네임스페이스 식별자일 뿐 요청하지 않는다 (CSP connect-src 'none').
+
+const XLSX_MAX_ROWS = 1048576;      // 엑셀 시트 행 한도 (머리글 포함)
+const XLSX_MAX_COLS = 16384;
+const XLSX_MAX_CELL_CHARS = 32767;
+const SHEETS_MAX_CELLS = 10000000;  // 구글 시트 파일 한도 (행 × 열)
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const SST_MAX = 16000000; // 공유 문자열 Map 은 2^24 개가 한계 — 넘으면 그 뒤 새 글자는 칸 안에 직접(inlineStr) 쓴다
+
+const NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+const NS_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const NS_PKG_REL = 'http://schemas.openxmlformats.org/package/2006/relationships';
+const NS_PKG_CT = 'http://schemas.openxmlformats.org/package/2006/content-types';
+const XML_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+
+// 스타일 번호 (styles.xml 의 cellXfs 순서). 4번부터는 소수 자릿수별 숫자 형식이 쓰이는 대로 붙는다.
+const S_TEXT = 1, S_HEAD = 2, S_PCT = 3, S_DEC0 = 4;
+
+const DECIMAL = /^-?(?:0|[1-9]\d*)(?:\.(\d+))?$/;
+/**
+ * 숫자 칸으로 옮겨도 되는 십진수면 { value, decimals }, 아니면 null.
+ * 숫자 칸은 원래 소수 자릿수 형식(0, 0.0, 0.000 …)으로 보이게 해 글자가 그대로 보인다 — 810.420 은 810.42 + "0.000".
+ * 글자로 남기는 것: 앞자리 0(0012·007), 지수(1E05), 부호 있는 0(-0), 공백·+부호, 유효숫자 16자리 이상(엑셀·시트는 15자리).
+ */
+function numericCell(s) {
+  if (typeof s !== 'string' || s.length > 48) return null;
+  const m = DECIMAL.exec(s);
+  if (!m) return null;
+  const decimals = m[1] ? m[1].length : 0;
+  if (decimals > 30) return null; // 엑셀 표시 형식의 소수 자릿수 한도
+  if (s.replace(/^-/, '').replace('.', '').replace(/^0+/, '').length > 15) return null;
+  const value = Number(s);
+  if (!Number.isFinite(value) || Object.is(value, -0)) return null;
+  return { value, decimals };
+}
+
+/** 0 → A, 26 → AA, 16383 → XFD */
+function columnName(i) {
+  let s = '';
+  for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
+  return s;
+}
+
+/** 엑셀 시트 이름 규칙: []:*?/\ 금지, 31자 이하, 비어 있으면 안 됨 */
+function sheetNameOf(name) {
+  const s = Array.from(String(name || '').replace(/[[\]:*?/\\]/g, '_')).slice(0, 31).join('').trim();
+  return s || 'Sheet1';
+}
+
+/** 이 환경에서 ZIP 용 압축(deflate-raw)을 쓸 수 있는지 — CompressionStream 이 있어도 'deflate-raw' 가 없는 브라우저가 있다 */
+function deflateRawSupported() {
+  if (typeof CompressionStream === 'undefined') return false;
+  try { new CompressionStream('deflate-raw'); return true; } catch { return false; }
+}
+
+// XML 1.0 에 넣을 수 없는 문자: 탭·줄바꿈 외 제어 문자, 짝 없는 서로게이트, U+FFFE/FFFF
+const INVALID_XML_SRC = '[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\uFFFE\\uFFFF]|[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]';
+const INVALID_XML = new RegExp(INVALID_XML_SRC);
+const INVALID_XML_ALL = new RegExp(INVALID_XML_SRC, 'g');
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r/g, '&#13;');
+const escAttr = (s) => esc(s).replace(/"/g, '&quot;');
+// 엑셀은 문자열 안의 _xHHHH_ 를 그 문자로 풀어 읽는다 — 글자 그대로 남기려면 앞 밑줄을 _x005F_ 로 쓴다
+const xmlText = (s) => esc(s.replace(/_(x[0-9A-Fa-f]{4}_)/g, '_x005F_$1'));
+const tOpen = (s) => (/^\s|\s$/.test(s) ? '<t xml:space="preserve">' : '<t>');
+
+// ---------- CRC32 ----------
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(crc, u8) {
+  let c = crc ^ 0xffffffff;
+  for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// ---------- ZIP 항목 (압축하며 CRC·크기를 센다) ----------
+function createEntry(name, compress) {
+  let crc = 0, size = 0, compSize = 0;
+  const chunks = [];
+  let writer = null, pump = null;
+  if (compress) {
+    const cs = new CompressionStream('deflate-raw');
+    writer = cs.writable.getWriter();
+    const reader = cs.readable.getReader();
+    pump = (async () => {
+      for (;;) { const { value, done } = await reader.read(); if (done) break; chunks.push(value); compSize += value.length; }
+    })();
+    pump.catch(() => {}); // abort() 하면 읽기가 거부된다 — close() 에서 기다릴 때만 오류로 본다
+  }
+  return {
+    async write(u8) {
+      if (!u8.length) return;
+      crc = crc32(crc, u8);
+      size += u8.length;
+      if (size > 0xffffffff) throw new RangeError('시트가 4GB 를 넘어 XLSX 로 만들 수 없습니다');
+      if (writer) { await writer.ready; await writer.write(u8); } else { chunks.push(u8); compSize += u8.length; }
+    },
+    async close() {
+      if (writer) { await writer.close(); await pump; }
+      return { name, crc, size, compSize, chunks, method: compress ? 8 : 0 };
+    },
+    abort() { if (writer) writer.abort().catch(() => {}); },
+  };
+}
+
+function dosDateTime(d) {
+  const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const date = (Math.max(0, d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  return { time, date };
+}
+
+function zipBlob(entries, now) {
+  const enc = new TextEncoder();
+  const { time, date } = dosDateTime(now);
+  const parts = [], central = [];
+  let offset = 0;
+  for (const e of entries) {
+    const name = enc.encode(e.name);
+    const head = new DataView(new ArrayBuffer(30));
+    head.setUint32(0, 0x04034b50, true); head.setUint16(4, 20, true); head.setUint16(6, 0, true); head.setUint16(8, e.method, true);
+    head.setUint16(10, time, true); head.setUint16(12, date, true); head.setUint32(14, e.crc, true);
+    head.setUint32(18, e.compSize, true); head.setUint32(22, e.size, true); head.setUint16(26, name.length, true); head.setUint16(28, 0, true);
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0, true); cd.setUint16(10, e.method, true);
+    cd.setUint16(12, time, true); cd.setUint16(14, date, true); cd.setUint32(16, e.crc, true); cd.setUint32(20, e.compSize, true); cd.setUint32(24, e.size, true);
+    cd.setUint16(28, name.length, true); cd.setUint32(42, offset, true); // 나머지(extra·comment·disk·속성)는 0
+    central.push(new Uint8Array(cd.buffer), name);
+    parts.push(new Uint8Array(head.buffer), name, ...e.chunks);
+    offset += 30 + name.length + e.compSize;
+    if (offset > 0xffffffff) throw new RangeError('파일이 4GB 를 넘어 XLSX 로 만들 수 없습니다');
+  }
+  const cdSize = central.reduce((n, p) => n + p.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: XLSX_MIME });
+}
+
+async function smallEntry(name, xml, compress) {
+  const e = createEntry(name, compress);
+  await e.write(new TextEncoder().encode(xml));
+  return e.close();
+}
+
+/** decimals: 쓰인 순서대로의 소수 자릿수 목록 (S_DEC0 + i 번 스타일) */
+function stylesXml(decimals) {
+  const custom = decimals.filter((d) => d !== 0 && d !== 2); // 0 → 내장 1("0"), 2 → 내장 2("0.00")
+  const fmtId = (d) => (d === 0 ? 1 : d === 2 ? 2 : 164 + custom.indexOf(d));
+  const xf = (numFmtId, extra = '') => `<xf numFmtId="${numFmtId}" fontId="0" fillId="0" borderId="0" xfId="0"${extra}/>`;
+  return XML_HEAD + `<styleSheet xmlns="${NS_MAIN}">`
+    + (custom.length ? `<numFmts count="${custom.length}">${custom.map((d, i) => `<numFmt numFmtId="${164 + i}" formatCode="0.${'0'.repeat(d)}"/>`).join('')}</numFmts>` : '')
+    + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font></fonts>'
+    + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+    + '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+    + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+    + `<cellXfs count="${S_DEC0 + decimals.length}">`
+    + xf(0) // 0 일반 (JS 숫자: 건수 등)
+    + xf(49, ' applyNumberFormat="1"') // 1 텍스트(@) — 편집해도 숫자로 바뀌지 않음
+    + '<xf numFmtId="49" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' // 2 머리글
+    + xf(10, ' applyNumberFormat="1"') // 3 퍼센트 0.00%
+    + decimals.map((d) => xf(fmtId(d), ' applyNumberFormat="1"')).join('') // 4~ 소수 자릿수별
+    + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+}
+
+/**
+ * columns: [{ name, type: 'text' | 'auto' | 'percent', width? }]
+ *   text    — 항상 글자 그대로 (16진수 열: 0012·1E05·1234 가 숫자로 바뀌지 않게)
+ *   auto    — numericCell 이 허락하면 숫자(원래 소수 자릿수로 표시), 아니면 글자
+ *   percent — 0~1 숫자를 0.00% 로 표시
+ * addRow(values): values[i] 는 문자열·숫자·빈 값(undefined/null/'' → 칸을 만들지 않음).
+ * 블록마다 await flush() 로 버퍼를 압축기에 넘기고, 끝에 await finish() 로 Blob 을 받는다.
+ */
+function createXlsxWriter({ columns, sheetName = 'Sheet1', compress = deflateRawSupported(), maxRows = XLSX_MAX_ROWS, sstMax = SST_MAX, now = new Date() }) {
+  const ncols = columns.length;
+  if (!ncols) throw new Error('열이 없습니다');
+  if (ncols > XLSX_MAX_COLS) throw new RangeError(`열이 ${XLSX_MAX_COLS.toLocaleString('ko-KR')}개를 넘어 XLSX 로 만들 수 없습니다`);
+  const refs = columns.map((_, i) => columnName(i));
+  const types = columns.map((c) => c.type || 'auto');
+  const sheet = createEntry('xl/worksheets/sheet1.xml', compress);
+  const enc = new TextEncoder();
+  const strings = new Map();
+  const decStyle = new Map(); // 소수 자릿수 → 스타일 번호
+  let stringRefs = 0, inlineCells = 0, rowNum = 0, rows = 0, removedChars = 0, truncatedCells = 0, buf = '', closed = false;
+
+  function cleanText(v) {
+    let s = v;
+    if (INVALID_XML.test(s)) s = s.replace(INVALID_XML_ALL, () => { removedChars++; return ''; });
+    if (s.length > XLSX_MAX_CELL_CHARS) {
+      let cut = XLSX_MAX_CELL_CHARS;
+      const c = s.charCodeAt(cut - 1);
+      if (c >= 0xd800 && c <= 0xdbff) cut--; // 서로게이트 쌍을 가르지 않는다
+      s = s.slice(0, cut);
+      truncatedCells++;
+    }
+    return s;
+  }
+  function textCell(ref, v, style) {
+    const s = cleanText(v);
+    let i = strings.get(s);
+    if (i === undefined) {
+      if (strings.size >= sstMax) { inlineCells++; return `<c r="${ref}" s="${style}" t="inlineStr"><is>${tOpen(s)}${xmlText(s)}</t></is></c>`; }
+      i = strings.size;
+      strings.set(s, i);
+    }
+    stringRefs++;
+    return `<c r="${ref}" s="${style}" t="s"><v>${i}</v></c>`;
+  }
+  function decimalStyle(d) {
+    let s = decStyle.get(d);
+    if (s === undefined) { s = S_DEC0 + decStyle.size; decStyle.set(d, s); }
+    return s;
+  }
+  function row(values, header) {
+    if (closed) throw new Error('이미 끝난 작성기입니다');
+    if (rowNum + 1 > maxRows) throw new RangeError(`행이 엑셀 한도(${(maxRows - 1).toLocaleString('ko-KR')}행)를 넘습니다`);
+    rowNum++;
+    let x = `<row r="${rowNum}">`;
+    for (let c = 0; c < ncols; c++) {
+      const v = values[c];
+      if (v == null || v === '') continue;
+      const ref = refs[c] + rowNum;
+      if (header) { x += textCell(ref, String(v), S_HEAD); continue; }
+      if (typeof v === 'number') {
+        if (Number.isFinite(v)) x += `<c r="${ref}"${types[c] === 'percent' ? ` s="${S_PCT}"` : ''}><v>${v}</v></c>`;
+        continue;
+      }
+      const num = types[c] === 'text' ? null : numericCell(v);
+      if (num) { x += `<c r="${ref}" s="${decimalStyle(num.decimals)}"><v>${v}</v></c>`; continue; }
+      x += textCell(ref, v, S_TEXT);
+    }
+    buf += x + '</row>';
+  }
+
+  const widths = columns.map((c) => Math.max(8, Math.min(40, c.width || Math.ceil(Array.from(c.name).length * 1.4) + 3)));
+  buf = XML_HEAD + `<worksheet xmlns="${NS_MAIN}" xmlns:r="${NS_REL}">`
+    + '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+    + '<sheetFormatPr defaultRowHeight="15"/>'
+    + '<cols>' + widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>'
+    + '<sheetData>';
+  row(columns.map((c) => c.name), true);
+
+  async function flush() {
+    if (!buf) return;
+    const u8 = enc.encode(buf);
+    buf = '';
+    await sheet.write(u8);
+  }
+
+  return {
+    addRow(values) { row(values, false); rows++; },
+    flush,
+    async finish() {
+      buf += '</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>';
+      await flush();
+      closed = true;
+      const sheetEntry = await sheet.close();
+      // 공유 문자열 — 시트를 다 쓴 뒤에야 목록이 확정된다
+      const sstEntry = createEntry('xl/sharedStrings.xml', compress);
+      let x = XML_HEAD + `<sst xmlns="${NS_MAIN}" count="${stringRefs}" uniqueCount="${strings.size}">`;
+      for (const s of strings.keys()) {
+        x += `<si>${tOpen(s)}${xmlText(s)}</t></si>`;
+        if (x.length > (1 << 20)) { await sstEntry.write(enc.encode(x)); x = ''; }
+      }
+      await sstEntry.write(enc.encode(x + '</sst>'));
+      const name = sheetNameOf(sheetName);
+      const entries = [
+        await smallEntry('[Content_Types].xml', XML_HEAD + `<Types xmlns="${NS_PKG_CT}">`
+          + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+          + '<Default Extension="xml" ContentType="application/xml"/>'
+          + '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+          + '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+          + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+          + '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
+          + '</Types>', compress),
+        await smallEntry('_rels/.rels', XML_HEAD + `<Relationships xmlns="${NS_PKG_REL}">`
+          + `<Relationship Id="rId1" Type="${NS_REL}/officeDocument" Target="xl/workbook.xml"/></Relationships>`, compress),
+        await smallEntry('xl/workbook.xml', XML_HEAD + `<workbook xmlns="${NS_MAIN}" xmlns:r="${NS_REL}">`
+          + `<bookViews><workbookView/></bookViews><sheets><sheet name="${escAttr(name)}" sheetId="1" r:id="rId1"/></sheets></workbook>`, compress),
+        await smallEntry('xl/_rels/workbook.xml.rels', XML_HEAD + `<Relationships xmlns="${NS_PKG_REL}">`
+          + `<Relationship Id="rId1" Type="${NS_REL}/worksheet" Target="worksheets/sheet1.xml"/>`
+          + `<Relationship Id="rId2" Type="${NS_REL}/styles" Target="styles.xml"/>`
+          + `<Relationship Id="rId3" Type="${NS_REL}/sharedStrings" Target="sharedStrings.xml"/></Relationships>`, compress),
+        await smallEntry('xl/styles.xml', stylesXml([...decStyle.keys()]), compress),
+        await sstEntry.close(),
+        sheetEntry,
+      ];
+      const blob = zipBlob(entries, now);
+      const gridCells = (rows + 1) * ncols;
+      return { blob, rows, columns: ncols, gridCells, sheetsOk: gridCells <= SHEETS_MAX_CELLS, removedChars, truncatedCells, inlineCells };
+    },
+    abort() { closed = true; buf = ''; sheet.abort(); },
+  };
+}
+return { XLSX_MAX_ROWS, XLSX_MAX_COLS, XLSX_MAX_CELL_CHARS, SHEETS_MAX_CELLS, XLSX_MIME, numericCell, columnName, sheetNameOf, deflateRawSupported, createXlsxWriter };
+})();
+
 // ===== src/worker/engine.js =====
 const M_worker_engine = (() => {
 const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
@@ -4149,7 +4878,9 @@ const { createGroupCounter } = M_shared_groupby;
 const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
 const { findMasked } = M_shared_search_bytes;
+const { createXlsxWriter, XLSX_MAX_ROWS } = M_shared_xlsx;
 // 데이터셋 엔진. 워커에서 실행되지만 메인 스레드 폴백으로도 동작한다 (DOM 사용 금지).
+
 
 
 
@@ -4182,6 +4913,7 @@ class Engine {
     this.profilePromise = null;
     this.activeSearch = 0;
     this.activeGroup = 0;
+    this.activeExport = 0;
   }
 
   /** 우선 작업 시작/종료. 종료 시 프로파일 재개. */
@@ -4211,6 +4943,7 @@ class Engine {
         case MSG.CELLS: await this.cells(msg); break;
         case MSG.GROUP_BY: await this.groupBy(msg); break;
         case MSG.LOCATE_MANY: await this.locateMany(msg); break;
+        case MSG.EXPORT: await this.exportXlsx(msg); break;
         case MSG.CLEAR: this.clear(); this.post({ type: 'cleared', reqId }); break;
         default:
           throw new Error('알 수 없는 메시지: ' + msg.type);
@@ -4567,6 +5300,8 @@ class Engine {
   cancel({ id }) {
     if (!id || this.activeSearch === id) this.activeSearch = 0;
     if (!id || this.activeGroup === id) this.activeGroup = 0;
+    // 내보내기는 자기 id 로만 취소한다 — 검색 지우기(id 0)가 진행 중인 저장을 끊으면 안 된다
+    if (id && this.activeExport === id) this.activeExport = 0;
   }
 
   async search({ query }) {
@@ -4792,6 +5527,84 @@ class Engine {
       this.post({ type: MSG.GROUP_BY_RESULT, reqId, id: myId, cols, header: cols.map((c) => ds.header[c]), groups: r.groups, total: r.total, otherCount: r.otherCount, capped: r.capped, distinct: r.distinct, rowsPassed: passed, elapsed: Date.now() - t0 });
     } finally {
       if (this.activeGroup === myId) this.activeGroup = 0;
+      this.endPriority();
+    }
+  }
+
+  // ---------- XLSX 내보내기 ----------
+  /**
+   * mode: 'all' | 'filter'(조건을 통과한 행) | 'search'(query 에 맞은 칸이 하나라도 있는 행, 한 번씩).
+   * 16진수 열은 글자 그대로(0012·1E05 보존), 나머지는 numericCell 이 허락할 때만 숫자. 결과는 Blob 으로 돌려준다.
+   * 엑셀 행 한도를 넘으면 잘린 파일을 만들지 않고 오류로 끝낸다.
+   */
+  async exportXlsx({ reqId, id, mode, filter, query }) {
+    const ds = this.need();
+    if (!ds.hexLike) throw new Error('프로파일이 끝난 뒤에 내보낼 수 있습니다');
+    const cols = ds.columnCount;
+    let filterFn = null, matcher = null;
+    if (mode === 'filter') {
+      if (!filter || !filter.length) throw new Error('필터 조건이 없습니다');
+      filterFn = compileFilter(filter, { hexLike: ds.hexLike });
+    } else if (mode === 'search') {
+      if (!query) throw new Error('내보낼 검색 결과가 없습니다');
+      if (query.kind === 'bytes') throw new Error('바이트 검색 결과는 행 단위가 아니어서 내보낼 수 없습니다');
+      matcher = compileCellMatcher(query, { columnCount: cols, hexLike: ds.hexLike, padNibbles: ds.padNibbles, header: ds.header });
+      filterFn = compileFilter(query.filter, { hexLike: ds.hexLike });
+    } else if (mode !== 'all') {
+      throw new Error('알 수 없는 내보내기 범위: ' + mode);
+    }
+    const limit = XLSX_MAX_ROWS - 1;
+    const tooMany = () => new Error(`행이 엑셀 한도(${limit.toLocaleString('ko-KR')}행)를 넘습니다 — 필터로 줄여 주세요`);
+    if (mode === 'all' && ds.rowCount > limit) throw tooMany();
+
+    const gen = this.gen;
+    this.activeExport = id;
+    this.beginPriority();
+    const t0 = Date.now();
+    let writer = null, finished = false;
+    try {
+      writer = createXlsxWriter({
+        columns: ds.header.map((name, c) => (ds.hexLike[c] ? { name, type: 'text', width: Math.max(10, (ds.padNibbles[c] || 4) + 4) } : { name, type: 'auto' })),
+        sheetName: { all: '전체', filter: '필터', search: '검색' }[mode],
+      });
+      const D = ds.delimiter.charCodeAt(0);
+      const fi = new FieldIndex(1 << 16, 1 << 12);
+      const values = new Array(cols);
+      const hits = { flags: null, base: 0, push(row) { this.flags[row - this.base] = 1; } };
+      let rows = 0, lastReport = Date.now();
+      const cancelled = () => this.activeExport !== id || gen !== this.gen;
+      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+        if (cancelled()) { this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: true }); return; }
+        const text = ds.decoder.decode(blk.u8);
+        scanFieldsString(text, D, 34, fi);
+        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+        if (matcher) {
+          hits.flags = new Uint8Array(nRec);
+          hits.base = blk.rowStart;
+          matcher.prepare(text);
+          searchBlock(text, fi, blk.rowStart, matcher, filterFn, hits, nRec);
+        }
+        for (let k = 0; k < nRec; k++) {
+          if (matcher ? !hits.flags[k] : filterFn && !filterFn(text, fi, k)) continue;
+          if (rows >= limit) throw tooMany();
+          const f0 = fi.recFirst[k], fc = Math.min(fi.recCount[k], cols);
+          for (let c = 0; c < cols; c++) values[c] = c < fc ? fieldText(text, fi, f0 + c) : undefined;
+          writer.addRow(values);
+          rows++;
+        }
+        await writer.flush();
+        const now = Date.now();
+        if (now - lastReport >= 250) { lastReport = now; this.post({ type: MSG.EXPORT_PROGRESS, id, done: blk.rowEnd, total: ds.rowCount, rows }); }
+      }
+      if (cancelled()) { this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: true }); return; }
+      const out = await writer.finish();
+      finished = true;
+      // 마무리(공유 문자열·압축) 중에 들어온 취소도 지킨다 — 파일을 넘기지 않는다
+      if (cancelled()) { this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: true }); return; }
+      this.post({ type: MSG.EXPORT_RESULT, reqId, id, cancelled: false, mode, ...out, bytes: out.blob.size, elapsed: Date.now() - t0 });
+    } finally {
+      if (writer && !finished) writer.abort();
+      if (this.activeExport === id) this.activeExport = 0;
       this.endPriority();
     }
   }
@@ -6920,6 +7733,215 @@ function installLeaveGuard(target, hasData) {
 return { installLeaveGuard };
 })();
 
+// ===== src/main/export-plan.js =====
+const M_main_export_plan = (() => {
+const { createXlsxWriter, XLSX_MAX_ROWS, SHEETS_MAX_CELLS } = M_shared_xlsx;
+const { fmtInt, fmtBytes } = M_main_format;
+// 내보내기 패널의 판단: 어떤 범위를 고를 수 있는지·한도 경고·파일 이름·결과 문구, 그리고 그룹 집계 표 XLSX.
+// DOM 을 쓰지 않는다 (패널 그리기와 파일 저장은 ui/export-panel.js).
+
+
+
+const MAX_DATA_ROWS = XLSX_MAX_ROWS - 1;
+const LABEL = { all: '전체 행', filter: '필터 통과 행', search: '검색 결과 행', group: '그룹 집계 표' };
+const FILE_LABEL = { all: '전체', filter: '필터', search: '검색', group: '그룹집계' };
+
+function sheetsWarning(gridCells) {
+  return `구글 시트 한도(1,000만 셀)를 넘습니다 (${fmtInt(gridCells)}셀) — 엑셀에서는 열리지만 시트로는 가져올 수 없습니다. 필터로 줄여 보세요.`;
+}
+
+/**
+ * ctx: { rowCount, columnCount, profiled, filterCount, query, searchHasResults, group }
+ * → [{ mode, label, enabled, detail, reason?, warn? }] — 순서: 전체, 필터, 검색, 그룹
+ */
+function planOptions(ctx) {
+  const { rowCount = 0, columnCount = 0, profiled, filterCount = 0, query, searchHasResults, group } = ctx;
+  const opt = (mode, enabled, detail, reason) => ({ mode, label: LABEL[mode], enabled, detail, ...(enabled ? {} : { reason }) });
+  if (!profiled) {
+    // 16진수 열은 프로파일이 끝나야 안다 — 그 전에 저장하면 0012 가 12 로 바뀔 수 있다
+    return ['all', 'filter', 'search', 'group'].map((m) => opt(m, false, '', '프로파일이 끝나면 내보낼 수 있습니다'));
+  }
+  const all = opt('all', rowCount <= MAX_DATA_ROWS, `${fmtInt(rowCount)}행 × ${fmtInt(columnCount)}열`,
+    `엑셀 한도(${fmtInt(MAX_DATA_ROWS)}행)를 넘습니다 — 필터로 줄여 주세요`);
+  const grid = (rowCount + 1) * columnCount;
+  if (all.enabled && grid > SHEETS_MAX_CELLS) all.warn = sheetsWarning(grid);
+
+  const filter = opt('filter', filterCount > 0, `조건 ${filterCount}개를 통과한 행`, '필터 조건이 없습니다');
+
+  let search;
+  if (query && query.kind === 'bytes') search = opt('search', false, '', '바이트 검색 결과는 행 단위가 아니어서 내보낼 수 없습니다');
+  else if (query && searchHasResults) search = opt('search', true, `검색 「${query.pattern}」에 맞은 칸이 있는 행`);
+  else search = opt('search', false, '', '검색 결과가 없습니다');
+
+  const groupOpt = group
+    ? opt('group', true, `${fmtInt(group.groups.length)}개 그룹 · 건수·비율`)
+    : opt('group', false, '', '프로파일 탭에서 그룹 집계를 먼저 실행하세요');
+  return [all, filter, search, groupOpt];
+}
+
+/** 처음 열었을 때 고를 범위: 전체, 막혀 있으면 고를 수 있는 첫 번째, 없으면 null */
+function defaultMode(options) {
+  const ok = options.filter((o) => o.enabled);
+  return ok.length ? (ok.find((o) => o.mode === 'all') || ok[0]).mode : null;
+}
+
+/** 원본 파일 이름은 쓰지 않는다 — 브라우저 다운로드 기록에 남기 때문 (탭 제목을 고정해 둔 것과 같은 이유) */
+function exportFileName(mode, d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `CSV분석_${FILE_LABEL[mode] || mode}_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.xlsx`;
+}
+
+function hexColumnsNote(header, hexLike) {
+  if (!hexLike) return '';
+  const names = (header || []).filter((_, c) => hexLike[c]);
+  if (!names.length) return '';
+  return `16진수 열 ${fmtInt(names.length)}개(${names.slice(0, 3).join(', ')}${names.length > 3 ? ' 외' : ''})는 글자 그대로 저장합니다 — 0012·1E05 같은 값이 숫자로 바뀌지 않습니다.`;
+}
+
+/** res: { rows, columns, bytes, gridCells, sheetsOk, removedChars, truncatedCells } → { text, warnings } */
+function resultMessage(res) {
+  const warnings = [];
+  if (!res.sheetsOk) warnings.push(sheetsWarning(res.gridCells));
+  if (res.removedChars) warnings.push(`XLSX 에 넣을 수 없는 제어 문자 ${fmtInt(res.removedChars)}개를 뺐습니다.`);
+  if (res.truncatedCells) warnings.push(`32,767자를 넘는 칸 ${fmtInt(res.truncatedCells)}개를 잘랐습니다 (엑셀·시트의 칸 한도).`);
+  return { text: `${fmtInt(res.rows)}행 × ${fmtInt(res.columns)}열 · ${fmtBytes(res.bytes)} 파일로 저장했습니다.`, warnings };
+}
+
+/** 그룹 집계 결과(GROUP_BY_RESULT) → 시트 열·행. 상한에 걸려 합쳐진 나머지는 (기타) 행으로. */
+function groupSheet(group, hexLike) {
+  const columns = group.cols.map((c, i) => ({ name: group.header[i], type: hexLike && hexLike[c] ? 'text' : 'auto' }));
+  columns.push({ name: '건수', type: 'auto' }, { name: '비율', type: 'percent' });
+  const total = Math.max(1, group.total);
+  const rows = group.groups.map((g) => [...g.parts, g.count, g.count / total]);
+  if (group.capped) rows.push([...group.cols.map(() => '(기타)'), group.otherCount, group.otherCount / total]);
+  return { columns, rows };
+}
+
+/** 그룹 집계 표는 많아야 1만여 행이라 워커를 거치지 않고 메인 스레드에서 만든다 */
+async function buildGroupXlsx(group, hexLike) {
+  const { columns, rows } = groupSheet(group, hexLike);
+  const w = createXlsxWriter({ columns, sheetName: '그룹 집계' });
+  for (const r of rows) w.addRow(r);
+  const out = await w.finish();
+  return { ...out, mode: 'group', cancelled: false, bytes: out.blob.size };
+}
+return { sheetsWarning, planOptions, defaultMode, exportFileName, hexColumnsNote, resultMessage, groupSheet, buildGroupXlsx };
+})();
+
+// ===== src/main/ui/export-panel.js =====
+const M_main_ui_export_panel = (() => {
+const { h, clear } = M_main_ui_dom;
+const { planOptions, defaultMode, exportFileName, hexColumnsNote, resultMessage } = M_main_export_plan;
+const { fmtInt } = M_main_format;
+// 「XLSX 내보내기」 패널: 범위를 고르면 만들어진 XLSX 를 파일로 저장한다.
+// 파일 저장은 이 모듈에서만 한다 — build.mjs 의 금지 API 게이트가 모듈별로 검사해, 다른 모듈에는 저장 속성 이름 자체가 들어올 수 없다.
+// 무엇을 고를 수 있는지·문구는 export-plan.js 가 정한다. 여기는 그리기와 저장뿐.
+
+
+
+
+function createExportPanel({ button, host, getContext, run, cancel }) {
+  let open = false, running = false, mode = null, outcome = null;
+  let progBar = null, progText = null;
+
+  button.addEventListener('click', () => { if (open) close(); else show(); });
+  document.addEventListener('keydown', (e) => { if (open && !running && e.key === 'Escape') close(); });
+  document.addEventListener('mousedown', (e) => {
+    if (open && !running && !host.contains(e.target) && !button.contains(e.target)) close();
+  });
+
+  function show() { open = true; outcome = null; mode = null; host.classList.remove('is-hidden'); button.setAttribute('aria-expanded', 'true'); render(); }
+  function close() { open = false; host.classList.add('is-hidden'); button.setAttribute('aria-expanded', 'false'); }
+
+  function render() {
+    const ctx = getContext();
+    const opts = planOptions(ctx);
+    if (!opts.some((o) => o.mode === mode && o.enabled)) mode = defaultMode(opts);
+    const sel = opts.find((o) => o.mode === mode);
+    clear(host);
+    host.append(
+      h('div', { class: 'export__head' },
+        h('strong', { text: 'XLSX로 내보내기' }),
+        h('span', { class: 'muted', text: '구글 시트 「파일 → 가져오기」나 엑셀에서 바로 엽니다. 파일은 이 PC에서 만들어지며 어디로도 전송되지 않습니다.' })),
+      h('div', { class: 'export__opts', role: 'radiogroup', 'aria-label': '내보낼 범위' }, ...opts.map(optionEl)),
+    );
+    const note = mode && mode !== 'group' ? hexColumnsNote(ctx.header, ctx.hexLike) : '';
+    if (note) host.append(h('div', { class: 'export__note', text: note }));
+    if (sel && sel.warn) host.append(h('div', { class: 'export__msg export__msg--warn', text: sel.warn }));
+    if (running) {
+      progBar = h('div');
+      progText = h('span', { text: '만드는 중…' });
+      host.append(h('div', { class: 'export__progress' }, h('div', { class: 'progress' }, progBar), progText));
+    }
+    if (outcome) {
+      if (outcome.error) host.append(h('div', { class: 'export__msg export__msg--error', text: outcome.error }));
+      else host.append(h('div', { class: 'export__msg export__msg--ok', text: outcome.text }));
+      for (const w of outcome.warnings || []) host.append(h('div', { class: 'export__msg export__msg--warn', text: w }));
+    }
+    const go = h('button', { class: 'btn btn--primary', type: 'button', text: '내보내기', disabled: running || !mode });
+    go.addEventListener('click', doExport);
+    const second = running
+      ? h('button', { class: 'btn', type: 'button', text: '취소', disabled: mode === 'group' })
+      : h('button', { class: 'btn', type: 'button', text: '닫기' });
+    second.addEventListener('click', () => { if (running) cancel(); else close(); });
+    host.append(h('div', { class: 'export__actions' }, second, go));
+  }
+
+  function optionEl(o) {
+    const input = h('input', { type: 'radio', name: 'export-mode', value: o.mode, checked: o.mode === mode, disabled: !o.enabled || running });
+    input.addEventListener('change', () => { mode = o.mode; outcome = null; render(); });
+    return h('label', { class: 'export__opt' + (o.enabled ? '' : ' is-disabled'), dataset: { mode: o.mode } },
+      input, h('span', { class: 'export__label', text: o.label }), h('span', { class: 'export__detail', text: o.enabled ? o.detail : o.reason }));
+  }
+
+  async function doExport() {
+    if (running || !mode) return;
+    const m = mode;
+    running = true; outcome = null;
+    render();
+    try {
+      const res = await run(m);
+      if (res.cancelled) outcome = { text: '취소했습니다. 파일을 만들지 않았습니다.' };
+      else if (!res.rows) outcome = { text: '조건에 맞는 행이 없어 파일을 만들지 않았습니다.' };
+      else { saveFile(res.blob, exportFileName(m)); outcome = resultMessage(res); }
+    } catch (e) {
+      outcome = { error: '내보내지 못했습니다: ' + ((e && e.message) || e) };
+    } finally {
+      running = false;
+      if (open) render();
+    }
+  }
+
+  function saveFile(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = h('a', { href: url, class: 'is-hidden' });
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  return {
+    /** 프로파일이 끝나야(16진수 열을 알아야) 내보낼 수 있다 */
+    setReady(ready) {
+      button.disabled = !ready;
+      button.title = ready ? '지금 데이터를 XLSX 파일로 저장합니다 (구글 시트·엑셀)' : '프로파일이 끝나면 내보낼 수 있습니다';
+      if (!ready) close();
+    },
+    setProgress(frac, rows) {
+      if (!running || !progBar) return;
+      progBar.style.width = `${Math.round(Math.max(0, Math.min(1, frac)) * 100)}%`;
+      progText.textContent = `만드는 중 ${Math.round(frac * 100)}% · ${fmtInt(rows)}행`;
+    },
+    /** 검색·필터·그룹 집계가 바뀌면 고를 수 있는 범위도 바뀐다 */
+    refresh() { if (open && !running) render(); },
+    reset() { running = false; outcome = null; close(); this.setReady(false); },
+  };
+}
+return { createExportPanel };
+})();
+
 // ===== src/main/app.js =====
 const M_main_app = (() => {
 const { createWorkerClient } = M_main_worker_client;
@@ -6942,7 +7964,11 @@ const { fmtInt, fmtBytes } = M_main_format;
 const { encodingLabel, delimLabel } = M_main_i18n;
 const { MSG } = M_shared_protocol;
 const { installLeaveGuard } = M_main_leave_guard;
+const { createExportPanel } = M_main_ui_export_panel;
+const { buildGroupXlsx } = M_main_export_plan;
 // 메인 엔트리: 워커 클라이언트, 뷰, 입력 패널, 검색을 배선한다.
+
+
 
 
 
@@ -6974,6 +8000,9 @@ let selected = null;     // { row, col }
 let lastDetail = null;   // rowDetail 메시지
 let widthOverride = null;
 let activeQuery = null;
+let lastGroup = null;    // 마지막 그룹 집계 결과 (내보내기용)
+let exportSeq = 0;
+let activeExport = null; // 진행 중인 내보내기 id ('x1' …) — 검색·집계 id(숫자)와 겹치지 않게 문자열
 
 // ---------- 뷰 구성 ----------
 const statusBar = createStatusBar($('#status-bar'));
@@ -6995,7 +8024,7 @@ const profileView = createProfileView({
 });
 const detailPanel = $('#detail-panel');
 const searchBar = createSearchBar({ container: $('#search-bar'), onSearch: runSearch, onClear: clearSearch });
-const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); } });
+const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); exportPanel.refresh(); } });
 searchBar.setFilterGetter(() => { const c = filterBar.getConditions(); return c.length ? c : null; });
 function updateFilterBadge() {
   const n = filterBar.count;
@@ -7007,7 +8036,11 @@ function runGroupBy({ cols, useFilter }) {
   if (!ds || !groupBy) return;
   const id = ++groupSeq;
   const filter = useFilter ? filterBar.getConditions() : [];
-  client.request(MSG.GROUP_BY, { id, cols, filter: filter.length ? filter : null }).then((msg) => { if (id === groupSeq) groupBy.setResult(msg); }).catch((e) => groupBy.setError(e.message));
+  client.request(MSG.GROUP_BY, { id, cols, filter: filter.length ? filter : null }).then((msg) => {
+    if (id !== groupSeq) return;
+    groupBy.setResult(msg);
+    if (!msg.cancelled) { lastGroup = msg; exportPanel.refresh(); }
+  }).catch((e) => groupBy.setError(e.message));
 }
 const results = createResultsView({
   container: $('#results'),
@@ -7025,6 +8058,28 @@ const hexView = createHexView({
   onGotoCell: (row, col) => { gotoRow(row, col); selectCell(row, col); },
 });
 const engineMode = $('#engine-mode');
+const exportPanel = createExportPanel({
+  button: $('#btn-export'), host: $('#export-panel'),
+  getContext: () => {
+    const ds = store.get().ds, prof = store.get().profile;
+    return {
+      rowCount: ds ? ds.rowCount : 0, columnCount: ds ? ds.columnCount : 0, header: ds ? ds.header : [],
+      profiled: !!prof, hexLike: prof ? prof.hexLike : null,
+      filterCount: filterBar.getConditions().length, query: activeQuery, searchHasResults: results.hasResults, group: lastGroup,
+    };
+  },
+  run: async (mode) => {
+    if (mode === 'group') return buildGroupXlsx(lastGroup, store.get().profile.hexLike);
+    const id = 'x' + (++exportSeq);
+    activeExport = id;
+    try {
+      return await client.request(MSG.EXPORT, { id, mode, filter: mode === 'filter' ? filterBar.getConditions() : null, query: mode === 'search' ? activeQuery : null });
+    } finally {
+      if (activeExport === id) activeExport = null;
+    }
+  },
+  cancel: () => { if (activeExport && client) client.send(MSG.CANCEL, { id: activeExport }); },
+});
 
 // 다른 단계(M3b/M4)에서 채우는 동작 훅
 const actions = {
@@ -7119,6 +8174,7 @@ function clearSearch() {
   hexView.clearHits();
   table.setColCounts(null);
   table.setHighlights(null);
+  exportPanel.refresh();
 }
 
 // ---------- 클라이언트 생명주기 ----------
@@ -7134,6 +8190,8 @@ function teardown() {
   if (rowCache) rowCache.invalidate();
   rowCache = null;
   selected = null; lastDetail = null; activeQuery = null;
+  lastGroup = null; activeExport = null;
+  exportPanel.reset();
   table.clear();
   profileView.clear();
   results.clear();
@@ -7195,6 +8253,7 @@ function onEvent(msg) {
       if (ds) searchBar.setColumns(ds.header, msg.hexLike);
       if (lastDetail && selected) renderDetail();
       statusBar.setMessage('프로파일 완료');
+      exportPanel.setReady(true);
       break;
     case MSG.SEARCH_BATCH:
       if (!activeQuery || msg.id !== activeQuery.id || !ds) break;
@@ -7214,6 +8273,10 @@ function onEvent(msg) {
       break;
     case MSG.SEARCH_DONE:
       results.done(msg);
+      exportPanel.refresh();
+      break;
+    case MSG.EXPORT_PROGRESS:
+      if (msg.id === activeExport) exportPanel.setProgress(msg.total ? msg.done / msg.total : 0, msg.rows);
       break;
     case MSG.GROUP_BY_PROGRESS:
       if (groupBy && msg.id === groupSeq) groupBy.setProgress(msg);
