@@ -84,8 +84,13 @@ nav {
 }
 .hero p { font-size: 17px; font-weight: 400; color: var(--text2); line-height: 1.6; max-width: 480px; margin: 0 auto; }
 
-.grid-section { max-width: 980px; margin: 0 auto; padding: 0 24px 80px; }
+.grid-section { max-width: 980px; margin: 0 auto; padding: 0 24px 80px; container-type: inline-size; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+/* 마지막 줄에 혼자 남는 카드는 줄 전체를 쓴다(논문 카드처럼 넓은 카드). 열 수는 minmax(280px)·gap 16px 에서
+   3열 ≥ 872px, 2열 ≥ 576px — 번들 홈처럼 카드 수가 달라도 혼자 남을 때만 넓어진다. */
+@container (min-width: 872px) { .grid > .card:last-child:nth-child(3n+1) { grid-column: 1 / -1; } }
+@container (min-width: 576px) and (max-width: 871.98px) { .grid > .card:last-child:nth-child(2n+1) { grid-column: 1 / -1; } }
+.grid > .card:last-child p { max-width: 820px; } /* 논문 카드(.paper-desc)와 같은 폭 */
 
 .card {
   background: var(--surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);

@@ -1,7 +1,10 @@
 <!doctype html>
+<html lang="ko" translate="no">
+<head>
+<meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T02:43:47.998Z
+  built: 2026-10-24T03:05:48.023Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -43,12 +46,10 @@
     src/main/ui/groupby.js
     src/main/ui/offset-bar.js
     src/main/ui/hex-view.js
+    src/main/leave-guard.js
     src/main/app.js
 -->
-<html lang="ko" translate="no">
-<head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xyg0dYI/NHhASV583skFe12HALjnUvEtTfkDKrprD1w='; style-src 'sha256-KDeoDF0V92xhMcy7v8XEYjZsD6vKP2m8//rYVBzZe04='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MweDTVueNecqXlK0ho9F0E+X43lGk5BHYQ+6j/NIXp0='; style-src 'sha256-XwjOB0fQlTTPUYt7MEpaiuhwM8kY0YXwWDgbsnr02hg='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -56,7 +57,9 @@
 <title>CSV 분석기</title>
 <style>/* ===== 토큰 =====
    Engineering Tools(jaegukang.com) 도구들과 같은 디자인 언어: 회색 바탕 위 흰 카드, 둥근 모서리, 옅은 그림자.
-   도구 고유색은 인디고(포털 카드와 같은 색). 상태색은 의미가 있을 때만 쓴다 — 초록=오프라인, 주황=경고, 빨강=삭제. */
+   도구 고유색은 인디고(포털 카드와 같은 색). 상태색은 의미가 있을 때만 쓴다 — 초록=오프라인, 주황=경고, 빨강=삭제.
+   글자색은 실제로 놓이는 바탕(흰 카드, -soft 배지, hover)에서 4.5:1 이상이 되게 골랐다.
+   --accent 는 글자·선용, --accent-fill 은 흰 글자를 얹는 채움용 — 다크에서는 둘을 같이 쓸 수 있는 색이 없다. */
 :root {
   --bg: #f2f2f7;
   --bg-panel: #ffffff;
@@ -70,16 +73,17 @@
   --border: #e5e5ea;
   --border-strong: #d2d2d7;
   --accent: #5856d6;
+  --accent-fill: #5856d6;
   --accent-fg: #ffffff;
   --accent-soft: #ecebfb;
   --accent-ring: rgba(88,86,214,0.18);
   --seg-thumb: #ffffff;
   --seg-thumb-fg: #5856d6;
-  --ok: #248a3d;
+  --ok: #1f7a35;
   --ok-soft: #e8f7ec;
-  --danger: #e5342a;
+  --danger: #c9302c;
   --danger-soft: #fff0ef;
-  --warn: #c77a00;
+  --warn: #9c5c00;
   --warn-soft: #fff4e0;
   --hl: #ffe58a;
   --hl-fg: #1d1d1f;
@@ -109,10 +113,11 @@
     --fg-faint: #8e8e93;
     --border: #38383a;
     --border-strong: #48484a;
-    --accent: #7d7aff;
+    --accent: #9b99ff;
+    --accent-fill: #5e5ce6;
     --accent-fg: #ffffff;
     --accent-soft: #2e2d52;
-    --accent-ring: rgba(125,122,255,0.3);
+    --accent-ring: rgba(155,153,255,0.3);
     --seg-thumb: #545456;
     --seg-thumb-fg: #ffffff;
     --ok: #30d158;
@@ -210,10 +215,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .btn:hover { background: var(--bg-hover); }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: .5; cursor: default; transform: none; }
-.btn--primary { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
-.btn--primary:hover { background: var(--accent); opacity: .88; }
+.btn--primary { background: var(--accent-fill); color: var(--accent-fg); font-weight: 600; }
+/* 흐리게(opacity) 하면 흰 글자 대비가 떨어지므로 hover 는 어둡게 */
+.btn--primary:hover { background: color-mix(in srgb, var(--accent-fill) 88%, #000000); }
 .btn--danger { color: var(--danger); background: var(--danger-soft); font-weight: 600; }
-.btn--danger:hover { background: color-mix(in srgb, var(--danger) 16%, var(--bg-panel)); }
+.btn--danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--bg-panel)); }
 .btn--sm { padding: 3px 9px; font-size: 12px; border-radius: 7px; }
 .btn--link { border: none; background: none; color: var(--accent); padding: 0; cursor: pointer; font-weight: 500; }
 .btn--link:hover { text-decoration: underline; background: none; }
@@ -352,7 +358,7 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
 .bits.w8 { grid-template-columns: repeat(8, 1fr); }
 .bits.w32 { grid-template-columns: repeat(16, 1fr); }
 .bits .b { padding: 2px 0; border-radius: 4px; background: var(--bg-elev); }
-.bits .b.on { background: var(--accent); color: var(--accent-fg); }
+.bits .b.on { background: var(--accent-fill); color: var(--accent-fg); }
 .bits .i { color: var(--fg-faint); font-size: 9px; }
 .bits .gap { margin-right: 4px; }
 .detail__empty { color: var(--fg-faint); padding: 16px 4px; font-size: 12px; }
@@ -6898,6 +6904,22 @@ function createHexView({ container, requestBytes, onGotoCell }) {
 return { createHexView };
 })();
 
+// ===== src/main/leave-guard.js =====
+const M_main_leave_guard = (() => {
+// 데이터가 열려 있을 때 페이지를 떠나면(「홈」, 새로고침, 탭 닫기) 브라우저 확인창을 띄운다.
+// 데이터는 이 탭 메모리에만 있어서 한 번 떠나면 되돌릴 수 없다. hasData 는 떠나는 시점에 읽는다.
+function installLeaveGuard(target, hasData) {
+  const onBeforeUnload = (e) => {
+    if (!hasData()) return;
+    e.preventDefault();
+    e.returnValue = true; // preventDefault 만으로는 확인창을 띄우지 않는 구형 브라우저용
+  };
+  target.addEventListener('beforeunload', onBeforeUnload);
+  return () => target.removeEventListener('beforeunload', onBeforeUnload);
+}
+return { installLeaveGuard };
+})();
+
 // ===== src/main/app.js =====
 const M_main_app = (() => {
 const { createWorkerClient } = M_main_worker_client;
@@ -6919,7 +6941,9 @@ const { h, clear, $, $$ } = M_main_ui_dom;
 const { fmtInt, fmtBytes } = M_main_format;
 const { encodingLabel, delimLabel } = M_main_i18n;
 const { MSG } = M_shared_protocol;
+const { installLeaveGuard } = M_main_leave_guard;
 // 메인 엔트리: 워커 클라이언트, 뷰, 입력 패널, 검색을 배선한다.
+
 
 
 
@@ -6944,6 +6968,7 @@ const store = createStore({ ds: null, profile: null });
 let client = null;
 let rowCache = null;
 let currentBlob = null;
+installLeaveGuard(window, () => currentBlob !== null); // 「홈」·새로고침으로 열린 데이터를 잃기 전에 확인
 let openSeq = 0;
 let selected = null;     // { row, col }
 let lastDetail = null;   // rowDetail 메시지

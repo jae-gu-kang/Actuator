@@ -54,20 +54,42 @@ class StripHome(unittest.TestCase):
         out = bm.strip_home(home([CARD.format(t="blue", href="a.html", extra="", name="A")], 1))
         self.assertIn('<span class="nav-count">1개의 도구</span>', out)
 
+    def test_removes_every_web_only_card_and_decrements_count_by_that_many(self):
+        cards = [
+            CARD.format(t="blue", href="a.html", extra="", name="A"),
+            CARD.format(t="indigo", href="w1.html", extra=" data-web-only", name="W1"),
+            CARD.format(t="gray", href="m.html", extra="", name="M"),
+            CARD.format(t="teal", href="w2.html", extra=" data-web-only", name="W2"),
+        ]
+        out = bm.strip_home(home(cards, 4))
+        self.assertNotIn("w1.html", out)
+        self.assertNotIn("w2.html", out)
+        self.assertIn('href="a.html"', out)
+        self.assertIn('href="m.html"', out)
+        self.assertIn('<span class="nav-count">2개의 도구</span>', out)
+
+    def test_spacing_between_remaining_cards_is_preserved(self):
+        # index.html 처럼 카드 사이에 빈 줄이 있을 때, 빼고 난 결과가 처음부터 그 카드가 없던 홈과 글자 단위로 같아야 한다
+        a = CARD.format(t="blue", href="a.html", extra="", name="A")
+        w = "    <!-- data-web-only: 번들에 없는 도구 -->\n" + CARD.format(t="indigo", href="w.html", extra=" data-web-only", name="W")
+        m = CARD.format(t="gray", href="m.html", extra="", name="M")
+        out = bm.strip_home(home([a, "\n", w, "\n", m], 3))
+        self.assertEqual(out, bm.strip_home(home([a, "\n", m], 2)))
+
     def test_missing_papers_section_stops_build(self):
         html = home([CARD.format(t="blue", href="a.html", extra="", name="A")], 1).replace('id="papers"', 'id="other"')
-        with self.assertRaises(SystemExit):
+        with self.assertRaisesRegex(SystemExit, "'논문 발표' 섹션"):
             bm.strip_home(html)
 
     def test_unmatched_web_only_marker_stops_build(self):
         # 마크업이 바뀌어 정규식이 카드를 못 잡으면(여기선 <div>) 깨진 카드를 싣지 말고 멈춘다
         odd = '    <div class="card" data-web-only><a href="w.html">W</a></div>\n'
-        with self.assertRaises(SystemExit):
+        with self.assertRaisesRegex(SystemExit, "data-web-only 카드 1개 중 0개"):
             bm.strip_home(home([odd], 1))
 
     def test_missing_nav_count_stops_build(self):
         html = home([CARD.format(t="blue", href="a.html", extra="", name="A")], 1).replace("nav-count", "nav-x")
-        with self.assertRaises(SystemExit):
+        with self.assertRaisesRegex(SystemExit, "nav-count"):
             bm.strip_home(html)
 
 
