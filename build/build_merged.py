@@ -78,17 +78,37 @@ SHIM = """
 
 # The paper-presentation deck is not bundled here, so its card would point at a file that
 # does not travel with the merged HTML. Drop that section from the home tab.
-PAPERS_RE = re.compile(r'<section class="grid-section" id="papers">.*?</section>\s*', re.S)
+# (The section may carry attributes such as `hidden`, hence [^>]*.)
+PAPERS_RE = re.compile(r'<section class="grid-section" id="papers"[^>]*>.*?</section>\s*', re.S)
+# Same reason for tool cards marked data-web-only (e.g. the CSV analyzer, a separate
+# single-file build). Cards hold no nested <a>, so the first </a> closes the card.
+# A comment line right above such a card and one blank line after it go with it; the next
+# card's indentation stays.
+WEB_ONLY_RE = re.compile(r'(?:[ \t]*<!--[^\n]*-->\n)?[ \t]*<a class="card[^"]*"[^>]*\bdata-web-only\b[^>]*>.*?</a>[ \t]*\n?(?:[ \t]*\n)?', re.S)
+NAV_COUNT_RE = re.compile(r'(<span class="nav-count">)(\d+)(개의 도구</span>)')
+
+def strip_home(html):
+    # Fail loudly rather than silently shipping a card that navigates the iframe
+    # away to a file that is not in this bundle.
+    # (assert 는 python -O 에서 사라진다 — 이 가드들은 항상 살아 있어야 한다)
+    html, n = PAPERS_RE.subn('', html)
+    if n != 1:
+        raise SystemExit("index.html의 '논문 발표' 섹션을 찾지 못했습니다 — PAPERS_RE 를 마크업에 맞추세요")
+    marked = len(re.findall(r'<[a-z]+[^>]*\bdata-web-only\b', html))
+    html, n = WEB_ONLY_RE.subn('', html)
+    if n != marked:
+        raise SystemExit(f"data-web-only 카드 {marked}개 중 {n}개만 뺐습니다 — WEB_ONLY_RE 를 마크업에 맞추세요")
+    # 번들 홈의 도구 수 = 웹 홈의 수 − 뺀 카드 수
+    html, k = NAV_COUNT_RE.subn(lambda m: m.group(1) + str(int(m.group(2)) - n) + m.group(3), html)
+    if k != 1:
+        raise SystemExit("index.html의 nav-count('N개의 도구')를 찾지 못했습니다 — NAV_COUNT_RE 를 마크업에 맞추세요")
+    return html
 
 def process(name, filename):
     html = read(os.path.join(ROOT, filename))
     html = FONT_LINK_RE.sub('<!-- google-fonts removed for offline -->', html)
     if name == 'home':
-        # Fail loudly rather than silently shipping a card that navigates the iframe
-        # away to a file that is not in this bundle.
-        html, n = PAPERS_RE.subn('', html)
-        if n != 1:  # assert 는 python -O 에서 사라진다 — 이 가드는 항상 살아 있어야 한다
-            raise SystemExit("index.html의 '논문 발표' 섹션을 찾지 못했습니다 — PAPERS_RE 를 마크업에 맞추세요")
+        html = strip_home(html)
     if CHART_400_TAG in html:
         html = html.replace(CHART_400_TAG, '<script>/*chart.js 4.4.0*/\n'+CHART_400+'\n</script>')
     if CHART_441_TAG in html:
@@ -99,10 +119,12 @@ def process(name, filename):
     html = (html[:idx] + SHIM + html[idx:]) if idx != -1 else (html + SHIM)
     return html
 
-data = {name: process(name, fn) for name, fn, _ in TOOLS}
-tools_js = ("const TOOLS = " + json.dumps(data, ensure_ascii=False) + ";").replace("</", "<\\/")
+def main():
+    data = {name: process(name, fn) for name, fn, _ in TOOLS}
+    tools_js = ("const TOOLS = " + json.dumps(data, ensure_ascii=False) + ";").replace("</", "<\\/")
 
-SHELL = """<!DOCTYPE html>
+    # 문자열 안의 줄은 들여쓰기와 무관하다 — 출력은 main() 으로 감싸기 전과 같다
+    SHELL = """<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -162,6 +184,10 @@ showTool(ORDER.indexOf(initial)!==-1 ? initial : 'home', false);
 </html>
 """
 
-with open(OUT, "w", encoding="utf-8") as f:
-    f.write(SHELL)
-print("WROTE", OUT, "(", os.path.getsize(OUT), "bytes )")
+    with open(OUT, "w", encoding="utf-8") as f:
+        f.write(SHELL)
+    print("WROTE", OUT, "(", os.path.getsize(OUT), "bytes )")
+
+# import 만으로 번들을 쓰지 않도록 (tests/build/test_build_merged.py 가 strip_home 을 가져다 쓴다)
+if __name__ == "__main__":
+    main()

@@ -12,6 +12,7 @@
 | `test_merged.js` | puppeteer-core 기반 오프라인 검증 테스트 |
 | `test_optvars.js` | 4-Bar 설계 변수(고정/변수) 불변식 회귀 테스트 (브라우저 불필요) |
 | `test_deck.js` | SASE 2026 발표 장표(`sase2026_rigging.html`) 조작 검증 |
+| `../tests/build/test_build_merged.py` | 번들 홈 정리(`strip_home`) 단위 테스트 — `python3 -m unittest discover -s tests/build` |
 | `libs/chart.umd.min.js` | Chart.js 4.4.0 (hinge·servo용, 오프라인 인라인) |
 | `libs/chart.umd.js` | Chart.js 4.4.1 (regression용, 오프라인 인라인) |
 | `libs/html2canvas.min.js` | html2canvas 1.4.1 (hinge 테이블 이미지 저장용) |
@@ -32,6 +33,21 @@ python3 build/build_merged.py
 - 도구 안의 `window.open('...html#...')` 과 `href="index.html"` 을 가로채
   부모 셸의 **탭 전환**으로 변환(연동 시 대상 iframe 을 리로드해 localStorage 재수신).
 - `</script>` 는 `<\/script>` 로 이스케이프해 부모 파서가 조기 종료되지 않도록 처리.
+- 홈 카드 중 **`data-web-only`** 가 붙은 카드는 번들 홈에서 빼고, `N개의 도구` 표기도 그만큼 줄입니다.
+  번들에 들어가지 않는 파일을 가리키는 카드(누르면 iframe 이 없는 파일로 이동해 깨짐)를 막기 위함입니다.
+  표시된 카드를 정규식이 하나라도 못 잡으면 빌드가 즉시 중단됩니다.
+
+### 웹 전용 도구: CSV 분석기
+루트의 `csv_analyzer.html` 은 별도 저장소 `~/orca/projects/csv` 의 빌드 결과(`dist/csv-analyzer.html`)
+**사본**입니다. 자체 해시 CSP 를 가진 단일 파일이라 손으로 고치면 스크립트·스타일 해시가 어긋나 실행되지
+않습니다. 수정은 그 저장소에서 하고 다시 복사하세요.
+
+```bash
+cd ~/orca/projects/csv && npm run build && npm test && node tools/e2e.mjs
+cp ~/orca/projects/csv/dist/csv-analyzer.html ~/orca/Actuator/csv_analyzer.html
+```
+
+그 자체로 오프라인 단일 파일이라 병합 번들에는 넣지 않습니다(홈 카드에 `data-web-only`).
 
 ## 기능별 검증 (오프라인)
 
@@ -64,6 +80,7 @@ node build/test_merged.js
 루트의 `sase2026_rigging.html` (SASE 2026 추계학술대회 구두발표 장표)은 별도 테스트를 씁니다.
 병합 번들에는 들어가지 않으며, `build_merged.py` 가 홈 탭에서 '논문 발표' 섹션을 잘라냅니다
 (장표가 번들과 함께 이동하지 않으므로 링크가 깨집니다). 섹션을 못 찾으면 빌드가 즉시 중단됩니다.
+웹 메인(`index.html`)에서도 이 섹션은 `hidden` 으로 숨겨 두었습니다 — 장표 파일은 주소로 계속 열립니다.
 
 ```bash
 node build/test_deck.js            # 종료코드 0=통과, 1=장표 결함, 2=테스트 자체가 깨짐
