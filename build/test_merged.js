@@ -1106,7 +1106,7 @@ async function clickByText(frame, txt){
   f = await open('manual'); await sleep(200);
   if(f){
     const info = await f.evaluate(()=>({ sects: document.querySelectorAll('section.section').length, idx: (typeof SEARCH_INDEX!=='undefined')?SEARCH_INDEX.length:0 }));
-    rec('manual: 5개 섹션 & 검색 인덱스', info.sects===5 && info.idx>=70, JSON.stringify(info));
+    rec('manual: 6개 섹션 & 검색 인덱스', info.sects===6 && info.idx>=88, JSON.stringify(info));
   } else rec('manual: 프레임 로드', false);
 
   // 10) OFFLINE: no external request slipped through

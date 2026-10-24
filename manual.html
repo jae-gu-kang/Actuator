@@ -528,7 +528,7 @@ body {
     </div>
     <span class="app-name">Engineering Tools Manual</span>
   </div>
-  <span class="titlebar-badge">v1.1 · 5 Tools</span>
+  <span class="titlebar-badge">v1.2 · 6 Tools</span>
 </div>
 
 <!-- LAYOUT -->
@@ -604,6 +604,15 @@ body {
         </svg>
       </span>
       <span class="nav-label">CS Rigging<span class="nav-sub">조종면 리깅 도구</span></span>
+    </button>
+    <button class="nav-item" onclick="showSection('csv')">
+      <span class="nav-icon" style="background:rgba(88,86,214,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#5856d6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/>
+          <circle cx="14.5" cy="14" r="2.5"/><path d="M16.3 15.8l1.9 1.9"/>
+        </svg>
+      </span>
+      <span class="nav-label">CSV 분석기<span class="nav-sub">CSV Analyzer</span></span>
     </button>
   </nav>
 
@@ -2458,6 +2467,302 @@ body {
       </div>
     </section>
 
+    <!-- ══════════════ CSV 분석기 ══════════════ -->
+    <section class="section" id="sec-csv">
+      <div class="page-header">
+        <div class="page-icon" style="background:rgba(88,86,214,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5856d6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/>
+            <circle cx="14.5" cy="14" r="2.5"/><path d="M16.3 15.8l1.9 1.9"/>
+          </svg>
+        </div>
+        <div>
+          <h2>CSV 분석기</h2>
+          <p>대용량 CSV · 16진수(헥사) 검색 · 프로파일 · 시간 그래프 · XLSX 내보내기 — 오프라인 · 저장 안 함</p>
+          <div class="page-tags">
+            <span class="page-tag">데이터 분석</span>
+            <span class="page-tag">16진수 검색</span>
+            <span class="page-tag">MIL-STD-1553 로그</span>
+            <span class="page-tag">XLSX 내보내기</span>
+            <span class="page-tag">오프라인</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-csv-overview" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">도구 개요</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          CSV 파일이나 붙여넣은 내용을 브라우저 안에서 분석하고 <strong>16진수(헥사) 값을 검색</strong>합니다. 수십~수백 MB(수백만 행)의 CSV를 다루도록 설계되었고, <strong>MIL-STD-1553 버스 로그</strong>처럼 행마다 필드 수가 다른(가변 길이) 데이터와 <code>0x4423</code> 같은 16비트 워드 열을 기본으로 지원합니다. 열마다 타입·분포를 정리하는 <strong>프로파일</strong>, 시간에 따른 변화를 보는 <strong>그래프</strong>, 셀을 비트·바이트로 풀어 보는 <strong>워드 인스펙터</strong>, 결과를 구글 시트·엑셀로 옮기는 <strong>XLSX 내보내기</strong>를 제공합니다.
+        </p>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-top:10px;">
+          서버·네트워크·브라우저 저장소를 전혀 쓰지 않습니다. 데이터는 열려 있는 탭의 메모리에만 머물고, 탭을 닫으면 사라집니다(상단 배지 「오프라인 · 저장 안 함」).
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">🌐</div>
+          <div class="tip-text"><strong>웹 포털 전용:</strong> CSV 분석기는 별도로 빌드되는 단일 HTML이라 포털(<code>csv_analyzer.html</code>)에서만 열 수 있고, 오프라인 통합본(<code>engineering_tools_all_in_one.html</code>)에는 들어 있지 않습니다. 다른 도구와 데이터를 주고받지 않습니다.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span id="anc-csv-how" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">사용 방법</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>데이터 열기</h4>
+              <p>왼쪽 입력 패널의 <strong>CSV 파일 놓기</strong> 영역에 파일을 끌어다 놓거나 클릭해 고릅니다. 시트·터미널에서 복사한 내용은 입력란에 붙여넣고 <strong>붙여넣은 내용 불러오기</strong>를 누릅니다(0.5MB가 넘는 붙여넣기는 입력란을 거치지 않고 바로 열립니다). <strong>인코딩 · 구분자 · 헤더</strong>는 자동 감지되며 패널에서 바꿀 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>표 · 프로파일 확인</h4>
+              <p><strong>표</strong> 탭은 수백만 행도 바로 스크롤됩니다. 셀을 누르면 오른쪽에 행 상세와 워드 인스펙터가, 머리글을 누르면 열 상세가 열립니다. <strong>프로파일</strong> 탭에서 열마다 타입(16진수·숫자·글자 등)·채움률·고유값·범위를 확인합니다. 프로파일이 끝나야 내보내기·그래프가 켜집니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>검색</h4>
+              <p>위쪽 검색 막대에서 모드(<strong>텍스트 · 헥사 · 숫자 · 바이트(원본)</strong>)를 고르고 검색어를 입력하면 입력하는 동안 자동으로 검색됩니다. 결과는 표 아래 <strong>결과 드로어</strong>(열별 매치 수 + 목록)와 표 오른쪽 <strong>미니맵</strong>에 표시되고, 누르면 그 셀로 이동합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4>필터 · 보이는 열로 좁히기</h4>
+              <p><strong>필터 ▾</strong>로 조건(최대 4개, AND)을 걸면 표·검색·그룹 집계·그래프·내보내기가 모두 통과한 행만 다룹니다. 탭 줄 오른쪽 <strong>열 ▾</strong>에서 표와 그래프에 보일 열을 고릅니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h4>그래프로 흐름 보기</h4>
+              <p><strong>그래프</strong> 탭은 열마다 시간 열(또는 행 번호)에 따른 변화를 작은 그래프로 한꺼번에 그립니다. 하나를 누르면 크게 보고, <strong>값이 나온 때</strong>에 값을 넣어 그 값이 언제·몇 번 나왔는지 확인합니다.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">6</div>
+            <div class="step-body">
+              <h4>내보내기 · 지우기</h4>
+              <p>상단 <strong>XLSX 내보내기</strong>로 전체·필터 통과·검색 결과 행이나 그룹 집계 표를 파일로 저장합니다. 작업이 끝나면 <strong>모두 지우기</strong>로 워커를 종료하고 메모리의 데이터를 비웁니다. 데이터가 열려 있으면 「홈」·새로고침·탭 닫기 전에 확인창이 뜹니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 화면 구성 -->
+      <div class="card">
+        <span id="anc-csv-layout" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">화면 구성</div>
+        <table class="input-table">
+          <tr><th>영역</th><th>내용</th></tr>
+          <tr><td>입력 (왼쪽)</td><td>파일 놓기/선택, 붙여넣기, 인코딩·구분자·헤더 설정, 데이터 요약</td></tr>
+          <tr><td>검색 막대 (위)</td><td>모드 4종 · 검색어 · <strong>검색 / 지우기</strong> · 모드별 옵션 · <strong>열 범위</strong>(전체 / 16진수 열만 / 특정 열) · <strong>필터 ▾</strong></td></tr>
+          <tr><td>탭</td><td><strong>표 · 프로파일 · 그래프 · 헥사</strong>. 탭 줄 오른쪽에 필터 상태(<code>필터 1,227 / 40,000행 ✕</code>, ✕ = 필터 모두 지우기)와 <strong>열 ▾</strong></td></tr>
+          <tr><td>표</td><td>가상 스크롤. 헤더보다 필드가 적은 행은 <strong>빗금 셀</strong>(오류 아님), 많은 행만 <code>EXTRA_n</code> 열과 경고. 머리글을 누르면 검색 범위가 그 열로 한정되고 열 상세가 열림</td></tr>
+          <tr><td>미니맵 (표 오른쪽)</td><td>검색 매치가 파일 어디에 몰려 있는지. <strong>열별</strong>로 바꾸면 행×열 히트맵. 클릭하면 이동</td></tr>
+          <tr><td>결과 드로어 (표 아래)</td><td>열별 매치 수 스트립(어느 <code>DATA_xx</code> 위치에 나오는지) + 결과 목록(앞 100,000건 보관, 총 건수는 계속 셈)</td></tr>
+          <tr><td>상세 패널 (오른쪽)</td><td>행 상세 · 워드 인스펙터 · 열 상세(히스토그램, 상위 20 값, 16진수 예시, 샘플 행, 미니 그래프) · 헥사 위치</td></tr>
+          <tr><td>상단 오른쪽</td><td><strong>XLSX 내보내기</strong>(프로파일 완료 후 켜짐) · <strong>모두 지우기</strong></td></tr>
+          <tr><td>상태 바 (아래)</td><td>진행률, 행·열·크기·인코딩·구분자 요약, 알림 메시지</td></tr>
+        </table>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">⌨️</div>
+          <div class="tip-text"><strong>단축키:</strong> <kbd>/</kbd> 또는 <kbd>Ctrl/Cmd+F</kbd> = 검색창 포커스 · <kbd>↑</kbd>/<kbd>↓</kbd>/<kbd>Enter</kbd>, <kbd>F3</kbd>/<kbd>Shift+F3</kbd> = 결과 사이 이동 · 그래프를 누른 뒤 <kbd>←</kbd>/<kbd>→</kbd> = 구간 이동</div>
+        </div>
+      </div>
+
+      <!-- 검색 모드 -->
+      <div class="card">
+        <span id="anc-csv-search" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">검색 모드</div>
+        <table class="input-table">
+          <tr><th>모드</th><th>설명</th><th>예</th></tr>
+          <tr><td>헥사</td><td>셀의 16진수 값을 <strong>니블 단위</strong>로 매칭. <code>0x</code>·구분자(<code>: - _ ,</code>)·대소문자 무시, <code>?</code> = 임의 니블. 공백으로 나누면 <strong>연속 셀</strong> 시퀀스(32비트 값이 두 워드로 쪼개진 경우). 옵션: 범위(셀 내 / 행 내 연속), 정렬(셀 시작 / 바이트 / 니블), 전체 일치(<code>FF</code> ↔ <code>0x00FF</code>). 기본으로 16진수로 판정된 열만 봄</td><td><code>0xCE12</code>, <code>CE??</code>, <code>CB9F D892</code>, <code>FF:00:3C</code></td></tr>
+          <tr><td>숫자</td><td><strong>수치 동치</strong>: <code>255</code> ↔ <code>0xFF</code> ↔ <code>0x00FF</code> ↔ <code>255.0</code>. 16진수 열의 <code>0x</code> 없는 값(<code>FF</code>, <code>0012</code>)은 기본적으로 16진수로 해석(옵션으로 변경). 64비트 정수도 정확 비교</td><td><code>255</code>, <code>0xFF</code>, <code>-16</code></td></tr>
+          <tr><td>텍스트</td><td>포함 / 전체 일치 / 정규식, 대소문자 옵션. 정규식은 셀 단위로 실행되어 느리므로 열 범위나 필터로 좁히면 빨라짐</td><td><code>Alpha</code>, <code>^0xCE</code></td></tr>
+          <tr><td>바이트(원본)</td><td>CSV 파일 자체의 바이트 시퀀스. <code>??</code> = 임의 바이트, <code>F?</code> = 반니블. <strong>10진→바이트</strong> 변환기(폭·엔디안) 포함. 결과는 오프셋 + 행/열</td><td><code>4D 5A ?? 00</code>, <code>30 78 43 45</code></td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          새 검색은 진행 중인 검색을 즉시 취소합니다. 프로파일의 워드 빈도·상위 값을 누르면 그 값으로 바로 검색합니다.
+        </p>
+      </div>
+
+      <!-- 필터 · 보이는 열 -->
+      <div class="card">
+        <span id="anc-csv-filter" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">필터 · 보이는 열</div>
+        <table class="input-table">
+          <tr><th>조건</th><th>뜻</th></tr>
+          <tr><td><code>=</code> / <code>≠</code></td><td>열 값이 같음 / 다름. 값은 수치로도 비교(<code>5 = 05 = 0x05</code>)</td></tr>
+          <tr><td>여럿 중 하나</td><td>쉼표로 적은 값 중 하나. 쉼표가 든 값은 <code>"…"</code>로 감쌈</td></tr>
+          <tr><td>포함</td><td>글자가 들어 있음</td></tr>
+          <tr><td>범위</td><td>최소~최대 사이</td></tr>
+          <tr><td>값 있음 / 값 없음</td><td>칸이 채워져 있음 / 비어 있음. 1553처럼 메시지마다 단어 수가 달라 뒤쪽 DATA 열이 비는 데이터에서 한 열의 흐름만 남길 때</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          조건은 최대 4개(AND)이며 <strong>표·검색·그룹 집계·그래프·내보내기</strong>에 모두 적용됩니다. 표는 통과한 행만 보여 주고 <strong>#</strong> 칸에는 원래 행 번호를 씁니다. <strong>프로파일 통계는 필터와 무관하게 파일 전체 기준</strong>입니다.
+        </p>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:8px;">
+          <strong>열 ▾</strong>에서 표·그래프에 보일 열을 고릅니다. 표 머리글로 여는 열 상세에는 바로가기가 있습니다 — <strong>값 있는 행만</strong>(그 열에 「값 있음」 조건 추가), <strong>이 열만 함께 보기</strong>(시간 열 + 필터에 쓴 열 + 그 열만 보이고 그래프 탭에서 그 열을 크게).
+        </p>
+      </div>
+
+      <!-- 프로파일 -->
+      <div class="card">
+        <span id="anc-csv-profile" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">프로파일 · 그룹 집계</div>
+        <table class="input-table">
+          <tr><th>항목</th><th>내용</th></tr>
+          <tr><td>데이터셋 요약</td><td>행 · 열 · 크기 · 인코딩 · 구분자 · 헤더 · 초과 필드 행 수</td></tr>
+          <tr><td>행 길이 분포</td><td>행마다 필드 수의 분포 — 가변 길이 데이터의 구성을 한눈에</td></tr>
+          <tr><td>전체 워드 빈도</td><td>16진수 열 전체를 통합한 워드 상위 50. 클릭 → 헥사 검색</td></tr>
+          <tr><td>열 카드</td><td>타입 비율 막대 · 채움률 · 고유값 · 범위 · 최빈값 · 분포. 클릭하면 열 상세(히스토그램, 상위 20 값, 16진수 예시, 샘플 행)</td></tr>
+          <tr><td>그룹 집계</td><td>열 3개 이하 조합별 건수(예: <code>RT_Address + T/R + Subaddress</code>). 행을 누르면 그 조합이 필터 조건으로 들어감(빈 칸 그룹은 「값 없음」 조건)</td></tr>
+        </table>
+      </div>
+
+      <!-- 그래프 -->
+      <div class="card">
+        <span id="anc-csv-graph" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">그래프 · 값이 나온 때</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          X축은 기본으로 이름에 <code>time</code>·<code>시간</code>이 들어간 숫자 열(1553 로그라면 <code>Time_Tag(ms)</code>), 없으면 행 번호(1부터)이며 바꿀 수 있습니다. X 범위를 <strong>구간 400개</strong>로 나눠 수백만 행도 모아 그립니다. 필터를 걸면 통과한 행으로 다시 그립니다.
+        </p>
+        <table class="input-table" style="margin-top:12px;">
+          <tr><th>열 종류</th><th>그리는 방식</th></tr>
+          <tr><td>숫자 · 16진수 열</td><td>구간 평균을 선으로, 구간 최소~최대를 옅은 띠로</td></tr>
+          <tr><td>값 종류가 적은 글자 열</td><td>값 12개 이하(예: <code>T/R</code>) — 구간마다 값 비율(100% 누적 영역, 많은 값 5개 + 기타)</td></tr>
+          <tr><td>그 밖</td><td>날짜 열·값이 너무 다양한 글자 열은 그리지 않고 아래 「그래프로 그리지 않은 열」에 이유와 함께 표시</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          <strong>크게 보기</strong>: 작은 그래프를 누르면 위에 크게 그립니다. 마우스를 올리면 구간 값(평균·최소~최대, 16진수는 <code>0x</code>와 10진), 끌어서 확대(그 범위를 다시 계산), 두 번 눌러 전체 범위, <strong>표로 보기</strong>로 모든 구간 값을 표로 봅니다. 표 머리글이나 프로파일 열 카드를 눌러 연 열 상세에도 같은 미니 그래프와 <strong>그래프 탭에서 크게 보기</strong>가 있습니다.
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">🔍</div>
+          <div class="tip-text"><strong>값이 나온 때:</strong> 크게 보기(또는 열 상세 미니 그래프 아래)에 값을 넣거나 <strong>자주 나온 값</strong>을 누르면, 그 값이 나온 시각을 값 높이의 점선 위 점으로, 아래 칸에 구간별 횟수 막대로 그리고 <strong>횟수 · 값 있는 행 중 비율 · 전체(필터 통과) 행 중 비율 · 처음/마지막으로 나온 행</strong>을 요약합니다. 쉼표로 <strong>4개까지</strong> 넣어 값마다 색 하나로 비교하고(합계는 값 중 하나라도 나온 행), <strong>이 값(들)인 행만 표에서</strong>로 해당 행을 표로 엽니다. 16진수 열에서는 숫자만 넣어도 16진수로 봅니다(<code>10</code> → <code>0x0010</code>).</div>
+        </div>
+      </div>
+
+      <!-- 워드 인스펙터 · 헥사 -->
+      <div class="card">
+        <span id="anc-csv-inspector" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">워드 인스펙터 · 헥사 뷰</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;">
+          <strong>워드 인스펙터</strong>(행 상세 위쪽)는 선택한 셀을 <strong>16진수 / 부호 없음 / 부호 있음 / 바이트 / 비트(인덱스 포함)</strong>로 풀어 보여 주고, 이웃 셀과 묶어 <strong>32비트 쌍</strong>(<code>uint32</code> / <code>int32</code> / <code>float32</code>, 빅·리틀 워드 순서)으로 해석합니다. 폭은 8 / 16 / 32 / 64비트 중 고릅니다.
+        </p>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-top:10px;">
+          <strong>헥사</strong> 탭은 파일의 원시 바이트를 hex dump로 보여 줍니다. 오프셋 바로 전체 중 위치를 보고, 줄마다 <code>행 R · 열 이름</code> 주석과 <strong>표에서 보기</strong>가 붙습니다. 행 상세의 바이트 범위(<strong>헥사에서 보기</strong>)를 누르면 그 셀의 바이트가 강조됩니다(양방향 연결).
+        </p>
+      </div>
+
+      <!-- XLSX 내보내기 -->
+      <div class="card">
+        <span id="anc-csv-export" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">XLSX 내보내기 (구글 시트 · 엑셀)</div>
+        <table class="input-table">
+          <tr><th>범위</th><th>내용</th></tr>
+          <tr><td>전체 행</td><td>모든 데이터 행</td></tr>
+          <tr><td>필터 통과 행</td><td>지금 필터 조건을 통과한 행</td></tr>
+          <tr><td>검색 결과 행</td><td>마지막 검색에서 맞은 칸이 하나라도 있는 행(한 번씩, 100,000건 표시 한도와 무관하게 전부). 바이트 검색은 제외</td></tr>
+          <tr><td>그룹 집계 표</td><td>프로파일 탭의 그룹 집계 결과(그룹 열 + 건수 + 비율)</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-top:12px;">
+          파일은 탭 안에서 만들어져(네트워크 0) 다운로드 폴더에 저장됩니다. 구글 시트는 「파일 → 가져오기 → 업로드」, 엑셀은 그냥 열면 됩니다. 열을 숨겨 두었으면 <strong>보이는 열만</strong> 내보낼지 고를 수 있습니다(기본 켜짐). 파일 이름은 원본 이름 대신 <code>CSV분석_&lt;범위&gt;_&lt;날짜-시각&gt;.xlsx</code>이며, 첫 행(머리글)은 굵게·고정됩니다.
+        </p>
+        <div class="tip-box" style="margin-top:12px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-text"><strong>값 보존:</strong> 16진수 열은 <strong>텍스트 칸</strong>으로 저장해 시트가 <code>0012</code>→<code>12</code>, <code>1E05</code>→<code>100000</code>(지수)으로 바꾸는 것을 막습니다. 그 밖의 십진수는 <strong>숫자 칸</strong> + 원래 소수 자릿수 형식(<code>810.420</code> → 810.42 + 형식 <code>0.000</code>)이라 보이는 글자는 그대로이고 합계·평균도 맞습니다. 앞자리 0(<code>007</code>)·지수 표기·유효숫자 16자리 이상은 텍스트로 둡니다.</div>
+        </div>
+        <div class="warn-box">
+          <div class="tip-icon">⚠️</div>
+          <div class="tip-text"><strong>한도:</strong> 엑셀 시트 1,048,575행(머리글 제외)을 넘으면 잘린 파일을 만들지 않고 멈춥니다 — 필터로 줄이세요. 구글 시트는 파일당 1,000만 셀(행×열)까지라 넘으면 경고합니다. 칸 하나는 32,767자까지(넘으면 잘라내고 알림).</div>
+        </div>
+      </div>
+
+      <!-- 보안 -->
+      <div class="card">
+        <span id="anc-csv-security" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">보안 · 프라이버시</div>
+        <table class="input-table">
+          <tr><th>항목</th><th>내용</th></tr>
+          <tr><td>네트워크 0</td><td>모든 코드가 HTML 하나에 인라인(CDN 없음). 빌드가 만든 <strong>해시 기반 CSP</strong>(<code>connect-src 'none'</code>)를 브라우저가 강제하므로 스크립트·스타일 본문이 한 글자라도 바뀌면 실행되지 않음</td></tr>
+          <tr><td>저장 0</td><td><code>localStorage</code> · <code>sessionStorage</code> · IndexedDB · Cache · 쿠키를 쓰지 않음. 디스크에 쓰는 것은 사용자가 누른 XLSX 내보내기 파일뿐</td></tr>
+          <tr><td>히스토리 누출 0</td><td>URL에 아무것도 넣지 않고, 탭 제목은 항상 「CSV 분석기」(파일명이 히스토리에 남지 않음)</td></tr>
+          <tr><td>메모리에만</td><td>파일은 디스크를 지연 참조(300MB도 통째로 올리지 않음). 붙여넣은 텍스트는 즉시 Blob으로 바꾸고 입력란을 비움. <strong>모두 지우기</strong> = 워커 종료 + 모든 참조·화면 비움</td></tr>
+          <tr><td>클라우드 기능 차단</td><td>입력란 <code>spellcheck=false</code>, 문서 <code>translate=no</code> — 브라우저 맞춤법·번역 기능이 내용을 보내는 경로를 막음</td></tr>
+        </table>
+        <div class="warn-box" style="margin-top:12px;">
+          <div class="tip-icon">⚠️</div>
+          <div class="tip-text"><strong>범위 밖:</strong> OS 파일 선택기의 최근 파일 목록, 스왑/페이지 파일, 클립보드, 화면 녹화, 페이지 접근 권한이 있는 브라우저 확장은 이 도구가 막을 수 없습니다. 사내 데이터를 다룰 때는 <strong>확장을 끈 시크릿 창</strong>에서 여는 것을 권장합니다.</div>
+        </div>
+      </div>
+
+      <!-- 지원 형식 -->
+      <div class="card">
+        <span id="anc-csv-formats" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">지원 형식 · 한계</div>
+        <table class="input-table">
+          <tr><th>구분</th><th>내용</th></tr>
+          <tr><td>인코딩 (자동)</td><td>UTF-8(BOM 유무), EUC-KR/CP949, UTF-16 LE/BE, Windows-1252</td></tr>
+          <tr><td>구분자 (자동)</td><td><code>,</code> · 탭 · <code>;</code> · <code>|</code>. 헤더 유무도 자동 감지(수동 변경 가능)</td></tr>
+          <tr><td>인용 · 줄끝</td><td>RFC 4180 인용(<code>"..."</code>, <code>""</code> 이스케이프, 인용 안 줄바꿈), LF / CRLF / CR</td></tr>
+          <tr><td>크기 한계</td><td>4GiB 이상 파일, 5억 자 이상인 단일 레코드는 지원하지 않음</td></tr>
+          <tr><td>메인 스레드 모드</td><td>Safari가 <code>file://</code>에서 워커를 막으면 같은 엔진이 메인 스레드에서 실행(상단에 「메인 스레드 모드」 표시)</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <span id="anc-csv-terms" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="card-title">핵심 용어</div>
+        <div class="term-grid">
+          <div class="term-row">
+            <span id="anc-csv-hexcol"></span><div class="term-name">16진수 열
+              <span class="term-symbol">Hex Column</span>
+            </div>
+            <div class="term-desc">값의 95% 이상이 16진수로 읽히고, 20% 이상이 <code>0x</code> 접두·A–F 포함 등으로 확실히 16진수인 열(<code>0x4423</code>, <code>CE12</code>). 폭(8/16/32비트 등)과 함께 표시되며, 헥사 검색의 기본 범위이고 XLSX에서는 텍스트 칸으로 저장됩니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-csv-nibble"></span><div class="term-name">니블 · 워드
+              <span class="term-symbol">Nibble / Word</span>
+            </div>
+            <div class="term-desc"><strong>니블</strong>은 4비트(16진수 한 자리), <strong>워드</strong>는 1553 데이터의 기본 단위인 16비트(16진수 네 자리). 헥사 검색의 <code>?</code>는 임의 니블 하나, 바이트 검색의 <code>??</code>는 임의 바이트 하나에 맞습니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-csv-1553"></span><div class="term-name">MIL-STD-1553
+              <span class="term-symbol">1553 Data Bus</span>
+            </div>
+            <div class="term-desc">항공기 직렬 데이터 버스 규격. 메시지는 <strong>RT 주소</strong>(원격 단말), <strong>T/R</strong>(송신/수신), <strong>서브어드레스</strong>와 최대 32개의 16비트 데이터 워드로 이뤄지며, 메시지마다 워드 수가 달라 CSV로 옮기면 행마다 필드 수가 다릅니다. 그룹 집계로 RT·T/R·SA 조합을 나눠 보는 것이 출발점입니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-csv-ragged"></span><div class="term-name">가변 길이 행
+              <span class="term-symbol">Ragged Rows</span>
+            </div>
+            <div class="term-desc">행마다 필드 수가 다른 CSV. 헤더보다 필드가 <strong>적은</strong> 행은 빗금 셀로 보이며 오류가 아닙니다. 헤더보다 <strong>많은</strong> 행만 <code>EXTRA_n</code> 열과 함께 경고합니다. 프로파일의 행 길이 분포로 구성을 확인합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-csv-numeq"></span><div class="term-name">수치 동치
+              <span class="term-symbol">Numeric Equivalence</span>
+            </div>
+            <div class="term-desc">표기는 달라도 같은 수인 값을 같게 보는 비교. 숫자 검색과 필터 「=」에서 <code>255</code> = <code>0xFF</code> = <code>0x00FF</code> = <code>255.0</code>, <code>5</code> = <code>05</code> = <code>0x05</code>로 취급합니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-csv-endian"></span><div class="term-name">엔디안 · 워드 순서
+              <span class="term-symbol">Endianness</span>
+            </div>
+            <div class="term-desc">여러 바이트(워드)로 된 값을 어느 쪽부터 놓는지의 순서. <strong>빅</strong>은 상위부터, <strong>리틀</strong>은 하위부터. 32비트 값이 두 16비트 워드로 쪼개진 경우 워드 인스펙터의 빅·리틀 워드 순서로 <code>uint32</code>·<code>float32</code>를 맞춰 봅니다.</div>
+          </div>
+          <div class="term-row">
+            <span id="anc-csv-csp"></span><div class="term-name">해시 기반 CSP
+              <span class="term-symbol">Content Security Policy</span>
+            </div>
+            <div class="term-desc">페이지가 실행해도 되는 스크립트·스타일을 본문의 SHA-256 해시로 못 박는 브라우저 정책. 파일이 변조되면 실행 자체가 막히고, <code>connect-src 'none'</code>으로 어떤 네트워크 요청도 나가지 못합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"><strong>예 — 1553 로그에서 한 데이터 워드의 흐름 보기:</strong> 프로파일 → 그룹 집계에서 <code>RT_Address + T/R + Subaddress</code> 행 클릭(필터로) → 표에서 <code>DATA_05</code> 머리글 → <strong>값 있는 행만</strong> → <strong>이 열만 함께 보기</strong> → 그래프 탭에서 크게, 필요하면 <strong>값이 나온 때</strong>에 <code>0x5C5C</code>.</div>
+      </div>
+
+      <div class="warn-box">
+        <div class="tip-icon">⚠️</div>
+        <div class="tip-text"><strong>주의:</strong> 데이터는 탭 메모리에만 있어 탭을 닫거나 새로고침하면 되돌릴 수 없습니다. 남길 결과는 XLSX로 내보내세요.</div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -2550,9 +2855,29 @@ const SEARCH_INDEX = [
   { id:'rigging', anchor:'anc-sid',                 title:'SID (호기번호)',                   keywords:'SID serial ship id 호기 번호 식별자 항공기 기종 비행체 타입' },
   { id:'rigging', anchor:'anc-revision',            title:'리비전 (Revision)',                 keywords:'리비전 revision 개정번호 이력 정기점검 형상관리 configuration management' },
   { id:'rigging', anchor:'anc-rigging-r2',          title:'R² 리깅 품질',                    keywords:'R² 리깅 1.0 3차 백래시 마찰 링키지 결함 이론 검증' },
+
+  // ── CSV 분석기 ──
+  { id:'csv', anchor:'anc-csv-overview',            title:'CSV 분석기 — 도구 개요',            keywords:'CSV 분석기 csv analyzer 대용량 수백만 행 16진수 헥사 hex 검색 프로파일 그래프 워드 인스펙터 XLSX 내보내기 1553 가변 길이 오프라인 저장 안 함 웹 포털 전용 통합본 미포함 데이터 변환기' },
+  { id:'csv', anchor:'anc-csv-how',                 title:'CSV 분석기 — 사용 방법',            keywords:'파일 놓기 열기 붙여넣기 불러오기 0.5MB 인코딩 구분자 헤더 자동 감지 표 프로파일 검색 필터 보이는 열 그래프 값이 나온 때 XLSX 내보내기 모두 지우기 확인창 떠나기' },
+  { id:'csv', anchor:'anc-csv-layout',              title:'CSV 분석기 — 화면 구성 & 단축키',   keywords:'화면 구성 입력 패널 검색 막대 탭 표 프로파일 그래프 헥사 빗금 셀 EXTRA_n 미니맵 히트맵 결과 드로어 열별 매치 상세 패널 상태 바 단축키 F3 Ctrl+F / Enter 화살표' },
+  { id:'csv', anchor:'anc-csv-search',              title:'검색 모드 (텍스트·헥사·숫자·바이트)', keywords:'검색 모드 헥사 hex 니블 와일드카드 ? ?? 연속 셀 시퀀스 32비트 정렬 전체 일치 숫자 수치 동치 0xFF 255 64비트 텍스트 정규식 regex 대소문자 바이트 원본 오프셋 10진 바이트 변환 엔디안 열 범위' },
+  { id:'csv', anchor:'anc-csv-filter',              title:'필터 · 보이는 열',                  keywords:'필터 조건 = ≠ 여럿 중 하나 in 포함 범위 최소 최대 값 있음 값 없음 AND 4개 원래 행 번호 열 ▾ 보이는 열 값 있는 행만 이 열만 함께 보기 DATA 열' },
+  { id:'csv', anchor:'anc-csv-profile',             title:'프로파일 · 그룹 집계',              keywords:'프로파일 데이터셋 요약 행 길이 분포 필드 수 워드 빈도 상위 50 열 카드 타입 비율 채움률 고유값 최빈값 히스토그램 상위 20 그룹 집계 RT_Address T/R Subaddress 건수' },
+  { id:'csv', anchor:'anc-csv-graph',               title:'그래프 · 값이 나온 때',             keywords:'그래프 시간에 따른 변화 X축 Time_Tag 시간 열 행 번호 구간 400 평균 최소 최대 띠 100% 누적 범주 크게 보기 확대 표로 보기 값이 나온 때 자주 나온 값 횟수 비율 처음 마지막 여러 값 비교 4개' },
+  { id:'csv', anchor:'anc-csv-inspector',           title:'워드 인스펙터 · 헥사 뷰',           keywords:'워드 인스펙터 16진수 부호 없음 부호 있음 바이트 비트 인덱스 32비트 쌍 uint32 int32 float32 빅 리틀 워드 순서 8 16 32 64비트 헥사 hex dump 원시 바이트 오프셋 바 표에서 보기 헥사에서 보기' },
+  { id:'csv', anchor:'anc-csv-export',              title:'XLSX 내보내기 (구글 시트·엑셀)',    keywords:'XLSX 내보내기 구글 시트 엑셀 google sheets excel 전체 행 필터 통과 검색 결과 그룹 집계 표 보이는 열만 텍스트 칸 숫자 칸 0012 1E05 지수 소수 자릿수 형식 1048575행 1000만 셀 32767자 파일 이름 다운로드' },
+  { id:'csv', anchor:'anc-csv-security',            title:'보안 · 프라이버시',                 keywords:'보안 프라이버시 네트워크 0 저장 0 localStorage 쿠키 해시 CSP 변조 히스토리 탭 제목 메모리 Blob 모두 지우기 spellcheck translate 시크릿 창 확장 프로그램 사내 데이터' },
+  { id:'csv', anchor:'anc-csv-formats',             title:'지원 형식 · 한계',                  keywords:'인코딩 UTF-8 BOM EUC-KR CP949 UTF-16 Windows-1252 구분자 쉼표 탭 세미콜론 파이프 RFC 4180 인용 줄끝 CRLF 4GiB 5억 자 Safari 메인 스레드 모드 워커' },
+  { id:'csv', anchor:'anc-csv-hexcol',              title:'16진수 열 (Hex Column)',            keywords:'16진수 열 hex column 0x 판정 95% 20% 폭 비트 텍스트 칸' },
+  { id:'csv', anchor:'anc-csv-nibble',              title:'니블 · 워드',                       keywords:'니블 nibble 4비트 워드 word 16비트 와일드카드 ? ??' },
+  { id:'csv', anchor:'anc-csv-1553',                title:'MIL-STD-1553',                      keywords:'MIL-STD-1553 1553 데이터 버스 RT 원격 단말 T/R 송신 수신 서브어드레스 subaddress 데이터 워드 32개 메시지' },
+  { id:'csv', anchor:'anc-csv-ragged',              title:'가변 길이 행 (Ragged Rows)',        keywords:'가변 길이 행 ragged 필드 수 빗금 셀 EXTRA_n 초과 필드 경고 행 길이 분포' },
+  { id:'csv', anchor:'anc-csv-numeq',               title:'수치 동치 (Numeric Equivalence)',   keywords:'수치 동치 255 0xFF 0x00FF 255.0 5 05 0x05 숫자 검색 필터 =' },
+  { id:'csv', anchor:'anc-csv-endian',              title:'엔디안 · 워드 순서',                keywords:'엔디안 endian 빅 리틀 big little 워드 순서 바이트 순서 uint32 float32 두 워드' },
+  { id:'csv', anchor:'anc-csv-csp',                 title:'해시 기반 CSP',                     keywords:'CSP content security policy 해시 sha256 변조 connect-src none 인라인 스크립트' },
 ];
 
-const NAV_IDS = ['linkage','hinge','regression','servo','rigging'];
+const NAV_IDS = ['linkage','hinge','regression','servo','rigging','csv'];
 let highlightTimer = null;
 
 // ── 섹션 전환 ──
@@ -2654,11 +2979,12 @@ function doSearch(q) {
     hinge:'힌지모멘트',
     regression:'회귀분석',
     servo:'주파수 응답',
-    rigging:'CS Rigging'
+    rigging:'CS Rigging',
+    csv:'CSV 분석기'
   };
   const sectionColor = {
     linkage:'#0071e3', hinge:'#bf5af2', regression:'#ff9f0a',
-    servo:'#30b0c7', rigging:'#28a745'
+    servo:'#30b0c7', rigging:'#28a745', csv:'#5856d6'
   };
 
   // 섹션 순서 유지하되 스코어 높은 섹션 먼저
