@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T06:30:00.916Z
+  built: 2026-10-24T06:45:40.994Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -57,7 +57,7 @@
     src/main/ui/column-picker.js
     src/main/app.js
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5AyPn15aE7kvGysaPdP5hOq3vbzj1xaD1r29XwQQUt0='; style-src 'sha256-kERI4ByXmLLRCQNrYWwu3Mil9HCUn9QViW8/5JNM/pQ='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Efxtq2lT1g1JxVpp5h31cCK/gsAhGf3HZ8Cly/lxg1c='; style-src 'sha256-kERI4ByXmLLRCQNrYWwu3Mil9HCUn9QViW8/5JNM/pQ='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1997,6 +1997,15 @@ const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
 
 const FILTER_OPS = [['eq', '='], ['neq', '≠'], ['contains', '포함'], ['range', '범위'], ['nonempty', '값 있음'], ['empty', '값 없음']];
 
+/** 그룹 집계에서 필드가 없는 칸·빈 칸의 이름 */
+const GROUP_MISSING = '(없음)';
+const GROUP_EMPTY = '(빈 값)';
+
+/** 그룹 집계 행 → 필터 조건. 빈 칸·없는 칸은 「값 없음」으로 (조건을 빼 버리면 표가 그룹 건수보다 많아진다) */
+function groupConditions(cols, parts) {
+  return cols.map((col, i) => (parts[i] === GROUP_MISSING || parts[i] === GROUP_EMPTY ? { col, op: 'empty' } : { col, op: 'eq', value: parts[i] }));
+}
+
 /** 값 입력이 필요한 연산인지 (값 있음·없음은 열만 고르면 된다) */
 function filterNeedsValue(op) { return op !== 'nonempty' && op !== 'empty'; }
 
@@ -2053,7 +2062,7 @@ function compileFilter(conds, meta = {}) {
     return true;
   };
 }
-return { FILTER_OPS, filterNeedsValue, compileFilter };
+return { FILTER_OPS, GROUP_MISSING, GROUP_EMPTY, groupConditions, filterNeedsValue, compileFilter };
 })();
 
 // ===== src/shared/groupby.js =====
@@ -2560,7 +2569,7 @@ const { MSG } = M_shared_protocol;
 const { createColumnProfiler, provisionalForColumn, topN } = M_shared_profiler;
 const { makeRng } = M_shared_rng;
 const { compileCellMatcher, searchBlock } = M_shared_search_cells;
-const { compileFilter } = M_shared_filter;
+const { compileFilter, GROUP_MISSING, GROUP_EMPTY } = M_shared_filter;
 const { createGroupCounter } = M_shared_groupby;
 const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
@@ -3235,9 +3244,9 @@ class Engine {
           const f0 = fi.recFirst[k], fc = fi.recCount[k];
           for (let j = 0; j < cols.length; j++) {
             const c = cols[j];
-            if (c >= fc) { parts[j] = '(없음)'; continue; }
+            if (c >= fc) { parts[j] = GROUP_MISSING; continue; }
             const [s, e] = trimSpan(text, fi.fieldStart[f0 + c], fi.fieldEnd[f0 + c]);
-            parts[j] = e > s ? text.slice(s, e) : '(빈 값)';
+            parts[j] = e > s ? text.slice(s, e) : GROUP_EMPTY;
           }
           counter.add(parts);
         }
@@ -3272,7 +3281,8 @@ class Engine {
     } else if (mode === 'search') {
       if (!query) throw new Error('내보낼 검색 결과가 없습니다');
       if (query.kind === 'bytes') throw new Error('바이트 검색 결과는 행 단위가 아니어서 내보낼 수 없습니다');
-      matcher = compileCellMatcher(query, { columnCount: cols, hexLike: ds.hexLike, padNibbles: ds.padNibbles, header: ds.header });
+      // 검색 범위는 파일의 모든 열 기준 — 보이는 열 수(cols)로 자르면 열 한정 검색이 전체 검색이 된다
+      matcher = compileCellMatcher(query, { columnCount: ds.columnCount, hexLike: ds.hexLike, padNibbles: ds.padNibbles, header: ds.header });
       filterFn = compileFilter(query.filter, { hexLike: ds.hexLike });
     } else if (mode !== 'all') {
       throw new Error('알 수 없는 내보내기 범위: ' + mode);
@@ -4786,6 +4796,15 @@ const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
 
 const FILTER_OPS = [['eq', '='], ['neq', '≠'], ['contains', '포함'], ['range', '범위'], ['nonempty', '값 있음'], ['empty', '값 없음']];
 
+/** 그룹 집계에서 필드가 없는 칸·빈 칸의 이름 */
+const GROUP_MISSING = '(없음)';
+const GROUP_EMPTY = '(빈 값)';
+
+/** 그룹 집계 행 → 필터 조건. 빈 칸·없는 칸은 「값 없음」으로 (조건을 빼 버리면 표가 그룹 건수보다 많아진다) */
+function groupConditions(cols, parts) {
+  return cols.map((col, i) => (parts[i] === GROUP_MISSING || parts[i] === GROUP_EMPTY ? { col, op: 'empty' } : { col, op: 'eq', value: parts[i] }));
+}
+
 /** 값 입력이 필요한 연산인지 (값 있음·없음은 열만 고르면 된다) */
 function filterNeedsValue(op) { return op !== 'nonempty' && op !== 'empty'; }
 
@@ -4842,7 +4861,7 @@ function compileFilter(conds, meta = {}) {
     return true;
   };
 }
-return { FILTER_OPS, filterNeedsValue, compileFilter };
+return { FILTER_OPS, GROUP_MISSING, GROUP_EMPTY, groupConditions, filterNeedsValue, compileFilter };
 })();
 
 // ===== src/shared/groupby.js =====
@@ -5349,7 +5368,7 @@ const { MSG } = M_shared_protocol;
 const { createColumnProfiler, provisionalForColumn, topN } = M_shared_profiler;
 const { makeRng } = M_shared_rng;
 const { compileCellMatcher, searchBlock } = M_shared_search_cells;
-const { compileFilter } = M_shared_filter;
+const { compileFilter, GROUP_MISSING, GROUP_EMPTY } = M_shared_filter;
 const { createGroupCounter } = M_shared_groupby;
 const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
@@ -6024,9 +6043,9 @@ class Engine {
           const f0 = fi.recFirst[k], fc = fi.recCount[k];
           for (let j = 0; j < cols.length; j++) {
             const c = cols[j];
-            if (c >= fc) { parts[j] = '(없음)'; continue; }
+            if (c >= fc) { parts[j] = GROUP_MISSING; continue; }
             const [s, e] = trimSpan(text, fi.fieldStart[f0 + c], fi.fieldEnd[f0 + c]);
-            parts[j] = e > s ? text.slice(s, e) : '(빈 값)';
+            parts[j] = e > s ? text.slice(s, e) : GROUP_EMPTY;
           }
           counter.add(parts);
         }
@@ -6061,7 +6080,8 @@ class Engine {
     } else if (mode === 'search') {
       if (!query) throw new Error('내보낼 검색 결과가 없습니다');
       if (query.kind === 'bytes') throw new Error('바이트 검색 결과는 행 단위가 아니어서 내보낼 수 없습니다');
-      matcher = compileCellMatcher(query, { columnCount: cols, hexLike: ds.hexLike, padNibbles: ds.padNibbles, header: ds.header });
+      // 검색 범위는 파일의 모든 열 기준 — 보이는 열 수(cols)로 자르면 열 한정 검색이 전체 검색이 된다
+      matcher = compileCellMatcher(query, { columnCount: ds.columnCount, hexLike: ds.hexLike, padNibbles: ds.padNibbles, header: ds.header });
       filterFn = compileFilter(query.filter, { hexLike: ds.hexLike });
     } else if (mode !== 'all') {
       throw new Error('알 수 없는 내보내기 범위: ' + mode);
@@ -8064,7 +8084,9 @@ const M_main_ui_groupby = (() => {
 const { h, clear } = M_main_ui_dom;
 const { createVirtualList } = M_main_ui_virtual_list;
 const { fmtInt, fmtPct, fmtDuration } = M_main_format;
+const { groupConditions } = M_shared_filter;
 // 그룹 집계 카드: 열 ≤3 선택 → 건수/비율 표. 행 클릭 → 필터로 적재.
+
 
 
 
@@ -8090,7 +8112,7 @@ function createGroupByView({ host, onRun, onPick }) {
     const r = e.target.closest('.vlist__row');
     if (!r || !result) return;
     const g = rowsData[Number(r.dataset.idx)];
-    if (g && g.parts && onPick) onPick(result.cols.map((col, i) => ({ col, op: 'eq', value: g.parts[i] })).filter((c) => c.value !== '(없음)' && c.value !== '(빈 값)'));
+    if (g && g.parts && onPick) onPick(groupConditions(result.cols, g.parts));
   });
   function rebuild() {
     sels.forEach((s, i) => {
@@ -8773,11 +8795,21 @@ function drawSeries(ctx, s, plot, yScale) {
   let filled = 0;
   for (let b = 0; b < B; b++) if (s.cnt[b]) filled++;
   if (filled <= B / 2) {
-    // 듬성듬성한 데이터(필터로 한 RT·한 열만 남긴 경우 등): 빈 구간을 건너 점끼리 이어 흐름이 보이게 + 8px 점(표면색 테두리)
-    ctx.beginPath();
-    let pen = false;
-    for (let b = 0; b < B; b++) { if (!s.cnt[b]) continue; if (pen) ctx.lineTo(xs(b), ys(s.mean[b])); else { ctx.moveTo(xs(b), ys(s.mean[b])); pen = true; } }
-    ctx.stroke();
+    // 듬성듬성한 데이터(필터로 한 RT·한 열만 남긴 경우 등): 빈 구간을 건너 점끼리 이어 흐름이 보이게 + 8px 점(표면색 테두리).
+    // 평소 간격의 4배를 넘는 빈 구간(정말 값이 없던 시간)은 실선으로 잇지 않고 가는 점선으로
+    const at = [];
+    for (let b = 0; b < B; b++) if (s.cnt[b]) at.push(b);
+    const gaps = at.slice(1).map((b, k) => b - at[k]).sort((p, q) => p - q);
+    const longGap = Math.max(2, 4 * (gaps.length ? gaps[gaps.length >> 1] : 1));
+    const solid = new Path2D(), dashed = new Path2D();
+    for (let k = 1; k < at.length; k++) {
+      const a = at[k - 1], b = at[k];
+      if (b - a > longGap) { dashed.moveTo(xs(a), ys(s.mean[a])); dashed.lineTo(xs(b), ys(s.mean[b])); continue; }
+      if (k === 1 || a - at[k - 2] > longGap) solid.moveTo(xs(a), ys(s.mean[a]));
+      solid.lineTo(xs(b), ys(s.mean[b]));
+    }
+    ctx.stroke(solid);
+    ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.stroke(dashed); ctx.setLineDash([]);
     ctx.lineWidth = 2; ctx.strokeStyle = cssVar('--bg-panel');
     for (let b = 0; b < B; b++) {
       if (!s.cnt[b]) continue;
@@ -9496,7 +9528,7 @@ const profileView = createProfileView({
 });
 const detailPanel = $('#detail-panel');
 const searchBar = createSearchBar({ container: $('#search-bar'), onSearch: runSearch, onClear: clearSearch });
-const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); exportPanel.refresh(); graphView.setFilter(filterBar.getConditions()); applyTableFilter(); } });
+const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); exportPanel.refresh(); graphView.setFilter(filterBar.getConditions()); applyTableFilter(); refreshColumnActions(); } });
 searchBar.setFilterGetter(() => { const c = filterBar.getConditions(); return c.length ? c : null; });
 function updateFilterBadge() {
   const n = filterBar.count;
@@ -9572,7 +9604,9 @@ const actions = {
   hexView(start, end, row, col) { showTab('hex'); hexView.showRange(start, end, 'cell'); statusBar.setMessage(`바이트 ${fmtInt(start)}~${fmtInt(end)}${row != null ? ` · 행 ${fmtInt(row + 1)}` : ''}${col != null && col >= 0 ? ` · ${store.get().ds.header[col]}` : ''}`); },
 };
 
+let detailCol = null; // 상세 창에 열 상세가 떠 있으면 그 열
 function showDetail(el) {
+  detailCol = null;
   clear(detailPanel);
   detailPanel.appendChild(el || h('div', { class: 'detail__empty', text: '표에서 셀을 클릭하거나 프로파일에서 열을 선택하면 상세가 표시됩니다.' }));
 }
@@ -9632,6 +9666,12 @@ function showColumnDetail(col) {
   el.insertBefore(graphView.miniFor(col), el.children[2] || null); // 머리·타입 막대 다음에 시간 그래프
   el.insertBefore(columnActions(col), el.children[2] || null); // 그 위에 「값 있는 행만」·「이 열만 함께 보기」
   showDetail(el);
+  detailCol = col;
+}
+/** 필터·보이는 열이 다른 곳(필터 막대·✕·열 ▾)에서 바뀌면 열 상세의 바로가기 단추도 맞춘다 */
+function refreshColumnActions() {
+  const old = detailCol != null && store.get().profile ? detailPanel.querySelector('.view-actions') : null;
+  if (old) old.replaceWith(columnActions(detailCol));
 }
 /** 열 상세 바로가기: 이 열이 비지 않은 행만 / 시간 열 + 필터에 쓴 열 + 이 열만 보기 */
 function columnActions(col) {
@@ -9671,6 +9711,7 @@ function setVisibleCols(cols, fromOutside = true) {
   table.setVisibleColumns(visibleCols);
   graphView.setVisibleCols(visibleCols);
   exportPanel.refresh();
+  refreshColumnActions();
 }
 function setTableRows() {
   const ds = store.get().ds;
@@ -9704,7 +9745,7 @@ async function applyTableFilter() {
   if (!ds || !store.get().profile || !client) return;
   const conds = filterBar.getConditions();
   const key = conds.length ? JSON.stringify(conds) : '';
-  if (key === appliedFilterKey && !viewFilterId) return; // 바뀐 게 없으면 다시 훑지 않는다 (스크롤도 그대로)
+  if (key === appliedFilterKey) return; // 바뀐 게 없으면(같은 조건으로 계산 중이어도) 다시 훑지 않는다 — 스크롤도 그대로
   appliedFilterKey = key;
   if (viewFilterId) { client.send(MSG.CANCEL, { id: viewFilterId }); viewFilterId = null; }
   if (!conds.length) {
@@ -9905,9 +9946,9 @@ async function onIndexed(ds) {
   inputPanel.setSummary(ds, currentBlob);
   profileView.setDataset(ds);
   searchBar.setColumns(ds.header, null);
-  // 남은 필터: 열 구성이 같은 파일(같은 형식의 로그를 차례로)이면 이어 쓰고, 다르면 지운다 — 엉뚱한 열로 표가 비지 않게
+  // 남은 필터: 조건에 쓴 열이 같은 자리·같은 이름이면(같은 형식의 로그를 차례로) 이어 쓰고, 아니면 지운다 — 엉뚱한 열로 표가 비지 않게
   const kept = filterBar.getConditions();
-  if (kept.length && prevHeader && (prevHeader.length !== ds.header.length || kept.some((c) => prevHeader[c.col] !== ds.header[c.col]))) {
+  if (kept.length && prevHeader && kept.some((c) => prevHeader[c.col] !== ds.header[c.col])) {
     filterBar.clear();
     updateFilterBadge();
     statusBar.setMessage('열 구성이 다른 파일이라 이전 필터를 지웠습니다.');
@@ -9923,7 +9964,7 @@ async function onIndexed(ds) {
   if (store.get().ds !== ds) return;
   table.setDataset({
     header: ds.header, columnCount: ds.columnCount, schemaCount: ds.schemaCount, rowCount: ds.rowCount,
-    getRow: (r) => (rowCache ? rowCache.getRow(r) : undefined), sampleRows: sample.rows,
+    getRow: (r) => (rowCache ? rowCache.getRow(r) : undefined), sampleRows: sample.rows, visible: visibleCols,
   });
   colsBtn.disabled = false;
   if (viewRows) setTableRows(); // 표본을 기다리는 사이 필터 결과가 먼저 왔으면 그 행으로
