@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T04:33:46.881Z
+  built: 2026-10-24T05:55:05.968Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -22,6 +22,7 @@
     src/shared/groupby.js
     src/shared/search-bytes.js
     src/shared/xlsx.js
+    src/shared/series.js
     src/worker/engine.js
     src/worker/worker.js
     src/main/worker-client.js
@@ -50,9 +51,11 @@
     src/main/leave-guard.js
     src/main/export-plan.js
     src/main/ui/export-panel.js
+    src/main/chart-scale.js
+    src/main/ui/graph-view.js
     src/main/app.js
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pWQTljpJvMTy+ANI0YTRQwWuNkTc/pYoI7NYQovE4e8='; style-src 'sha256-Pz7e+GWZmgLnOQxJ/f4fEQmZ2nwOSntG5WYvUDp5hA4='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9OnLiwJT2UMw0Cww3NsA5iXrVLSHmKk/XwtOdJKXtoc='; style-src 'sha256-Pc+tXG+nTB7vDW1ZGvzniwGAVy5JwKC7jNH5UzJ1tcE='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -526,6 +529,50 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
 .export__progress { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--fg-muted); }
 .export__progress .progress { flex: 1; width: auto; }
 .export__actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ===== 그래프 탭 (시간에 따른 변화) ===== */
+/* 회색 바탕 위 흰 카드 — 프로파일 탭과 같은 리듬. 계산 중에는 이전 그림을 흐리게 유지(깜빡임 없음) */
+.graph { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; background: var(--bg); }
+.graph .graph__grid, .graph .graph__focus { transition: opacity .2s; }
+.graph.is-refreshing .graph__grid, .graph.is-refreshing .graph__focus { opacity: .55; }
+.graph__bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--fg-muted); }
+.graph__x { display: inline-flex; align-items: center; gap: 6px; }
+.graph__bar .progress { width: 140px; }
+.graph__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.graph__card { display: flex; flex-direction: column; gap: 4px; }
+.graph__card:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.graph__canvas { width: 100%; height: 72px; display: block; }
+.graph__xr { display: flex; justify-content: space-between; font-size: 10px; font-family: var(--mono); }
+.graph__legend { gap: 10px; }
+.graph__focus { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+.graph__fhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.graph__ftitle { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.graph__ftitle h2 { font-size: 15px; margin: 0; }
+.graph__frange { font-size: 12px; }
+.graph__fwrap { position: relative; transition: opacity .2s; }
+.graph__fwrap.is-stale { opacity: .55; } /* 확대 계산 중에는 직전 그림을 흐리게 */
+.graph__fcanvas { width: 100%; height: 246px; display: block; cursor: crosshair; touch-action: none; border-radius: 6px; }
+.graph__fcanvas:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+.graph__cross { position: absolute; width: 1px; background: var(--fg-muted); pointer-events: none; }
+.graph__sel { position: absolute; pointer-events: none; background: color-mix(in srgb, var(--accent) 12%, transparent); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); }
+.graph__tip {
+  position: absolute; z-index: 2; min-width: 180px; padding: 8px 10px; pointer-events: none;
+  display: flex; flex-direction: column; gap: 3px; font-size: 12px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.14);
+}
+.graph__tiphead { color: var(--fg-muted); font-size: 11px; margin-bottom: 2px; white-space: nowrap; }
+.graph__tiprow { display: grid; grid-template-columns: 14px auto 1fr; align-items: center; gap: 6px; white-space: nowrap; }
+.graph__tiprow strong { font-family: var(--mono); font-weight: 600; }
+.graph__key { width: 12px; height: 2px; border-radius: 1px; }
+.graph__key--band { height: 8px; border-radius: 2px; }
+.graph__tipfoot, .graph__hint { font-size: 11px; }
+.graph__tablewrap { max-height: 280px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.graph__table th { position: sticky; top: 0; width: auto; background: var(--bg-head); }
+.graph__table th, .graph__table td { white-space: nowrap; padding: 3px 8px; }
+.graph__skip { cursor: default; font-family: var(--sans); }
+.graph__skip:hover { background: var(--bg-elev); }
+.graph-mini .graph__canvas { margin: 4px 0 6px; }
+.graph__mininote { font-size: 12px; margin-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -561,10 +608,12 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
     <nav class="tabs" id="tabs" role="tablist">
       <button class="tab is-active" type="button" role="tab" data-tab="table">표</button>
       <button class="tab" type="button" role="tab" data-tab="profile">프로파일</button>
+      <button class="tab" type="button" role="tab" data-tab="graph">그래프</button>
       <button class="tab" type="button" role="tab" data-tab="hex">헥사</button>
     </nav>
     <section id="view-table" class="view" data-view="table"></section>
     <section id="view-profile" class="view is-hidden" data-view="profile"></section>
+    <section id="view-graph" class="view is-hidden" data-view="graph"></section>
     <section id="view-hex" class="view is-hidden" data-view="hex"></section>
     <div id="results" class="results is-collapsed"></div>
   </main>
@@ -1052,14 +1101,14 @@ const MSG = {
   // main → worker
   OPEN: 'open', PROFILE: 'profile', ROWS: 'rows', ROW_DETAIL: 'rowDetail', BYTES: 'bytes',
   LOCATE: 'locate', SEARCH: 'search', GROUP_BY: 'groupBy', COLUMN_DETAIL: 'columnDetail', CANCEL: 'cancel', CLEAR: 'clear',
-  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export',
+  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export', SERIES: 'series',
   // worker → main
   OPENED: 'opened', INDEX_PROGRESS: 'indexProgress', INDEXED: 'indexed', PROFILE_PROGRESS: 'profileProgress', PROFILED: 'profiled',
   ROWS_RESULT: 'rowsResult', ROW_DETAIL_RESULT: 'rowDetailResult', BYTES_RESULT: 'bytesResult', LOCATED: 'located',
   SEARCH_BATCH: 'searchBatch', SEARCH_PROGRESS: 'searchProgress', SEARCH_DONE: 'searchDone', SEARCH_ERROR: 'searchError',
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
-  EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult',
+  EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult', SERIES_PROGRESS: 'seriesProgress', SERIES_RESULT: 'seriesResult',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -2337,6 +2386,144 @@ function createXlsxWriter({ columns, sheetName = 'Sheet1', compress = deflateRaw
 return { XLSX_MAX_ROWS, XLSX_MAX_COLS, XLSX_MAX_CELL_CHARS, SHEETS_MAX_CELLS, XLSX_MIME, numericCell, columnName, sheetNameOf, deflateRawSupported, createXlsxWriter };
 })();
 
+// ===== src/shared/series.js =====
+const M_shared_series = (() => {
+const { trimSpan, parseHexNumber } = M_shared_infer;
+// 시간(X축)에 따른 열 변화 — 어떤 열을 어떻게 그릴지 정하고, X 구간마다 값을 모은다.
+// 워커와 메인 스레드 폴백에서 같은 코드로 돈다 (DOM 사용 금지).
+//   숫자·16진수 열 → 구간별 최소·최대·평균(선 + 범위 띠)
+//   값 종류가 적은 글자 열 → 구간별 값 개수(100% 누적 영역)
+
+
+const MAX_CATS = 5;        // 범주 열에서 따로 그리는 값 수 (나머지는 기타) — 색 구분이 되는 한도
+const CAT_DISTINCT_MAX = 12;      // 이보다 값 종류가 많은 글자 열은 그리지 않는다
+// 시간 열 이름: 앞에 오면 가장 그럴듯하고(Time_Tag), 낱말로 들어 있으면 다음(Response_Time). runtime 처럼 낱말 속 time 은 아니다.
+const TIME_FIRST = /^(time|timestamp|시간|시각)/i;
+const TIME_WORD = /(^|[^a-z])time([^a-z]|$)|timestamp|시간|시각/i;
+
+/**
+ * stats: 프로파일 열 통계 배열, hexLike: Uint8Array, xCol: X축 열(-1 = 행 번호)
+ * → [{ col, name, kind: 'num'|'cat'|'skip', parse?: 'dec'|'hex', cats?, other?, reason? }]
+ */
+function planSeries(stats, hexLike, xCol) {
+  return stats.map((s, col) => {
+    const base = { col, name: s.name };
+    if (col === xCol) return { ...base, kind: 'skip', reason: 'X축으로 쓰는 열' };
+    if (!s.count) return { ...base, kind: 'skip', reason: '값이 없음' };
+    if (hexLike && hexLike[col]) return { ...base, kind: 'num', parse: 'hex' };
+    if ((s.dominant === 'int' || s.dominant === 'float') && s.numCount > 0) return { ...base, kind: 'num', parse: 'dec' };
+    if (s.dominant === 'date') return { ...base, kind: 'skip', reason: '날짜·시각 값 (X축 후보가 아님)' };
+    if (s.distinctExact && s.distinct <= CAT_DISTINCT_MAX && s.top.length) {
+      const cats = s.top.slice(0, MAX_CATS).map(([v]) => v);
+      return { ...base, kind: 'cat', cats, other: s.distinct > cats.length };
+    }
+    return { ...base, kind: 'skip', reason: `값 종류가 많아(${s.distinctExact ? '' : '약 '}${s.distinct.toLocaleString('ko-KR')}개) 비율로 그리지 않음` };
+  });
+}
+
+/** X축으로 고를 수 있는 열: 행 번호 + 16진수가 아닌 숫자 열(범위가 있는 것) */
+function xAxisOptions(stats, hexLike) {
+  const out = [{ col: -1, name: '행 번호' }];
+  stats.forEach((s, col) => {
+    if (hexLike && hexLike[col]) return;
+    if ((s.dominant === 'int' || s.dominant === 'float') && s.numMax > s.numMin) out.push({ col, name: s.name });
+  });
+  return out;
+}
+
+/** 기본 X축: 이름이 시간으로 시작하는 숫자 열 → 이름에 시간이 낱말로 든 열 → 행 번호 */
+function defaultXColumn(stats, hexLike) {
+  const opts = xAxisOptions(stats, hexLike).filter((o) => o.col >= 0);
+  const hit = opts.find((o) => TIME_FIRST.test(o.name.trim())) || opts.find((o) => TIME_WORD.test(o.name));
+  return hit ? hit.col : -1;
+}
+
+// 십진수만 — JS Number 는 0x1F·0b101·0o17·Infinity 도 숫자로 읽어 버리므로 모양을 먼저 확인한다
+const DEC_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+function parseDec(str, s0, e0) {
+  const [s, e] = trimSpan(str, s0, e0);
+  if (e <= s || e - s > 40) return NaN;
+  const t = str.slice(s, e);
+  return DEC_NUMBER.test(t) ? Number(t) : NaN;
+}
+const parseHex = (str, s, e) => parseHexNumber(str, s, e);
+
+/**
+ * plan: planSeries 결과 중 그릴 항목들, xCol: -1 = 행 번호(표처럼 1부터), [x0, x1]: 이 범위만(양 끝 포함), buckets: 구간 수
+ * addRecord(text, fi, k, row) 로 레코드를 넣고 result() 로 꺼낸다.
+ */
+function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
+  const B = Math.max(1, buckets | 0);
+  const span = x1 - x0;
+  const scale = span > 0 ? B / span : 0;
+  const rows = new Uint32Array(B);
+  let outside = 0, noX = 0;
+  const series = plan.map((p) => {
+    if (p.kind === 'cat') {
+      // 키는 프로파일과 같게 — 앞뒤 공백만 자른 원래 글자(따옴표 안 "" 그대로). 보이는 이름만 따옴표를 푼다.
+      const K = p.cats.length + (p.other ? 1 : 0);
+      const labels = [...p.cats.map((v) => v.replace(/""/g, '"')), ...(p.other ? ['기타'] : [])];
+      return { col: p.col, kind: 'cat', index: new Map(p.cats.map((v, i) => [v, i])), other: p.other ? p.cats.length : -1, K, counts: new Uint32Array(B * K), labels };
+    }
+    const min = new Float64Array(B).fill(Infinity), max = new Float64Array(B).fill(-Infinity);
+    return { col: p.col, kind: 'num', parse: p.parse === 'hex' ? parseHex : parseDec, hex: p.parse === 'hex', min, max, sum: new Float64Array(B), cnt: new Uint32Array(B) };
+  });
+
+  function addRecord(text, fi, k, row) {
+    const f0 = fi.recFirst[k], fc = fi.recCount[k];
+    let x;
+    if (xCol < 0) x = row + 1;
+    else {
+      if (xCol >= fc) { noX++; return; }
+      x = parseDec(text, fi.fieldStart[f0 + xCol], fi.fieldEnd[f0 + xCol]);
+      if (!Number.isFinite(x)) { noX++; return; }
+    }
+    if (x < x0 || x > x1) { outside++; return; }
+    const b = scale ? Math.min(B - 1, Math.floor((x - x0) * scale)) : 0;
+    rows[b]++;
+    for (let i = 0; i < series.length; i++) {
+      const s = series[i];
+      if (s.col >= fc) continue;
+      const f = f0 + s.col;
+      if (s.kind === 'num') {
+        const v = s.parse(text, fi.fieldStart[f], fi.fieldEnd[f]);
+        if (!Number.isFinite(v)) continue;
+        if (v < s.min[b]) s.min[b] = v;
+        if (v > s.max[b]) s.max[b] = v;
+        s.sum[b] += v;
+        s.cnt[b]++;
+      } else {
+        const [a, e] = trimSpan(text, fi.fieldStart[f], fi.fieldEnd[f]);
+        if (e <= a) continue;
+        const v = text.slice(a, e);
+        let idx = s.index.get(v);
+        // 프로파일은 작은 정수를 정규형으로 센다 (007 → 7)
+        if (idx === undefined && v.length < 16 && /^\d+$/.test(v)) idx = s.index.get(String(Number(v)));
+        if (idx === undefined) { if (s.other < 0) continue; idx = s.other; }
+        s.counts[b * s.K + idx]++;
+      }
+    }
+  }
+
+  function result() {
+    return {
+      buckets: B, x0, x1, xCol, rows, outside, noX,
+      series: series.map((s) => {
+        if (s.kind === 'cat') return { col: s.col, kind: 'cat', labels: s.labels, counts: s.counts, other: s.other };
+        const mean = new Float64Array(B);
+        for (let b = 0; b < B; b++) {
+          if (s.cnt[b]) mean[b] = s.sum[b] / s.cnt[b];
+          else { mean[b] = NaN; s.min[b] = NaN; s.max[b] = NaN; }
+        }
+        return { col: s.col, kind: 'num', hex: s.hex, min: s.min, max: s.max, mean, cnt: s.cnt };
+      }),
+    };
+  }
+  return { addRecord, result };
+}
+return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, createSeriesAccumulator };
+})();
+
 // ===== src/worker/engine.js =====
 const M_worker_engine = (() => {
 const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
@@ -2352,7 +2539,9 @@ const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
 const { findMasked } = M_shared_search_bytes;
 const { createXlsxWriter, XLSX_MAX_ROWS } = M_shared_xlsx;
+const { planSeries, xAxisOptions, createSeriesAccumulator } = M_shared_series;
 // 데이터셋 엔진. 워커에서 실행되지만 메인 스레드 폴백으로도 동작한다 (DOM 사용 금지).
+
 
 
 
@@ -2387,6 +2576,7 @@ class Engine {
     this.activeSearch = 0;
     this.activeGroup = 0;
     this.activeExport = 0;
+    this.activeSeries = new Set(); // 그래프 계산은 여럿이 동시에 돈다 (전체 + 크게 보기)
   }
 
   /** 우선 작업 시작/종료. 종료 시 프로파일 재개. */
@@ -2417,6 +2607,7 @@ class Engine {
         case MSG.GROUP_BY: await this.groupBy(msg); break;
         case MSG.LOCATE_MANY: await this.locateMany(msg); break;
         case MSG.EXPORT: await this.exportXlsx(msg); break;
+        case MSG.SERIES: await this.series(msg); break;
         case MSG.CLEAR: this.clear(); this.post({ type: 'cleared', reqId }); break;
         default:
           throw new Error('알 수 없는 메시지: ' + msg.type);
@@ -2773,8 +2964,9 @@ class Engine {
   cancel({ id }) {
     if (!id || this.activeSearch === id) this.activeSearch = 0;
     if (!id || this.activeGroup === id) this.activeGroup = 0;
-    // 내보내기는 자기 id 로만 취소한다 — 검색 지우기(id 0)가 진행 중인 저장을 끊으면 안 된다
+    // 내보내기·그래프 계산은 자기 id 로만 취소한다 — 검색 지우기(id 0)가 끊으면 안 된다
     if (id && this.activeExport === id) this.activeExport = 0;
+    if (id) this.activeSeries.delete(id);
   }
 
   async search({ query }) {
@@ -3078,6 +3270,57 @@ class Engine {
     } finally {
       if (writer && !finished) writer.abort();
       if (this.activeExport === id) this.activeExport = 0;
+      this.endPriority();
+    }
+  }
+
+  // ---------- 시간(X축)에 따른 그래프 ----------
+  /**
+   * xCol: X축 열(-1 = 행 번호), range: [x0, x1] 확대 범위(없으면 전체), buckets: 구간 수,
+   * cols: 그릴 열(없으면 그릴 수 있는 모든 열), filter: 행 필터. 한 번 훑어 구간별로 모은다.
+   */
+  async series({ reqId, id, xCol = -1, range = null, buckets = 400, cols = null, filter = null }) {
+    const ds = this.need();
+    if (!ds.stats) throw new Error('프로파일이 끝난 뒤에 그래프를 그릴 수 있습니다');
+    if (xCol >= 0 && !xAxisOptions(ds.stats, ds.hexLike).some((o) => o.col === xCol)) throw new Error('이 열은 X축으로 쓸 수 없습니다 (16진수가 아닌 숫자 열만)');
+    const plan = planSeries(ds.stats, ds.hexLike, xCol);
+    const draw = plan.filter((p) => p.kind !== 'skip' && (!cols || cols.includes(p.col)));
+    const [x0, x1] = range || (xCol < 0 ? [1, Math.max(1, ds.rowCount)] : [ds.stats[xCol].numMin, ds.stats[xCol].numMax]);
+    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)) });
+    const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
+
+    const gen = this.gen;
+    this.activeSeries.add(id);
+    this.beginPriority();
+    const t0 = Date.now();
+    try {
+      const D = ds.delimiter.charCodeAt(0);
+      const fi = new FieldIndex(1 << 16, 1 << 12);
+      let filteredOut = 0, lastReport = Date.now();
+      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+        if (!this.activeSeries.has(id) || gen !== this.gen) { this.post({ type: MSG.SERIES_RESULT, reqId, id, cancelled: true }); return; }
+        const text = ds.decoder.decode(blk.u8);
+        scanFieldsString(text, D, 34, fi);
+        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+        for (let k = 0; k < nRec; k++) {
+          if (filterFn && !filterFn(text, fi, k)) { filteredOut++; continue; }
+          acc.addRecord(text, fi, k, blk.rowStart + k);
+        }
+        const now = Date.now();
+        if (now - lastReport >= 250) { lastReport = now; this.post({ type: MSG.SERIES_PROGRESS, id, done: blk.rowEnd, total: ds.rowCount }); }
+      }
+      if (!this.activeSeries.has(id) || gen !== this.gen) { this.post({ type: MSG.SERIES_RESULT, reqId, id, cancelled: true }); return; }
+      const r = acc.result();
+      this.post({
+        type: MSG.SERIES_RESULT, reqId, id, cancelled: false,
+        xCol, xName: xCol < 0 ? '행 번호' : ds.header[xCol], x0: r.x0, x1: r.x1, buckets: r.buckets,
+        rows: r.rows, outside: r.outside, noX: r.noX, filteredOut,
+        series: r.series.map((s) => ({ ...s, name: ds.header[s.col], width: ds.padNibbles ? ds.padNibbles[s.col] || 4 : 4 })),
+        skipped: plan.filter((p) => p.kind === 'skip').map(({ col, name, reason }) => ({ col, name, reason })),
+        elapsed: Date.now() - t0,
+      });
+    } finally {
+      this.activeSeries.delete(id);
       this.endPriority();
     }
   }
@@ -3579,14 +3822,14 @@ const MSG = {
   // main → worker
   OPEN: 'open', PROFILE: 'profile', ROWS: 'rows', ROW_DETAIL: 'rowDetail', BYTES: 'bytes',
   LOCATE: 'locate', SEARCH: 'search', GROUP_BY: 'groupBy', COLUMN_DETAIL: 'columnDetail', CANCEL: 'cancel', CLEAR: 'clear',
-  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export',
+  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export', SERIES: 'series',
   // worker → main
   OPENED: 'opened', INDEX_PROGRESS: 'indexProgress', INDEXED: 'indexed', PROFILE_PROGRESS: 'profileProgress', PROFILED: 'profiled',
   ROWS_RESULT: 'rowsResult', ROW_DETAIL_RESULT: 'rowDetailResult', BYTES_RESULT: 'bytesResult', LOCATED: 'located',
   SEARCH_BATCH: 'searchBatch', SEARCH_PROGRESS: 'searchProgress', SEARCH_DONE: 'searchDone', SEARCH_ERROR: 'searchError',
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
-  EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult',
+  EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult', SERIES_PROGRESS: 'seriesProgress', SERIES_RESULT: 'seriesResult',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -4864,6 +5107,144 @@ function createXlsxWriter({ columns, sheetName = 'Sheet1', compress = deflateRaw
 return { XLSX_MAX_ROWS, XLSX_MAX_COLS, XLSX_MAX_CELL_CHARS, SHEETS_MAX_CELLS, XLSX_MIME, numericCell, columnName, sheetNameOf, deflateRawSupported, createXlsxWriter };
 })();
 
+// ===== src/shared/series.js =====
+const M_shared_series = (() => {
+const { trimSpan, parseHexNumber } = M_shared_infer;
+// 시간(X축)에 따른 열 변화 — 어떤 열을 어떻게 그릴지 정하고, X 구간마다 값을 모은다.
+// 워커와 메인 스레드 폴백에서 같은 코드로 돈다 (DOM 사용 금지).
+//   숫자·16진수 열 → 구간별 최소·최대·평균(선 + 범위 띠)
+//   값 종류가 적은 글자 열 → 구간별 값 개수(100% 누적 영역)
+
+
+const MAX_CATS = 5;        // 범주 열에서 따로 그리는 값 수 (나머지는 기타) — 색 구분이 되는 한도
+const CAT_DISTINCT_MAX = 12;      // 이보다 값 종류가 많은 글자 열은 그리지 않는다
+// 시간 열 이름: 앞에 오면 가장 그럴듯하고(Time_Tag), 낱말로 들어 있으면 다음(Response_Time). runtime 처럼 낱말 속 time 은 아니다.
+const TIME_FIRST = /^(time|timestamp|시간|시각)/i;
+const TIME_WORD = /(^|[^a-z])time([^a-z]|$)|timestamp|시간|시각/i;
+
+/**
+ * stats: 프로파일 열 통계 배열, hexLike: Uint8Array, xCol: X축 열(-1 = 행 번호)
+ * → [{ col, name, kind: 'num'|'cat'|'skip', parse?: 'dec'|'hex', cats?, other?, reason? }]
+ */
+function planSeries(stats, hexLike, xCol) {
+  return stats.map((s, col) => {
+    const base = { col, name: s.name };
+    if (col === xCol) return { ...base, kind: 'skip', reason: 'X축으로 쓰는 열' };
+    if (!s.count) return { ...base, kind: 'skip', reason: '값이 없음' };
+    if (hexLike && hexLike[col]) return { ...base, kind: 'num', parse: 'hex' };
+    if ((s.dominant === 'int' || s.dominant === 'float') && s.numCount > 0) return { ...base, kind: 'num', parse: 'dec' };
+    if (s.dominant === 'date') return { ...base, kind: 'skip', reason: '날짜·시각 값 (X축 후보가 아님)' };
+    if (s.distinctExact && s.distinct <= CAT_DISTINCT_MAX && s.top.length) {
+      const cats = s.top.slice(0, MAX_CATS).map(([v]) => v);
+      return { ...base, kind: 'cat', cats, other: s.distinct > cats.length };
+    }
+    return { ...base, kind: 'skip', reason: `값 종류가 많아(${s.distinctExact ? '' : '약 '}${s.distinct.toLocaleString('ko-KR')}개) 비율로 그리지 않음` };
+  });
+}
+
+/** X축으로 고를 수 있는 열: 행 번호 + 16진수가 아닌 숫자 열(범위가 있는 것) */
+function xAxisOptions(stats, hexLike) {
+  const out = [{ col: -1, name: '행 번호' }];
+  stats.forEach((s, col) => {
+    if (hexLike && hexLike[col]) return;
+    if ((s.dominant === 'int' || s.dominant === 'float') && s.numMax > s.numMin) out.push({ col, name: s.name });
+  });
+  return out;
+}
+
+/** 기본 X축: 이름이 시간으로 시작하는 숫자 열 → 이름에 시간이 낱말로 든 열 → 행 번호 */
+function defaultXColumn(stats, hexLike) {
+  const opts = xAxisOptions(stats, hexLike).filter((o) => o.col >= 0);
+  const hit = opts.find((o) => TIME_FIRST.test(o.name.trim())) || opts.find((o) => TIME_WORD.test(o.name));
+  return hit ? hit.col : -1;
+}
+
+// 십진수만 — JS Number 는 0x1F·0b101·0o17·Infinity 도 숫자로 읽어 버리므로 모양을 먼저 확인한다
+const DEC_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+function parseDec(str, s0, e0) {
+  const [s, e] = trimSpan(str, s0, e0);
+  if (e <= s || e - s > 40) return NaN;
+  const t = str.slice(s, e);
+  return DEC_NUMBER.test(t) ? Number(t) : NaN;
+}
+const parseHex = (str, s, e) => parseHexNumber(str, s, e);
+
+/**
+ * plan: planSeries 결과 중 그릴 항목들, xCol: -1 = 행 번호(표처럼 1부터), [x0, x1]: 이 범위만(양 끝 포함), buckets: 구간 수
+ * addRecord(text, fi, k, row) 로 레코드를 넣고 result() 로 꺼낸다.
+ */
+function createSeriesAccumulator({ plan, xCol, x0, x1, buckets }) {
+  const B = Math.max(1, buckets | 0);
+  const span = x1 - x0;
+  const scale = span > 0 ? B / span : 0;
+  const rows = new Uint32Array(B);
+  let outside = 0, noX = 0;
+  const series = plan.map((p) => {
+    if (p.kind === 'cat') {
+      // 키는 프로파일과 같게 — 앞뒤 공백만 자른 원래 글자(따옴표 안 "" 그대로). 보이는 이름만 따옴표를 푼다.
+      const K = p.cats.length + (p.other ? 1 : 0);
+      const labels = [...p.cats.map((v) => v.replace(/""/g, '"')), ...(p.other ? ['기타'] : [])];
+      return { col: p.col, kind: 'cat', index: new Map(p.cats.map((v, i) => [v, i])), other: p.other ? p.cats.length : -1, K, counts: new Uint32Array(B * K), labels };
+    }
+    const min = new Float64Array(B).fill(Infinity), max = new Float64Array(B).fill(-Infinity);
+    return { col: p.col, kind: 'num', parse: p.parse === 'hex' ? parseHex : parseDec, hex: p.parse === 'hex', min, max, sum: new Float64Array(B), cnt: new Uint32Array(B) };
+  });
+
+  function addRecord(text, fi, k, row) {
+    const f0 = fi.recFirst[k], fc = fi.recCount[k];
+    let x;
+    if (xCol < 0) x = row + 1;
+    else {
+      if (xCol >= fc) { noX++; return; }
+      x = parseDec(text, fi.fieldStart[f0 + xCol], fi.fieldEnd[f0 + xCol]);
+      if (!Number.isFinite(x)) { noX++; return; }
+    }
+    if (x < x0 || x > x1) { outside++; return; }
+    const b = scale ? Math.min(B - 1, Math.floor((x - x0) * scale)) : 0;
+    rows[b]++;
+    for (let i = 0; i < series.length; i++) {
+      const s = series[i];
+      if (s.col >= fc) continue;
+      const f = f0 + s.col;
+      if (s.kind === 'num') {
+        const v = s.parse(text, fi.fieldStart[f], fi.fieldEnd[f]);
+        if (!Number.isFinite(v)) continue;
+        if (v < s.min[b]) s.min[b] = v;
+        if (v > s.max[b]) s.max[b] = v;
+        s.sum[b] += v;
+        s.cnt[b]++;
+      } else {
+        const [a, e] = trimSpan(text, fi.fieldStart[f], fi.fieldEnd[f]);
+        if (e <= a) continue;
+        const v = text.slice(a, e);
+        let idx = s.index.get(v);
+        // 프로파일은 작은 정수를 정규형으로 센다 (007 → 7)
+        if (idx === undefined && v.length < 16 && /^\d+$/.test(v)) idx = s.index.get(String(Number(v)));
+        if (idx === undefined) { if (s.other < 0) continue; idx = s.other; }
+        s.counts[b * s.K + idx]++;
+      }
+    }
+  }
+
+  function result() {
+    return {
+      buckets: B, x0, x1, xCol, rows, outside, noX,
+      series: series.map((s) => {
+        if (s.kind === 'cat') return { col: s.col, kind: 'cat', labels: s.labels, counts: s.counts, other: s.other };
+        const mean = new Float64Array(B);
+        for (let b = 0; b < B; b++) {
+          if (s.cnt[b]) mean[b] = s.sum[b] / s.cnt[b];
+          else { mean[b] = NaN; s.min[b] = NaN; s.max[b] = NaN; }
+        }
+        return { col: s.col, kind: 'num', hex: s.hex, min: s.min, max: s.max, mean, cnt: s.cnt };
+      }),
+    };
+  }
+  return { addRecord, result };
+}
+return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, createSeriesAccumulator };
+})();
+
 // ===== src/worker/engine.js =====
 const M_worker_engine = (() => {
 const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
@@ -4879,7 +5260,9 @@ const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
 const { findMasked } = M_shared_search_bytes;
 const { createXlsxWriter, XLSX_MAX_ROWS } = M_shared_xlsx;
+const { planSeries, xAxisOptions, createSeriesAccumulator } = M_shared_series;
 // 데이터셋 엔진. 워커에서 실행되지만 메인 스레드 폴백으로도 동작한다 (DOM 사용 금지).
+
 
 
 
@@ -4914,6 +5297,7 @@ class Engine {
     this.activeSearch = 0;
     this.activeGroup = 0;
     this.activeExport = 0;
+    this.activeSeries = new Set(); // 그래프 계산은 여럿이 동시에 돈다 (전체 + 크게 보기)
   }
 
   /** 우선 작업 시작/종료. 종료 시 프로파일 재개. */
@@ -4944,6 +5328,7 @@ class Engine {
         case MSG.GROUP_BY: await this.groupBy(msg); break;
         case MSG.LOCATE_MANY: await this.locateMany(msg); break;
         case MSG.EXPORT: await this.exportXlsx(msg); break;
+        case MSG.SERIES: await this.series(msg); break;
         case MSG.CLEAR: this.clear(); this.post({ type: 'cleared', reqId }); break;
         default:
           throw new Error('알 수 없는 메시지: ' + msg.type);
@@ -5300,8 +5685,9 @@ class Engine {
   cancel({ id }) {
     if (!id || this.activeSearch === id) this.activeSearch = 0;
     if (!id || this.activeGroup === id) this.activeGroup = 0;
-    // 내보내기는 자기 id 로만 취소한다 — 검색 지우기(id 0)가 진행 중인 저장을 끊으면 안 된다
+    // 내보내기·그래프 계산은 자기 id 로만 취소한다 — 검색 지우기(id 0)가 끊으면 안 된다
     if (id && this.activeExport === id) this.activeExport = 0;
+    if (id) this.activeSeries.delete(id);
   }
 
   async search({ query }) {
@@ -5605,6 +5991,57 @@ class Engine {
     } finally {
       if (writer && !finished) writer.abort();
       if (this.activeExport === id) this.activeExport = 0;
+      this.endPriority();
+    }
+  }
+
+  // ---------- 시간(X축)에 따른 그래프 ----------
+  /**
+   * xCol: X축 열(-1 = 행 번호), range: [x0, x1] 확대 범위(없으면 전체), buckets: 구간 수,
+   * cols: 그릴 열(없으면 그릴 수 있는 모든 열), filter: 행 필터. 한 번 훑어 구간별로 모은다.
+   */
+  async series({ reqId, id, xCol = -1, range = null, buckets = 400, cols = null, filter = null }) {
+    const ds = this.need();
+    if (!ds.stats) throw new Error('프로파일이 끝난 뒤에 그래프를 그릴 수 있습니다');
+    if (xCol >= 0 && !xAxisOptions(ds.stats, ds.hexLike).some((o) => o.col === xCol)) throw new Error('이 열은 X축으로 쓸 수 없습니다 (16진수가 아닌 숫자 열만)');
+    const plan = planSeries(ds.stats, ds.hexLike, xCol);
+    const draw = plan.filter((p) => p.kind !== 'skip' && (!cols || cols.includes(p.col)));
+    const [x0, x1] = range || (xCol < 0 ? [1, Math.max(1, ds.rowCount)] : [ds.stats[xCol].numMin, ds.stats[xCol].numMax]);
+    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)) });
+    const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
+
+    const gen = this.gen;
+    this.activeSeries.add(id);
+    this.beginPriority();
+    const t0 = Date.now();
+    try {
+      const D = ds.delimiter.charCodeAt(0);
+      const fi = new FieldIndex(1 << 16, 1 << 12);
+      let filteredOut = 0, lastReport = Date.now();
+      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+        if (!this.activeSeries.has(id) || gen !== this.gen) { this.post({ type: MSG.SERIES_RESULT, reqId, id, cancelled: true }); return; }
+        const text = ds.decoder.decode(blk.u8);
+        scanFieldsString(text, D, 34, fi);
+        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+        for (let k = 0; k < nRec; k++) {
+          if (filterFn && !filterFn(text, fi, k)) { filteredOut++; continue; }
+          acc.addRecord(text, fi, k, blk.rowStart + k);
+        }
+        const now = Date.now();
+        if (now - lastReport >= 250) { lastReport = now; this.post({ type: MSG.SERIES_PROGRESS, id, done: blk.rowEnd, total: ds.rowCount }); }
+      }
+      if (!this.activeSeries.has(id) || gen !== this.gen) { this.post({ type: MSG.SERIES_RESULT, reqId, id, cancelled: true }); return; }
+      const r = acc.result();
+      this.post({
+        type: MSG.SERIES_RESULT, reqId, id, cancelled: false,
+        xCol, xName: xCol < 0 ? '행 번호' : ds.header[xCol], x0: r.x0, x1: r.x1, buckets: r.buckets,
+        rows: r.rows, outside: r.outside, noX: r.noX, filteredOut,
+        series: r.series.map((s) => ({ ...s, name: ds.header[s.col], width: ds.padNibbles ? ds.padNibbles[s.col] || 4 : 4 })),
+        skipped: plan.filter((p) => p.kind === 'skip').map(({ col, name, reason }) => ({ col, name, reason })),
+        elapsed: Date.now() - t0,
+      });
+    } finally {
+      this.activeSeries.delete(id);
       this.endPriority();
     }
   }
@@ -6155,6 +6592,8 @@ const { encodingLabel, delimLabel } = M_main_i18n;
 
 
 
+const PASTE_DIRECT_CHARS = 500000; // 이보다 큰 붙여넣기는 입력란을 거치지 않는다 (약 0.5MB)
+
 function createInputPanel({ container, onOpen, onReopen }) {
   let current = null; // 열려 있는 Blob
   const fileInput = h('input', { type: 'file', class: 'is-hidden', accept: '.csv,.tsv,.txt,text/csv,text/plain' });
@@ -6177,13 +6616,27 @@ function createInputPanel({ container, onOpen, onReopen }) {
 
   const ta = h('textarea', { class: 'textarea', rows: 5, placeholder: 'CSV 내용을 여기에 붙여넣기', spellcheck: 'false', autocomplete: 'off', autocapitalize: 'off' });
   const pasteBtn = h('button', { class: 'btn btn--primary btn--sm', type: 'button', text: '붙여넣은 내용 불러오기' });
+  const pasteNote = h('div', { class: 'faint paste-note' });
+  function openPasted(t) {
+    const blob = new Blob([t], { type: 'text/csv' });
+    blob.name = '(붙여넣은 내용)';
+    openBlob(blob);
+  }
   pasteBtn.addEventListener('click', () => {
     const t = ta.value;
     if (!t.trim()) return;
     ta.value = ''; // 원본 문자열을 즉시 놓는다
-    const blob = new Blob([t], { type: 'text/csv' });
-    blob.name = '(붙여넣은 내용)';
-    openBlob(blob);
+    pasteNote.textContent = '';
+    openPasted(t);
+  });
+  // 큰 내용은 입력란에 넣지 않고 바로 연다. 수십 MB 를 입력란에 넣으면 브라우저가 글자 배치를 계산하느라
+  // 몇 분씩 멈춰 「페이지 응답 없음」이 뜬다 (30MB 에서 3분 넘게 멈춤을 확인). 작은 내용은 평소처럼 입력란에서 고칠 수 있게.
+  ta.addEventListener('paste', (e) => {
+    const t = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+    if (t.length < PASTE_DIRECT_CHARS || !t.trim()) return;
+    e.preventDefault();
+    pasteNote.textContent = `붙여넣은 내용(${fmtBytes(t.length)})이 커서 입력란에 넣지 않고 바로 불러왔습니다.`;
+    openPasted(t);
   });
 
   const encSel = select([['auto', '자동 감지'], ['utf-8', 'UTF-8'], ['euc-kr', 'EUC-KR (CP949)'], ['utf-16le', 'UTF-16 LE'], ['utf-16be', 'UTF-16 BE'], ['windows-1252', 'Windows-1252']], 'auto');
@@ -6198,7 +6651,7 @@ function createInputPanel({ container, onOpen, onReopen }) {
   container.appendChild(h('div', { class: 'panel-title', text: '입력' }));
   container.appendChild(drop);
   container.appendChild(fileInput);
-  container.appendChild(h('div', { class: 'field', style: { marginTop: '8px' } }, ta, h('div', { class: 'row' }, pasteBtn)));
+  container.appendChild(h('div', { class: 'field', style: { marginTop: '8px' } }, ta, h('div', { class: 'row' }, pasteBtn), pasteNote));
   container.appendChild(h('div', { class: 'panel-title', text: '옵션' }));
   container.appendChild(h('div', { class: 'field' }, h('label', { text: '인코딩' }), encSel));
   container.appendChild(h('div', { class: 'field' }, h('label', { text: '구분자' }), delSel));
@@ -6236,7 +6689,7 @@ function createInputPanel({ container, onOpen, onReopen }) {
       );
       if (info.overflowTotal) summary.append(...dd('초과 필드 행', fmtInt(info.overflowTotal) + '건', 'warn'));
     },
-    clear() { current = null; clear(summary); detected.textContent = ''; },
+    clear() { current = null; clear(summary); detected.textContent = ''; pasteNote.textContent = ''; },
   };
 }
 return { createInputPanel };
@@ -7942,6 +8395,664 @@ function createExportPanel({ button, host, getContext, run, cancel }) {
 return { createExportPanel };
 })();
 
+// ===== src/main/chart-scale.js =====
+const M_main_chart_scale = (() => {
+const { fmtInt } = M_main_format;
+// 그래프 축 계산: 깔끔한 눈금, 16진수 눈금, 눈금·값 글자. DOM 을 쓰지 않는다 (그리기는 ui/graph-view.js).
+
+
+function niceStep(raw) {
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+const clean = (v) => Number(v.toPrecision(12)); // 0.1 + 0.2 같은 부동소수 꼬리 제거
+
+/** [lo, hi] 를 깔끔한 간격으로 넓히고 그 눈금을 돌려준다 (값이 하나면 그 주변으로) */
+function niceScale(lo, hi, count = 5) {
+  if (!(hi > lo)) { const d = Math.abs(lo) || 1; lo -= d / 2; hi += d / 2; }
+  const step = niceStep((hi - lo) / Math.max(1, count));
+  const a = clean(Math.floor(lo / step) * step), b = clean(Math.ceil(hi / step) * step);
+  const ticks = [];
+  for (let v = a, i = 0; v <= b + step / 2 && i < 100; v = clean(a + step * ++i)) ticks.push(v);
+  return { lo: a, hi: b, step, ticks };
+}
+
+/** 16진수 열: 범위는 데이터 그대로, 눈금은 1·2·4·8 × 16^k 간격 */
+function hexScale(lo, hi, count = 4) {
+  if (!(hi > lo)) return { lo: lo - 1, hi: hi + 1, step: 1, ticks: [lo] };
+  const raw = (hi - lo) / Math.max(1, count);
+  let step = 1;
+  while (step < raw) step *= 2;
+  if (step > raw * 1.5 && step > 1) step /= 2; // 너무 성기면 한 단계 촘촘히
+  const ticks = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi && ticks.length < 50; v += step) ticks.push(v);
+  return { lo, hi, step, ticks };
+}
+
+/** 축 눈금 글자: 1만부터 K/M/B 로 줄이고, 소수는 간격의 자릿수만큼 */
+function formatTick(v, { hex = false, step = 1 } = {}) {
+  if (hex) return '0x' + Math.round(v).toString(16).toUpperCase().padStart(4, '0');
+  const a = Math.abs(v);
+  for (const [n, u] of [[1e9, 'B'], [1e6, 'M'], [1e4, 'K']]) {
+    if (a >= n) return (n === 1e4 ? clean(v / 1e3) : clean(v / n)).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + (n === 1e4 ? 'K' : u);
+  }
+  const digits = step >= 1 ? 0 : Math.min(10, Math.ceil(-Math.log10(step) - 1e-9));
+  return clean(v).toLocaleString('ko-KR', { maximumFractionDigits: digits });
+}
+
+/** 툴팁 값: 16진수는 0x 표기와 10진 함께, 없으면 — */
+function formatValue(v, { hex = false, width = 4 } = {}) {
+  if (!Number.isFinite(v)) return '—';
+  if (hex) return `0x${Math.round(v).toString(16).toUpperCase().padStart(width, '0')} (${fmtInt(Math.round(v))})`;
+  return Number.isInteger(v) ? fmtInt(v) : clean(v).toLocaleString('ko-KR', { maximumFractionDigits: 6 });
+}
+
+/** X 값 글자 — 구간 폭(res)보다 한 자리만 더 (19,926.726245 → 폭이 57 이면 19,927) */
+function formatX(v, res) {
+  const digits = res > 0 ? Math.max(0, Math.min(10, Math.ceil(-Math.log10(res)) + 1)) : 2;
+  return clean(v).toLocaleString('ko-KR', { maximumFractionDigits: digits });
+}
+
+/** 범위의 양 끝을 같은 단위로 — 큰 쪽 기준으로 K/M/B 를 정해 둘 다 그 단위로 쓴다 */
+function formatSpan(a, b) {
+  const m = Math.max(Math.abs(a), Math.abs(b));
+  const [n, u] = m >= 1e9 ? [1e9, 'B'] : m >= 1e6 ? [1e6, 'M'] : m >= 1e4 ? [1e3, 'K'] : [1, ''];
+  const f = (v) => (v === 0 ? '0' : clean(v / n).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + u);
+  return [f(a), f(b)];
+}
+
+/** b 번 구간이 덮는 X 범위 [from, to] */
+function bucketRange(b, x0, x1, B) {
+  const w = (x1 - x0) / B;
+  return [clean(x0 + w * b), clean(x0 + w * (b + 1))];
+}
+return { niceScale, hexScale, formatTick, formatValue, formatX, formatSpan, bucketRange };
+})();
+
+// ===== src/main/ui/graph-view.js =====
+const M_main_ui_graph_view = (() => {
+const { h, clear } = M_main_ui_dom;
+const { setupCanvas, cssVar } = M_main_ui_charts;
+const { niceScale, hexScale, formatTick, formatValue, bucketRange, formatX, formatSpan } = M_main_chart_scale;
+const { fmtInt, fmtDuration } = M_main_format;
+const { xAxisOptions, defaultXColumn } = M_shared_series;
+// 「그래프」 탭: 열마다 X축(시간 열 또는 행 번호)에 따른 변화.
+//   전체 — 그릴 수 있는 열을 작은 그래프로 한꺼번에 (작은 다중 그래프, 열마다 축 하나)
+//   크게 — 하나를 고르면 위에 크게: 기준선+툴팁, 끌어서 확대, 두 번 눌러 전체, 표로 보기
+// 숫자·16진수 열은 구간 평균 선(2px) + 최소~최대 띠(옅게), 값 종류가 적은 글자 열은 구간별 값 비율(100% 누적 영역).
+// 계산은 워커(engine.series), 축 계산은 chart-scale.js, 무엇을 그릴지는 shared/series.js.
+// 필터는 이 뷰가 들고 있다가 요청에 실어 보낸다 — 앱의 필터 막대와 두 군데서 따로 읽으면 어긋난다.
+
+
+
+
+
+
+const OVERVIEW_BUCKETS = 400;
+const CARD_PLOT_H = 72;
+const FOCUS_PLOT_H = 220;
+const CAT_COLORS = ['--viz-1', '--viz-2', '--viz-3', '--viz-4', '--viz-5'];
+const KIND_LABEL = { num: '숫자', hex: '16진수', cat: '범주' };
+
+const kindOf = (s) => (s.kind === 'cat' ? 'cat' : s.hex ? 'hex' : 'num');
+function rgba(hex, a) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  return m ? `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})` : hex;
+}
+// 범주 색은 값의 순위(많은 순)를 따라 고정 순서로 — 「기타」 자리는 회색 (이름이 아니라 자리로 판단)
+const catColor = (s, k) => (k === s.other ? cssVar('--fg-faint') : cssVar(CAT_COLORS[k % CAT_COLORS.length]));
+
+/** 구간 값의 표시 범위 — 숫자는 깔끔한 눈금으로 넓히고, 16진수는 16진 눈금, 범주는 0~100% */
+function yScaleOf(s, count) {
+  if (s.kind === 'cat') return { lo: 0, hi: 1, step: 0.5, ticks: [0, 0.5, 1] };
+  let lo = Infinity, hi = -Infinity;
+  for (let b = 0; b < s.min.length; b++) { if (s.min[b] < lo) lo = s.min[b]; if (s.max[b] > hi) hi = s.max[b]; }
+  if (!Number.isFinite(lo)) return null;
+  return s.hex ? hexScale(lo, hi, count) : niceScale(lo, hi, count);
+}
+
+/** 한 열을 plot 사각형 안에 그린다. 숫자: 띠 + 평균 선, 범주: 100% 누적 영역. */
+function drawSeries(ctx, s, plot, yScale) {
+  const { l, t, w, h: hh } = plot;
+  const B = s.kind === 'cat' ? s.counts.length / s.labels.length : s.mean.length;
+  const xs = (b) => l + ((b + 0.5) / B) * w;
+  const ys = (v) => t + hh - ((v - yScale.lo) / (yScale.hi - yScale.lo)) * hh;
+  if (s.kind === 'cat') {
+    const K = s.labels.length;
+    const colW = w / B;
+    const tot = new Float64Array(B);
+    for (let b = 0; b < B; b++) for (let k = 0; k < K; k++) tot[b] += s.counts[b * K + k];
+    const below = (b, k) => { let n = 0; for (let j = 0; j < k; j++) n += s.counts[b * K + j]; return n; };
+    for (let k = 0; k < K; k++) {
+      ctx.fillStyle = catColor(s, k);
+      for (let b = 0; b < B; b++) {
+        const n = s.counts[b * K + k];
+        if (!tot[b] || !n) continue;
+        const lo = below(b, k);
+        const y1 = ys(lo / tot[b]), y2 = ys((lo + n) / tot[b]);
+        ctx.fillRect(l + b * colW, y2, colW + 0.6, y1 - y2);
+      }
+    }
+    // 층 사이를 표면색 선으로 갈라 이웃 색이 붙어 보이지 않게 (테두리가 아니라 간격)
+    ctx.strokeStyle = cssVar('--bg-panel'); ctx.lineWidth = 1.5;
+    for (let k = 1; k < K; k++) {
+      ctx.beginPath();
+      for (let b = 0; b < B; b++) {
+        if (!tot[b]) continue;
+        const y = ys(below(b, k) / tot[b]);
+        ctx.moveTo(l + b * colW, y); ctx.lineTo(l + (b + 1) * colW, y);
+      }
+      ctx.stroke();
+    }
+    return;
+  }
+  const color = cssVar('--viz-1');
+  // 최소~최대 띠: 값이 이어진 구간마다 다각형 하나 (옅은 칠)
+  ctx.fillStyle = rgba(color, 0.16);
+  for (let b = 0; b < B;) {
+    if (!s.cnt[b]) { b++; continue; }
+    let e = b;
+    while (e + 1 < B && s.cnt[e + 1]) e++;
+    ctx.beginPath();
+    ctx.moveTo(l + (b / B) * w, ys(s.max[b]));
+    for (let i = b; i <= e; i++) ctx.lineTo(xs(i), ys(s.max[i]));
+    ctx.lineTo(l + ((e + 1) / B) * w, ys(s.max[e]));
+    ctx.lineTo(l + ((e + 1) / B) * w, ys(s.min[e]));
+    for (let i = e; i >= b; i--) ctx.lineTo(xs(i), ys(s.min[i]));
+    ctx.lineTo(l + (b / B) * w, ys(s.min[b]));
+    ctx.closePath();
+    ctx.fill();
+    b = e + 1;
+  }
+  // 평균 선(2px) — 값이 없는 구간에서 끊고, 홀로 떨어진 구간은 점으로
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (let b = 0; b < B;) {
+    if (!s.cnt[b]) { b++; continue; }
+    let e = b;
+    while (e + 1 < B && s.cnt[e + 1]) e++;
+    if (e === b) { ctx.beginPath(); ctx.arc(xs(b), ys(s.mean[b]), 3, 0, Math.PI * 2); ctx.fill(); }
+    else {
+      ctx.beginPath();
+      ctx.moveTo(xs(b), ys(s.mean[b]));
+      for (let i = b + 1; i <= e; i++) ctx.lineTo(xs(i), ys(s.mean[i]));
+      ctx.stroke();
+    }
+    b = e + 1;
+  }
+}
+
+/** 범례 — 범주는 값마다 칠 견본, 숫자(크게 보기)는 평균 선과 최소~최대 띠 */
+function legendEl(s) {
+  if (s.kind === 'cat') {
+    return h('div', { class: 'legend graph__legend' }, ...s.labels.map((name, k) => {
+      const sw = h('span', { class: 'swatch' });
+      sw.style.background = catColor(s, k);
+      return h('span', { class: 'legend__item' }, sw, h('span', { text: name }));
+    }));
+  }
+  const line = h('span', { class: 'graph__key' });
+  line.style.background = cssVar('--viz-1');
+  const band = h('span', { class: 'graph__key graph__key--band' });
+  band.style.background = rgba(cssVar('--viz-1'), 0.3);
+  return h('div', { class: 'legend graph__legend' }, h('span', { class: 'legend__item' }, line, h('span', { text: '구간 평균' })), h('span', { class: 'legend__item' }, band, h('span', { text: '구간 최소 ~ 최대' })));
+}
+
+function createGraphView({ container, request, cancel, onOpenColumn }) {
+  let ds = null, prof = null, xCol = -1;
+  let filterConds = null, filterKey = '';
+  let overview = null, overviewKey = '', overviewPending = null, overviewError = '';
+  let focusCol = null, focusData = null, zoom = null, tableOpen = false, focusPending = null, lastShown = null;
+  let seq = 0, progressFor = null, hoverB = -1;
+  const minis = new Set();
+
+  const root = h('div', { class: 'graph' });
+  const xSel = h('select', { class: 'select', title: '가로축' });
+  const status = h('span', { class: 'muted graph__status' });
+  const prog = h('div', { class: 'progress is-hidden' }, h('div'));
+  const bar = h('div', { class: 'graph__bar' }, h('label', { class: 'graph__x' }, h('span', { text: 'X축' }), xSel), prog, status);
+  const focusBox = h('div', { class: 'card graph__focus is-hidden' });
+  const grid = h('div', { class: 'graph__grid' });
+  const skippedBox = h('div', { class: 'graph__skipped' });
+  const empty = h('div', { class: 'detail__empty', text: '파일을 열고 프로파일이 끝나면 열마다 시간에 따른 변화를 그립니다.' });
+  root.append(bar, focusBox, grid, skippedBox, empty);
+  container.appendChild(root);
+
+  // X 를 바꿔도 크게 보던 열은 유지한다 (그 열이 X 가 되면 크게 보기에 이유가 나온다)
+  xSel.addEventListener('change', () => { xCol = Number(xSel.value); invalidate(); zoom = null; lastShown = null; renderAll(); ensureOverview(); });
+
+  const visible = () => !container.classList.contains('is-hidden');
+  const keyNow = () => `${xCol}|${filterKey}`;
+  const redrawMinis = () => { for (const m of minis) m.redraw(); };
+
+  /** 크게 보기 상태를 한 곳에서 비운다 (진행 중인 계산도 취소) */
+  function resetFocus(col = null) {
+    if (focusPending) { cancel(focusPending); focusPending = null; }
+    focusCol = col; focusData = null; zoom = null; tableOpen = false; hoverB = -1; lastShown = null;
+  }
+
+  function invalidate() {
+    if (overviewPending) { cancel(overviewPending); overviewPending = null; }
+    if (focusPending) { cancel(focusPending); focusPending = null; }
+    overview = null; overviewKey = ''; focusData = null; overviewError = '';
+  }
+
+  async function ensureOverview() {
+    if (!ds || !prof) return;
+    const key = keyNow();
+    if ((overview && overviewKey === key) || (overviewPending && overviewKey === key)) return;
+    if (overviewPending) cancel(overviewPending);
+    const id = 'g' + (++seq);
+    overviewPending = id; overviewKey = key; progressFor = id; overviewError = '';
+    setBusy(true, '계산 중…');
+    redrawMinis();
+    try {
+      const r = await request({ id, xCol, buckets: OVERVIEW_BUCKETS, filter: filterConds });
+      if (overviewPending !== id) return;
+      overviewPending = null;
+      if (r.cancelled) { overviewKey = ''; setBusy(false, ''); redrawMinis(); return; }
+      overview = r;
+      setBusy(false);
+      renderAll();
+      if (focusCol != null) refineFocus();
+    } catch (e) {
+      if (overviewPending !== id) return;
+      overviewPending = null; overviewKey = ''; overviewError = '그래프 계산 실패: ' + e.message;
+      setBusy(false, overviewError);
+      redrawMinis();
+    }
+  }
+
+  async function refineFocus() {
+    if (focusCol == null || !overview) return;
+    if (!overview.series.some((x) => x.col === focusCol)) { renderFocus(); return; }
+    if (focusPending) cancel(focusPending);
+    const id = 'g' + (++seq);
+    focusPending = id; progressFor = id;
+    focusBox.dataset.ready = 'false'; // 화면 폭에 맞춘 데이터로 다시 그리기 전 (e2e 가 이걸 기다린다)
+    const width = Math.max(200, Math.min(2000, Math.round(focusBox.clientWidth || 800)));
+    try {
+      const r = await request({ id, xCol, buckets: width, cols: [focusCol], range: zoom, filter: filterConds });
+      if (focusPending !== id) return;
+      focusPending = null;
+      if (!r.cancelled && r.series.length) focusData = r;
+      renderFocus();
+    } catch (e) {
+      if (focusPending !== id) return;
+      focusPending = null;
+      status.textContent = '확대 계산 실패: ' + e.message;
+      renderFocus();
+    }
+  }
+
+  function setBusy(on, text) {
+    prog.classList.toggle('is-hidden', !on);
+    if (on) prog.firstChild.style.width = '0%';
+    if (text != null) status.textContent = text;
+    // 다시 계산하는 동안 이전 그림을 흐리게 유지한다 (빈 화면으로 깜빡이지 않게)
+    root.classList.toggle('is-refreshing', !!on);
+  }
+
+  function summaryText(r) {
+    const n = r.rows.reduce((a, b) => a + b, 0);
+    const parts = [`${fmtInt(n)}행`, `${fmtInt(r.series.length)}개 열`, `X: ${r.xName}`];
+    if (r.filteredOut) parts.push(`필터로 ${fmtInt(r.filteredOut)}행 제외`);
+    if (r.noX) parts.push(`X 값 없는 ${fmtInt(r.noX)}행 제외`);
+    if (r.outside) parts.push(`X 범위 밖 ${fmtInt(r.outside)}행 제외`);
+    parts.push(fmtDuration(r.elapsed));
+    return parts.join(' · ');
+  }
+
+  // ---------- 작은 그래프 묶음 ----------
+  function renderAll() {
+    empty.classList.toggle('is-hidden', !!overview || !!overviewPending);
+    if (!overview) { if (!overviewPending) { clear(grid); clear(skippedBox); } renderFocus(); return; }
+    clear(grid); clear(skippedBox);
+    status.textContent = summaryText(overview);
+    for (const s of overview.series) grid.appendChild(cardEl(s));
+    if (overview.skipped.length) {
+      skippedBox.append(h('div', { class: 'panel-title', text: '그래프로 그리지 않은 열' }),
+        h('div', { class: 'chips' }, ...overview.skipped.map((k) => h('span', { class: 'chip graph__skip', title: k.reason, text: `${k.name} — ${k.reason}` }))));
+    }
+    drawCards();
+    renderFocus();
+    redrawMinis();
+  }
+
+  function cardEl(s) {
+    const canvas = h('canvas', { class: 'graph__canvas', role: 'img', 'aria-label': `${s.name} — ${overview.xName}에 따른 변화` });
+    const card = h('div', { class: 'card is-clickable graph__card' + (s.col === focusCol ? ' is-active' : ''), dataset: { col: String(s.col) }, tabindex: '0', role: 'button', 'aria-label': `${s.name} 크게 보기` },
+      h('div', { class: 'card__title' }, h('span', { class: 'name', text: s.name }), h('span', { class: 'badge' + (s.hex ? ' badge--hex' : ''), text: KIND_LABEL[kindOf(s)] })),
+      canvas,
+      h('div', { class: 'graph__xr faint' }, ...formatSpan(overview.x0, overview.x1).map((t) => h('span', { text: t }))));
+    if (s.kind === 'cat') card.appendChild(legendEl(s));
+    card.addEventListener('click', () => focus(s.col));
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focus(s.col); } });
+    return card;
+  }
+
+  function drawCard(canvas, s) {
+    const w = canvas.clientWidth || 260;
+    const ctx = setupCanvas(canvas, w, CARD_PLOT_H);
+    const ys = yScaleOf(s, 2);
+    if (!ys) return;
+    const plot = { l: 0, t: 13, w, h: CARD_PLOT_H - 26 };
+    ctx.strokeStyle = cssVar('--viz-grid'); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, plot.t + plot.h + 0.5); ctx.lineTo(w, plot.t + plot.h + 0.5); ctx.stroke();
+    drawSeries(ctx, s, plot, ys);
+    if (s.kind !== 'cat') {
+      // 위·아래 눈금 값 (글자는 데이터 색이 아니라 글자색) — 그래프와 겹치지 않게 위아래 여백에
+      ctx.fillStyle = cssVar('--fg-muted'); ctx.font = `10px ${cssVar('--sans')}`;
+      ctx.textBaseline = 'top'; ctx.fillText(formatTick(ys.hi, { hex: s.hex, step: ys.step }), 0, 0);
+      ctx.textBaseline = 'bottom'; ctx.fillText(formatTick(ys.lo, { hex: s.hex, step: ys.step }), 0, CARD_PLOT_H);
+    }
+  }
+  function drawCards() {
+    if (!overview) return;
+    for (const card of grid.children) {
+      const s = overview.series.find((x) => x.col === Number(card.dataset.col));
+      if (s) drawCard(card.querySelector('canvas'), s);
+    }
+  }
+
+  // ---------- 크게 보기 ----------
+  /** 지금 그릴 데이터: 화면 폭에 맞춘 데이터 → (확대 전이면) 전체 그래프 데이터 → 계산 중이면 직전 그림(흐리게) */
+  function focusSeries() {
+    if (focusData && focusData.series[0] && focusData.series[0].col === focusCol) return { r: focusData, s: focusData.series[0], stale: false };
+    if (overview && !zoom) {
+      const s = overview.series.find((x) => x.col === focusCol);
+      if (s) return { r: overview, s, stale: false };
+    }
+    if (lastShown && lastShown.s.col === focusCol) return { ...lastShown, stale: true };
+    return null;
+  }
+
+  function renderFocus() {
+    clear(focusBox);
+    focusBox.dataset.ready = focusPending ? 'false' : 'true';
+    focusBox.classList.toggle('is-hidden', focusCol == null);
+    for (const c of grid.children) c.classList.toggle('is-active', Number(c.dataset.col) === focusCol);
+    if (focusCol == null) return;
+    const name = ds ? ds.header[focusCol] : '';
+    const btnClose = h('button', { class: 'btn btn--sm', type: 'button', text: '닫기' });
+    btnClose.addEventListener('click', () => { resetFocus(); renderFocus(); });
+    // 그릴 수 없는 열 (예: X 로 바꾼 열, 값 종류가 많은 글자 열) — 끝없는 「계산 중」 대신 이유를
+    const skip = overview && !overview.series.some((x) => x.col === focusCol) ? overview.skipped.find((x) => x.col === focusCol) : null;
+    if (overview && !overview.series.some((x) => x.col === focusCol)) {
+      focusBox.append(h('div', { class: 'graph__fhead' }, h('div', { class: 'graph__ftitle' }, h('h2', { class: 'mono', text: name })), h('div', { class: 'row' }, btnClose)),
+        h('div', { class: 'detail__empty', text: `그래프로 그리지 않은 열 — ${skip ? skip.reason : '그릴 값이 없음'}` }));
+      return;
+    }
+    const fs = focusSeries();
+    const titleBox = h('div', { class: 'graph__ftitle' }, h('h2', { class: 'mono', text: name }));
+    if (fs) {
+      const res = (fs.r.x1 - fs.r.x0) / 1000;
+      titleBox.append(h('span', { class: 'badge' + (fs.s.hex ? ' badge--hex' : ''), text: KIND_LABEL[kindOf(fs.s)] }),
+        h('span', { class: 'muted graph__frange', text: `${fs.r.xName} ${formatX(fs.r.x0, res)} ~ ${formatX(fs.r.x1, res)}${zoom ? ' (확대)' : ''}${fs.stale ? ' · 계산 중…' : ''}` }));
+    }
+    const btnReset = h('button', { class: 'btn btn--sm', type: 'button', text: '전체 범위', disabled: !zoom, title: '확대 전으로 (그래프를 두 번 눌러도 됩니다)' });
+    btnReset.addEventListener('click', resetZoom);
+    const btnTable = h('button', { class: 'btn btn--sm' + (tableOpen ? ' is-active' : ''), type: 'button', text: tableOpen ? '표 닫기' : '표로 보기', disabled: !fs });
+    btnTable.addEventListener('click', () => { tableOpen = !tableOpen; renderFocus(); });
+    focusBox.appendChild(h('div', { class: 'graph__fhead' }, titleBox, h('div', { class: 'row' }, btnReset, btnTable, btnClose)));
+    if (!fs) { focusBox.appendChild(h('div', { class: 'detail__empty', text: overviewError || '계산 중…' })); return; }
+    if (!fs.stale) lastShown = { r: fs.r, s: fs.s };
+
+    const canvas = h('canvas', { class: 'graph__fcanvas', tabindex: '0', role: 'img', 'aria-label': `${name} — ${fs.r.xName}에 따른 변화. 끌어서 확대, 두 번 눌러 전체 범위, ← → 로 구간 이동` });
+    const cross = h('div', { class: 'graph__cross is-hidden' });
+    const sel = h('div', { class: 'graph__sel is-hidden' });
+    const tip = h('div', { class: 'graph__tip is-hidden', role: 'status' });
+    focusBox.appendChild(h('div', { class: 'graph__fwrap' + (fs.stale ? ' is-stale' : '') }, canvas, cross, sel, tip));
+    focusBox.appendChild(legendEl(fs.s));
+    focusBox.appendChild(h('div', { class: 'faint graph__hint', text: '끌어서 확대 · 두 번 눌러 전체 범위 · 그래프를 누른 뒤 ← → 로 구간 이동' }));
+    if (tableOpen) focusBox.appendChild(tableEl(fs.r, fs.s));
+    requestAnimationFrame(() => { if (canvas.isConnected) drawFocus(canvas, fs, { cross, sel, tip }); });
+  }
+
+  function drawFocus(canvas, fs, ui) {
+    const { r, s } = fs;
+    const W = canvas.clientWidth || 800;
+    const ctx = setupCanvas(canvas, W, FOCUS_PLOT_H + 26);
+    const ys = yScaleOf(s, 4);
+    if (!ys) return;
+    ctx.font = `11px ${cssVar('--sans')}`;
+    const tickText = (v) => (s.kind === 'cat' ? `${Math.round(v * 100)}%` : formatTick(v, { hex: s.hex, step: ys.step }));
+    const gut = Math.ceil(Math.max(...ys.ticks.map((v) => ctx.measureText(tickText(v)).width))) + 10;
+    const plot = { l: gut, t: 8, w: W - gut - 4, h: FOCUS_PLOT_H - 8 };
+    // 가로 격자(실선 머리카락, 뒤로 물러난 색)와 Y 눈금
+    ctx.strokeStyle = cssVar('--viz-grid'); ctx.lineWidth = 1;
+    ctx.fillStyle = cssVar('--fg-muted'); ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+    for (const v of ys.ticks) {
+      const y = Math.round(plot.t + plot.h - ((v - ys.lo) / (ys.hi - ys.lo)) * plot.h) + 0.5;
+      ctx.beginPath(); ctx.moveTo(plot.l, y); ctx.lineTo(plot.l + plot.w, y); ctx.stroke();
+      ctx.fillText(tickText(v), plot.l - 6, y);
+    }
+    drawSeries(ctx, s, plot, ys);
+    // X 축 — 범위는 데이터 그대로, 눈금만 깔끔하게
+    const xsc = niceScale(r.x0, r.x1, Math.max(2, Math.floor(plot.w / 110)));
+    ctx.strokeStyle = cssVar('--viz-axis');
+    ctx.beginPath(); ctx.moveTo(plot.l, plot.t + plot.h + 0.5); ctx.lineTo(plot.l + plot.w, plot.t + plot.h + 0.5); ctx.stroke();
+    ctx.fillStyle = cssVar('--fg-muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const v of xsc.ticks) {
+      if (v < r.x0 || v > r.x1) continue;
+      const x = plot.l + ((v - r.x0) / (r.x1 - r.x0 || 1)) * plot.w;
+      ctx.fillText(formatTick(v, { step: xsc.step }), Math.min(Math.max(x, plot.l + 18), plot.l + plot.w - 18), plot.t + plot.h + 6);
+    }
+    if (!fs.stale) wireFocus(canvas, fs, plot, ui); // 계산 중인 흐린 그림은 조작하지 않는다
+  }
+
+  function wireFocus(canvas, fs, plot, { cross, sel, tip }) {
+    const { r, s } = fs;
+    const B = r.buckets;
+    const pxToB = (px) => Math.max(0, Math.min(B - 1, Math.floor(((px - plot.l) / plot.w) * B)));
+    const show = (b) => {
+      hoverB = b;
+      const cx = plot.l + ((b + 0.5) / B) * plot.w;
+      cross.style.left = `${Math.round(cx)}px`; cross.style.top = `${plot.t}px`; cross.style.height = `${plot.h}px`;
+      cross.classList.remove('is-hidden');
+      fillTip(tip, r, s, b);
+      tip.classList.remove('is-hidden');
+      const tw = tip.offsetWidth;
+      tip.style.left = `${Math.round(cx + 12 + tw > plot.l + plot.w ? Math.max(0, cx - 12 - tw) : cx + 12)}px`;
+      tip.style.top = `${plot.t + 4}px`;
+    };
+    const hide = () => { cross.classList.add('is-hidden'); tip.classList.add('is-hidden'); };
+    let dragFrom = null;
+    const endDrag = () => { dragFrom = null; sel.classList.add('is-hidden'); };
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return; // 왼쪽 버튼으로만 확대
+      if (e.offsetX < plot.l || e.offsetX > plot.l + plot.w) return;
+      dragFrom = e.offsetX;
+      if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      const x = Math.max(plot.l, Math.min(plot.l + plot.w, e.offsetX));
+      if (dragFrom != null && Math.abs(x - dragFrom) > 3) {
+        sel.classList.remove('is-hidden');
+        sel.style.left = `${Math.min(x, dragFrom)}px`; sel.style.width = `${Math.abs(x - dragFrom)}px`;
+        sel.style.top = `${plot.t}px`; sel.style.height = `${plot.h}px`;
+      }
+      show(pxToB(x));
+    });
+    canvas.addEventListener('pointerleave', () => { if (dragFrom == null) hide(); });
+    canvas.addEventListener('pointercancel', endDrag);
+    canvas.addEventListener('lostpointercapture', () => { if (dragFrom != null) endDrag(); });
+    canvas.addEventListener('pointerup', (e) => {
+      if (dragFrom == null) return;
+      const a = Math.min(dragFrom, e.offsetX), b = Math.max(dragFrom, e.offsetX);
+      endDrag();
+      if (b - a < 6) return;
+      const toX = (px) => r.x0 + ((Math.max(plot.l, Math.min(plot.l + plot.w, px)) - plot.l) / plot.w) * (r.x1 - r.x0);
+      zoom = [toX(a), toX(b)];
+      focusData = null;
+      renderFocus();
+      refineFocus();
+    });
+    canvas.addEventListener('dblclick', resetZoom);
+    canvas.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        show(Math.max(0, Math.min(B - 1, hoverB < 0 ? 0 : hoverB + (e.key === 'ArrowRight' ? 1 : -1))));
+      } else if (e.key === 'Escape') hide();
+    });
+    canvas.addEventListener('blur', hide);
+  }
+
+  /** 툴팁 — 값이 먼저(굵게), 이름은 뒤. 글자는 textContent 로만 (열 이름·값은 파일에서 온 글자) */
+  function fillTip(tip, r, s, b) {
+    clear(tip);
+    const [from, to] = bucketRange(b, r.x0, r.x1, r.buckets);
+    const res = (r.x1 - r.x0) / r.buckets;
+    tip.appendChild(h('div', { class: 'graph__tiphead', text: `${r.xName} ${formatX(from, res)} ~ ${formatX(to, res)}` }));
+    const rowEl = (key, label, value) => h('div', { class: 'graph__tiprow' }, key, h('strong', { text: value }), h('span', { class: 'muted', text: label }));
+    if (s.kind === 'cat') {
+      const K = s.labels.length;
+      let tot = 0;
+      for (let k = 0; k < K; k++) tot += s.counts[b * K + k];
+      if (!tot) { tip.appendChild(h('div', { class: 'muted', text: '이 구간에 값 없음' })); return; }
+      for (let k = 0; k < K; k++) {
+        const key = h('span', { class: 'graph__key' });
+        key.style.background = catColor(s, k);
+        const n = s.counts[b * K + k];
+        tip.appendChild(rowEl(key, s.labels[k], `${((n / tot) * 100).toFixed(1)}% · ${fmtInt(n)}`));
+      }
+      return;
+    }
+    if (!s.cnt[b]) { tip.appendChild(h('div', { class: 'muted', text: '이 구간에 값 없음' })); return; }
+    const line = h('span', { class: 'graph__key' });
+    line.style.background = cssVar('--viz-1');
+    const band = h('span', { class: 'graph__key graph__key--band' });
+    band.style.background = rgba(cssVar('--viz-1'), 0.3);
+    const fmt = (v) => formatValue(v, { hex: s.hex, width: s.width });
+    tip.append(rowEl(line, '평균', fmt(s.mean[b])), rowEl(band, '최소 ~ 최대', `${fmt(s.min[b])} ~ ${fmt(s.max[b])}`),
+      h('div', { class: 'muted graph__tipfoot', text: `값 ${fmtInt(s.cnt[b])}개` }));
+  }
+
+  /** 표로 보기 — 툴팁 없이도 모든 구간 값을 읽을 수 있게 (값이 없는 구간은 뺀다) */
+  function tableEl(r, s) {
+    const head = s.kind === 'cat' ? ['구간', '행 수', ...s.labels] : ['구간', '값 개수', '최소', '평균', '최대'];
+    const body = h('tbody');
+    const fmt = (v) => formatValue(v, { hex: s.hex, width: s.width });
+    const res = (r.x1 - r.x0) / r.buckets;
+    for (let b = 0; b < r.buckets; b++) {
+      const [from, to] = bucketRange(b, r.x0, r.x1, r.buckets);
+      const range = `${formatX(from, res)} ~ ${formatX(to, res)}`;
+      let cells;
+      if (s.kind === 'cat') {
+        const K = s.labels.length;
+        const counts = Array.from({ length: K }, (_, k) => s.counts[b * K + k]);
+        if (!counts.some(Boolean)) continue;
+        cells = [range, fmtInt(counts.reduce((a, c) => a + c, 0)), ...counts.map(fmtInt)];
+      } else {
+        if (!s.cnt[b]) continue;
+        cells = [range, fmtInt(s.cnt[b]), fmt(s.min[b]), fmt(s.mean[b]), fmt(s.max[b])];
+      }
+      body.appendChild(h('tr', {}, ...cells.map((c) => h('td', { text: c }))));
+    }
+    return h('div', { class: 'graph__tablewrap' }, h('table', { class: 'kv graph__table' }, h('thead', {}, h('tr', {}, ...head.map((x) => h('th', { text: x })))), body));
+  }
+
+  function resetZoom() {
+    if (!zoom) return;
+    zoom = null; focusData = null;
+    renderFocus();
+    refineFocus();
+  }
+
+  function focus(col) {
+    if (focusCol === col && (focusData || focusPending)) { focusBox.scrollIntoView?.({ block: 'nearest' }); return; } // 이미 크게 보는 열
+    if (focusCol !== col) resetFocus(col);
+    renderFocus();
+    focusBox.scrollIntoView?.({ block: 'nearest' });
+    if (overview) refineFocus(); else ensureOverview();
+  }
+
+  // 화면 크기·테마가 바뀌면 다시 그린다
+  let raf = 0;
+  const redraw = () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; if (visible() && overview) { drawCards(); renderFocus(); } redrawMinis(); });
+  };
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(redraw).observe(root);
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+
+  return {
+    /** 프로파일이 끝나면: X축 후보·기본(시간 열, 없으면 행 번호)과 지금의 필터로 시작한다 */
+    setDataset(dataset, profile, conds) {
+      ds = dataset; prof = profile;
+      filterConds = conds && conds.length ? conds : null;
+      filterKey = filterConds ? JSON.stringify(filterConds) : '';
+      xCol = defaultXColumn(profile.stats, profile.hexLike);
+      clear(xSel);
+      for (const o of xAxisOptions(profile.stats, profile.hexLike)) xSel.appendChild(h('option', { value: String(o.col), text: o.name }));
+      xSel.value = String(xCol);
+      invalidate();
+      resetFocus();
+      status.textContent = '';
+      renderAll();
+      if (visible()) ensureOverview();
+    },
+    show() { if (overview) redraw(); else ensureOverview(); },
+    focus,
+    /** 필터가 바뀌면 그래프도 그 행들로 다시 */
+    setFilter(conds) {
+      const next = conds && conds.length ? conds : null;
+      const k = next ? JSON.stringify(next) : '';
+      if (k === filterKey) return;
+      filterConds = next; filterKey = k;
+      invalidate();
+      zoom = null; lastShown = null;
+      if (!ds) return;
+      renderAll();
+      if (visible() || [...minis].some((m) => m.isConnected)) ensureOverview();
+    },
+    setProgress(msg) {
+      if (msg.id !== progressFor) return;
+      const pct = Math.round((msg.done / Math.max(1, msg.total)) * 100);
+      prog.firstChild.style.width = `${pct}%`;
+      status.textContent = `계산 중 ${pct}%`;
+    },
+    /** 열 상세 패널에 넣을 작은 그래프 + 「그래프 탭에서 크게 보기」 (패널은 한 번에 하나라 떨어진 것은 버린다) */
+    miniFor(col) {
+      for (const m of minis) if (!m.isConnected) minis.delete(m);
+      const canvas = h('canvas', { class: 'graph__canvas', role: 'img' });
+      const note = h('div', { class: 'faint graph__mininote' });
+      const btn = h('button', { class: 'btn btn--sm btn--accent', type: 'button', text: '그래프 탭에서 크게 보기' });
+      btn.addEventListener('click', () => onOpenColumn(col));
+      const titleEl = h('h3', { text: '시간에 따른 변화' });
+      const el = h('div', { class: 'graph-mini' }, titleEl, canvas, note, h('div', { class: 'row' }, btn));
+      el.redraw = () => {
+        if (!el.isConnected && !minis.has(el)) return;
+        const s = overview && overview.series.find((x) => x.col === col);
+        // 그릴 데이터가 있을 때만 그래프와 「크게 보기」 — 없으면 이유(계산 중·실패·그리지 않는 열)를
+        canvas.classList.toggle('is-hidden', !s);
+        btn.classList.toggle('is-hidden', !s);
+        if (!overview) { note.textContent = overviewPending ? '그래프 계산 중…' : overviewError; return; }
+        titleEl.textContent = `${overview.xName}에 따른 변화`;
+        const skip = overview.skipped.find((x) => x.col === col);
+        canvas.setAttribute('aria-label', `${ds ? ds.header[col] : ''} — ${overview.xName}에 따른 변화`);
+        note.textContent = s ? '' : `그래프로 그리지 않음 — ${skip ? skip.reason : '그릴 값이 없음'}`;
+        if (s) requestAnimationFrame(() => { if (canvas.isConnected) drawCard(canvas, s); });
+      };
+      minis.add(el);
+      if (!overview) ensureOverview();
+      el.redraw();
+      return el;
+    },
+    clear() {
+      // 필터는 비우지 않는다 — 필터 막대는 파일을 다시 열어도 조건을 그대로 두므로 그쪽과 같게 (다음 setDataset 이 다시 맞춘다)
+      invalidate();
+      resetFocus();
+      ds = null; prof = null;
+      clear(xSel); setBusy(false, '');
+      minis.clear();
+      renderAll();
+    },
+  };
+}
+return { createGraphView };
+})();
+
 // ===== src/main/app.js =====
 const M_main_app = (() => {
 const { createWorkerClient } = M_main_worker_client;
@@ -7966,7 +9077,9 @@ const { MSG } = M_shared_protocol;
 const { installLeaveGuard } = M_main_leave_guard;
 const { createExportPanel } = M_main_ui_export_panel;
 const { buildGroupXlsx } = M_main_export_plan;
+const { createGraphView } = M_main_ui_graph_view;
 // 메인 엔트리: 워커 클라이언트, 뷰, 입력 패널, 검색을 배선한다.
+
 
 
 
@@ -8024,7 +9137,7 @@ const profileView = createProfileView({
 });
 const detailPanel = $('#detail-panel');
 const searchBar = createSearchBar({ container: $('#search-bar'), onSearch: runSearch, onClear: clearSearch });
-const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); exportPanel.refresh(); } });
+const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); exportPanel.refresh(); graphView.setFilter(filterBar.getConditions()); } });
 searchBar.setFilterGetter(() => { const c = filterBar.getConditions(); return c.length ? c : null; });
 function updateFilterBadge() {
   const n = filterBar.count;
@@ -8058,6 +9171,13 @@ const hexView = createHexView({
   onGotoCell: (row, col) => { gotoRow(row, col); selectCell(row, col); },
 });
 const engineMode = $('#engine-mode');
+const graphView = createGraphView({
+  container: $('#view-graph'),
+  // 필터는 그래프 뷰가 들고 있다가 실어 보낸다 (setDataset·setFilter 로 필터 막대와 맞춘다)
+  request: (payload) => client.request(MSG.SERIES, payload),
+  cancel: (id) => { if (client) client.send(MSG.CANCEL, { id }); },
+  onOpenColumn: (col) => { showTab('graph'); graphView.focus(col); },
+});
 const exportPanel = createExportPanel({
   button: $('#btn-export'), host: $('#export-panel'),
   getContext: () => {
@@ -8107,6 +9227,7 @@ function showTab(name) {
   for (const v of views) v.classList.toggle('is-hidden', v.dataset.view !== name);
   if (name === 'table') table.refresh();
   if (name === 'hex') hexView.refresh();
+  if (name === 'graph') graphView.show();
 }
 for (const tab of tabs) tab.addEventListener('click', () => showTab(tab.dataset.tab));
 
@@ -8144,7 +9265,9 @@ function showColumnDetail(col) {
   const prof = store.get().profile;
   if (!prof || !prof.stats[col]) { statusBar.setMessage('프로파일이 아직 계산 중입니다.'); return; }
   profileView.setActive(col);
-  showDetail(renderColumnDetail(prof.stats[col], store.get().ds, { onValueClick: (c, v) => actions.searchValue(c, v), onRowClick: (r) => gotoRow(r, col) }));
+  const el = renderColumnDetail(prof.stats[col], store.get().ds, { onValueClick: (c, v) => actions.searchValue(c, v), onRowClick: (r) => gotoRow(r, col) });
+  el.insertBefore(graphView.miniFor(col), el.children[2] || null); // 머리·타입 막대 다음에 시간 그래프
+  showDetail(el);
 }
 function onHeaderClick(col) {
   searchBar.setScopeColumn(col);
@@ -8192,6 +9315,7 @@ function teardown() {
   selected = null; lastDetail = null; activeQuery = null;
   lastGroup = null; activeExport = null;
   exportPanel.reset();
+  graphView.clear();
   table.clear();
   profileView.clear();
   results.clear();
@@ -8254,6 +9378,10 @@ function onEvent(msg) {
       if (lastDetail && selected) renderDetail();
       statusBar.setMessage('프로파일 완료');
       exportPanel.setReady(true);
+      if (ds) graphView.setDataset(ds, msg, filterBar.getConditions());
+      break;
+    case MSG.SERIES_PROGRESS:
+      graphView.setProgress(msg);
       break;
     case MSG.SEARCH_BATCH:
       if (!activeQuery || msg.id !== activeQuery.id || !ds) break;
