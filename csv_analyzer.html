@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T07:39:23.448Z
+  built: 2026-10-24T10:01:46.220Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -22,6 +22,7 @@
     src/shared/groupby.js
     src/shared/search-bytes.js
     src/shared/xlsx.js
+    src/shared/xlsx-read.js
     src/shared/series.js
     src/worker/engine.js
     src/worker/worker.js
@@ -52,12 +53,13 @@
     src/main/export-plan.js
     src/main/ui/export-panel.js
     src/main/chart-scale.js
+    src/main/period-format.js
     src/main/ui/graph-view.js
     src/main/view-cols.js
     src/main/ui/column-picker.js
     src/main/app.js
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-vBsabYYc+Twup7tizNYsMwQoY5vVX0KATrVA+ufcqt8='; style-src 'sha256-lvYihZF78PTAo5z9uzXkzvI+BHbRmxX+iBYU/+6GRjY='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7WGZGItxteHvQgAyiH9QbEolFqMHnxB4h90zWmKqqAU='; style-src 'sha256-h/F7E5GKxcneCvjAeiurb19MnQHAo8KE2XjXuKprbz0='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -588,6 +590,15 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
 .graph__skip:hover { background: var(--bg-elev); }
 .graph-mini .graph__canvas { margin: 4px 0 6px; }
 .graph__mininote { font-size: 12px; margin-bottom: 6px; }
+/* 값이 들어오는 주기 — 작은 그래프 한 줄, 크게 보기 줄, 열 상세 한 줄 (글자는 글자색) */
+.graph__period { font-size: 11px; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.graph__fperiod { display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 12px; }
+.graph__fplabel { color: var(--fg-muted); }
+.graph__pchip { cursor: default; color: var(--fg); }
+.graph__pchip:hover { background: var(--bg-elev); }
+.graph__pchip strong { font-weight: 600; }
+.graph__miniperiod { font-size: 12px; color: var(--fg-muted); margin: 0 0 4px; }
+.graph__miniperiod:empty { display: none; }
 /* 「값이 나온 때」 — 입력·자주 나온 값, 요약(횟수·비율·처음/마지막), 범례 점 */
 .graph__markbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
 .graph__marklabel { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-muted); }
@@ -1155,7 +1166,7 @@ const MSG = {
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
   EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult', SERIES_PROGRESS: 'seriesProgress', SERIES_RESULT: 'seriesResult',
-  ROWS_AT_RESULT: 'rowsAtResult', FILTER_PROGRESS: 'filterProgress', FILTER_RESULT: 'filterResult',
+  ROWS_AT_RESULT: 'rowsAtResult', FILTER_PROGRESS: 'filterProgress', FILTER_RESULT: 'filterResult', CONVERT_PROGRESS: 'convertProgress',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -2546,10 +2557,345 @@ function createXlsxWriter({ columns, sheetName = 'Sheet1', compress = deflateRaw
 return { XLSX_MAX_ROWS, XLSX_MAX_COLS, XLSX_MAX_CELL_CHARS, SHEETS_MAX_CELLS, XLSX_MIME, numericCell, columnName, sheetNameOf, deflateRawSupported, createXlsxWriter };
 })();
 
+// ===== src/shared/xlsx-read.js =====
+const M_shared_xlsx_read = (() => {
+// XLSX(엑셀) 읽기 — 시트 하나를 CSV(UTF-8, 쉼표) 글자로 바꾼다. 라이브러리·네트워크 없이 워커/메인 스레드/Node 에서 동작.
+// ZIP 은 끝의 목차만 읽고 필요한 항목만 잘라 푼다(DecompressionStream 'deflate-raw'). 시트 XML 은 조각으로 흘려 읽어
+// 큰 시트도 통째로 메모리에 올리지 않는다. 값은 엑셀에 보이는 대로: 공유·인라인 글자, 참/거짓, 오류, 날짜 형식은 날짜 글자,
+// 고정 소수 형식(0.000)은 끝자리 0 까지(810.420). 행 끝의 빈칸은 붙이지 않는다 (1553 처럼 행마다 칸 수가 다른 데이터).
+
+/** 옛 .xls·암호 걸린 엑셀 파일(OLE 복합 문서 D0 CF 11 E0) — ZIP 이 아니라 읽을 수 없다 */
+function looksLikeOle(u8) {
+  return u8.length >= 4 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0;
+}
+
+/** 처음 4바이트가 ZIP 로컬 머리(PK\3\4)인지 */
+function looksLikeZip(u8) {
+  return u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 3 && u8[3] === 4;
+}
+
+// ---------- ZIP ----------
+/** 끝 목차(central directory) → Map(이름 → { method, csize, usize, off }) */
+async function readZipIndex(blob) {
+  const tailLen = Math.min(blob.size, 65536 + 22);
+  const tail = new Uint8Array(await blob.slice(blob.size - tailLen).arrayBuffer());
+  let eocd = -1;
+  for (let i = tail.length - 22; i >= 0; i--) {
+    if (tail[i] === 0x50 && tail[i + 1] === 0x4b && tail[i + 2] === 5 && tail[i + 3] === 6) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('ZIP 끝 정보를 찾지 못했습니다 — 손상된 파일일 수 있습니다');
+  const dv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+  const count = dv.getUint16(eocd + 10, true), cdSize = dv.getUint32(eocd + 12, true), cdOff = dv.getUint32(eocd + 16, true);
+  if (count === 0xffff || cdOff === 0xffffffff) throw new Error('4GB 넘는 ZIP64 XLSX 는 지원하지 않습니다');
+  if (cdOff + cdSize > blob.size) throw new Error('ZIP 목차가 파일 밖을 가리킵니다 — 손상된 파일일 수 있습니다');
+  const cd = new Uint8Array(await blob.slice(cdOff, cdOff + cdSize).arrayBuffer());
+  const cv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
+  const dec = new TextDecoder();
+  const map = new Map();
+  for (let p = 0, k = 0; k < count && p + 46 <= cd.length; k++) {
+    if (cv.getUint32(p, true) !== 0x02014b50) break;
+    const nlen = cv.getUint16(p + 28, true), xlen = cv.getUint16(p + 30, true), clen = cv.getUint16(p + 32, true);
+    const name = dec.decode(cd.subarray(p + 46, p + 46 + nlen));
+    map.set(name, { name, method: cv.getUint16(p + 10, true), csize: cv.getUint32(p + 20, true), usize: cv.getUint32(p + 24, true), off: cv.getUint32(p + 42, true) });
+    p += 46 + nlen + xlen + clen;
+  }
+  return map;
+}
+
+/** 항목 하나의 풀린 바이트 흐름 */
+async function entryStream(blob, e) {
+  const h = new DataView(await blob.slice(e.off, e.off + 30).arrayBuffer());
+  if (h.byteLength < 30 || h.getUint32(0, true) !== 0x04034b50) throw new Error(`ZIP 항목 「${e.name}」 의 머리를 읽지 못했습니다`);
+  const start = e.off + 30 + h.getUint16(26, true) + h.getUint16(28, true);
+  const raw = blob.slice(start, start + e.csize).stream();
+  if (e.method === 0) return raw;
+  if (e.method === 8) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('이 브라우저는 XLSX 압축 풀기를 지원하지 않습니다 — 엑셀에서 CSV 로 저장해 여세요');
+    return raw.pipeThrough(new DecompressionStream('deflate-raw'));
+  }
+  throw new Error(`지원하지 않는 ZIP 압축 방식(${e.method})입니다`);
+}
+
+/** 항목을 글자로 (작은 XML — 통합 문서·관계·공유 문자열·스타일) */
+async function entryText(blob, e) {
+  const reader = (await entryStream(blob, e)).getReader();
+  const dec = new TextDecoder('utf-8');
+  let out = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    out += dec.decode(value, { stream: true });
+  }
+  return out + dec.decode();
+}
+
+// ---------- XML 조각 ----------
+const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+/** XML 개체(&amp; &#65; &#x42;)와 엑셀의 _xHHHH_ 글자(제어 문자 등, 밑줄 자체는 _x005F_)를 푼다 */
+function xmlUnescape(s) {
+  // <![CDATA[…]]> 안은 그대로, 밖만 푼다
+  if (s.indexOf('<![CDATA[') >= 0) return s.split(/(<!\[CDATA\[[\s\S]*?\]\]>)/).map((p) => (p.startsWith('<![CDATA[') ? p.slice(9, -3) : xmlUnescape(p))).join('');
+  let t = s;
+  if (t.indexOf('&') >= 0) {
+    t = t.replace(/&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g, (m, e) => (e[0] === '#'
+      ? String.fromCodePoint(e[1] === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)) : ENT[e]));
+  }
+  if (t.indexOf('_x') >= 0) t = t.replace(/_x([0-9A-Fa-f]{4})_/g, (m, hx) => String.fromCharCode(parseInt(hx, 16)));
+  return t;
+}
+
+// <x:row>·</x:c> 처럼 요소 이름에 접두어를 붙이는 작성기(.NET OpenXML SDK 등) — 접두어를 떼고 읽는다 (속성 r:id 는 그대로)
+const ELEM_PREFIX = /<(\/?)[A-Za-z_][\w.-]*:(?=[A-Za-z_])/g;
+const unprefix = (xml) => (/<\/?[A-Za-z_][\w.-]*:[A-Za-z_]/.test(xml) ? xml.replace(ELEM_PREFIX, '<$1') : xml);
+
+function attrsOf(s) {
+  const out = {};
+  for (const m of s.matchAll(/([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) out[m[1]] = m[2] !== undefined ? m[2] : m[3];
+  return out;
+}
+
+/** <si>·<is> 안의 글자: <t> 들을 잇는다 (서식이 나뉜 글자), 일본어 읽기(<rPh>)는 뺀다 */
+function richText(xml) {
+  const body = xml.indexOf('<rPh') >= 0 ? xml.replace(/<rPh\b[\s\S]*?<\/rPh>/g, '') : xml;
+  let out = '';
+  for (const m of body.matchAll(/<t\b[^>]*?(?:\/>|>([\s\S]*?)<\/t>)/g)) if (m[1]) out += m[1];
+  return xmlUnescape(out);
+}
+
+/** 상대 경로(worksheets/sheet1.xml, ../x, /xl/…) → ZIP 안의 이름 */
+function resolvePath(base, target) {
+  if (target.startsWith('/')) return target.slice(1);
+  const parts = (base + target).split('/');
+  const out = [];
+  for (const p of parts) { if (p === '..') out.pop(); else if (p && p !== '.') out.push(p); }
+  return out.join('/');
+}
+
+function parseWorkbook(wbXml, relsXml) {
+  const rels = new Map();
+  for (const m of relsXml.matchAll(/<Relationship\b([^>]*?)\/?>/g)) { const a = attrsOf(m[1]); if (a.Id) rels.set(a.Id, a); }
+  const sheets = [];
+  for (const m of wbXml.matchAll(/<sheet\b([^>]*?)\/?>/g)) {
+    const a = attrsOf(m[1]);
+    const rid = Object.entries(a).find(([k]) => /(^|:)id$/.test(k))?.[1];
+    const rel = rels.get(rid);
+    // 워크시트만 — 차트 시트(chartsheet)·대화 상자 시트는 표가 없어 열면 빈 표가 된다
+    if (rel && rel.Target && /\/worksheet$/.test(rel.Type || '/worksheet')) sheets.push({ name: xmlUnescape(a.name || `시트${sheets.length + 1}`), path: resolvePath('xl/', rel.Target), hidden: !!a.state && a.state !== 'visible' });
+  }
+  const relOf = (kind) => [...rels.values()].find((r) => (r.Type || '').endsWith(`/${kind}`));
+  const ss = relOf('sharedStrings'), st = relOf('styles');
+  return {
+    sheets,
+    date1904: /<workbookPr\b[^>]*\bdate1904\s*=\s*"(1|true)"/.test(wbXml),
+    sharedPath: ss ? resolvePath('xl/', ss.Target) : 'xl/sharedStrings.xml',
+    stylesPath: st ? resolvePath('xl/', st.Target) : 'xl/styles.xml',
+  };
+}
+
+function parseSharedStrings(xml) {
+  const out = [];
+  for (const m of xml.matchAll(/<si\b[^>]*?(?:\/>|>([\s\S]*?)<\/si>)/g)) out.push(m[1] ? richText(m[1]) : '');
+  return out;
+}
+
+// 날짜·시각 내장 형식 번호 (14~22, 45~47 영어권 · 27~36, 50~58 동아시아 지역 형식)
+const DATE_IDS = new Set([14, 15, 16, 17, 18, 19, 20, 21, 22, 45, 46, 47, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 50, 51, 52, 53, 54, 55, 56, 57, 58]);
+const DEC_IDS = new Map([[1, 0], [2, 2], [3, 0], [4, 2]]);
+/** 형식 → 'date' · 'elapsed'([h]:mm:ss 경과 시간) · { dec: 소수 자릿수, int: 앞자리 0 채움 자릿수 } · null */
+function kindOfFormat(id, code) {
+  if (id === 46) return 'elapsed'; // 내장 [h]:mm:ss
+  if (DATE_IDS.has(id)) return 'date';
+  if (DEC_IDS.has(id)) return { dec: DEC_IDS.get(id), int: 1 };
+  if (!code) return null;
+  const first = code.split(';')[0].replace(/"[^"]*"/g, '');
+  if (/\[(h+|m+|s+)\]/i.test(first)) return 'elapsed';
+  // 첫 구역만, 따옴표 글자·[색/지역]·\글자·_간격·*채움을 빼고 본다
+  const c = first.replace(/\[[^\]]*\]/g, '').replace(/\\./g, '').replace(/[_*]./g, '').trim();
+  if (/^general$/i.test(c)) return null;
+  if (/[ymdhs]/i.test(c.replace(/E[+-]/gi, ''))) return 'date';
+  const d = /^[#,]*(0+)(?:\.(0+))?$/.exec(c);
+  return d ? { dec: d[2] ? d[2].length : 0, int: d[1].length } : null;
+}
+
+/** styles.xml → 칸 스타일(s) 번호마다 'date' · { dec } · null */
+function parseStyles(xml) {
+  const fmts = new Map();
+  const x = unprefix(xml);
+  for (const m of x.matchAll(/<numFmt\b([^>]*?)\/?>/g)) { const a = attrsOf(m[1]); if (a.numFmtId) fmts.set(Number(a.numFmtId), xmlUnescape(a.formatCode || '')); }
+  const block = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(x);
+  const out = [];
+  if (block) for (const m of block[1].matchAll(/<xf\b([^>]*?)\/?>/g)) { const id = Number(attrsOf(m[1]).numFmtId || 0); out.push(kindOfFormat(id, fmts.get(id))); }
+  return out;
+}
+
+const pad = (n, w = 2) => String(n).padStart(w, '0');
+/** 경과 시간 [h]:mm:ss — 1.5일 → 36:00:00 (날짜로 넘기지 않는다) */
+function elapsedText(days) {
+  const ms = Math.round(Math.abs(days) * 86400000);
+  const s = Math.floor(ms / 1000), rest = ms % 1000;
+  return `${days < 0 ? '-' : ''}${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}${rest ? `.${pad(rest, 3)}` : ''}`;
+}
+/** 엑셀 날짜 일련번호 → 2024-10-24 · 2024-10-24 12:00:00 · 12:00:00(1 미만) — 1900 체계의 없는 2월 29일과 1904 체계까지 */
+function excelDateText(serial, date1904) {
+  const days = date1904 ? serial + 1462 : serial < 60 ? serial + 1 : serial;
+  const ms = Math.round((days - 25569) * 86400000);
+  const d = new Date(ms);
+  const msPart = d.getUTCMilliseconds();
+  const time = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}${msPart ? `.${pad(msPart, 3)}` : ''}`;
+  if (serial >= 0 && serial < 1) return time;
+  const date = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+  return ms % 86400000 === 0 ? date : `${date} ${time}`;
+}
+
+const csvField = (v) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+const MAX_COL = 16383; // 엑셀 열 한도 XFD
+function colIndex(letters) {
+  let n = 0;
+  for (let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+  return n - 1;
+}
+
+/** 시트 XML 을 조각으로 받아 CSV 줄을 만든다 — feed(글자) · end() → { parts, rows } */
+function createSheetParser({ shared, styles, date1904 }) {
+  let buf = '', started = false, rows = 0, out = '', prefixed = null, carry = '';
+  const parts = [];
+  const CELL = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+  const valueOf = (body) => { const m = /<v\b[^>]*>([\s\S]*?)<\/v>/.exec(body); return m ? m[1] : ''; };
+
+  function cellText(attrs, body) {
+    const t = (/\bt=["']([^"']*)["']/.exec(attrs) || [])[1] || 'n';
+    if (t === 'inlineStr') { const m = /<is\b[^>]*>([\s\S]*?)<\/is>/.exec(body); return m ? richText(m[1]) : ''; }
+    const v = valueOf(body);
+    if (t === 's') { if (v === '') return ''; const s = shared[Number(v)]; return s == null ? '' : s; } // <c t="s"/> 는 빈칸 (0번 글자가 아니다)
+    if (t === 'b') return v === '' ? '' : v === '1' || v === 'true' ? 'TRUE' : 'FALSE';
+    if (t === 'str' || t === 'e' || t === 'd') return xmlUnescape(v);
+    if (v === '') return '';
+    const n = Number(v);
+    if (!Number.isFinite(n)) return xmlUnescape(v);
+    const st = styles[Number((/\bs=["'](\d+)["']/.exec(attrs) || [])[1] || 0)];
+    if (st === 'date') return excelDateText(n, date1904);
+    if (st === 'elapsed') return elapsedText(n);
+    const text = String(Number(n.toPrecision(15))); // 엑셀은 유효숫자 15자리 — 0.30000000000000004 → 0.3
+    if (st && st.dec != null) {
+      // 끝자리 0 (810.420)·앞자리 0 (0000 → 0012) — 값이 바뀌지 않을 때만 (반올림은 하지 않는다)
+      const f = Math.abs(n).toFixed(st.dec);
+      if (Number(f) === Math.abs(Number(text))) { const [ip, fp] = f.split('.'); return `${n < 0 ? '-' : ''}${ip.padStart(st.int || 1, '0')}${fp ? `.${fp}` : ''}`; }
+    }
+    return text;
+  }
+
+  function emitRow(inner) {
+    const fields = [];
+    let col = -1, last = -1;
+    CELL.lastIndex = 0;
+    for (let m; (m = CELL.exec(inner));) {
+      const ref = /\br=["']([A-Za-z]{1,3})\d*["']/.exec(m[1]);
+      const at = ref ? colIndex(ref[1].toUpperCase()) : -1;
+      col = at >= 0 && at <= MAX_COL ? at : col + 1; // 주소가 없거나 엑셀 한도(XFD) 밖이면 다음 칸 — 잘못된 주소로 수십억 칸을 만들지 않게
+      if (col > MAX_COL) break;
+      const v = cellText(m[1], m[2] || '');
+      if (v === '') continue;
+      fields[col] = v;
+      if (col > last) last = col;
+    }
+    if (last < 0) return; // 빈 행은 뺀다 (CSV 의 빈 줄처럼)
+    let line = '';
+    for (let i = 0; i <= last; i++) line += (i ? ',' : '') + (fields[i] === undefined ? '' : csvField(fields[i]));
+    out += line + '\n';
+    rows++;
+    if (out.length > 1 << 22) { parts.push(new Blob([out])); out = ''; } // 글자를 Blob 으로 넘겨 놓아 큰 시트도 문자열이 쌓이지 않게
+  }
+
+  function scan(final) {
+    let pos = 0;
+    if (!started) {
+      const i = buf.indexOf('<sheetData');
+      if (i < 0) { if (buf.length > 64) buf = buf.slice(-64); return; }
+      started = true; pos = i;
+    }
+    for (;;) {
+      const i = buf.indexOf('<row', pos);
+      if (i < 0) { pos = Math.max(pos, buf.length - 8); break; } // 다음 조각에 걸친 「<row」를 위해 꼬리만 남긴다
+      const ch = buf.charCodeAt(i + 4);
+      if (Number.isNaN(ch)) { pos = i; break; }
+      if (ch !== 32 && ch !== 62 && ch !== 47 && ch !== 9 && ch !== 10 && ch !== 13) { pos = i + 4; continue; } // <rowBreaks 등
+      const gt = buf.indexOf('>', i);
+      if (gt < 0) { pos = i; break; }
+      if (buf.charCodeAt(gt - 1) === 47) { pos = gt + 1; continue; } // <row …/> — 빈 행
+      const end = buf.indexOf('</row>', gt);
+      if (end < 0) { pos = i; break; }
+      emitRow(buf.slice(gt + 1, end));
+      pos = end + 6;
+    }
+    buf = final ? '' : buf.slice(pos);
+  }
+
+  return {
+    feed(text) {
+      // 접두어 붙은 시트(<x:sheetData>)인지 처음에 한 번 본다 — 그렇다면 들어오는 글자마다 접두어를 뗀다 (조각에 걸친 태그는 다음 조각과 함께)
+      if (prefixed === null) {
+        const probe = buf + text;
+        prefixed = /<sheetData\b/.test(probe) ? false : /<[A-Za-z_][\w.-]*:sheetData\b/.test(probe) ? true : null;
+        if (prefixed) { buf = ''; text = probe; }
+      }
+      if (prefixed) {
+        text = carry + text; carry = '';
+        const lt = text.lastIndexOf('<');
+        if (lt >= 0 && text.indexOf('>', lt) < 0) { carry = text.slice(lt); text = text.slice(0, lt); }
+        text = text.replace(ELEM_PREFIX, '<$1');
+      }
+      buf += text;
+      scan(false);
+    },
+    end() { if (carry) { buf += carry.replace(ELEM_PREFIX, '<$1'); carry = ''; } scan(true); if (out) parts.push(new Blob([out])); return { parts, rows }; },
+  };
+}
+
+/**
+ * XLSX Blob → { blob: CSV(UTF-8·쉼표), sheets: 시트 이름들, sheet: 연 번호, rows } — 취소되면 null.
+ * sheet: 열 시트 번호 (없거나 범위 밖이면 처음 보이는 시트). onProgress(풀린 바이트, 시트 전체 바이트).
+ */
+async function xlsxToCsv(blob, { sheet = null, onProgress = null, cancelled = () => false } = {}) {
+  const zip = await readZipIndex(blob);
+  const wbE = zip.get('xl/workbook.xml');
+  if (!wbE) throw new Error('XLSX 가 아닙니다 (엑셀 통합 문서 xl/workbook.xml 이 없는 ZIP) — 압축 파일이면 풀어서 여세요');
+  const relE = zip.get('xl/_rels/workbook.xml.rels');
+  const wb = parseWorkbook(unprefix(await entryText(blob, wbE)), relE ? unprefix(await entryText(blob, relE)) : '');
+  if (!wb.sheets.length) throw new Error('XLSX 에 표(워크시트)가 없습니다 — 차트 시트만 있는 파일일 수 있습니다');
+  if (cancelled()) return null;
+  const firstVisible = Math.max(0, wb.sheets.findIndex((s) => !s.hidden));
+  const idx = Number.isInteger(sheet) && sheet >= 0 && sheet < wb.sheets.length ? sheet : firstVisible;
+  const ssE = zip.get(wb.sharedPath), stE = zip.get(wb.stylesPath);
+  const shared = ssE ? parseSharedStrings(unprefix(await entryText(blob, ssE))) : [];
+  if (cancelled()) return null; // 큰 공유 문자열을 읽는 사이 다른 파일을 열었으면 (메인 스레드 모드에서도) 바로 그만
+  const styles = stE ? parseStyles(await entryText(blob, stE)) : [];
+  if (cancelled()) return null;
+  const se = zip.get(wb.sheets[idx].path);
+  if (!se) throw new Error(`시트 「${wb.sheets[idx].name}」 를 XLSX 안에서 찾지 못했습니다`);
+  const parser = createSheetParser({ shared, styles, date1904: wb.date1904 });
+  const reader = (await entryStream(blob, se)).getReader();
+  const dec = new TextDecoder('utf-8');
+  let done = 0, last = Date.now();
+  for (;;) {
+    const { value, done: end } = await reader.read();
+    if (end) break;
+    if (cancelled()) { reader.cancel().catch(() => {}); return null; }
+    done += value.length;
+    parser.feed(dec.decode(value, { stream: true }));
+    if (onProgress && Date.now() - last >= 250) { last = Date.now(); onProgress(done, se.usize); }
+  }
+  parser.feed(dec.decode());
+  const { parts, rows } = parser.end();
+  return { blob: new Blob(parts, { type: 'text/csv' }), sheets: wb.sheets.map((s) => s.name), sheet: idx, rows };
+}
+return { looksLikeOle, looksLikeZip, xmlUnescape, parseStyles, elapsedText, excelDateText, xlsxToCsv };
+})();
+
 // ===== src/shared/series.js =====
 const M_shared_series = (() => {
 const { trimSpan, parseHexNumber } = M_shared_infer;
 // 시간(X축)에 따른 열 변화 — 어떤 열을 어떻게 그릴지 정하고, X 구간마다 값을 모은다.
+// 열마다 「값이 들어오는 주기」도 함께 센다: 값이 있는 행끼리의 X(시간) 간격 분포 → 가장 많은 간격(주기)과 그 비율.
 // 워커와 메인 스레드 폴백에서 같은 코드로 돈다 (DOM 사용 금지).
 //   숫자·16진수 열 → 구간별 최소·최대·평균(선 + 범위 띠)
 //   값 종류가 적은 글자 열 → 구간별 값 개수(100% 누적 영역)
@@ -2598,6 +2944,74 @@ function defaultXColumn(stats, hexLike) {
   return hit ? hit.col : -1;
 }
 
+// ---------- 값이 들어오는 주기 ----------
+// 간격은 로그 눈금 구간(2% 너비)으로 센다 — 1µs~1e12 를 2천여 칸에. 구간마다 개수와 합을 두면 주기를 정확한 평균으로 꺼낼 수 있다.
+const P_RATIO_LN = Math.log(1.02);
+const P_MIN_E = Math.floor(Math.log(1e-6) / P_RATIO_LN);
+const PERIOD_BINS = Math.ceil(Math.log(1e12) / P_RATIO_LN) - P_MIN_E + 1;
+const PEAK_W = 2; // 봉우리 = 가장 많은 칸 ±2칸(약 ±4%)을 먼저 모은 뒤, 서로 15% 안의 봉우리는 한 주기로 합친다
+const PEAK_MERGE = 0.15; // 1ms 로 반올림된 10ms 주기(9·10·11ms)나 ±5% 흔들림도 한 주기 — 20 과 40 은 따로
+const PERIOD_MAX_COLS = 256; // 주기를 세는 열 수 한도 (열마다 약 25KB)
+const periodBin = (d) => Math.max(0, Math.min(PERIOD_BINS - 1, Math.floor(Math.log(d) / P_RATIO_LN) - P_MIN_E));
+
+/**
+ * 한 열의 간격 분포(count/sum 의 base 부터 PERIOD_BINS 칸) → { n: 양의 간격 수, zero: 같은 X, neg: X 가 거꾸로 간 곳,
+ *   median·p05·p95, peaks: [{ mean, count, share }] 많은 순 3개까지 (2% 미만은 뺀다) }
+ *   봉우리: 가장 높은 칸 ±2칸씩 차례로 모으고(조각), 평균이 서로 15% 안인 조각은 큰 쪽에 합친다 — 칸 경계·반올림에 흔들리지 않게
+ */
+function summarizePeriod(count, sum, base, n, zero = 0, neg = 0) {
+  const out = { n, zero, neg, median: null, p05: null, p95: null, peaks: [] };
+  if (!n) return out;
+  const q = (f) => {
+    const target = f * (n - 1);
+    let acc = 0;
+    for (let b = 0; b < PERIOD_BINS; b++) {
+      const c = count[base + b];
+      if (!c) continue;
+      if (acc + c > target) return sum[base + b] / c;
+      acc += c;
+    }
+    return null;
+  };
+  out.median = q(0.5); out.p05 = q(0.05); out.p95 = q(0.95);
+  const used = new Uint8Array(PERIOD_BINS);
+  const pieces = [];
+  for (let k = 0; k < 16; k++) {
+    let best = -1, bc = 0;
+    for (let b = 0; b < PERIOD_BINS; b++) if (!used[b] && count[base + b] > bc) { bc = count[base + b]; best = b; }
+    if (best < 0) break;
+    let c = 0, s = 0;
+    for (let b = Math.max(0, best - PEAK_W); b <= Math.min(PERIOD_BINS - 1, best + PEAK_W); b++) {
+      if (used[b]) continue;
+      used[b] = 1; c += count[base + b]; s += sum[base + b];
+    }
+    if (c / n < 0.005) break;
+    pieces.push({ c, s });
+  }
+  // 큰 조각부터: 평균이 15% 안인 앞 봉우리가 있으면 거기에 합친다
+  pieces.sort((a, b) => b.c - a.c);
+  const merged = [];
+  for (const p of pieces) {
+    const m = p.s / p.c;
+    const into = merged.find((q) => Math.abs(m / (q.s / q.c) - 1) <= PEAK_MERGE);
+    if (into) { into.c += p.c; into.s += p.s; } else merged.push({ c: p.c, s: p.s });
+  }
+  merged.sort((a, b) => b.c - a.c);
+  for (const q of merged.slice(0, 3)) if (q.c / n >= 0.02) out.peaks.push({ mean: q.s / q.c, count: q.c, share: q.c / n });
+  return out;
+}
+
+/** X 열 이름에서 시간 단위 — Time_Tag(ms) → ms (초당 1000). 모르면 null (주기만, Hz 없이) */
+function timeUnitOf(name) {
+  const n = String(name || '').toLowerCase();
+  const word = (w) => new RegExp(`(^|[^a-zµ])(${w})([^a-z]|$)`).test(n);
+  if (word('ms|msec|millisecs?|milliseconds?') || /밀리초($|[^가-힣])/.test(n)) return { unit: 'ms', perSec: 1e3 };
+  if (word('us|µs|usec|microsecs?|microseconds?') || /마이크로초($|[^가-힣])/.test(n)) return { unit: 'us', perSec: 1e6 };
+  if (word('ns|nsec|nanosecs?|nanoseconds?') || /나노초($|[^가-힣])/.test(n)) return { unit: 'ns', perSec: 1e9 };
+  if (word('s|sec|secs|seconds?') || /(^|[^가-힣])초($|[^가-힣])/.test(n)) return { unit: 's', perSec: 1 }; // 「시간(초)」 — 「초과」·「초기」는 아니다
+  return null;
+}
+
 // 십진수만 — JS Number 는 0x1F·0b101·0o17·Infinity 도 숫자로 읽어 버리므로 모양을 먼저 확인한다
 const DEC_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 function parseDec(str, s0, e0) {
@@ -2614,14 +3028,19 @@ const parseHex = (str, s, e) => parseHexNumber(str, s, e);
  *   (또는 match 대신 tests: [(text, fi, k) → boolean, …]) 이면 값마다 구간별 나온 횟수, 처음·마지막으로 나온 행과 X,
  *   그 값의 수치(parse 가 있을 때 — 그래프에 기준선을 긋는다)를, 그리고 그 열에 값(공백 아닌 글자)이 있는 행 수(비율의 분모)와
  *   값 중 하나라도 나온 행 수(합계 — 5 와 05 처럼 같은 행을 두 값이 세어도 한 번)를 센다.
+ * periodCols: 「값이 들어오는 주기」를 셀 열들 — 값(공백 아닌 글자)이 있는 행끼리의 X 간격 분포 (범위·필터 안의 행만, 파일 순서)
  * addRecord(text, fi, k, row) 로 레코드를 넣고 result() 로 꺼낸다.
  */
-function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
+function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null, periodCols = null }) {
   const B = Math.max(1, buckets | 0);
   const span = x1 - x0;
   const scale = span > 0 ? B / span : 0;
   const rows = new Uint32Array(B);
   let outside = 0, noX = 0;
+  const pCols = periodCols ? periodCols.slice(0, PERIOD_MAX_COLS) : [];
+  const P = pCols.length;
+  const pLast = new Float64Array(P).fill(NaN), pN = new Uint32Array(P), pZero = new Uint32Array(P), pNeg = new Uint32Array(P);
+  const pCount = new Uint32Array(P * PERIOD_BINS), pSum = new Float64Array(P * PERIOD_BINS);
   const have = mark ? new Uint32Array(B) : null;
   let haveN = 0;
   const markParse = mark && mark.parse ? (mark.parse === 'hex' ? parseHex : parseDec) : null;
@@ -2654,6 +3073,19 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
     if (x < x0 || x > x1) { outside++; return; }
     const b = scale ? Math.min(B - 1, Math.floor((x - x0) * scale)) : 0;
     rows[b]++;
+    for (let j = 0; j < P; j++) {
+      const c = pCols[j];
+      if (c >= fc) continue;
+      let a = fi.fieldStart[f0 + c];
+      const e = fi.fieldEnd[f0 + c];
+      while (a < e && text.charCodeAt(a) <= 32) a++;
+      if (a >= e) continue; // 값이 없는 칸
+      const prev = pLast[j];
+      pLast[j] = x;
+      if (prev !== prev) continue; // 이 열의 첫 값
+      const d = x - prev;
+      if (d > 0) { const i = j * PERIOD_BINS + periodBin(d); pCount[i]++; pSum[i] += d; pN[j]++; } else if (d === 0) pZero[j]++; else pNeg[j]++;
+    }
     if (mark && mark.col < fc) {
       const [a, e] = trimSpan(text, fi.fieldStart[f0 + mark.col], fi.fieldEnd[f0 + mark.col]);
       if (e > a) { have[b]++; haveN++; }
@@ -2696,6 +3128,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
   function result() {
     return {
       buckets: B, x0, x1, xCol, rows, outside, noX,
+      periods: pCols.map((col, j) => ({ col, ...summarizePeriod(pCount, pSum, j * PERIOD_BINS, pN[j], pZero[j], pNeg[j]) })),
       mark: mark ? {
         col: mark.col, have, haveTotal: haveN, anyHits, anyTotal,
         items: items.map(({ hits, total, firstRow, lastRow, firstX, lastX, num }) => ({ hits, total, firstRow, lastRow, firstX, lastX, num: Number.isFinite(num) ? num : null })),
@@ -2713,7 +3146,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
   }
   return { addRecord, result };
 }
-return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, createSeriesAccumulator };
+return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, PERIOD_BINS, PERIOD_MAX_COLS, summarizePeriod, timeUnitOf, createSeriesAccumulator };
 })();
 
 // ===== src/worker/engine.js =====
@@ -2731,8 +3164,10 @@ const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
 const { findMasked } = M_shared_search_bytes;
 const { createXlsxWriter, XLSX_MAX_ROWS } = M_shared_xlsx;
-const { planSeries, xAxisOptions, createSeriesAccumulator } = M_shared_series;
+const { looksLikeZip, looksLikeOle, xlsxToCsv } = M_shared_xlsx_read;
+const { planSeries, xAxisOptions, createSeriesAccumulator, timeUnitOf } = M_shared_series;
 // 데이터셋 엔진. 워커에서 실행되지만 메인 스레드 폴백으로도 동작한다 (DOM 사용 금지).
+
 
 
 
@@ -2827,8 +3262,26 @@ class Engine {
   async open({ reqId, blob, options = {} }) {
     this.clear();
     const gen = this.gen;
+    if (blob.size >= MAX_FILE) throw new Error('4GB 이상 파일은 지원하지 않습니다');
+
+    // XLSX(엑셀): 압축을 풀어 시트 하나를 CSV(UTF-8·쉼표)로 바꾼 뒤 그 글자를 연다 — 이후 표·검색·헥사는 바꾼 CSV 기준
+    let xlsx = null;
+    const magic = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+    if (looksLikeOle(magic)) throw new Error('옛 엑셀(.xls)이나 암호가 걸린 엑셀 파일은 열 수 없습니다 — 엑셀에서 암호를 풀고 .xlsx 나 CSV 로 저장해 여세요');
+    if (looksLikeZip(magic)) {
+      const sourceSize = blob.size;
+      const conv = await xlsxToCsv(blob, {
+        sheet: Number.isInteger(options.sheet) ? options.sheet : null,
+        cancelled: () => gen !== this.gen,
+        onProgress: (done, total) => this.post({ type: MSG.CONVERT_PROGRESS, done, total }),
+      });
+      if (!conv || gen !== this.gen) return;
+      xlsx = { sheets: conv.sheets, sheet: conv.sheet, rows: conv.rows, sourceSize };
+      blob = conv.blob;
+      options = { ...options, encoding: 'utf-8', delimiter: ',' };
+      if (blob.size >= MAX_FILE) throw new Error('바꾼 CSV 가 4GB 를 넘습니다');
+    }
     const size = blob.size;
-    if (size >= MAX_FILE) throw new Error('4GB 이상 파일은 지원하지 않습니다');
 
     const sample = new Uint8Array(await blob.slice(0, Math.min(size, SAMPLE)).arrayBuffer());
     if (gen !== this.gen) return;
@@ -2869,6 +3322,7 @@ class Engine {
     this.post({
       type: MSG.OPENED, reqId, encoding, bomLength, delimiter, hasHeader, header: header.slice(), size,
       detected: { encoding: enc.encoding, delimiter: detDel.delimiter, hasHeader: detHeader, confidence: enc.confidence },
+      xlsx,
     });
     await this.index(gen);
   }
@@ -3521,7 +3975,9 @@ class Engine {
       match: compileMarkMatcher(mark.col, markValues, { hexLike: ds.hexLike }), // 칸을 한 번만 읽어 값마다 비교
       parse: plan[mark.col] && plan[mark.col].kind === 'num' ? plan[mark.col].parse : null,
     } : null;
-    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)), mark: markOpt });
+    // 값이 들어오는 주기: 고른 열(크게 보기) 또는 X 를 뺀 모든 열 (그래프로 그리지 않는 열도)
+    const periodCols = (cols || Array.from({ length: ds.columnCount }, (_, c) => c)).filter((c) => c >= 0 && c < ds.columnCount && c !== xCol);
+    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)), mark: markOpt, periodCols });
     const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
 
     const gen = this.gen;
@@ -3550,6 +4006,7 @@ class Engine {
         type: MSG.SERIES_RESULT, reqId, id, cancelled: false,
         xCol, xName: xCol < 0 ? '행 번호' : ds.header[xCol], x0: r.x0, x1: r.x1, buckets: r.buckets,
         rows: r.rows, outside: r.outside, noX: r.noX, filteredOut,
+        periods: r.periods, xUnit: xCol < 0 ? null : timeUnitOf(ds.header[xCol]),
         mark: r.mark ? { ...r.mark, values: markValues, items: r.mark.items.map((it, i) => ({ ...it, value: markValues[i] })) } : null,
         series: r.series.map((s) => ({ ...s, name: ds.header[s.col], width: ds.padNibbles ? ds.padNibbles[s.col] || 4 : 4 })),
         skipped: plan.filter((p) => p.kind === 'skip').map(({ col, name, reason }) => ({ col, name, reason })),
@@ -4097,7 +4554,7 @@ const MSG = {
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
   EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult', SERIES_PROGRESS: 'seriesProgress', SERIES_RESULT: 'seriesResult',
-  ROWS_AT_RESULT: 'rowsAtResult', FILTER_PROGRESS: 'filterProgress', FILTER_RESULT: 'filterResult',
+  ROWS_AT_RESULT: 'rowsAtResult', FILTER_PROGRESS: 'filterProgress', FILTER_RESULT: 'filterResult', CONVERT_PROGRESS: 'convertProgress',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -5488,10 +5945,345 @@ function createXlsxWriter({ columns, sheetName = 'Sheet1', compress = deflateRaw
 return { XLSX_MAX_ROWS, XLSX_MAX_COLS, XLSX_MAX_CELL_CHARS, SHEETS_MAX_CELLS, XLSX_MIME, numericCell, columnName, sheetNameOf, deflateRawSupported, createXlsxWriter };
 })();
 
+// ===== src/shared/xlsx-read.js =====
+const M_shared_xlsx_read = (() => {
+// XLSX(엑셀) 읽기 — 시트 하나를 CSV(UTF-8, 쉼표) 글자로 바꾼다. 라이브러리·네트워크 없이 워커/메인 스레드/Node 에서 동작.
+// ZIP 은 끝의 목차만 읽고 필요한 항목만 잘라 푼다(DecompressionStream 'deflate-raw'). 시트 XML 은 조각으로 흘려 읽어
+// 큰 시트도 통째로 메모리에 올리지 않는다. 값은 엑셀에 보이는 대로: 공유·인라인 글자, 참/거짓, 오류, 날짜 형식은 날짜 글자,
+// 고정 소수 형식(0.000)은 끝자리 0 까지(810.420). 행 끝의 빈칸은 붙이지 않는다 (1553 처럼 행마다 칸 수가 다른 데이터).
+
+/** 옛 .xls·암호 걸린 엑셀 파일(OLE 복합 문서 D0 CF 11 E0) — ZIP 이 아니라 읽을 수 없다 */
+function looksLikeOle(u8) {
+  return u8.length >= 4 && u8[0] === 0xd0 && u8[1] === 0xcf && u8[2] === 0x11 && u8[3] === 0xe0;
+}
+
+/** 처음 4바이트가 ZIP 로컬 머리(PK\3\4)인지 */
+function looksLikeZip(u8) {
+  return u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 3 && u8[3] === 4;
+}
+
+// ---------- ZIP ----------
+/** 끝 목차(central directory) → Map(이름 → { method, csize, usize, off }) */
+async function readZipIndex(blob) {
+  const tailLen = Math.min(blob.size, 65536 + 22);
+  const tail = new Uint8Array(await blob.slice(blob.size - tailLen).arrayBuffer());
+  let eocd = -1;
+  for (let i = tail.length - 22; i >= 0; i--) {
+    if (tail[i] === 0x50 && tail[i + 1] === 0x4b && tail[i + 2] === 5 && tail[i + 3] === 6) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('ZIP 끝 정보를 찾지 못했습니다 — 손상된 파일일 수 있습니다');
+  const dv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+  const count = dv.getUint16(eocd + 10, true), cdSize = dv.getUint32(eocd + 12, true), cdOff = dv.getUint32(eocd + 16, true);
+  if (count === 0xffff || cdOff === 0xffffffff) throw new Error('4GB 넘는 ZIP64 XLSX 는 지원하지 않습니다');
+  if (cdOff + cdSize > blob.size) throw new Error('ZIP 목차가 파일 밖을 가리킵니다 — 손상된 파일일 수 있습니다');
+  const cd = new Uint8Array(await blob.slice(cdOff, cdOff + cdSize).arrayBuffer());
+  const cv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
+  const dec = new TextDecoder();
+  const map = new Map();
+  for (let p = 0, k = 0; k < count && p + 46 <= cd.length; k++) {
+    if (cv.getUint32(p, true) !== 0x02014b50) break;
+    const nlen = cv.getUint16(p + 28, true), xlen = cv.getUint16(p + 30, true), clen = cv.getUint16(p + 32, true);
+    const name = dec.decode(cd.subarray(p + 46, p + 46 + nlen));
+    map.set(name, { name, method: cv.getUint16(p + 10, true), csize: cv.getUint32(p + 20, true), usize: cv.getUint32(p + 24, true), off: cv.getUint32(p + 42, true) });
+    p += 46 + nlen + xlen + clen;
+  }
+  return map;
+}
+
+/** 항목 하나의 풀린 바이트 흐름 */
+async function entryStream(blob, e) {
+  const h = new DataView(await blob.slice(e.off, e.off + 30).arrayBuffer());
+  if (h.byteLength < 30 || h.getUint32(0, true) !== 0x04034b50) throw new Error(`ZIP 항목 「${e.name}」 의 머리를 읽지 못했습니다`);
+  const start = e.off + 30 + h.getUint16(26, true) + h.getUint16(28, true);
+  const raw = blob.slice(start, start + e.csize).stream();
+  if (e.method === 0) return raw;
+  if (e.method === 8) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('이 브라우저는 XLSX 압축 풀기를 지원하지 않습니다 — 엑셀에서 CSV 로 저장해 여세요');
+    return raw.pipeThrough(new DecompressionStream('deflate-raw'));
+  }
+  throw new Error(`지원하지 않는 ZIP 압축 방식(${e.method})입니다`);
+}
+
+/** 항목을 글자로 (작은 XML — 통합 문서·관계·공유 문자열·스타일) */
+async function entryText(blob, e) {
+  const reader = (await entryStream(blob, e)).getReader();
+  const dec = new TextDecoder('utf-8');
+  let out = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    out += dec.decode(value, { stream: true });
+  }
+  return out + dec.decode();
+}
+
+// ---------- XML 조각 ----------
+const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+/** XML 개체(&amp; &#65; &#x42;)와 엑셀의 _xHHHH_ 글자(제어 문자 등, 밑줄 자체는 _x005F_)를 푼다 */
+function xmlUnescape(s) {
+  // <![CDATA[…]]> 안은 그대로, 밖만 푼다
+  if (s.indexOf('<![CDATA[') >= 0) return s.split(/(<!\[CDATA\[[\s\S]*?\]\]>)/).map((p) => (p.startsWith('<![CDATA[') ? p.slice(9, -3) : xmlUnescape(p))).join('');
+  let t = s;
+  if (t.indexOf('&') >= 0) {
+    t = t.replace(/&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g, (m, e) => (e[0] === '#'
+      ? String.fromCodePoint(e[1] === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)) : ENT[e]));
+  }
+  if (t.indexOf('_x') >= 0) t = t.replace(/_x([0-9A-Fa-f]{4})_/g, (m, hx) => String.fromCharCode(parseInt(hx, 16)));
+  return t;
+}
+
+// <x:row>·</x:c> 처럼 요소 이름에 접두어를 붙이는 작성기(.NET OpenXML SDK 등) — 접두어를 떼고 읽는다 (속성 r:id 는 그대로)
+const ELEM_PREFIX = /<(\/?)[A-Za-z_][\w.-]*:(?=[A-Za-z_])/g;
+const unprefix = (xml) => (/<\/?[A-Za-z_][\w.-]*:[A-Za-z_]/.test(xml) ? xml.replace(ELEM_PREFIX, '<$1') : xml);
+
+function attrsOf(s) {
+  const out = {};
+  for (const m of s.matchAll(/([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) out[m[1]] = m[2] !== undefined ? m[2] : m[3];
+  return out;
+}
+
+/** <si>·<is> 안의 글자: <t> 들을 잇는다 (서식이 나뉜 글자), 일본어 읽기(<rPh>)는 뺀다 */
+function richText(xml) {
+  const body = xml.indexOf('<rPh') >= 0 ? xml.replace(/<rPh\b[\s\S]*?<\/rPh>/g, '') : xml;
+  let out = '';
+  for (const m of body.matchAll(/<t\b[^>]*?(?:\/>|>([\s\S]*?)<\/t>)/g)) if (m[1]) out += m[1];
+  return xmlUnescape(out);
+}
+
+/** 상대 경로(worksheets/sheet1.xml, ../x, /xl/…) → ZIP 안의 이름 */
+function resolvePath(base, target) {
+  if (target.startsWith('/')) return target.slice(1);
+  const parts = (base + target).split('/');
+  const out = [];
+  for (const p of parts) { if (p === '..') out.pop(); else if (p && p !== '.') out.push(p); }
+  return out.join('/');
+}
+
+function parseWorkbook(wbXml, relsXml) {
+  const rels = new Map();
+  for (const m of relsXml.matchAll(/<Relationship\b([^>]*?)\/?>/g)) { const a = attrsOf(m[1]); if (a.Id) rels.set(a.Id, a); }
+  const sheets = [];
+  for (const m of wbXml.matchAll(/<sheet\b([^>]*?)\/?>/g)) {
+    const a = attrsOf(m[1]);
+    const rid = Object.entries(a).find(([k]) => /(^|:)id$/.test(k))?.[1];
+    const rel = rels.get(rid);
+    // 워크시트만 — 차트 시트(chartsheet)·대화 상자 시트는 표가 없어 열면 빈 표가 된다
+    if (rel && rel.Target && /\/worksheet$/.test(rel.Type || '/worksheet')) sheets.push({ name: xmlUnescape(a.name || `시트${sheets.length + 1}`), path: resolvePath('xl/', rel.Target), hidden: !!a.state && a.state !== 'visible' });
+  }
+  const relOf = (kind) => [...rels.values()].find((r) => (r.Type || '').endsWith(`/${kind}`));
+  const ss = relOf('sharedStrings'), st = relOf('styles');
+  return {
+    sheets,
+    date1904: /<workbookPr\b[^>]*\bdate1904\s*=\s*"(1|true)"/.test(wbXml),
+    sharedPath: ss ? resolvePath('xl/', ss.Target) : 'xl/sharedStrings.xml',
+    stylesPath: st ? resolvePath('xl/', st.Target) : 'xl/styles.xml',
+  };
+}
+
+function parseSharedStrings(xml) {
+  const out = [];
+  for (const m of xml.matchAll(/<si\b[^>]*?(?:\/>|>([\s\S]*?)<\/si>)/g)) out.push(m[1] ? richText(m[1]) : '');
+  return out;
+}
+
+// 날짜·시각 내장 형식 번호 (14~22, 45~47 영어권 · 27~36, 50~58 동아시아 지역 형식)
+const DATE_IDS = new Set([14, 15, 16, 17, 18, 19, 20, 21, 22, 45, 46, 47, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 50, 51, 52, 53, 54, 55, 56, 57, 58]);
+const DEC_IDS = new Map([[1, 0], [2, 2], [3, 0], [4, 2]]);
+/** 형식 → 'date' · 'elapsed'([h]:mm:ss 경과 시간) · { dec: 소수 자릿수, int: 앞자리 0 채움 자릿수 } · null */
+function kindOfFormat(id, code) {
+  if (id === 46) return 'elapsed'; // 내장 [h]:mm:ss
+  if (DATE_IDS.has(id)) return 'date';
+  if (DEC_IDS.has(id)) return { dec: DEC_IDS.get(id), int: 1 };
+  if (!code) return null;
+  const first = code.split(';')[0].replace(/"[^"]*"/g, '');
+  if (/\[(h+|m+|s+)\]/i.test(first)) return 'elapsed';
+  // 첫 구역만, 따옴표 글자·[색/지역]·\글자·_간격·*채움을 빼고 본다
+  const c = first.replace(/\[[^\]]*\]/g, '').replace(/\\./g, '').replace(/[_*]./g, '').trim();
+  if (/^general$/i.test(c)) return null;
+  if (/[ymdhs]/i.test(c.replace(/E[+-]/gi, ''))) return 'date';
+  const d = /^[#,]*(0+)(?:\.(0+))?$/.exec(c);
+  return d ? { dec: d[2] ? d[2].length : 0, int: d[1].length } : null;
+}
+
+/** styles.xml → 칸 스타일(s) 번호마다 'date' · { dec } · null */
+function parseStyles(xml) {
+  const fmts = new Map();
+  const x = unprefix(xml);
+  for (const m of x.matchAll(/<numFmt\b([^>]*?)\/?>/g)) { const a = attrsOf(m[1]); if (a.numFmtId) fmts.set(Number(a.numFmtId), xmlUnescape(a.formatCode || '')); }
+  const block = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(x);
+  const out = [];
+  if (block) for (const m of block[1].matchAll(/<xf\b([^>]*?)\/?>/g)) { const id = Number(attrsOf(m[1]).numFmtId || 0); out.push(kindOfFormat(id, fmts.get(id))); }
+  return out;
+}
+
+const pad = (n, w = 2) => String(n).padStart(w, '0');
+/** 경과 시간 [h]:mm:ss — 1.5일 → 36:00:00 (날짜로 넘기지 않는다) */
+function elapsedText(days) {
+  const ms = Math.round(Math.abs(days) * 86400000);
+  const s = Math.floor(ms / 1000), rest = ms % 1000;
+  return `${days < 0 ? '-' : ''}${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}${rest ? `.${pad(rest, 3)}` : ''}`;
+}
+/** 엑셀 날짜 일련번호 → 2024-10-24 · 2024-10-24 12:00:00 · 12:00:00(1 미만) — 1900 체계의 없는 2월 29일과 1904 체계까지 */
+function excelDateText(serial, date1904) {
+  const days = date1904 ? serial + 1462 : serial < 60 ? serial + 1 : serial;
+  const ms = Math.round((days - 25569) * 86400000);
+  const d = new Date(ms);
+  const msPart = d.getUTCMilliseconds();
+  const time = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}${msPart ? `.${pad(msPart, 3)}` : ''}`;
+  if (serial >= 0 && serial < 1) return time;
+  const date = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+  return ms % 86400000 === 0 ? date : `${date} ${time}`;
+}
+
+const csvField = (v) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+const MAX_COL = 16383; // 엑셀 열 한도 XFD
+function colIndex(letters) {
+  let n = 0;
+  for (let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+  return n - 1;
+}
+
+/** 시트 XML 을 조각으로 받아 CSV 줄을 만든다 — feed(글자) · end() → { parts, rows } */
+function createSheetParser({ shared, styles, date1904 }) {
+  let buf = '', started = false, rows = 0, out = '', prefixed = null, carry = '';
+  const parts = [];
+  const CELL = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+  const valueOf = (body) => { const m = /<v\b[^>]*>([\s\S]*?)<\/v>/.exec(body); return m ? m[1] : ''; };
+
+  function cellText(attrs, body) {
+    const t = (/\bt=["']([^"']*)["']/.exec(attrs) || [])[1] || 'n';
+    if (t === 'inlineStr') { const m = /<is\b[^>]*>([\s\S]*?)<\/is>/.exec(body); return m ? richText(m[1]) : ''; }
+    const v = valueOf(body);
+    if (t === 's') { if (v === '') return ''; const s = shared[Number(v)]; return s == null ? '' : s; } // <c t="s"/> 는 빈칸 (0번 글자가 아니다)
+    if (t === 'b') return v === '' ? '' : v === '1' || v === 'true' ? 'TRUE' : 'FALSE';
+    if (t === 'str' || t === 'e' || t === 'd') return xmlUnescape(v);
+    if (v === '') return '';
+    const n = Number(v);
+    if (!Number.isFinite(n)) return xmlUnescape(v);
+    const st = styles[Number((/\bs=["'](\d+)["']/.exec(attrs) || [])[1] || 0)];
+    if (st === 'date') return excelDateText(n, date1904);
+    if (st === 'elapsed') return elapsedText(n);
+    const text = String(Number(n.toPrecision(15))); // 엑셀은 유효숫자 15자리 — 0.30000000000000004 → 0.3
+    if (st && st.dec != null) {
+      // 끝자리 0 (810.420)·앞자리 0 (0000 → 0012) — 값이 바뀌지 않을 때만 (반올림은 하지 않는다)
+      const f = Math.abs(n).toFixed(st.dec);
+      if (Number(f) === Math.abs(Number(text))) { const [ip, fp] = f.split('.'); return `${n < 0 ? '-' : ''}${ip.padStart(st.int || 1, '0')}${fp ? `.${fp}` : ''}`; }
+    }
+    return text;
+  }
+
+  function emitRow(inner) {
+    const fields = [];
+    let col = -1, last = -1;
+    CELL.lastIndex = 0;
+    for (let m; (m = CELL.exec(inner));) {
+      const ref = /\br=["']([A-Za-z]{1,3})\d*["']/.exec(m[1]);
+      const at = ref ? colIndex(ref[1].toUpperCase()) : -1;
+      col = at >= 0 && at <= MAX_COL ? at : col + 1; // 주소가 없거나 엑셀 한도(XFD) 밖이면 다음 칸 — 잘못된 주소로 수십억 칸을 만들지 않게
+      if (col > MAX_COL) break;
+      const v = cellText(m[1], m[2] || '');
+      if (v === '') continue;
+      fields[col] = v;
+      if (col > last) last = col;
+    }
+    if (last < 0) return; // 빈 행은 뺀다 (CSV 의 빈 줄처럼)
+    let line = '';
+    for (let i = 0; i <= last; i++) line += (i ? ',' : '') + (fields[i] === undefined ? '' : csvField(fields[i]));
+    out += line + '\n';
+    rows++;
+    if (out.length > 1 << 22) { parts.push(new Blob([out])); out = ''; } // 글자를 Blob 으로 넘겨 놓아 큰 시트도 문자열이 쌓이지 않게
+  }
+
+  function scan(final) {
+    let pos = 0;
+    if (!started) {
+      const i = buf.indexOf('<sheetData');
+      if (i < 0) { if (buf.length > 64) buf = buf.slice(-64); return; }
+      started = true; pos = i;
+    }
+    for (;;) {
+      const i = buf.indexOf('<row', pos);
+      if (i < 0) { pos = Math.max(pos, buf.length - 8); break; } // 다음 조각에 걸친 「<row」를 위해 꼬리만 남긴다
+      const ch = buf.charCodeAt(i + 4);
+      if (Number.isNaN(ch)) { pos = i; break; }
+      if (ch !== 32 && ch !== 62 && ch !== 47 && ch !== 9 && ch !== 10 && ch !== 13) { pos = i + 4; continue; } // <rowBreaks 등
+      const gt = buf.indexOf('>', i);
+      if (gt < 0) { pos = i; break; }
+      if (buf.charCodeAt(gt - 1) === 47) { pos = gt + 1; continue; } // <row …/> — 빈 행
+      const end = buf.indexOf('</row>', gt);
+      if (end < 0) { pos = i; break; }
+      emitRow(buf.slice(gt + 1, end));
+      pos = end + 6;
+    }
+    buf = final ? '' : buf.slice(pos);
+  }
+
+  return {
+    feed(text) {
+      // 접두어 붙은 시트(<x:sheetData>)인지 처음에 한 번 본다 — 그렇다면 들어오는 글자마다 접두어를 뗀다 (조각에 걸친 태그는 다음 조각과 함께)
+      if (prefixed === null) {
+        const probe = buf + text;
+        prefixed = /<sheetData\b/.test(probe) ? false : /<[A-Za-z_][\w.-]*:sheetData\b/.test(probe) ? true : null;
+        if (prefixed) { buf = ''; text = probe; }
+      }
+      if (prefixed) {
+        text = carry + text; carry = '';
+        const lt = text.lastIndexOf('<');
+        if (lt >= 0 && text.indexOf('>', lt) < 0) { carry = text.slice(lt); text = text.slice(0, lt); }
+        text = text.replace(ELEM_PREFIX, '<$1');
+      }
+      buf += text;
+      scan(false);
+    },
+    end() { if (carry) { buf += carry.replace(ELEM_PREFIX, '<$1'); carry = ''; } scan(true); if (out) parts.push(new Blob([out])); return { parts, rows }; },
+  };
+}
+
+/**
+ * XLSX Blob → { blob: CSV(UTF-8·쉼표), sheets: 시트 이름들, sheet: 연 번호, rows } — 취소되면 null.
+ * sheet: 열 시트 번호 (없거나 범위 밖이면 처음 보이는 시트). onProgress(풀린 바이트, 시트 전체 바이트).
+ */
+async function xlsxToCsv(blob, { sheet = null, onProgress = null, cancelled = () => false } = {}) {
+  const zip = await readZipIndex(blob);
+  const wbE = zip.get('xl/workbook.xml');
+  if (!wbE) throw new Error('XLSX 가 아닙니다 (엑셀 통합 문서 xl/workbook.xml 이 없는 ZIP) — 압축 파일이면 풀어서 여세요');
+  const relE = zip.get('xl/_rels/workbook.xml.rels');
+  const wb = parseWorkbook(unprefix(await entryText(blob, wbE)), relE ? unprefix(await entryText(blob, relE)) : '');
+  if (!wb.sheets.length) throw new Error('XLSX 에 표(워크시트)가 없습니다 — 차트 시트만 있는 파일일 수 있습니다');
+  if (cancelled()) return null;
+  const firstVisible = Math.max(0, wb.sheets.findIndex((s) => !s.hidden));
+  const idx = Number.isInteger(sheet) && sheet >= 0 && sheet < wb.sheets.length ? sheet : firstVisible;
+  const ssE = zip.get(wb.sharedPath), stE = zip.get(wb.stylesPath);
+  const shared = ssE ? parseSharedStrings(unprefix(await entryText(blob, ssE))) : [];
+  if (cancelled()) return null; // 큰 공유 문자열을 읽는 사이 다른 파일을 열었으면 (메인 스레드 모드에서도) 바로 그만
+  const styles = stE ? parseStyles(await entryText(blob, stE)) : [];
+  if (cancelled()) return null;
+  const se = zip.get(wb.sheets[idx].path);
+  if (!se) throw new Error(`시트 「${wb.sheets[idx].name}」 를 XLSX 안에서 찾지 못했습니다`);
+  const parser = createSheetParser({ shared, styles, date1904: wb.date1904 });
+  const reader = (await entryStream(blob, se)).getReader();
+  const dec = new TextDecoder('utf-8');
+  let done = 0, last = Date.now();
+  for (;;) {
+    const { value, done: end } = await reader.read();
+    if (end) break;
+    if (cancelled()) { reader.cancel().catch(() => {}); return null; }
+    done += value.length;
+    parser.feed(dec.decode(value, { stream: true }));
+    if (onProgress && Date.now() - last >= 250) { last = Date.now(); onProgress(done, se.usize); }
+  }
+  parser.feed(dec.decode());
+  const { parts, rows } = parser.end();
+  return { blob: new Blob(parts, { type: 'text/csv' }), sheets: wb.sheets.map((s) => s.name), sheet: idx, rows };
+}
+return { looksLikeOle, looksLikeZip, xmlUnescape, parseStyles, elapsedText, excelDateText, xlsxToCsv };
+})();
+
 // ===== src/shared/series.js =====
 const M_shared_series = (() => {
 const { trimSpan, parseHexNumber } = M_shared_infer;
 // 시간(X축)에 따른 열 변화 — 어떤 열을 어떻게 그릴지 정하고, X 구간마다 값을 모은다.
+// 열마다 「값이 들어오는 주기」도 함께 센다: 값이 있는 행끼리의 X(시간) 간격 분포 → 가장 많은 간격(주기)과 그 비율.
 // 워커와 메인 스레드 폴백에서 같은 코드로 돈다 (DOM 사용 금지).
 //   숫자·16진수 열 → 구간별 최소·최대·평균(선 + 범위 띠)
 //   값 종류가 적은 글자 열 → 구간별 값 개수(100% 누적 영역)
@@ -5540,6 +6332,74 @@ function defaultXColumn(stats, hexLike) {
   return hit ? hit.col : -1;
 }
 
+// ---------- 값이 들어오는 주기 ----------
+// 간격은 로그 눈금 구간(2% 너비)으로 센다 — 1µs~1e12 를 2천여 칸에. 구간마다 개수와 합을 두면 주기를 정확한 평균으로 꺼낼 수 있다.
+const P_RATIO_LN = Math.log(1.02);
+const P_MIN_E = Math.floor(Math.log(1e-6) / P_RATIO_LN);
+const PERIOD_BINS = Math.ceil(Math.log(1e12) / P_RATIO_LN) - P_MIN_E + 1;
+const PEAK_W = 2; // 봉우리 = 가장 많은 칸 ±2칸(약 ±4%)을 먼저 모은 뒤, 서로 15% 안의 봉우리는 한 주기로 합친다
+const PEAK_MERGE = 0.15; // 1ms 로 반올림된 10ms 주기(9·10·11ms)나 ±5% 흔들림도 한 주기 — 20 과 40 은 따로
+const PERIOD_MAX_COLS = 256; // 주기를 세는 열 수 한도 (열마다 약 25KB)
+const periodBin = (d) => Math.max(0, Math.min(PERIOD_BINS - 1, Math.floor(Math.log(d) / P_RATIO_LN) - P_MIN_E));
+
+/**
+ * 한 열의 간격 분포(count/sum 의 base 부터 PERIOD_BINS 칸) → { n: 양의 간격 수, zero: 같은 X, neg: X 가 거꾸로 간 곳,
+ *   median·p05·p95, peaks: [{ mean, count, share }] 많은 순 3개까지 (2% 미만은 뺀다) }
+ *   봉우리: 가장 높은 칸 ±2칸씩 차례로 모으고(조각), 평균이 서로 15% 안인 조각은 큰 쪽에 합친다 — 칸 경계·반올림에 흔들리지 않게
+ */
+function summarizePeriod(count, sum, base, n, zero = 0, neg = 0) {
+  const out = { n, zero, neg, median: null, p05: null, p95: null, peaks: [] };
+  if (!n) return out;
+  const q = (f) => {
+    const target = f * (n - 1);
+    let acc = 0;
+    for (let b = 0; b < PERIOD_BINS; b++) {
+      const c = count[base + b];
+      if (!c) continue;
+      if (acc + c > target) return sum[base + b] / c;
+      acc += c;
+    }
+    return null;
+  };
+  out.median = q(0.5); out.p05 = q(0.05); out.p95 = q(0.95);
+  const used = new Uint8Array(PERIOD_BINS);
+  const pieces = [];
+  for (let k = 0; k < 16; k++) {
+    let best = -1, bc = 0;
+    for (let b = 0; b < PERIOD_BINS; b++) if (!used[b] && count[base + b] > bc) { bc = count[base + b]; best = b; }
+    if (best < 0) break;
+    let c = 0, s = 0;
+    for (let b = Math.max(0, best - PEAK_W); b <= Math.min(PERIOD_BINS - 1, best + PEAK_W); b++) {
+      if (used[b]) continue;
+      used[b] = 1; c += count[base + b]; s += sum[base + b];
+    }
+    if (c / n < 0.005) break;
+    pieces.push({ c, s });
+  }
+  // 큰 조각부터: 평균이 15% 안인 앞 봉우리가 있으면 거기에 합친다
+  pieces.sort((a, b) => b.c - a.c);
+  const merged = [];
+  for (const p of pieces) {
+    const m = p.s / p.c;
+    const into = merged.find((q) => Math.abs(m / (q.s / q.c) - 1) <= PEAK_MERGE);
+    if (into) { into.c += p.c; into.s += p.s; } else merged.push({ c: p.c, s: p.s });
+  }
+  merged.sort((a, b) => b.c - a.c);
+  for (const q of merged.slice(0, 3)) if (q.c / n >= 0.02) out.peaks.push({ mean: q.s / q.c, count: q.c, share: q.c / n });
+  return out;
+}
+
+/** X 열 이름에서 시간 단위 — Time_Tag(ms) → ms (초당 1000). 모르면 null (주기만, Hz 없이) */
+function timeUnitOf(name) {
+  const n = String(name || '').toLowerCase();
+  const word = (w) => new RegExp(`(^|[^a-zµ])(${w})([^a-z]|$)`).test(n);
+  if (word('ms|msec|millisecs?|milliseconds?') || /밀리초($|[^가-힣])/.test(n)) return { unit: 'ms', perSec: 1e3 };
+  if (word('us|µs|usec|microsecs?|microseconds?') || /마이크로초($|[^가-힣])/.test(n)) return { unit: 'us', perSec: 1e6 };
+  if (word('ns|nsec|nanosecs?|nanoseconds?') || /나노초($|[^가-힣])/.test(n)) return { unit: 'ns', perSec: 1e9 };
+  if (word('s|sec|secs|seconds?') || /(^|[^가-힣])초($|[^가-힣])/.test(n)) return { unit: 's', perSec: 1 }; // 「시간(초)」 — 「초과」·「초기」는 아니다
+  return null;
+}
+
 // 십진수만 — JS Number 는 0x1F·0b101·0o17·Infinity 도 숫자로 읽어 버리므로 모양을 먼저 확인한다
 const DEC_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 function parseDec(str, s0, e0) {
@@ -5556,14 +6416,19 @@ const parseHex = (str, s, e) => parseHexNumber(str, s, e);
  *   (또는 match 대신 tests: [(text, fi, k) → boolean, …]) 이면 값마다 구간별 나온 횟수, 처음·마지막으로 나온 행과 X,
  *   그 값의 수치(parse 가 있을 때 — 그래프에 기준선을 긋는다)를, 그리고 그 열에 값(공백 아닌 글자)이 있는 행 수(비율의 분모)와
  *   값 중 하나라도 나온 행 수(합계 — 5 와 05 처럼 같은 행을 두 값이 세어도 한 번)를 센다.
+ * periodCols: 「값이 들어오는 주기」를 셀 열들 — 값(공백 아닌 글자)이 있는 행끼리의 X 간격 분포 (범위·필터 안의 행만, 파일 순서)
  * addRecord(text, fi, k, row) 로 레코드를 넣고 result() 로 꺼낸다.
  */
-function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
+function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null, periodCols = null }) {
   const B = Math.max(1, buckets | 0);
   const span = x1 - x0;
   const scale = span > 0 ? B / span : 0;
   const rows = new Uint32Array(B);
   let outside = 0, noX = 0;
+  const pCols = periodCols ? periodCols.slice(0, PERIOD_MAX_COLS) : [];
+  const P = pCols.length;
+  const pLast = new Float64Array(P).fill(NaN), pN = new Uint32Array(P), pZero = new Uint32Array(P), pNeg = new Uint32Array(P);
+  const pCount = new Uint32Array(P * PERIOD_BINS), pSum = new Float64Array(P * PERIOD_BINS);
   const have = mark ? new Uint32Array(B) : null;
   let haveN = 0;
   const markParse = mark && mark.parse ? (mark.parse === 'hex' ? parseHex : parseDec) : null;
@@ -5596,6 +6461,19 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
     if (x < x0 || x > x1) { outside++; return; }
     const b = scale ? Math.min(B - 1, Math.floor((x - x0) * scale)) : 0;
     rows[b]++;
+    for (let j = 0; j < P; j++) {
+      const c = pCols[j];
+      if (c >= fc) continue;
+      let a = fi.fieldStart[f0 + c];
+      const e = fi.fieldEnd[f0 + c];
+      while (a < e && text.charCodeAt(a) <= 32) a++;
+      if (a >= e) continue; // 값이 없는 칸
+      const prev = pLast[j];
+      pLast[j] = x;
+      if (prev !== prev) continue; // 이 열의 첫 값
+      const d = x - prev;
+      if (d > 0) { const i = j * PERIOD_BINS + periodBin(d); pCount[i]++; pSum[i] += d; pN[j]++; } else if (d === 0) pZero[j]++; else pNeg[j]++;
+    }
     if (mark && mark.col < fc) {
       const [a, e] = trimSpan(text, fi.fieldStart[f0 + mark.col], fi.fieldEnd[f0 + mark.col]);
       if (e > a) { have[b]++; haveN++; }
@@ -5638,6 +6516,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
   function result() {
     return {
       buckets: B, x0, x1, xCol, rows, outside, noX,
+      periods: pCols.map((col, j) => ({ col, ...summarizePeriod(pCount, pSum, j * PERIOD_BINS, pN[j], pZero[j], pNeg[j]) })),
       mark: mark ? {
         col: mark.col, have, haveTotal: haveN, anyHits, anyTotal,
         items: items.map(({ hits, total, firstRow, lastRow, firstX, lastX, num }) => ({ hits, total, firstRow, lastRow, firstX, lastX, num: Number.isFinite(num) ? num : null })),
@@ -5655,7 +6534,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null }) {
   }
   return { addRecord, result };
 }
-return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, createSeriesAccumulator };
+return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, PERIOD_BINS, PERIOD_MAX_COLS, summarizePeriod, timeUnitOf, createSeriesAccumulator };
 })();
 
 // ===== src/worker/engine.js =====
@@ -5673,8 +6552,10 @@ const { trimSpan } = M_shared_infer;
 const { parseByteNeedle } = M_shared_hex;
 const { findMasked } = M_shared_search_bytes;
 const { createXlsxWriter, XLSX_MAX_ROWS } = M_shared_xlsx;
-const { planSeries, xAxisOptions, createSeriesAccumulator } = M_shared_series;
+const { looksLikeZip, looksLikeOle, xlsxToCsv } = M_shared_xlsx_read;
+const { planSeries, xAxisOptions, createSeriesAccumulator, timeUnitOf } = M_shared_series;
 // 데이터셋 엔진. 워커에서 실행되지만 메인 스레드 폴백으로도 동작한다 (DOM 사용 금지).
+
 
 
 
@@ -5769,8 +6650,26 @@ class Engine {
   async open({ reqId, blob, options = {} }) {
     this.clear();
     const gen = this.gen;
+    if (blob.size >= MAX_FILE) throw new Error('4GB 이상 파일은 지원하지 않습니다');
+
+    // XLSX(엑셀): 압축을 풀어 시트 하나를 CSV(UTF-8·쉼표)로 바꾼 뒤 그 글자를 연다 — 이후 표·검색·헥사는 바꾼 CSV 기준
+    let xlsx = null;
+    const magic = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+    if (looksLikeOle(magic)) throw new Error('옛 엑셀(.xls)이나 암호가 걸린 엑셀 파일은 열 수 없습니다 — 엑셀에서 암호를 풀고 .xlsx 나 CSV 로 저장해 여세요');
+    if (looksLikeZip(magic)) {
+      const sourceSize = blob.size;
+      const conv = await xlsxToCsv(blob, {
+        sheet: Number.isInteger(options.sheet) ? options.sheet : null,
+        cancelled: () => gen !== this.gen,
+        onProgress: (done, total) => this.post({ type: MSG.CONVERT_PROGRESS, done, total }),
+      });
+      if (!conv || gen !== this.gen) return;
+      xlsx = { sheets: conv.sheets, sheet: conv.sheet, rows: conv.rows, sourceSize };
+      blob = conv.blob;
+      options = { ...options, encoding: 'utf-8', delimiter: ',' };
+      if (blob.size >= MAX_FILE) throw new Error('바꾼 CSV 가 4GB 를 넘습니다');
+    }
     const size = blob.size;
-    if (size >= MAX_FILE) throw new Error('4GB 이상 파일은 지원하지 않습니다');
 
     const sample = new Uint8Array(await blob.slice(0, Math.min(size, SAMPLE)).arrayBuffer());
     if (gen !== this.gen) return;
@@ -5811,6 +6710,7 @@ class Engine {
     this.post({
       type: MSG.OPENED, reqId, encoding, bomLength, delimiter, hasHeader, header: header.slice(), size,
       detected: { encoding: enc.encoding, delimiter: detDel.delimiter, hasHeader: detHeader, confidence: enc.confidence },
+      xlsx,
     });
     await this.index(gen);
   }
@@ -6463,7 +7363,9 @@ class Engine {
       match: compileMarkMatcher(mark.col, markValues, { hexLike: ds.hexLike }), // 칸을 한 번만 읽어 값마다 비교
       parse: plan[mark.col] && plan[mark.col].kind === 'num' ? plan[mark.col].parse : null,
     } : null;
-    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)), mark: markOpt });
+    // 값이 들어오는 주기: 고른 열(크게 보기) 또는 X 를 뺀 모든 열 (그래프로 그리지 않는 열도)
+    const periodCols = (cols || Array.from({ length: ds.columnCount }, (_, c) => c)).filter((c) => c >= 0 && c < ds.columnCount && c !== xCol);
+    const acc = createSeriesAccumulator({ plan: draw, xCol, x0, x1, buckets: Math.max(1, Math.min(4000, buckets | 0)), mark: markOpt, periodCols });
     const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
 
     const gen = this.gen;
@@ -6492,6 +7394,7 @@ class Engine {
         type: MSG.SERIES_RESULT, reqId, id, cancelled: false,
         xCol, xName: xCol < 0 ? '행 번호' : ds.header[xCol], x0: r.x0, x1: r.x1, buckets: r.buckets,
         rows: r.rows, outside: r.outside, noX: r.noX, filteredOut,
+        periods: r.periods, xUnit: xCol < 0 ? null : timeUnitOf(ds.header[xCol]),
         mark: r.mark ? { ...r.mark, values: markValues, items: r.mark.items.map((it, i) => ({ ...it, value: markValues[i] })) } : null,
         series: r.series.map((s) => ({ ...s, name: ds.header[s.col], width: ds.padNibbles ? ds.padNibbles[s.col] || 4 : 4 })),
         skipped: plan.filter((p) => p.kind === 'skip').map(({ col, name, reason }) => ({ col, name, reason })),
@@ -7113,7 +8016,7 @@ const M_main_ui_input_panel = (() => {
 const { h, clear, select } = M_main_ui_dom;
 const { fmtInt, fmtBytes } = M_main_format;
 const { encodingLabel, delimLabel } = M_main_i18n;
-// 입력 패널: 드롭존/파일 선택/붙여넣기/옵션/요약.
+// 입력 패널: 드롭존/파일 선택/붙여넣기/옵션/요약. XLSX 는 워커가 시트 하나를 CSV 로 바꿔 연다 (시트가 여럿이면 고르기).
 
 
 
@@ -7122,9 +8025,9 @@ const PASTE_DIRECT_CHARS = 500000; // 이보다 큰 붙여넣기는 입력란을
 
 function createInputPanel({ container, onOpen, onReopen }) {
   let current = null; // 열려 있는 Blob
-  const fileInput = h('input', { type: 'file', class: 'is-hidden', accept: '.csv,.tsv,.txt,text/csv,text/plain' });
+  const fileInput = h('input', { type: 'file', class: 'is-hidden', accept: '.csv,.tsv,.txt,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const drop = h('div', { class: 'drop' },
-    h('div', {}, h('strong', { text: 'CSV 파일 놓기' })),
+    h('div', {}, h('strong', { text: 'CSV · XLSX 파일 놓기' })),
     h('div', { class: 'faint', text: '또는 클릭해서 선택 · 파일은 이 탭 메모리에만 머뭅니다' }));
   drop.addEventListener('click', () => fileInput.click());
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('is-over'); });
@@ -7168,8 +8071,13 @@ function createInputPanel({ container, onOpen, onReopen }) {
   const encSel = select([['auto', '자동 감지'], ['utf-8', 'UTF-8'], ['euc-kr', 'EUC-KR (CP949)'], ['utf-16le', 'UTF-16 LE'], ['utf-16be', 'UTF-16 BE'], ['windows-1252', 'Windows-1252']], 'auto');
   const delSel = select([['auto', '자동 감지'], [',', '쉼표 ,'], ['\t', '탭'], [';', '세미콜론 ;'], ['|', '파이프 |']], 'auto');
   const hdrSel = select([['auto', '자동 감지'], ['true', '첫 행이 헤더'], ['false', '헤더 없음']], 'auto');
-  const detected = h('div', { class: 'faint', text: '' });
+  const detected = h('div', { class: 'faint input__detected', text: '' });
   for (const s of [encSel, delSel, hdrSel]) s.addEventListener('change', () => { if (current) onReopen(options()); });
+  // XLSX 시트 고르기 — 시트가 여럿일 때만 보인다. sheetOf: 이 고르기가 어느 파일의 것인지 (새 파일은 처음 보이는 시트부터)
+  const sheetSel = h('select', { class: 'select', 'aria-label': 'XLSX 시트' });
+  const sheetField = h('div', { class: 'field is-hidden' }, h('label', { text: '시트' }), sheetSel);
+  let sheetOf = null, xlsxInfo = null;
+  sheetSel.addEventListener('change', () => { if (current) onReopen(options()); });
 
   const summary = h('dl', { class: 'summary' });
   const summaryTitle = h('div', { class: 'panel-title', text: '요약' });
@@ -7179,6 +8087,7 @@ function createInputPanel({ container, onOpen, onReopen }) {
   container.appendChild(fileInput);
   container.appendChild(h('div', { class: 'field', style: { marginTop: '8px' } }, ta, h('div', { class: 'row' }, pasteBtn), pasteNote));
   container.appendChild(h('div', { class: 'panel-title', text: '옵션' }));
+  container.appendChild(sheetField);
   container.appendChild(h('div', { class: 'field' }, h('label', { text: '인코딩' }), encSel));
   container.appendChild(h('div', { class: 'field' }, h('label', { text: '구분자' }), delSel));
   container.appendChild(h('div', { class: 'field' }, h('label', { text: '헤더' }), hdrSel));
@@ -7188,15 +8097,31 @@ function createInputPanel({ container, onOpen, onReopen }) {
 
   function options() {
     const hv = hdrSel.value;
-    return { encoding: encSel.value, delimiter: delSel.value, hasHeader: hv === 'auto' ? 'auto' : hv === 'true' };
+    return { encoding: encSel.value, delimiter: delSel.value, hasHeader: hv === 'auto' ? 'auto' : hv === 'true', sheet: sheetOf === current && sheetSel.value !== '' ? Number(sheetSel.value) : null };
   }
-  function openBlob(blob) { current = blob; onOpen(blob, options()); }
+  /** XLSX 는 워커가 UTF-8·쉼표 CSV 로 바꿔 열므로 인코딩·구분자 고르기는 쓰지 않는다 — 고른 것처럼 보이지 않게 끈다 */
+  function setXlsxMode(on) {
+    for (const s of [encSel, delSel]) { s.disabled = on; s.title = on ? 'XLSX 는 UTF-8 · 쉼표 CSV 로 바꿔 엽니다' : ''; }
+  }
+  function openBlob(blob) { current = blob; sheetOf = null; xlsxInfo = null; sheetField.classList.add('is-hidden'); setXlsxMode(false); onOpen(blob, options()); }
   function dd(k, v, cls) { return [h('dt', { text: k }), h('dd', { text: v, class: cls })]; }
 
   return {
     get options() { return options(); },
+    openFile(f) { openBlob(f); },
     setDetected(o) {
       const parts = [];
+      xlsxInfo = o.xlsx || null;
+      if (xlsxInfo) {
+        // 시트 고르기: 여럿일 때만. 지금 연 시트를 고른 상태로
+        clear(sheetSel);
+        xlsxInfo.sheets.forEach((name, i) => sheetSel.appendChild(h('option', { value: String(i), text: name })));
+        sheetSel.value = String(xlsxInfo.sheet);
+        sheetOf = current;
+        sheetField.classList.toggle('is-hidden', xlsxInfo.sheets.length < 2);
+        setXlsxMode(true);
+        parts.push(`XLSX 시트 「${xlsxInfo.sheets[xlsxInfo.sheet]}」${xlsxInfo.sheets.length > 1 ? ` (${xlsxInfo.sheet + 1}/${xlsxInfo.sheets.length})` : ''} 를 CSV 로 바꿔 열었습니다 ·`);
+      }
       if (o.detected) parts.push(`감지: ${encodingLabel(o.detected.encoding)} · ${delimLabel(o.detected.delimiter)} · ${o.detected.hasHeader ? '헤더 있음' : '헤더 없음'}`);
       detected.textContent = parts.join(' ');
     },
@@ -7206,7 +8131,8 @@ function createInputPanel({ container, onOpen, onReopen }) {
       const name = blob && blob.name ? blob.name : '(이름 없음)';
       summary.append(
         ...dd('파일', name),
-        ...dd('크기', fmtBytes(info.size)),
+        ...(xlsxInfo ? [...dd('형식', `XLSX · 시트 「${xlsxInfo.sheets[xlsxInfo.sheet]}」`), ...dd('XLSX 크기', fmtBytes(xlsxInfo.sourceSize))] : []),
+        ...dd(xlsxInfo ? 'CSV 로 바꾼 크기' : '크기', fmtBytes(info.size)),
         ...dd('행', fmtInt(info.rowCount)),
         ...dd('열', info.extraCount ? `${fmtInt(info.schemaCount)} + ${info.extraCount}` : fmtInt(info.schemaCount)),
         ...dd('인코딩', encodingLabel(info.encoding) + (info.bomLength ? ' (BOM)' : '')),
@@ -7215,7 +8141,7 @@ function createInputPanel({ container, onOpen, onReopen }) {
       );
       if (info.overflowTotal) summary.append(...dd('초과 필드 행', fmtInt(info.overflowTotal) + '건', 'warn'));
     },
-    clear() { current = null; clear(summary); detected.textContent = ''; pasteNote.textContent = ''; },
+    clear() { current = null; sheetOf = null; xlsxInfo = null; sheetField.classList.add('is-hidden'); setXlsxMode(false); clear(summary); detected.textContent = ''; pasteNote.textContent = ''; },
   };
 }
 return { createInputPanel };
@@ -9011,6 +9937,80 @@ function bucketRange(b, x0, x1, B) {
 return { niceScale, hexScale, formatTick, formatValue, formatX, formatSpan, bucketRange };
 })();
 
+// ===== src/main/period-format.js =====
+const M_main_period_format = (() => {
+// 「값이 들어오는 주기」 글자 — 주기(시간 단위·Hz), 규칙성, 섞인 주기, 불규칙. 글자 모양만 정한다 (DOM 없음).
+// 주기 요약은 shared/series.js summarizePeriod, X 단위는 timeUnitOf ({ unit, perSec } · 'row' = 행 번호 · null = 모름).
+
+const sig = (v, d = 4) => Number(v).toLocaleString('ko-KR', { maximumSignificantDigits: d });
+
+/** X 단위의 길이 → 글자. 단위를 알면 알맞은 단위(s·ms·µs·ns)로, 행 번호면 「n행」, 모르면 숫자만 */
+function fmtSpan(v, xu) {
+  if (v == null || !Number.isFinite(v)) return '-';
+  if (xu === 'row') return `${sig(v)}행`;
+  if (!xu) return sig(v);
+  const sec = v / xu.perSec;
+  const a = Math.abs(sec);
+  if (a >= 1) return `${sig(sec)}s`;
+  if (a >= 1e-3) return `${sig(sec * 1e3)}ms`;
+  if (a >= 1e-6) return `${sig(sec * 1e6)}µs`;
+  return `${sig(sec * 1e9)}ns`;
+}
+
+/** 주기 → 초당 횟수. 시간 단위를 알 때만 */
+function fmtHz(v, xu) {
+  if (!xu || xu === 'row' || !(v > 0)) return '';
+  return `${sig(xu.perSec / v, 3)}Hz`;
+}
+
+const pct = (f) => (f >= 0.995 ? '100%' : `${(f * 100).toFixed(f >= 0.1 ? 0 : 1)}%`);
+
+const PERIOD_MIN_N = 3; // 간격이 이보다 적으면 주기라고 하지 않는다
+
+/** regular: 한 간격이 80% 이상 · mixed: 봉우리 2~3개가 합쳐 80% 이상 · irregular: 그 밖 · few: 간격이 너무 적음 */
+function classifyPeriod(p) {
+  if (!p || p.n < PERIOD_MIN_N) return 'few';
+  const top = p.peaks[0];
+  if (top && top.share >= 0.8) return 'regular';
+  if (p.peaks.length >= 2 && p.peaks.reduce((a, k) => a + k.share, 0) >= 0.8) return 'mixed';
+  return 'irregular';
+}
+
+const peakText = (k, xu) => { const hz = fmtHz(k.mean, xu); return `${fmtSpan(k.mean, xu)}${hz ? ` · ${hz}` : ''}`; };
+
+/** 짧은 한 줄 (작은 그래프·열 상세): 「주기 20ms · 50Hz · 규칙 98%」 */
+function periodShort(p, xu) {
+  const kind = classifyPeriod(p);
+  if (kind === 'few') return p && p.n ? `주기 — 간격이 ${p.n}개뿐` : '주기 — 값이 하나뿐이거나 없음';
+  if (kind === 'regular' && xu === 'row' && p.peaks[0].mean === 1 && p.peaks[0].share >= 0.995) return '주기 — 매 행'; // 시간 열 없는 보통 CSV 의 꽉 찬 열
+  if (kind === 'regular') return `주기 ${peakText(p.peaks[0], xu)} · 규칙 ${pct(p.peaks[0].share)}`;
+  if (kind === 'mixed') return `주기 섞임 · ${p.peaks.map((k) => `${fmtSpan(k.mean, xu)} ${pct(k.share)}`).join(' · ')}`;
+  return `주기 불규칙 · 가운데 ${fmtSpan(p.median, xu)} (${fmtSpan(p.p05, xu)}~${fmtSpan(p.p95, xu)})`;
+}
+
+/**
+ * 자세히 (크게 보기): { kind, title, peaks: [{ text: '20ms · 50Hz', share: '98%' }], range, notes: [...] }
+ *   range — 간격의 가운데와 5~95% 범위, notes — 간격 수 · 같은 시각 · 시간이 거꾸로 간 곳
+ */
+function periodDetail(p, xu) {
+  const kind = classifyPeriod(p);
+  const title = { regular: '일정', mixed: '여러 주기가 섞임', irregular: '불규칙', few: '간격이 적어 알 수 없음' }[kind];
+  const notes = [];
+  if (p) {
+    notes.push(`간격 ${p.n.toLocaleString('ko-KR')}개`);
+    if (p.zero) notes.push(`같은 시각 ${p.zero.toLocaleString('ko-KR')}개`);
+    if (p.neg) notes.push(`시간이 거꾸로 간 곳 ${p.neg.toLocaleString('ko-KR')}개`);
+  }
+  return {
+    kind, title,
+    peaks: kind === 'few' || !p ? [] : p.peaks.map((k) => ({ text: peakText(k, xu), share: pct(k.share) })),
+    range: p && p.n ? `가운데 ${fmtSpan(p.median, xu)} (5~95%: ${fmtSpan(p.p05, xu)} ~ ${fmtSpan(p.p95, xu)})` : '',
+    notes,
+  };
+}
+return { fmtSpan, fmtHz, PERIOD_MIN_N, classifyPeriod, periodShort, periodDetail };
+})();
+
 // ===== src/main/ui/graph-view.js =====
 const M_main_ui_graph_view = (() => {
 const { h, clear } = M_main_ui_dom;
@@ -9019,13 +10019,16 @@ const { niceScale, hexScale, formatTick, formatValue, bucketRange, formatX, form
 const { fmtInt, fmtDuration } = M_main_format;
 const { xAxisOptions, defaultXColumn } = M_shared_series;
 const { markQueries, splitValues, joinValues, MARK_MAX } = M_shared_filter;
+const { periodShort, periodDetail } = M_main_period_format;
 // 「그래프」 탭: 열마다 X축(시간 열 또는 행 번호)에 따른 변화.
 //   전체 — 그릴 수 있는 열을 작은 그래프로 한꺼번에 (작은 다중 그래프, 열마다 축 하나)
 //   크게 — 하나를 고르면 위에 크게: 기준선+툴팁, 끌어서 확대, 두 번 눌러 전체, 표로 보기
+//          「값이 들어오는 주기」: 열마다 값이 있는 행끼리의 시간 간격 → 주기·Hz·규칙성 (작은 그래프·크게 보기·열 상세에도)
 //          「값이 나온 때」: 값(쉼표로 4개까지)을 넣으면 값마다 나온 시각을 점(+ 아래 값마다 구간별 횟수 칸)으로, 횟수·비율·처음/마지막 행을 표로
 // 숫자·16진수 열은 구간 평균 선(2px) + 최소~최대 띠(옅게), 값 종류가 적은 글자 열은 구간별 값 비율(100% 누적 영역).
 // 계산은 워커(engine.series), 축 계산은 chart-scale.js, 무엇을 그릴지는 shared/series.js.
 // 필터는 이 뷰가 들고 있다가 요청에 실어 보낸다 — 앱의 필터 막대와 두 군데서 따로 읽으면 어긋난다.
+
 
 
 
@@ -9214,6 +10217,11 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
   /** 값을 넣어 볼 수 있는 열: X축이 아니고 값이 있는 열 (그래프로 그리지 않는 글자 열도 「나온 때」는 볼 수 있다) */
   const canMark = (col) => !!(prof && col != null && col !== xCol && prof.stats[col] && prof.stats[col].count > 0);
   const drawable = (col) => !overview || overview.series.some((x) => x.col === col);
+  /** X 단위: 행 번호면 'row', 시간 열이면 { unit, perSec } (단위를 모르면 null — 주기만, Hz 없이) */
+  const xuOf = (r) => (r.xCol < 0 ? 'row' : r.xUnit || null);
+  const periodIn = (r, col) => (r && r.periods ? r.periods.find((p) => p.col === col) || null : null);
+  const periodTitle = (r, p) => { const d = periodDetail(p, xuOf(r)); return [`값이 들어오는 주기 — ${d.title}`, d.range, ...d.notes].filter(Boolean).join('\n'); };
+
   const sameList = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   /** 지금 넣은 값들로 센 결과만 (다른 값·다른 열의 것은 버린다) */
   const markOf = (r) => (markValues.length && r && r.mark && r.mark.col === focusCol && sameList(r.mark.values, markValues) ? r.mark : null);
@@ -9318,6 +10326,7 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
     if (r.filteredOut) parts.push(`필터로 ${fmtInt(r.filteredOut)}행 제외`);
     if (r.noX) parts.push(`X 값 없는 ${fmtInt(r.noX)}행 제외`);
     if (r.outside) parts.push(`X 범위 밖 ${fmtInt(r.outside)}행 제외`);
+    if (ds && r.periods && r.periods.length < ds.columnCount - (r.xCol >= 0 ? 1 : 0)) parts.push(`주기는 앞 ${fmtInt(r.periods.length)}개 열만`); // 열이 아주 많은 파일
     parts.push(fmtDuration(r.elapsed));
     return parts.join(' · ');
   }
@@ -9334,7 +10343,10 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
     if (!shown.length) grid.appendChild(h('div', { class: 'detail__empty', text: '보이는 열 중에 그래프로 그릴 열이 없습니다. 위 「열 ▾」에서 열을 더 고르세요.' }));
     if (skipped.length) {
       skippedBox.append(h('div', { class: 'panel-title', text: '그래프로 그리지 않은 열' }),
-        h('div', { class: 'chips' }, ...skipped.map((k) => h('span', { class: 'chip graph__skip', title: k.reason, text: `${k.name} — ${k.reason}` }))));
+        h('div', { class: 'chips' }, ...skipped.map((k) => {
+          const p = periodIn(overview, k.col); // 그리지 않는 열도 값이 들어오는 주기는 있다
+          return h('span', { class: 'chip graph__skip', title: p ? `${k.reason}\n${periodTitle(overview, p)}` : k.reason, text: `${k.name} — ${k.reason}${p ? ` · ${periodShort(p, xuOf(overview))}` : ''}` });
+        })));
     }
     // 보이는 열 중 그릴 열이 하나뿐이면 바로 크게 (한 열의 흐름을 보려고 고른 경우)
     if (visibleSet && shown.length === 1 && focusCol == null && !autoFocused) { autoFocused = true; focusCol = shown[0].col; refineFocus(); } // 닫으면 다시 열지 않는다
@@ -9350,6 +10362,8 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
       canvas,
       h('div', { class: 'graph__xr faint' }, ...formatSpan(overview.x0, overview.x1).map((t) => h('span', { text: t }))));
     if (s.kind === 'cat') card.appendChild(legendEl(s));
+    const p = periodIn(overview, s.col);
+    if (p) card.appendChild(h('div', { class: 'graph__period', title: periodTitle(overview, p), text: periodShort(p, xuOf(overview)) }));
     card.addEventListener('click', () => focus(s.col));
     card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focus(s.col); } });
     return card;
@@ -9426,6 +10440,10 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
     const btnTable = h('button', { class: 'btn btn--sm' + (tableOpen ? ' is-active' : ''), type: 'button', text: tableOpen ? '표 닫기' : '표로 보기', disabled: !fs });
     btnTable.addEventListener('click', () => { tableOpen = !tableOpen; renderFocus(); });
     focusBox.appendChild(h('div', { class: 'graph__fhead' }, titleBox, h('div', { class: 'row' }, btnReset, btnTable, btnClose)));
+    // 값이 들어오는 주기: 화면 폭에 맞춘(확대면 그 범위의) 결과 → 없으면 전체 그래프 결과. 확대 계산 중의 직전 그림 것은 범위가 달라 쓰지 않는다
+    const pr = fs && !fs.stale && periodIn(fs.r, focusCol) ? fs.r : !zoom ? overview : null;
+    const pe = pr ? periodEl(pr, focusCol) : null;
+    if (pe) focusBox.appendChild(pe);
     if (markable) {
       const bar = markBarEl(fs ? fs.s : null);
       focusBox.appendChild(bar);
@@ -9450,6 +10468,21 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
     focusBox.appendChild(h('div', { class: 'faint graph__hint', text: `끌어서 확대 · 두 번 눌러 전체 범위 · 그래프를 누른 뒤 ← → 로 ${marked && marked.items.some((it) => it.total) ? '넣은 값이 나온 구간' : '구간'} 이동` }));
     if (tableOpen) focusBox.appendChild(tableEl(fs.r, fs.s));
     requestAnimationFrame(() => { if (canvas.isConnected) drawFocus(canvas, fs, { cross, sel, tip }); });
+  }
+
+  /** 크게 보기의 「값이 들어오는 주기」 줄 — 봉우리마다 주기·Hz·비율, 가운데·5~95% 범위, 간격 수 */
+  function periodEl(r, col) {
+    const p = periodIn(r, col);
+    if (!p) return null;
+    const d = periodDetail(p, xuOf(r));
+    const el = h('div', { class: 'graph__fperiod' },
+      h('span', { class: 'graph__fplabel', text: `값이 들어오는 주기${zoom && r !== overview ? ' (확대 범위)' : ''}` }), h('span', { class: 'badge', text: d.title }));
+    for (const k of d.peaks) el.appendChild(h('span', { class: 'chip graph__pchip' }, h('strong', { text: k.text }), ` ${k.share}`));
+    const meta = [d.range, ...d.notes].filter(Boolean).join(' · ');
+    if (meta) el.appendChild(h('span', { class: 'faint', text: meta }));
+    // 섞였거나 불규칙하면: 여러 메시지가 한 열(예: DATA_05)을 같이 쓰는 경우가 많다 — 메시지 하나를 고르면 그 메시지의 전송 주기
+    if ((d.kind === 'mixed' || d.kind === 'irregular') && !filterConds) el.appendChild(h('span', { class: 'faint', text: '— 필터로 메시지 하나(RT·T/R·SA)를 고르면 그 메시지의 주기가 나옵니다' }));
+    return el;
   }
 
   /** 넣은 값의 색: 범주 열이면 그 값의 범주 색(색은 값을 따른다 — 범주 그림과 같은 색), 범주 밖의 값은 무채색 두 가지를 번갈아
@@ -9846,6 +10879,7 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
       for (const m of minis) if (!m.isConnected) minis.delete(m);
       const canvas = h('canvas', { class: 'graph__canvas', role: 'img' });
       const note = h('div', { class: 'faint graph__mininote' });
+      const periodLine = h('div', { class: 'graph__miniperiod' });
       const btn = h('button', { class: 'btn btn--sm btn--accent', type: 'button', text: '그래프 탭에서 크게 보기' });
       btn.addEventListener('click', () => onOpenColumn(col));
       // 값을 넣으면 그래프 탭에서 그 값이 나온 때(점·구간별 횟수·비율)를 — 그래프로 그리지 않는 글자 열도
@@ -9856,7 +10890,7 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
       valIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); goVal(); } });
       const valRow = h('div', { class: 'row graph__minival' }, valIn, valBtn);
       const titleEl = h('h3', { text: '시간에 따른 변화' });
-      const el = h('div', { class: 'graph-mini' }, titleEl, canvas, note, h('div', { class: 'row' }, btn), valRow);
+      const el = h('div', { class: 'graph-mini' }, titleEl, canvas, periodLine, note, h('div', { class: 'row' }, btn), valRow);
       el.redraw = () => {
         if (!el.isConnected && !minis.has(el)) return;
         const s = overview && overview.series.find((x) => x.col === col);
@@ -9864,6 +10898,9 @@ function createGraphView({ container, request, cancel, onOpenColumn, onGotoRow, 
         canvas.classList.toggle('is-hidden', !s);
         btn.classList.toggle('is-hidden', !s);
         valRow.classList.toggle('is-hidden', !canMark(col));
+        const p = periodIn(overview, col);
+        periodLine.textContent = p ? `값이 들어오는 ${periodShort(p, xuOf(overview))}` : '';
+        periodLine.title = p ? periodTitle(overview, p) : '';
         if (!overview) { note.textContent = overviewPending ? '그래프 계산 중…' : overviewError; return; }
         titleEl.textContent = `${overview.xName}에 따른 변화`;
         const skip = overview.skipped.find((x) => x.col === col);
@@ -10455,6 +11492,9 @@ function onReopen(options) { if (currentBlob) onOpen(currentBlob, options); }
 function onEvent(msg) {
   const ds = store.get().ds;
   switch (msg.type) {
+    case MSG.CONVERT_PROGRESS:
+      statusBar.setProgress('XLSX 변환', msg.total ? Math.min(1, msg.done / msg.total) : null);
+      break;
     case MSG.INDEX_PROGRESS:
       statusBar.setProgress('인덱싱', msg.total ? msg.done / msg.total : null);
       statusBar.setInfo([fmtInt(msg.records) + '행 발견']);
@@ -10571,7 +11611,7 @@ window.addEventListener('dragover', (e) => { e.preventDefault(); });
 window.addEventListener('drop', (e) => {
   e.preventDefault();
   const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-  if (f && !(e.target.closest && e.target.closest('.drop'))) onOpen(f, inputPanel.options);
+  if (f && !(e.target.closest && e.target.closest('.drop'))) inputPanel.openFile(f); // 새 파일 — 이전 파일의 시트 번호를 쓰지 않게
 });
 
 bootClient();
