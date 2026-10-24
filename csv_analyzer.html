@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T05:55:05.968Z
+  built: 2026-10-24T06:30:00.916Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -53,9 +53,11 @@
     src/main/ui/export-panel.js
     src/main/chart-scale.js
     src/main/ui/graph-view.js
+    src/main/view-cols.js
+    src/main/ui/column-picker.js
     src/main/app.js
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9OnLiwJT2UMw0Cww3NsA5iXrVLSHmKk/XwtOdJKXtoc='; style-src 'sha256-Pc+tXG+nTB7vDW1ZGvzniwGAVy5JwKC7jNH5UzJ1tcE='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5AyPn15aE7kvGysaPdP5hOq3vbzj1xaD1r29XwQQUt0='; style-src 'sha256-kERI4ByXmLLRCQNrYWwu3Mil9HCUn9QViW8/5JNM/pQ='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -293,7 +295,20 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .search__error { color: var(--danger); font-size: 12px; }
 
 /* ===== 탭 ===== */
-.tabs { display: flex; gap: 4px; padding: 8px 14px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+/* 탭 줄: 왼쪽 탭(tablist), 오른쪽 표 보기 도구(필터 적용 행 수, 보이는 열) */
+.tabbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+.tabs { display: flex; gap: 4px; flex: 1; min-width: 0; }
+.tabbar__tools { position: relative; display: flex; align-items: center; gap: 8px; }
+.view-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 4px 2px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; white-space: nowrap; }
+.view-pill.is-busy { padding-right: 10px; }
+.view-pill button { border: none; background: transparent; color: inherit; cursor: pointer; width: 20px; height: 20px; border-radius: 50%; font: inherit; line-height: 1; }
+.view-pill button:hover { background: color-mix(in srgb, var(--accent) 14%, var(--bg-panel)); }
+.export.colpick { width: 320px; } /* 내보내기 창과 같은 펼침 모양, 폭만 좁게 */
+.colpick .row .input { flex: 1; }
+.colpick__list { max-height: 320px; overflow: auto; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 8px; }
+.colpick__item { padding: 2px 0; font-size: 12px; }
+.view.is-refreshing .table { opacity: .55; transition: opacity .2s; } /* 필터 계산 중에는 이전 표를 흐리게 */
+.view-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
 .tab { border: none; background: transparent; padding: 5px 14px; border-radius: var(--radius); cursor: pointer; color: var(--fg-muted); font-weight: 500; transition: background .15s, color .15s; }
 .tab:hover { color: var(--fg); background: var(--bg-elev); }
 .tab.is-active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
@@ -605,12 +620,19 @@ mark { background: var(--hl); color: var(--hl-fg); padding: 0; border-radius: 3p
   <aside id="input-panel" class="side side--left"></aside>
   <main class="main">
     <div id="search-bar" class="search"></div>
-    <nav class="tabs" id="tabs" role="tablist">
-      <button class="tab is-active" type="button" role="tab" data-tab="table">표</button>
-      <button class="tab" type="button" role="tab" data-tab="profile">프로파일</button>
-      <button class="tab" type="button" role="tab" data-tab="graph">그래프</button>
-      <button class="tab" type="button" role="tab" data-tab="hex">헥사</button>
-    </nav>
+    <div class="tabbar">
+      <nav class="tabs" id="tabs" role="tablist">
+        <button class="tab is-active" type="button" role="tab" data-tab="table">표</button>
+        <button class="tab" type="button" role="tab" data-tab="profile">프로파일</button>
+        <button class="tab" type="button" role="tab" data-tab="graph">그래프</button>
+        <button class="tab" type="button" role="tab" data-tab="hex">헥사</button>
+      </nav>
+      <div class="tabbar__tools">
+        <span id="view-filter" class="view-pill is-hidden" role="status"></span>
+        <button id="btn-cols" class="btn btn--sm" type="button" disabled aria-haspopup="dialog" aria-expanded="false" aria-controls="cols-panel" title="표·그래프에 보일 열 고르기">열 ▾</button>
+        <div id="cols-panel" class="export colpick is-hidden" role="dialog" aria-label="보이는 열"></div>
+      </div>
+    </div>
     <section id="view-table" class="view" data-view="table"></section>
     <section id="view-profile" class="view is-hidden" data-view="profile"></section>
     <section id="view-graph" class="view is-hidden" data-view="graph"></section>
@@ -1101,7 +1123,7 @@ const MSG = {
   // main → worker
   OPEN: 'open', PROFILE: 'profile', ROWS: 'rows', ROW_DETAIL: 'rowDetail', BYTES: 'bytes',
   LOCATE: 'locate', SEARCH: 'search', GROUP_BY: 'groupBy', COLUMN_DETAIL: 'columnDetail', CANCEL: 'cancel', CLEAR: 'clear',
-  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export', SERIES: 'series',
+  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export', SERIES: 'series', ROWS_AT: 'rowsAt', FILTER_ROWS: 'filterRows',
   // worker → main
   OPENED: 'opened', INDEX_PROGRESS: 'indexProgress', INDEXED: 'indexed', PROFILE_PROGRESS: 'profileProgress', PROFILED: 'profiled',
   ROWS_RESULT: 'rowsResult', ROW_DETAIL_RESULT: 'rowDetailResult', BYTES_RESULT: 'bytesResult', LOCATED: 'located',
@@ -1109,6 +1131,7 @@ const MSG = {
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
   EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult', SERIES_PROGRESS: 'seriesProgress', SERIES_RESULT: 'seriesResult',
+  ROWS_AT_RESULT: 'rowsAtResult', FILTER_PROGRESS: 'filterProgress', FILTER_RESULT: 'filterResult',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -1967,15 +1990,19 @@ const M_shared_filter = (() => {
 const { fieldOf } = M_shared_csv_scan;
 const { trimSpan } = M_shared_infer;
 const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
-// 행 필터: 최대 4개 조건의 AND. 검색/그룹 집계 전에 레코드마다 평가한다.
+// 행 필터: 최대 4개 조건의 AND. 표·검색·그룹 집계·그래프·내보내기 전에 레코드마다 평가한다.
 
 
 
 
-const FILTER_OPS = [['eq', '='], ['neq', '≠'], ['contains', '포함'], ['range', '범위']];
+const FILTER_OPS = [['eq', '='], ['neq', '≠'], ['contains', '포함'], ['range', '범위'], ['nonempty', '값 있음'], ['empty', '값 없음']];
+
+/** 값 입력이 필요한 연산인지 (값 있음·없음은 열만 고르면 된다) */
+function filterNeedsValue(op) { return op !== 'nonempty' && op !== 'empty'; }
 
 /**
- * conds: [{ col, op: 'eq'|'neq'|'contains'|'range', value?, min?, max? }]
+ * conds: [{ col, op: 'eq'|'neq'|'contains'|'range'|'nonempty'|'empty', value?, min?, max? }]
+ *   nonempty: 그 열에 공백이 아닌 값이 있음 (1553 처럼 행마다 필드 수가 달라 뒤쪽 열이 비는 데이터에서 한 열만 따라갈 때)
  * meta: { hexLike: Uint8Array|null }
  * @returns (str, fi, rec) => boolean, 또는 조건이 없으면 null
  */
@@ -2004,9 +2031,9 @@ function compileFilter(conds, meta = {}) {
   return (str, fi, rec) => {
     for (const c of compiled) {
       const f = fieldOf(fi, rec, c.col);
-      if (f < 0) { if (c.op === 'neq') continue; return false; }
+      if (f < 0) { if (c.op === 'neq' || c.op === 'empty') continue; return false; }
       const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
-      if (c.op === 'eq' || c.op === 'neq') {
+      if (c.op === 'nonempty') { if (e <= s) return false; } else if (c.op === 'empty') { if (e > s) return false; } else if (c.op === 'eq' || c.op === 'neq') {
         let eq = (e - s === c.text.length) && str.startsWith(c.text, s);
         if (!eq && c.num) {
           const n = parseNumber(str, s, e, { bareHex: c.bareHex });
@@ -2026,7 +2053,7 @@ function compileFilter(conds, meta = {}) {
     return true;
   };
 }
-return { FILTER_OPS, compileFilter };
+return { FILTER_OPS, filterNeedsValue, compileFilter };
 })();
 
 // ===== src/shared/groupby.js =====
@@ -2577,6 +2604,7 @@ class Engine {
     this.activeGroup = 0;
     this.activeExport = 0;
     this.activeSeries = new Set(); // 그래프 계산은 여럿이 동시에 돈다 (전체 + 크게 보기)
+    this.activeFilter = new Set();
   }
 
   /** 우선 작업 시작/종료. 종료 시 프로파일 재개. */
@@ -2608,6 +2636,8 @@ class Engine {
         case MSG.LOCATE_MANY: await this.locateMany(msg); break;
         case MSG.EXPORT: await this.exportXlsx(msg); break;
         case MSG.SERIES: await this.series(msg); break;
+        case MSG.ROWS_AT: await this.rowsAt(msg); break;
+        case MSG.FILTER_ROWS: await this.filterRows(msg); break;
         case MSG.CLEAR: this.clear(); this.post({ type: 'cleared', reqId }); break;
         default:
           throw new Error('알 수 없는 메시지: ' + msg.type);
@@ -2796,6 +2826,33 @@ class Engine {
     this.post({ type: MSG.ROWS_RESULT, reqId, from, to, rows: out });
   }
 
+  /** 원래 행 번호 목록(오름차순)의 행들 — 필터가 걸린 표의 한 페이지. 가까운 행은 한 번에 읽는다. */
+  async rowsAt({ reqId, rows }) {
+    const ds = this.need();
+    const off = ds.recordOffsets, ds0 = ds.dataStart, D = ds.delimiter.charCodeAt(0);
+    const want = rows.filter((r) => r >= 0 && r < ds.rowCount);
+    const got = new Map();
+    const fi = this.fi;
+    for (let i = 0; i < want.length;) {
+      // 다음 행까지 64KB 안이면 한 구간으로 묶어 읽는다
+      let j = i;
+      while (j + 1 < want.length && off[want[j + 1] + ds0] - off[want[j] + 1 + ds0] <= 65536) j++;
+      const r0 = want[i], r1 = want[j];
+      const text = ds.decoder.decode(new Uint8Array(await ds.blob.slice(off[r0 + ds0], off[r1 + 1 + ds0]).arrayBuffer()));
+      scanFieldsString(text, D, 34, fi);
+      for (let k = i; k <= j; k++) {
+        const rec = want[k] - r0;
+        if (rec >= fi.nRec) continue;
+        const row = [];
+        const f0 = fi.recFirst[rec], c = fi.recCount[rec];
+        for (let q = 0; q < c; q++) row.push(fieldText(text, fi, f0 + q));
+        got.set(want[k], row);
+      }
+      i = j + 1;
+    }
+    this.post({ type: MSG.ROWS_AT_RESULT, reqId, rows: rows.map((r) => got.get(r) || []) });
+  }
+
   async recordBytes(rec) {
     const ds = this.need();
     return new Uint8Array(await ds.blob.slice(ds.recordOffsets[rec], ds.recordOffsets[rec + 1]).arrayBuffer());
@@ -2966,7 +3023,7 @@ class Engine {
     if (!id || this.activeGroup === id) this.activeGroup = 0;
     // 내보내기·그래프 계산은 자기 id 로만 취소한다 — 검색 지우기(id 0)가 끊으면 안 된다
     if (id && this.activeExport === id) this.activeExport = 0;
-    if (id) this.activeSeries.delete(id);
+    if (id) { this.activeSeries.delete(id); this.activeFilter.delete(id); }
   }
 
   async search({ query }) {
@@ -3202,10 +3259,12 @@ class Engine {
    * 16진수 열은 글자 그대로(0012·1E05 보존), 나머지는 numericCell 이 허락할 때만 숫자. 결과는 Blob 으로 돌려준다.
    * 엑셀 행 한도를 넘으면 잘린 파일을 만들지 않고 오류로 끝낸다.
    */
-  async exportXlsx({ reqId, id, mode, filter, query }) {
+  async exportXlsx({ reqId, id, mode, filter, query, cols: only = null }) {
     const ds = this.need();
     if (!ds.hexLike) throw new Error('프로파일이 끝난 뒤에 내보낼 수 있습니다');
-    const cols = ds.columnCount;
+    // only: 보이는 열만 그 순서로 (없으면 모든 열)
+    const outCols = only && only.length ? only.filter((c) => c >= 0 && c < ds.columnCount) : Array.from({ length: ds.columnCount }, (_, c) => c);
+    const cols = outCols.length;
     let filterFn = null, matcher = null;
     if (mode === 'filter') {
       if (!filter || !filter.length) throw new Error('필터 조건이 없습니다');
@@ -3229,7 +3288,7 @@ class Engine {
     let writer = null, finished = false;
     try {
       writer = createXlsxWriter({
-        columns: ds.header.map((name, c) => (ds.hexLike[c] ? { name, type: 'text', width: Math.max(10, (ds.padNibbles[c] || 4) + 4) } : { name, type: 'auto' })),
+        columns: outCols.map((c) => (ds.hexLike[c] ? { name: ds.header[c], type: 'text', width: Math.max(10, (ds.padNibbles[c] || 4) + 4) } : { name: ds.header[c], type: 'auto' })),
         sheetName: { all: '전체', filter: '필터', search: '검색' }[mode],
       });
       const D = ds.delimiter.charCodeAt(0);
@@ -3252,8 +3311,8 @@ class Engine {
         for (let k = 0; k < nRec; k++) {
           if (matcher ? !hits.flags[k] : filterFn && !filterFn(text, fi, k)) continue;
           if (rows >= limit) throw tooMany();
-          const f0 = fi.recFirst[k], fc = Math.min(fi.recCount[k], cols);
-          for (let c = 0; c < cols; c++) values[c] = c < fc ? fieldText(text, fi, f0 + c) : undefined;
+          const f0 = fi.recFirst[k], fc = Math.min(fi.recCount[k], ds.columnCount);
+          for (let j = 0; j < cols; j++) { const c = outCols[j]; values[j] = c < fc ? fieldText(text, fi, f0 + c) : undefined; }
           writer.addRow(values);
           rows++;
         }
@@ -3321,6 +3380,37 @@ class Engine {
       });
     } finally {
       this.activeSeries.delete(id);
+      this.endPriority();
+    }
+  }
+
+  // ---------- 표에 필터 적용 ----------
+  /** 필터를 통과한 원래 행 번호들(오름차순) — 표는 이 목록의 행만 보여 준다 */
+  async filterRows({ reqId, id, filter }) {
+    const ds = this.need();
+    const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
+    const gen = this.gen;
+    this.activeFilter.add(id);
+    this.beginPriority();
+    const t0 = Date.now();
+    try {
+      const D = ds.delimiter.charCodeAt(0);
+      const fi = new FieldIndex(1 << 16, 1 << 12);
+      const out = new U32Vec(4096);
+      let lastReport = Date.now();
+      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+        if (!this.activeFilter.has(id) || gen !== this.gen) { this.post({ type: MSG.FILTER_RESULT, reqId, id, cancelled: true }); return; }
+        const text = ds.decoder.decode(blk.u8);
+        scanFieldsString(text, D, 34, fi);
+        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+        for (let k = 0; k < nRec; k++) if (!filterFn || filterFn(text, fi, k)) out.push(blk.rowStart + k);
+        const now = Date.now();
+        if (now - lastReport >= 250) { lastReport = now; this.post({ type: MSG.FILTER_PROGRESS, id, done: blk.rowEnd, total: ds.rowCount, passed: out.length }); }
+      }
+      if (!this.activeFilter.has(id) || gen !== this.gen) { this.post({ type: MSG.FILTER_RESULT, reqId, id, cancelled: true }); return; }
+      this.post({ type: MSG.FILTER_RESULT, reqId, id, cancelled: false, rows: out.compact(), total: ds.rowCount, elapsed: Date.now() - t0 });
+    } finally {
+      this.activeFilter.delete(id);
       this.endPriority();
     }
   }
@@ -3822,7 +3912,7 @@ const MSG = {
   // main → worker
   OPEN: 'open', PROFILE: 'profile', ROWS: 'rows', ROW_DETAIL: 'rowDetail', BYTES: 'bytes',
   LOCATE: 'locate', SEARCH: 'search', GROUP_BY: 'groupBy', COLUMN_DETAIL: 'columnDetail', CANCEL: 'cancel', CLEAR: 'clear',
-  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export', SERIES: 'series',
+  CELLS: 'cells', LOCATE_MANY: 'locateMany', PING: 'ping', EXPORT: 'export', SERIES: 'series', ROWS_AT: 'rowsAt', FILTER_ROWS: 'filterRows',
   // worker → main
   OPENED: 'opened', INDEX_PROGRESS: 'indexProgress', INDEXED: 'indexed', PROFILE_PROGRESS: 'profileProgress', PROFILED: 'profiled',
   ROWS_RESULT: 'rowsResult', ROW_DETAIL_RESULT: 'rowDetailResult', BYTES_RESULT: 'bytesResult', LOCATED: 'located',
@@ -3830,6 +3920,7 @@ const MSG = {
   GROUP_BY_PROGRESS: 'groupByProgress', GROUP_BY_RESULT: 'groupByResult', COLUMN_DETAIL_RESULT: 'columnDetailResult',
   CELLS_RESULT: 'cellsResult', LOCATE_MANY_RESULT: 'locateManyResult', ERROR: 'error', PONG: 'pong',
   EXPORT_PROGRESS: 'exportProgress', EXPORT_RESULT: 'exportResult', SERIES_PROGRESS: 'seriesProgress', SERIES_RESULT: 'seriesResult',
+  ROWS_AT_RESULT: 'rowsAtResult', FILTER_PROGRESS: 'filterProgress', FILTER_RESULT: 'filterResult',
 };
 
 /** 메시지 최상위 값 중 typed array 의 버퍼를 transfer 목록으로 (중복 제거). 엔진이 보유하는 배열은 절대 넣지 말 것. */
@@ -4688,15 +4779,19 @@ const M_shared_filter = (() => {
 const { fieldOf } = M_shared_csv_scan;
 const { trimSpan } = M_shared_infer;
 const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
-// 행 필터: 최대 4개 조건의 AND. 검색/그룹 집계 전에 레코드마다 평가한다.
+// 행 필터: 최대 4개 조건의 AND. 표·검색·그룹 집계·그래프·내보내기 전에 레코드마다 평가한다.
 
 
 
 
-const FILTER_OPS = [['eq', '='], ['neq', '≠'], ['contains', '포함'], ['range', '범위']];
+const FILTER_OPS = [['eq', '='], ['neq', '≠'], ['contains', '포함'], ['range', '범위'], ['nonempty', '값 있음'], ['empty', '값 없음']];
+
+/** 값 입력이 필요한 연산인지 (값 있음·없음은 열만 고르면 된다) */
+function filterNeedsValue(op) { return op !== 'nonempty' && op !== 'empty'; }
 
 /**
- * conds: [{ col, op: 'eq'|'neq'|'contains'|'range', value?, min?, max? }]
+ * conds: [{ col, op: 'eq'|'neq'|'contains'|'range'|'nonempty'|'empty', value?, min?, max? }]
+ *   nonempty: 그 열에 공백이 아닌 값이 있음 (1553 처럼 행마다 필드 수가 달라 뒤쪽 열이 비는 데이터에서 한 열만 따라갈 때)
  * meta: { hexLike: Uint8Array|null }
  * @returns (str, fi, rec) => boolean, 또는 조건이 없으면 null
  */
@@ -4725,9 +4820,9 @@ function compileFilter(conds, meta = {}) {
   return (str, fi, rec) => {
     for (const c of compiled) {
       const f = fieldOf(fi, rec, c.col);
-      if (f < 0) { if (c.op === 'neq') continue; return false; }
+      if (f < 0) { if (c.op === 'neq' || c.op === 'empty') continue; return false; }
       const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
-      if (c.op === 'eq' || c.op === 'neq') {
+      if (c.op === 'nonempty') { if (e <= s) return false; } else if (c.op === 'empty') { if (e > s) return false; } else if (c.op === 'eq' || c.op === 'neq') {
         let eq = (e - s === c.text.length) && str.startsWith(c.text, s);
         if (!eq && c.num) {
           const n = parseNumber(str, s, e, { bareHex: c.bareHex });
@@ -4747,7 +4842,7 @@ function compileFilter(conds, meta = {}) {
     return true;
   };
 }
-return { FILTER_OPS, compileFilter };
+return { FILTER_OPS, filterNeedsValue, compileFilter };
 })();
 
 // ===== src/shared/groupby.js =====
@@ -5298,6 +5393,7 @@ class Engine {
     this.activeGroup = 0;
     this.activeExport = 0;
     this.activeSeries = new Set(); // 그래프 계산은 여럿이 동시에 돈다 (전체 + 크게 보기)
+    this.activeFilter = new Set();
   }
 
   /** 우선 작업 시작/종료. 종료 시 프로파일 재개. */
@@ -5329,6 +5425,8 @@ class Engine {
         case MSG.LOCATE_MANY: await this.locateMany(msg); break;
         case MSG.EXPORT: await this.exportXlsx(msg); break;
         case MSG.SERIES: await this.series(msg); break;
+        case MSG.ROWS_AT: await this.rowsAt(msg); break;
+        case MSG.FILTER_ROWS: await this.filterRows(msg); break;
         case MSG.CLEAR: this.clear(); this.post({ type: 'cleared', reqId }); break;
         default:
           throw new Error('알 수 없는 메시지: ' + msg.type);
@@ -5517,6 +5615,33 @@ class Engine {
     this.post({ type: MSG.ROWS_RESULT, reqId, from, to, rows: out });
   }
 
+  /** 원래 행 번호 목록(오름차순)의 행들 — 필터가 걸린 표의 한 페이지. 가까운 행은 한 번에 읽는다. */
+  async rowsAt({ reqId, rows }) {
+    const ds = this.need();
+    const off = ds.recordOffsets, ds0 = ds.dataStart, D = ds.delimiter.charCodeAt(0);
+    const want = rows.filter((r) => r >= 0 && r < ds.rowCount);
+    const got = new Map();
+    const fi = this.fi;
+    for (let i = 0; i < want.length;) {
+      // 다음 행까지 64KB 안이면 한 구간으로 묶어 읽는다
+      let j = i;
+      while (j + 1 < want.length && off[want[j + 1] + ds0] - off[want[j] + 1 + ds0] <= 65536) j++;
+      const r0 = want[i], r1 = want[j];
+      const text = ds.decoder.decode(new Uint8Array(await ds.blob.slice(off[r0 + ds0], off[r1 + 1 + ds0]).arrayBuffer()));
+      scanFieldsString(text, D, 34, fi);
+      for (let k = i; k <= j; k++) {
+        const rec = want[k] - r0;
+        if (rec >= fi.nRec) continue;
+        const row = [];
+        const f0 = fi.recFirst[rec], c = fi.recCount[rec];
+        for (let q = 0; q < c; q++) row.push(fieldText(text, fi, f0 + q));
+        got.set(want[k], row);
+      }
+      i = j + 1;
+    }
+    this.post({ type: MSG.ROWS_AT_RESULT, reqId, rows: rows.map((r) => got.get(r) || []) });
+  }
+
   async recordBytes(rec) {
     const ds = this.need();
     return new Uint8Array(await ds.blob.slice(ds.recordOffsets[rec], ds.recordOffsets[rec + 1]).arrayBuffer());
@@ -5687,7 +5812,7 @@ class Engine {
     if (!id || this.activeGroup === id) this.activeGroup = 0;
     // 내보내기·그래프 계산은 자기 id 로만 취소한다 — 검색 지우기(id 0)가 끊으면 안 된다
     if (id && this.activeExport === id) this.activeExport = 0;
-    if (id) this.activeSeries.delete(id);
+    if (id) { this.activeSeries.delete(id); this.activeFilter.delete(id); }
   }
 
   async search({ query }) {
@@ -5923,10 +6048,12 @@ class Engine {
    * 16진수 열은 글자 그대로(0012·1E05 보존), 나머지는 numericCell 이 허락할 때만 숫자. 결과는 Blob 으로 돌려준다.
    * 엑셀 행 한도를 넘으면 잘린 파일을 만들지 않고 오류로 끝낸다.
    */
-  async exportXlsx({ reqId, id, mode, filter, query }) {
+  async exportXlsx({ reqId, id, mode, filter, query, cols: only = null }) {
     const ds = this.need();
     if (!ds.hexLike) throw new Error('프로파일이 끝난 뒤에 내보낼 수 있습니다');
-    const cols = ds.columnCount;
+    // only: 보이는 열만 그 순서로 (없으면 모든 열)
+    const outCols = only && only.length ? only.filter((c) => c >= 0 && c < ds.columnCount) : Array.from({ length: ds.columnCount }, (_, c) => c);
+    const cols = outCols.length;
     let filterFn = null, matcher = null;
     if (mode === 'filter') {
       if (!filter || !filter.length) throw new Error('필터 조건이 없습니다');
@@ -5950,7 +6077,7 @@ class Engine {
     let writer = null, finished = false;
     try {
       writer = createXlsxWriter({
-        columns: ds.header.map((name, c) => (ds.hexLike[c] ? { name, type: 'text', width: Math.max(10, (ds.padNibbles[c] || 4) + 4) } : { name, type: 'auto' })),
+        columns: outCols.map((c) => (ds.hexLike[c] ? { name: ds.header[c], type: 'text', width: Math.max(10, (ds.padNibbles[c] || 4) + 4) } : { name: ds.header[c], type: 'auto' })),
         sheetName: { all: '전체', filter: '필터', search: '검색' }[mode],
       });
       const D = ds.delimiter.charCodeAt(0);
@@ -5973,8 +6100,8 @@ class Engine {
         for (let k = 0; k < nRec; k++) {
           if (matcher ? !hits.flags[k] : filterFn && !filterFn(text, fi, k)) continue;
           if (rows >= limit) throw tooMany();
-          const f0 = fi.recFirst[k], fc = Math.min(fi.recCount[k], cols);
-          for (let c = 0; c < cols; c++) values[c] = c < fc ? fieldText(text, fi, f0 + c) : undefined;
+          const f0 = fi.recFirst[k], fc = Math.min(fi.recCount[k], ds.columnCount);
+          for (let j = 0; j < cols; j++) { const c = outCols[j]; values[j] = c < fc ? fieldText(text, fi, f0 + c) : undefined; }
           writer.addRow(values);
           rows++;
         }
@@ -6042,6 +6169,37 @@ class Engine {
       });
     } finally {
       this.activeSeries.delete(id);
+      this.endPriority();
+    }
+  }
+
+  // ---------- 표에 필터 적용 ----------
+  /** 필터를 통과한 원래 행 번호들(오름차순) — 표는 이 목록의 행만 보여 준다 */
+  async filterRows({ reqId, id, filter }) {
+    const ds = this.need();
+    const filterFn = compileFilter(filter, { hexLike: ds.hexLike });
+    const gen = this.gen;
+    this.activeFilter.add(id);
+    this.beginPriority();
+    const t0 = Date.now();
+    try {
+      const D = ds.delimiter.charCodeAt(0);
+      const fi = new FieldIndex(1 << 16, 1 << 12);
+      const out = new U32Vec(4096);
+      let lastReport = Date.now();
+      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+        if (!this.activeFilter.has(id) || gen !== this.gen) { this.post({ type: MSG.FILTER_RESULT, reqId, id, cancelled: true }); return; }
+        const text = ds.decoder.decode(blk.u8);
+        scanFieldsString(text, D, 34, fi);
+        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+        for (let k = 0; k < nRec; k++) if (!filterFn || filterFn(text, fi, k)) out.push(blk.rowStart + k);
+        const now = Date.now();
+        if (now - lastReport >= 250) { lastReport = now; this.post({ type: MSG.FILTER_PROGRESS, id, done: blk.rowEnd, total: ds.rowCount, passed: out.length }); }
+      }
+      if (!this.activeFilter.has(id) || gen !== this.gen) { this.post({ type: MSG.FILTER_RESULT, reqId, id, cancelled: true }); return; }
+      this.post({ type: MSG.FILTER_RESULT, reqId, id, cancelled: false, rows: out.compact(), total: ds.rowCount, elapsed: Date.now() - t0 });
+    } finally {
+      this.activeFilter.delete(id);
       this.endPriority();
     }
   }
@@ -6143,9 +6301,10 @@ return { createWorkerClient };
 const M_main_row_cache = (() => {
 const { MSG } = M_shared_protocol;
 // rows 요청 위의 페이지 LRU 캐시.
+// rows(통과 행 목록)를 주면 표의 순번 i 는 rows[i] 번째 원래 행이다 — 필터가 걸린 표.
 
 
-function createRowCache(client, { pageSize = 128, maxPages = 64 } = {}) {
+function createRowCache(client, { pageSize = 128, maxPages = 64, rows = null } = {}) {
   const pages = new Map();     // pageNo -> string[][]
   const inflight = new Set();
   const listeners = new Set();
@@ -6156,7 +6315,10 @@ function createRowCache(client, { pageSize = 128, maxPages = 64 } = {}) {
     inflight.add(p);
     const myGen = gen;
     const from = p * pageSize;
-    client.request(MSG.ROWS, { from, to: from + pageSize }).then((msg) => {
+    const req = rows
+      ? client.request(MSG.ROWS_AT, { rows: Array.from(rows.subarray(from, Math.min(rows.length, from + pageSize))) })
+      : client.request(MSG.ROWS, { from, to: from + pageSize });
+    req.then((msg) => {
       inflight.delete(p);
       if (myGen !== gen) return;
       pages.set(p, msg.rows);
@@ -6389,6 +6551,7 @@ const M_main_ui_table = (() => {
 const { h, clear } = M_main_ui_dom;
 const { createVirtualList } = M_main_ui_virtual_list;
 // 가상 스크롤 표. 행은 지연 로딩(getRow 가 undefined 를 돌려주면 로딩 중).
+// 필터가 걸리면 순번 i 의 행은 rowOf(i) 번째 원래 행 — # 칸에는 원래 행 번호를 쓴다. 보이는 열만 그릴 수 있다.
 
 
 
@@ -6406,8 +6569,8 @@ function createTable({ container, onCellClick, onHeaderClick, onRangeChange }) {
   const root = h('div', { class: 'table' }, head, bodyWrap, empty);
   container.appendChild(root);
 
-  let ds = null, widths = [], totalWidth = 0, getRow = () => undefined;
-  let highlightFn = null, selected = null, headCells = [];
+  let ds = null, widths = [], totalWidth = 0, getRow = () => undefined, rowOf = (i) => i;
+  let highlightFn = null, selected = null, headCells = [], vis = [], visKey = '', colCounts = null;
 
   const vl = createVirtualList({ container: bodyWrap, rowHeight: ROW_H, render: renderRow, onRangeChange });
   bodyWrap.addEventListener('scroll', () => { head.scrollLeft = bodyWrap.scrollLeft; });
@@ -6435,28 +6598,29 @@ function createTable({ container, onCellClick, onHeaderClick, onRangeChange }) {
     return w;
   }
 
-  function buildCells(el, cols) {
+  function buildCells(el) {
     clear(el);
     const idx = h('div', { class: 'cell cell--idx', dataset: { col: -1 } });
     idx.style.width = IDX_W + 'px';
     el.appendChild(idx);
-    for (let c = 0; c < cols; c++) {
+    for (const c of vis) {
       const cell = h('div', { class: 'cell', dataset: { col: c } });
       cell.style.width = widths[c] + 'px';
       el.appendChild(cell);
     }
+    el.dataset.cols = visKey;
   }
 
   function renderRow(idx, el) {
-    const cols = ds.columnCount;
-    if (el.childElementCount !== cols + 1) buildCells(el, cols);
+    if (el.dataset.cols !== visKey) buildCells(el);
     const row = getRow(idx);
     const hl = highlightFn ? highlightFn(idx) : null;
     const children = el.children;
-    children[0].textContent = String(idx + 1);
+    children[0].textContent = String(rowOf(idx) + 1);
     el.classList.toggle('is-selected', !!selected && selected.row === idx);
-    for (let c = 0; c < cols; c++) {
-      const cell = children[c + 1];
+    for (let j = 0; j < vis.length; j++) {
+      const c = vis[j];
+      const cell = children[j + 1];
       const v = row ? row[c] : undefined;
       let cls = 'cell';
       if (c >= ds.schemaCount) cls += ' col--extra';
@@ -6477,7 +6641,7 @@ function createTable({ container, onCellClick, onHeaderClick, onRangeChange }) {
     const idx = h('div', { class: 'cell cell--idx', text: '#', dataset: { col: -1 } });
     idx.style.width = IDX_W + 'px';
     headInner.appendChild(idx);
-    for (let c = 0; c < ds.columnCount; c++) {
+    for (const c of vis) {
       const bar = h('div', { class: 'bar' });
       bar.style.display = 'none';
       const cell = h('div', { class: 'cell' + (c >= ds.schemaCount ? ' col--extra' : ''), dataset: { col: c }, title: ds.header[c] },
@@ -6489,13 +6653,41 @@ function createTable({ container, onCellClick, onHeaderClick, onRangeChange }) {
     headInner.style.width = totalWidth + 'px';
   }
 
+  /** 머리글의 열별 검색 매치 막대 (보이는 열만 다시 만들어도 그대로 칠한다) */
+  function paintColCounts() {
+    if (!ds) return;
+    const arr = colCounts;
+    let max = 0;
+    if (arr) for (let c = 0; c < arr.length; c++) if (arr[c] > max) max = arr[c];
+    for (const cell of headCells) {
+      const c = Number(cell.dataset.col);
+      const bar = cell.lastChild;
+      const v = arr && c < arr.length ? arr[c] : 0;
+      if (!v) { bar.style.display = 'none'; cell.title = ds.header[c]; continue; }
+      bar.style.display = '';
+      bar.style.transform = `scaleX(${(v / max).toFixed(3)})`;
+      cell.title = `${ds.header[c]} — 매치 ${v.toLocaleString('ko-KR')}건`;
+    }
+  }
+
+  function layoutCols() {
+    visKey = vis.join(',');
+    totalWidth = IDX_W + vis.reduce((a, c) => a + widths[c], 0);
+    buildHead();
+    paintColCounts(); // 머리글을 다시 만들어도 검색 매치 막대는 그대로
+    vl.setRowWidth(totalWidth);
+    vl.clearPool(); // 칸 구성이 바뀌었으니 행 요소를 새로 만든다
+  }
+
   return {
-    setDataset({ header, columnCount, schemaCount, rowCount, getRow: g, sampleRows = [] }) {
+    setDataset({ header, columnCount, schemaCount, rowCount, getRow: g, sampleRows = [], visible = null }) {
       ds = { header, columnCount, schemaCount, rowCount };
-      getRow = g;
+      getRow = g; rowOf = (i) => i;
       widths = computeWidths(header, sampleRows, columnCount);
-      totalWidth = IDX_W + widths.reduce((a, b) => a + b, 0);
-      highlightFn = null; selected = null;
+      vis = visible || Array.from({ length: columnCount }, (_, c) => c);
+      visKey = vis.join(',');
+      totalWidth = IDX_W + vis.reduce((a, c) => a + widths[c], 0);
+      highlightFn = null; selected = null; colCounts = null;
       buildHead();
       empty.classList.add('is-hidden');
       vl.setRowWidth(totalWidth);
@@ -6503,8 +6695,24 @@ function createTable({ container, onCellClick, onHeaderClick, onRangeChange }) {
       bodyWrap.scrollTop = 0;
       vl.layoutNow();
     },
+    /** 보여 줄 행을 바꾼다 (필터 적용/해제): count 개, 순번 i 의 행은 getRow(i), 원래 행 번호는 rowOf(i) */
+    setView({ count, getRow: g, rowOf: ro }) {
+      if (!ds) return;
+      getRow = g; rowOf = ro || ((i) => i);
+      selected = null;
+      vl.setCount(count);
+      bodyWrap.scrollTop = 0;
+      vl.layoutNow();
+    },
+    /** 보이는 열 (null = 모두) */
+    setVisibleColumns(cols) {
+      if (!ds) return;
+      vis = cols || Array.from({ length: ds.columnCount }, (_, c) => c);
+      layoutCols();
+      vl.layoutNow();
+    },
     clear() {
-      ds = null; getRow = () => undefined; highlightFn = null; selected = null;
+      ds = null; getRow = () => undefined; rowOf = (i) => i; vis = []; visKey = ''; colCounts = null; highlightFn = null; selected = null;
       clear(headInner); headCells = [];
       vl.setCount(0);
       vl.clearPool();
@@ -6514,27 +6722,15 @@ function createTable({ container, onCellClick, onHeaderClick, onRangeChange }) {
     get dataset() { return ds; },
     scrollToRow(r, align = 'center') { vl.scrollToIndex(r, align); },
     scrollToCol(c) {
-      if (!ds || c < 0 || c >= widths.length) return;
+      if (!ds || c < 0 || c >= widths.length || !vis.includes(c)) return;
       let x = IDX_W;
-      for (let i = 0; i < c; i++) x += widths[i];
+      for (const i of vis) { if (i === c) break; x += widths[i]; }
       const vw = bodyWrap.clientWidth;
       if (x < bodyWrap.scrollLeft + IDX_W || x + widths[c] > bodyWrap.scrollLeft + vw) bodyWrap.scrollLeft = Math.max(0, x - vw / 2 + widths[c] / 2);
     },
     setHighlights(fn) { highlightFn = fn; vl.refresh(); },
     select(row, col) { selected = row == null ? null : { row, col }; vl.refresh(); },
-    setColCounts(arr) {
-      if (!ds) return;
-      let max = 0;
-      if (arr) for (let c = 0; c < arr.length; c++) if (arr[c] > max) max = arr[c];
-      for (let c = 0; c < headCells.length; c++) {
-        const bar = headCells[c].lastChild;
-        const v = arr && c < arr.length ? arr[c] : 0;
-        if (!v) { bar.style.display = 'none'; headCells[c].title = ds.header[c]; continue; }
-        bar.style.display = '';
-        bar.style.transform = `scaleX(${(v / max).toFixed(3)})`;
-        headCells[c].title = `${ds.header[c]} — 매치 ${v.toLocaleString('ko-KR')}건`;
-      }
-    },
+    setColCounts(arr) { colCounts = arr; paintColCounts(); },
     visibleRange() { return vl.visibleRange(); },
   };
 }
@@ -6936,7 +7132,7 @@ function createProfileView({ container, onColumnClick, onWordClick, onRowClick, 
     );
     const fcWrap = h('div', { class: 'fc-hist' });
     const card = h('div', { class: 'card card--wide' },
-      h('div', { class: 'card__title' }, h('span', { text: '데이터셋 요약' })),
+      h('div', { class: 'card__title' }, h('span', { text: '데이터셋 요약' }), h('span', { class: 'faint', text: '파일 전체 기준 — 필터와 무관' })),
       tiles,
       h('div', { class: 'row', style: { marginTop: '8px', alignItems: 'flex-start', gap: '16px' } },
         h('div', { style: { flex: '1', minWidth: '0' } },
@@ -7786,7 +7982,7 @@ return { renderRowDetail };
 // ===== src/main/ui/filter-bar.js =====
 const M_main_ui_filter_bar = (() => {
 const { h, select } = M_main_ui_dom;
-const { FILTER_OPS } = M_shared_filter;
+const { FILTER_OPS, filterNeedsValue } = M_shared_filter;
 // 행 필터 바: 최대 4개 조건 (열, 연산, 값 | 최소~최대), AND.
 
 
@@ -7797,7 +7993,7 @@ function createFilterBar({ container, onChange }) {
   const list = h('div', { class: 'filter__list' });
   const addBtn = h('button', { class: 'btn btn--sm', type: 'button', text: '+ 조건' });
   const clearBtn = h('button', { class: 'btn btn--sm', type: 'button', text: '모두 제거' });
-  const hint = h('span', { class: 'faint', text: '조건은 AND 로 결합되어 검색·그룹 집계에 적용됩니다. 값은 5 = 05 = 0x05 처럼 수치로도 비교합니다.' });
+  const hint = h('span', { class: 'faint', text: '조건은 AND 로 결합되어 표·검색·그룹 집계·그래프·내보내기에 적용됩니다. 값은 5 = 05 = 0x05 처럼 수치로도 비교합니다. 「값 있음」은 그 열이 비지 않은 행만.' });
   container.append(list, h('div', { class: 'row' }, addBtn, clearBtn, hint));
   let timer = 0;
   const fire = () => { clearTimeout(timer); timer = setTimeout(() => onChange && onChange(getConditions()), 300); };
@@ -7818,7 +8014,7 @@ function createFilterBar({ container, onChange }) {
     const tilde = h('span', { text: '~' });
     const del = h('button', { class: 'btn btn--sm', type: 'button', text: '×', title: '조건 제거' });
     const row = h('div', { class: 'filter__cond' }, colSel, opSel, val, min, tilde, max, del);
-    const sync = () => { const range = opSel.value === 'range'; val.classList.toggle('is-hidden', range); min.classList.toggle('is-hidden', !range); max.classList.toggle('is-hidden', !range); tilde.classList.toggle('is-hidden', !range); };
+    const sync = () => { const range = opSel.value === 'range', noValue = !filterNeedsValue(opSel.value); val.classList.toggle('is-hidden', range || noValue); min.classList.toggle('is-hidden', !range); max.classList.toggle('is-hidden', !range); tilde.classList.toggle('is-hidden', !range); };
     sync();
     opSel.addEventListener('change', () => { sync(); fire(); });
     for (const el of [colSel, val, min, max]) { el.addEventListener('input', fire); el.addEventListener('change', fire); }
@@ -7834,6 +8030,7 @@ function createFilterBar({ container, onChange }) {
     for (const r of rows) {
       const op = r.opSel.value, col = Number(r.colSel.value);
       if (Number.isNaN(col)) continue;
+      if (!filterNeedsValue(op)) { out.push({ col, op }); continue; }
       if (op === 'range') { if (r.min.value.trim() === '' && r.max.value.trim() === '') continue; out.push({ col, op, min: r.min.value, max: r.max.value }); }
       else { if (r.val.value.trim() === '' && op !== 'neq') continue; out.push({ col, op, value: r.val.value }); }
     }
@@ -8294,7 +8491,7 @@ const { fmtInt } = M_main_format;
 
 
 function createExportPanel({ button, host, getContext, run, cancel }) {
-  let open = false, running = false, mode = null, outcome = null;
+  let open = false, running = false, mode = null, outcome = null, visibleOnly = true;
   let progBar = null, progText = null;
 
   button.addEventListener('click', () => { if (open) close(); else show(); });
@@ -8318,6 +8515,12 @@ function createExportPanel({ button, host, getContext, run, cancel }) {
         h('span', { class: 'muted', text: '구글 시트 「파일 → 가져오기」나 엑셀에서 바로 엽니다. 파일은 이 PC에서 만들어지며 어디로도 전송되지 않습니다.' })),
       h('div', { class: 'export__opts', role: 'radiogroup', 'aria-label': '내보낼 범위' }, ...opts.map(optionEl)),
     );
+    // 열을 숨겨 두었으면 보이는 열만 내보낼지 (그룹 집계 표는 열이 정해져 있어 해당 없음)
+    if (ctx.visibleCols && mode !== 'group') {
+      const box = h('input', { type: 'checkbox', checked: visibleOnly, disabled: running });
+      box.addEventListener('change', () => { visibleOnly = box.checked; });
+      host.append(h('label', { class: 'check export__note' }, box, `보이는 열만 (${ctx.visibleCols.length} / ${ctx.header.length}개)`));
+    }
     const note = mode && mode !== 'group' ? hexColumnsNote(ctx.header, ctx.hexLike) : '';
     if (note) host.append(h('div', { class: 'export__note', text: note }));
     if (sel && sel.warn) host.append(h('div', { class: 'export__msg export__msg--warn', text: sel.warn }));
@@ -8353,7 +8556,8 @@ function createExportPanel({ button, host, getContext, run, cancel }) {
     running = true; outcome = null;
     render();
     try {
-      const res = await run(m);
+      const ctx = getContext();
+      const res = await run(m, { visibleOnly: !!ctx.visibleCols && visibleOnly });
       if (res.cancelled) outcome = { text: '취소했습니다. 파일을 만들지 않았습니다.' };
       else if (!res.rows) outcome = { text: '조건에 맞는 행이 없어 파일을 만들지 않았습니다.' };
       else { saveFile(res.blob, exportFileName(m)); outcome = resultMessage(res); }
@@ -8565,8 +8769,23 @@ function drawSeries(ctx, s, plot, yScale) {
     ctx.fill();
     b = e + 1;
   }
-  // 평균 선(2px) — 값이 없는 구간에서 끊고, 홀로 떨어진 구간은 점으로
   ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  let filled = 0;
+  for (let b = 0; b < B; b++) if (s.cnt[b]) filled++;
+  if (filled <= B / 2) {
+    // 듬성듬성한 데이터(필터로 한 RT·한 열만 남긴 경우 등): 빈 구간을 건너 점끼리 이어 흐름이 보이게 + 8px 점(표면색 테두리)
+    ctx.beginPath();
+    let pen = false;
+    for (let b = 0; b < B; b++) { if (!s.cnt[b]) continue; if (pen) ctx.lineTo(xs(b), ys(s.mean[b])); else { ctx.moveTo(xs(b), ys(s.mean[b])); pen = true; } }
+    ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = cssVar('--bg-panel');
+    for (let b = 0; b < B; b++) {
+      if (!s.cnt[b]) continue;
+      ctx.beginPath(); ctx.arc(xs(b), ys(s.mean[b]), 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    return;
+  }
+  // 평균 선(2px) — 값이 없는 구간에서 끊고, 홀로 떨어진 구간은 점으로
   for (let b = 0; b < B;) {
     if (!s.cnt[b]) { b++; continue; }
     let e = b;
@@ -8603,7 +8822,7 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
   let filterConds = null, filterKey = '';
   let overview = null, overviewKey = '', overviewPending = null, overviewError = '';
   let focusCol = null, focusData = null, zoom = null, tableOpen = false, focusPending = null, lastShown = null;
-  let seq = 0, progressFor = null, hoverB = -1;
+  let seq = 0, progressFor = null, hoverB = -1, visibleSet = null, autoFocused = false; // visibleSet: 표에서 고른 보이는 열 (null = 모두)
   const minis = new Set();
 
   const root = h('div', { class: 'graph' });
@@ -8708,12 +8927,17 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
     empty.classList.toggle('is-hidden', !!overview || !!overviewPending);
     if (!overview) { if (!overviewPending) { clear(grid); clear(skippedBox); } renderFocus(); return; }
     clear(grid); clear(skippedBox);
-    status.textContent = summaryText(overview);
-    for (const s of overview.series) grid.appendChild(cardEl(s));
-    if (overview.skipped.length) {
+    const shown = overview.series.filter((s) => !visibleSet || visibleSet.has(s.col));
+    const skipped = overview.skipped.filter((k) => !visibleSet || visibleSet.has(k.col));
+    status.textContent = summaryText(overview) + (visibleSet ? ` · 보이는 열 ${fmtInt(visibleSet.size)}개만` : '');
+    for (const s of shown) grid.appendChild(cardEl(s));
+    if (!shown.length) grid.appendChild(h('div', { class: 'detail__empty', text: '보이는 열 중에 그래프로 그릴 열이 없습니다. 위 「열 ▾」에서 열을 더 고르세요.' }));
+    if (skipped.length) {
       skippedBox.append(h('div', { class: 'panel-title', text: '그래프로 그리지 않은 열' }),
-        h('div', { class: 'chips' }, ...overview.skipped.map((k) => h('span', { class: 'chip graph__skip', title: k.reason, text: `${k.name} — ${k.reason}` }))));
+        h('div', { class: 'chips' }, ...skipped.map((k) => h('span', { class: 'chip graph__skip', title: k.reason, text: `${k.name} — ${k.reason}` }))));
     }
+    // 보이는 열 중 그릴 열이 하나뿐이면 바로 크게 (한 열의 흐름을 보려고 고른 경우)
+    if (visibleSet && shown.length === 1 && focusCol == null && !autoFocused) { autoFocused = true; focusCol = shown[0].col; refineFocus(); } // 닫으면 다시 열지 않는다
     drawCards();
     renderFocus();
     redrawMinis();
@@ -8844,7 +9068,10 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
   function wireFocus(canvas, fs, plot, { cross, sel, tip }) {
     const { r, s } = fs;
     const B = r.buckets;
-    const pxToB = (px) => Math.max(0, Math.min(B - 1, Math.floor(((px - plot.l) / plot.w) * B)));
+    // 기준선은 가장 가까운 값 있는 구간에 붙는다 (듬성듬성한 데이터에서 빈 구간을 가리키지 않게)
+    const hasData = (b) => (s.kind === 'cat' ? s.labels.some((_, k) => s.counts[b * s.labels.length + k]) : s.cnt[b] > 0);
+    const snap = (b) => { for (let d = 0; d < B; d++) { if (b - d >= 0 && hasData(b - d)) return b - d; if (b + d < B && hasData(b + d)) return b + d; } return b; };
+    const pxToB = (px) => snap(Math.max(0, Math.min(B - 1, Math.floor(((px - plot.l) / plot.w) * B))));
     const show = (b) => {
       hoverB = b;
       const cx = plot.l + ((b + 0.5) / B) * plot.w;
@@ -8892,7 +9119,11 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
     canvas.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
-        show(Math.max(0, Math.min(B - 1, hoverB < 0 ? 0 : hoverB + (e.key === 'ArrowRight' ? 1 : -1))));
+        // ←→ 는 값 있는 다음 구간으로
+        const dir = e.key === 'ArrowRight' ? 1 : -1;
+        let nb = hoverB < 0 ? snap(0) : hoverB + dir;
+        while (nb >= 0 && nb < B && !hasData(nb)) nb += dir;
+        if (nb >= 0 && nb < B) show(nb);
       } else if (e.key === 'Escape') hide();
     });
     canvas.addEventListener('blur', hide);
@@ -8993,6 +9224,8 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
       if (visible()) ensureOverview();
     },
     show() { if (overview) redraw(); else ensureOverview(); },
+    /** 표에서 고른 보이는 열만 작은 그래프로 (null = 모두) */
+    setVisibleCols(cols) { visibleSet = cols ? new Set(cols) : null; autoFocused = false; if (overview) renderAll(); },
     focus,
     /** 필터가 바뀌면 그래프도 그 행들로 다시 */
     setFilter(conds) {
@@ -9043,7 +9276,7 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
       // 필터는 비우지 않는다 — 필터 막대는 파일을 다시 열어도 조건을 그대로 두므로 그쪽과 같게 (다음 setDataset 이 다시 맞춘다)
       invalidate();
       resetFocus();
-      ds = null; prof = null;
+      ds = null; prof = null; visibleSet = null; autoFocused = false;
       clear(xSel); setBusy(false, '');
       minis.clear();
       renderAll();
@@ -9051,6 +9284,120 @@ function createGraphView({ container, request, cancel, onOpenColumn }) {
   };
 }
 return { createGraphView };
+})();
+
+// ===== src/main/view-cols.js =====
+const M_main_view_cols = (() => {
+// 표 보기 계산: 필터를 통과한 행(원래 행 번호의 오름차순 목록) ↔ 표의 순번, 보이는 열 정리. DOM 을 쓰지 않는다.
+
+/** 원래 행 r 이 걸러진 표의 몇 번째인지 — 필터에 가려진 행이면 -1 */
+function indexOfRow(rows, r) {
+  const i = lowerBound(rows, r);
+  return i < rows.length && rows[i] === r ? i : -1;
+}
+
+/** 원래 행 r 이상인 첫 통과 행의 순번 (미니맵에서 그 근처로 갈 때). 끝을 넘으면 마지막. */
+function lowerBound(rows, r) {
+  let lo = 0, hi = rows.length;
+  while (lo < hi) { const mid = (lo + hi) >>> 1; if (rows[mid] < r) lo = mid + 1; else hi = mid; }
+  return Math.min(lo, Math.max(0, rows.length - 1));
+}
+
+/** 「이 열만 함께 보기」: 시간 열 + 필터에 쓴 열(RT·송수신 등) + 고른 열, 원래 순서로 한 번씩 */
+function focusColumns({ col, timeCol, filter }) {
+  const set = new Set([col]);
+  if (timeCol >= 0) set.add(timeCol);
+  for (const c of filter || []) set.add(c.col);
+  return [...set].sort((a, b) => a - b);
+}
+
+/** 보이는 열 정리: 범위 밖·중복 제거, 정렬. 모두 보이거나 하나도 없으면 null (= 숨긴 열 없음) */
+function normalizeVisible(cols, columnCount) {
+  if (!cols) return null;
+  const out = [...new Set(cols)].filter((c) => Number.isInteger(c) && c >= 0 && c < columnCount).sort((a, b) => a - b);
+  return out.length === 0 || out.length === columnCount ? null : out;
+}
+return { indexOfRow, lowerBound, focusColumns, normalizeVisible };
+})();
+
+// ===== src/main/ui/column-picker.js =====
+const M_main_ui_column_picker = (() => {
+const { h, clear } = M_main_ui_dom;
+const { normalizeVisible } = M_main_view_cols;
+// 「보이는 열」 고르기: 표·그래프 탭에 보일 열을 고른다 (바꾸면 바로 적용). 열 이름은 파일에서 온 글자라 textContent 로만.
+
+
+
+function createColumnPicker({ button, host, onChange }) {
+  let header = [], visible = null, open = false, query = '';
+  let headText = null, allBtn = null; // 열려 있을 때 체크만으로 바뀌는 부분
+
+  button.addEventListener('click', () => { if (open) close(); else show(); });
+  document.addEventListener('keydown', (e) => { if (open && e.key === 'Escape') close(); });
+  document.addEventListener('mousedown', (e) => { if (open && !host.contains(e.target) && !button.contains(e.target)) close(); });
+
+  function show() { open = true; host.classList.remove('is-hidden'); button.setAttribute('aria-expanded', 'true'); render(); }
+  function close() { open = false; host.classList.add('is-hidden'); button.setAttribute('aria-expanded', 'false'); }
+  const isOn = (c) => !visible || visible.includes(c);
+
+  function label() {
+    const n = visible ? visible.length : header.length;
+    button.textContent = visible ? `열 ${n}/${header.length} ▾` : '열 ▾';
+    button.classList.toggle('has-filter', !!visible);
+    button.title = visible ? `${header.length}개 열 중 ${n}개만 보입니다` : '표·그래프에 보일 열 고르기';
+  }
+
+  const countText = () => `${header.length}개 중 ${visible ? visible.length : header.length}개 — 표와 그래프 탭에 적용됩니다. 열 상세의 「이 열만 함께 보기」로도 고를 수 있습니다.`;
+
+  /** 체크박스로 바꿀 때: 목록은 그대로 두고(스크롤·포커스 유지) 개수와 「모두 보기」만 */
+  function set(next) {
+    visible = normalizeVisible(next, header.length);
+    label();
+    if (headText) headText.textContent = countText();
+    if (allBtn) allBtn.disabled = !visible;
+    onChange(visible);
+  }
+
+  function render() {
+    clear(host);
+    const search = h('input', { class: 'input', type: 'text', placeholder: '열 이름 찾기', spellcheck: 'false', autocomplete: 'off', value: query });
+    search.addEventListener('input', () => { query = search.value; renderList(); });
+    const all = h('button', { class: 'btn btn--sm', type: 'button', text: '모두 보기', disabled: !visible });
+    all.addEventListener('click', () => { set(null); render(); });
+    allBtn = all;
+    const list = h('div', { class: 'colpick__list', role: 'group', 'aria-label': '보이는 열' });
+    function renderList() {
+      clear(list);
+      const q = query.trim().toLowerCase();
+      header.forEach((name, c) => {
+        if (q && !name.toLowerCase().includes(q)) return;
+        const box = h('input', { type: 'checkbox', checked: isOn(c) });
+        box.addEventListener('change', () => {
+          const cur = visible ? [...visible] : header.map((_, i) => i);
+          const next = box.checked ? [...cur, c] : cur.filter((i) => i !== c);
+          if (!next.length) { box.checked = true; return; } // 마지막 한 열은 숨길 수 없다
+          set(next);
+        });
+        list.appendChild(h('label', { class: 'check colpick__item' }, box, h('span', { class: 'mono', text: name })));
+      });
+      if (!list.childElementCount) list.appendChild(h('div', { class: 'faint', text: '맞는 열이 없습니다' }));
+    }
+    renderList();
+    host.append(
+      h('div', { class: 'export__head' }, h('strong', { text: '보이는 열' }), headText = h('span', { class: 'muted', text: countText() })),
+      h('div', { class: 'row' }, search, all), list);
+    if (open) search.focus();
+  }
+
+  return {
+    setColumns(names) { header = names || []; visible = null; query = ''; label(); if (open) render(); },
+    /** 밖(열 상세 바로가기 등)에서 고른 열 — onChange 를 다시 부르지 않는다 */
+    setVisible(cols) { visible = normalizeVisible(cols, header.length); label(); if (open) render(); },
+    get visible() { return visible; },
+    reset() { header = []; visible = null; query = ''; close(); label(); },
+  };
+}
+return { createColumnPicker };
 })();
 
 // ===== src/main/app.js =====
@@ -9078,7 +9425,13 @@ const { installLeaveGuard } = M_main_leave_guard;
 const { createExportPanel } = M_main_ui_export_panel;
 const { buildGroupXlsx } = M_main_export_plan;
 const { createGraphView } = M_main_ui_graph_view;
+const { createColumnPicker } = M_main_ui_column_picker;
+const { indexOfRow, lowerBound, focusColumns, normalizeVisible } = M_main_view_cols;
+const { defaultXColumn } = M_shared_series;
 // 메인 엔트리: 워커 클라이언트, 뷰, 입력 패널, 검색을 배선한다.
+
+
+
 
 
 
@@ -9116,28 +9469,34 @@ let activeQuery = null;
 let lastGroup = null;    // 마지막 그룹 집계 결과 (내보내기용)
 let exportSeq = 0;
 let activeExport = null; // 진행 중인 내보내기 id ('x1' …) — 검색·집계 id(숫자)와 겹치지 않게 문자열
+// 표 보기: 필터를 통과한 원래 행 번호(오름차순, null = 필터 없음)와 보이는 열(null = 모두).
+// 표의 순번 ↔ 원래 행 번호는 toRow/toIdx 로만 오간다 — 검색·미니맵·헥사·프로파일은 모두 원래 행 번호로 말한다.
+let viewRows = null, viewFilterId = null, filterSeq = 0, visibleCols = null, appliedFilterKey = '';
+let prevHeader = null; // 다시 열기 전 파일의 머리글 — 열 구성이 같은 파일이면 필터를 이어 쓰고, 다르면 지운다
+const toRow = (i) => (viewRows ? viewRows[i] : i);
+const toIdx = (r) => (viewRows ? indexOfRow(viewRows, r) : r);
 
 // ---------- 뷰 구성 ----------
 const statusBar = createStatusBar($('#status-bar'));
 const tableHost = $('#view-table');
-const table = createTable({ container: tableHost, onCellClick: selectCell, onHeaderClick, onRangeChange: (a, b) => minimap.setViewport(a, b) });
+const table = createTable({ container: tableHost, onCellClick: (i, col) => selectCell(toRow(i), col), onHeaderClick, onRangeChange: (a, b) => minimap.setViewport(toRow(a), toRow(b)) });
 const minimapHost = h('div');
 tableHost.appendChild(minimapHost);
-const minimap = createMinimap({ container: minimapHost, onJump: (row) => { table.scrollToRow(row, 'start'); } });
+const minimap = createMinimap({ container: minimapHost, onJump: (row) => { table.scrollToRow(viewRows ? lowerBound(viewRows, row) : row, 'start'); } });
 const inputPanel = createInputPanel({ container: $('#input-panel'), onOpen, onReopen });
 let groupBy = null;
 let groupSeq = 0;
 const profileView = createProfileView({
   container: $('#view-profile'), onColumnClick: showColumnDetail, onWordClick: (w) => actions.searchHex(w), onRowClick: (r) => gotoRow(r),
   renderGroupBy: (host) => {
-    groupBy = createGroupByView({ host, onRun: runGroupBy, onPick: (conds) => { filterBar.setConditions(conds); searchBar.filterHost.classList.remove('is-hidden'); statusBar.setMessage('그룹 조건을 필터에 적용했습니다. 검색/집계에 반영됩니다.'); } });
+    groupBy = createGroupByView({ host, onRun: runGroupBy, onPick: (conds) => { filterBar.setConditions(conds); searchBar.filterHost.classList.remove('is-hidden'); statusBar.setMessage('그룹 조건을 필터에 적용했습니다. 표·검색·그래프에 반영됩니다.'); } });
     const ds = store.get().ds;
     if (ds) { groupBy.setColumns(ds.header); if (ds.schemaCount >= 4 && /RT_Address/i.test(ds.header[1] || '')) groupBy.preset([1, 2, 3]); }
   },
 });
 const detailPanel = $('#detail-panel');
 const searchBar = createSearchBar({ container: $('#search-bar'), onSearch: runSearch, onClear: clearSearch });
-const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); exportPanel.refresh(); graphView.setFilter(filterBar.getConditions()); } });
+const filterBar = createFilterBar({ container: searchBar.filterHost, onChange: () => { searchBar.rerun(); updateFilterBadge(); exportPanel.refresh(); graphView.setFilter(filterBar.getConditions()); applyTableFilter(); } });
 searchBar.setFilterGetter(() => { const c = filterBar.getConditions(); return c.length ? c : null; });
 function updateFilterBadge() {
   const n = filterBar.count;
@@ -9158,7 +9517,7 @@ function runGroupBy({ cols, useFilter }) {
 const results = createResultsView({
   container: $('#results'),
   onPick: (r) => {
-    if (r.kind === 'bytes') { showTab('hex'); hexView.showRange(r.offset, r.offset + r.length, 'hit'); if (r.row >= 0) { table.scrollToRow(r.row); if (r.col >= 0) table.select(r.row, r.col); } return; }
+    if (r.kind === 'bytes') { showTab('hex'); hexView.showRange(r.offset, r.offset + r.length, 'hit'); const i = r.row >= 0 ? toIdx(r.row) : -1; if (i >= 0) { table.scrollToRow(i); if (r.col >= 0) table.select(i, r.col); } return; }
     gotoRow(r.row, r.colStart); selectCell(r.row, r.colStart);
   },
   requestCells: async (items) => (await client.request(MSG.CELLS, { items })).texts,
@@ -9185,15 +9544,15 @@ const exportPanel = createExportPanel({
     return {
       rowCount: ds ? ds.rowCount : 0, columnCount: ds ? ds.columnCount : 0, header: ds ? ds.header : [],
       profiled: !!prof, hexLike: prof ? prof.hexLike : null,
-      filterCount: filterBar.getConditions().length, query: activeQuery, searchHasResults: results.hasResults, group: lastGroup,
+      filterCount: filterBar.getConditions().length, query: activeQuery, searchHasResults: results.hasResults, group: lastGroup, visibleCols,
     };
   },
-  run: async (mode) => {
+  run: async (mode, { visibleOnly = false } = {}) => {
     if (mode === 'group') return buildGroupXlsx(lastGroup, store.get().profile.hexLike);
     const id = 'x' + (++exportSeq);
     activeExport = id;
     try {
-      return await client.request(MSG.EXPORT, { id, mode, filter: mode === 'filter' ? filterBar.getConditions() : null, query: mode === 'search' ? activeQuery : null });
+      return await client.request(MSG.EXPORT, { id, mode, filter: mode === 'filter' ? filterBar.getConditions() : null, query: mode === 'search' ? activeQuery : null, cols: visibleOnly ? visibleCols : null });
     } finally {
       if (activeExport === id) activeExport = null;
     }
@@ -9234,14 +9593,18 @@ for (const tab of tabs) tab.addEventListener('click', () => showTab(tab.dataset.
 // ---------- 이동 / 선택 ----------
 function gotoRow(row, col) {
   showTab('table');
-  table.scrollToRow(row);
-  if (col != null) { table.scrollToCol(col); table.select(row, col); }
+  const i = toIdx(row);
+  if (i < 0) { statusBar.setMessage(`행 ${fmtInt(row + 1)} 은 필터에 가려져 있습니다 — 필터를 지우면 보입니다.`); return; }
+  table.scrollToRow(i);
+  if (col != null) { table.scrollToCol(col); table.select(i, col); }
 }
+/** 원래 행의 선택 표시 (필터에 가려진 행이면 표에는 표시하지 않는다) */
+function selectInTable(row, col) { const i = toIdx(row); table.select(i >= 0 ? i : null, col); }
 async function selectCell(row, col) {
   const ds = store.get().ds;
   if (!ds) return;
   selected = { row, col };
-  table.select(row, col);
+  selectInTable(row, col);
   const myClient = client;
   try {
     const d = await myClient.request(MSG.ROW_DETAIL, { row });
@@ -9256,7 +9619,7 @@ function renderDetail() {
   const prof = store.get().profile;
   showDetail(renderRowDetail(lastDetail, ds, {
     selectedCol: selected.col, stats: prof ? prof.stats : null,
-    onSelectCol: (c) => { selected.col = c; table.select(selected.row, c); table.scrollToCol(c); renderDetail(); },
+    onSelectCol: (c) => { selected.col = c; selectInTable(selected.row, c); table.scrollToCol(c); renderDetail(); },
     onHexView: (start, end, row, col) => actions.hexView(start, end, row, col),
     widthOverride, onWidthChange: (w) => { widthOverride = w; renderDetail(); },
   }));
@@ -9267,7 +9630,107 @@ function showColumnDetail(col) {
   profileView.setActive(col);
   const el = renderColumnDetail(prof.stats[col], store.get().ds, { onValueClick: (c, v) => actions.searchValue(c, v), onRowClick: (r) => gotoRow(r, col) });
   el.insertBefore(graphView.miniFor(col), el.children[2] || null); // 머리·타입 막대 다음에 시간 그래프
+  el.insertBefore(columnActions(col), el.children[2] || null); // 그 위에 「값 있는 행만」·「이 열만 함께 보기」
   showDetail(el);
+}
+/** 열 상세 바로가기: 이 열이 비지 않은 행만 / 시간 열 + 필터에 쓴 열 + 이 열만 보기 */
+function columnActions(col) {
+  const prof = store.get().profile;
+  const conds = filterBar.getConditions();
+  const applied = conds.some((c) => c.col === col && c.op === 'nonempty');
+  const onlyBtn = h('button', { class: 'btn btn--sm btn--accent', type: 'button', text: applied ? '값 있는 행만 ✓' : '값 있는 행만', disabled: applied || conds.length >= 4,
+    title: conds.length >= 4 && !applied ? '필터 조건은 4개까지입니다' : '이 열이 비지 않은 행만 표·그래프에 남깁니다 (필터에 「값 있음」 조건 추가)' });
+  onlyBtn.addEventListener('click', () => {
+    filterBar.setConditions([...filterBar.getConditions(), { col, op: 'nonempty' }]);
+    searchBar.filterHost.classList.remove('is-hidden');
+    showColumnDetail(col);
+  });
+  const focusBtn = h('button', { class: 'btn btn--sm btn--accent', type: 'button', text: '이 열만 함께 보기', title: '시간 열 + 필터에 쓴 열(RT·송수신 등) + 이 열만 표와 그래프에 보입니다' });
+  focusBtn.addEventListener('click', () => {
+    setVisibleCols(focusColumns({ col, timeCol: defaultXColumn(prof.stats, prof.hexLike), filter: filterBar.getConditions() }));
+    graphView.focus(col); // 그래프 탭을 열면 이 열이 크게
+    showColumnDetail(col);
+  });
+  const box = h('div', { class: 'view-actions' }, onlyBtn, focusBtn);
+  if (visibleCols) {
+    const all = h('button', { class: 'btn btn--sm', type: 'button', text: '모든 열 보기' });
+    all.addEventListener('click', () => { setVisibleCols(null); showColumnDetail(col); });
+    box.appendChild(all);
+  }
+  return box;
+}
+
+// ---------- 표 보기: 필터 적용 · 보이는 열 ----------
+const viewFilter = $('#view-filter');
+const colsBtn = $('#btn-cols');
+const colPicker = createColumnPicker({ button: colsBtn, host: $('#cols-panel'), onChange: (cols) => setVisibleCols(cols, false) });
+function setVisibleCols(cols, fromOutside = true) {
+  const ds = store.get().ds;
+  visibleCols = ds ? normalizeVisible(cols, ds.columnCount) : null;
+  if (fromOutside) colPicker.setVisible(visibleCols);
+  table.setVisibleColumns(visibleCols);
+  graphView.setVisibleCols(visibleCols);
+  exportPanel.refresh();
+}
+function setTableRows() {
+  const ds = store.get().ds;
+  if (!ds || !client) return;
+  if (rowCache) rowCache.invalidate();
+  rowCache = createRowCache(client, { rows: viewRows });
+  rowCache.onPage(() => table.refresh());
+  const rows = viewRows;
+  table.setView({ count: rows ? rows.length : ds.rowCount, getRow: (i) => (rowCache ? rowCache.getRow(i) : undefined), rowOf: rows ? (i) => rows[i] : null });
+  if (selected) selectInTable(selected.row, selected.col);
+  const vr = table.visibleRange();
+  if (vr.last >= vr.first && (rows ? rows.length : ds.rowCount) > 0) minimap.setViewport(toRow(vr.first), toRow(vr.last));
+  renderViewPill();
+}
+function renderViewPill(progress) {
+  const ds = store.get().ds;
+  clear(viewFilter);
+  const busy = viewFilterId != null;
+  viewFilter.classList.toggle('is-hidden', !ds || (!viewRows && !busy));
+  viewFilter.classList.toggle('is-busy', busy);
+  if (!ds) return;
+  if (busy) { viewFilter.textContent = progress == null ? '필터 적용 중…' : `필터 적용 중 ${Math.round(progress * 100)}%`; return; }
+  if (!viewRows) return;
+  const x = h('button', { type: 'button', text: '✕', title: '필터 모두 지우기', 'aria-label': '필터 모두 지우기' });
+  x.addEventListener('click', () => filterBar.setConditions([]));
+  viewFilter.append(h('span', { text: `필터 ${fmtInt(viewRows.length)} / ${fmtInt(ds.rowCount)}행` }), x);
+}
+/** 필터를 표에도: 워커가 통과 행 목록을 만들면 표는 그 행만 보여 준다 (프로파일 뒤 — 16진수 열을 알아야 값 비교가 맞다) */
+async function applyTableFilter() {
+  const ds = store.get().ds;
+  if (!ds || !store.get().profile || !client) return;
+  const conds = filterBar.getConditions();
+  const key = conds.length ? JSON.stringify(conds) : '';
+  if (key === appliedFilterKey && !viewFilterId) return; // 바뀐 게 없으면 다시 훑지 않는다 (스크롤도 그대로)
+  appliedFilterKey = key;
+  if (viewFilterId) { client.send(MSG.CANCEL, { id: viewFilterId }); viewFilterId = null; }
+  if (!conds.length) {
+    tableHost.classList.remove('is-refreshing');
+    if (viewRows) { viewRows = null; setTableRows(); } else renderViewPill();
+    return;
+  }
+  const id = 'f' + (++filterSeq);
+  viewFilterId = id;
+  tableHost.classList.add('is-refreshing'); // 계산하는 동안 이전 표를 흐리게
+  renderViewPill(0);
+  try {
+    const r = await client.request(MSG.FILTER_ROWS, { id, filter: conds });
+    if (viewFilterId !== id) return;
+    viewFilterId = null;
+    tableHost.classList.remove('is-refreshing');
+    if (r.cancelled) { appliedFilterKey = ''; renderViewPill(); return; }
+    viewRows = r.rows;
+    setTableRows();
+  } catch (e) {
+    if (viewFilterId !== id) return;
+    viewFilterId = null; appliedFilterKey = '';
+    tableHost.classList.remove('is-refreshing');
+    renderViewPill();
+    statusBar.setMessage('필터 적용 실패: ' + e.message, 'error');
+  }
 }
 function onHeaderClick(col) {
   searchBar.setScopeColumn(col);
@@ -9285,7 +9748,7 @@ function runSearch(q) {
   minimap.clear();
   hexView.clearHits();
   table.setColCounts(null);
-  table.setHighlights((row) => results.colsForRow(row));
+  table.setHighlights((i) => results.colsForRow(toRow(i)));
   if (q.kind === 'bytes') showTab('hex');
   client.send(MSG.SEARCH, { query: q });
 }
@@ -9314,6 +9777,10 @@ function teardown() {
   rowCache = null;
   selected = null; lastDetail = null; activeQuery = null;
   lastGroup = null; activeExport = null;
+  viewRows = null; viewFilterId = null; visibleCols = null; appliedFilterKey = '';
+  colPicker.reset(); colsBtn.disabled = true;
+  graphView.setVisibleCols(null);
+  tableHost.classList.remove('is-refreshing');
   exportPanel.reset();
   graphView.clear();
   table.clear();
@@ -9324,6 +9791,7 @@ function teardown() {
   showDetail(null);
   statusBar.reset();
   store.reset();
+  renderViewPill(); // 파일이 없으니 숨긴다
 }
 function clearAll() {
   teardown();
@@ -9339,6 +9807,7 @@ $('#btn-clear-all').addEventListener('click', clearAll);
 
 async function onOpen(blob, options) {
   const seq = ++openSeq;
+  if (store.get().ds) prevHeader = store.get().ds.header;
   teardown();
   bootClient();
   currentBlob = blob;
@@ -9379,9 +9848,13 @@ function onEvent(msg) {
       statusBar.setMessage('프로파일 완료');
       exportPanel.setReady(true);
       if (ds) graphView.setDataset(ds, msg, filterBar.getConditions());
+      applyTableFilter(); // 다시 연 파일에 필터 조건이 남아 있으면 표에도
       break;
     case MSG.SERIES_PROGRESS:
       graphView.setProgress(msg);
+      break;
+    case MSG.FILTER_PROGRESS:
+      if (msg.id === viewFilterId) renderViewPill(msg.total ? msg.done / msg.total : 0);
       break;
     case MSG.SEARCH_BATCH:
       if (!activeQuery || msg.id !== activeQuery.id || !ds) break;
@@ -9432,7 +9905,16 @@ async function onIndexed(ds) {
   inputPanel.setSummary(ds, currentBlob);
   profileView.setDataset(ds);
   searchBar.setColumns(ds.header, null);
+  // 남은 필터: 열 구성이 같은 파일(같은 형식의 로그를 차례로)이면 이어 쓰고, 다르면 지운다 — 엉뚱한 열로 표가 비지 않게
+  const kept = filterBar.getConditions();
+  if (kept.length && prevHeader && (prevHeader.length !== ds.header.length || kept.some((c) => prevHeader[c.col] !== ds.header[c.col]))) {
+    filterBar.clear();
+    updateFilterBadge();
+    statusBar.setMessage('열 구성이 다른 파일이라 이전 필터를 지웠습니다.');
+  }
+  prevHeader = null;
   filterBar.setColumns(ds.header);
+  colPicker.setColumns(ds.header);
   minimap.setRowCount(ds.rowCount, ds.columnCount, ds.header);
   hexView.setDataset(ds);
   statusBar.setProgress('프로파일', 0);
@@ -9443,6 +9925,8 @@ async function onIndexed(ds) {
     header: ds.header, columnCount: ds.columnCount, schemaCount: ds.schemaCount, rowCount: ds.rowCount,
     getRow: (r) => (rowCache ? rowCache.getRow(r) : undefined), sampleRows: sample.rows,
   });
+  colsBtn.disabled = false;
+  if (viewRows) setTableRows(); // 표본을 기다리는 사이 필터 결과가 먼저 왔으면 그 행으로
   showTab('table');
   searchBar.rerun();
 }
