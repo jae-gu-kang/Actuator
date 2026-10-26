@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!--
   CSV 분석기 — 단일 파일 빌드
-  built: 2026-10-24T10:01:46.220Z
+  built: 2026-10-26T07:43:32.461Z
   csp: sha256 hashes
   modules:
     src/shared/csv-scan.js
@@ -59,7 +59,7 @@
     src/main/ui/column-picker.js
     src/main/app.js
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7WGZGItxteHvQgAyiH9QbEolFqMHnxB4h90zWmKqqAU='; style-src 'sha256-h/F7E5GKxcneCvjAeiurb19MnQHAo8KE2XjXuKprbz0='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4vvx7zLNKjP05zhfIDwvSGL+C2Tq0qY7nDEeQPjKq7w='; style-src 'sha256-h/F7E5GKxcneCvjAeiurb19MnQHAo8KE2XjXuKprbz0='; img-src data:; worker-src blob:; child-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -790,10 +790,14 @@ function fieldOf(fi, rec, col) {
   return col < fi.recCount[rec] ? fi.recFirst[rec] + col : -1;
 }
 
+/** 인용 필드 [s,e) 의 "" 를 " 하나로 — 표에 보이는 글자. flags bit1(fieldFlags & 2)인 칸에만 쓴다 */
+function unescapeQuotes(str, s, e) {
+  return str.slice(s, e).replace(/""/g, '"');
+}
+
 /** 필드 텍스트 (인용 해제 포함) */
 function fieldText(str, fi, f) {
-  const s = str.slice(fi.fieldStart[f], fi.fieldEnd[f]);
-  return (fi.fieldFlags[f] & 2) ? s.replace(/""/g, '"') : s;
+  return (fi.fieldFlags[f] & 2) ? unescapeQuotes(str, fi.fieldStart[f], fi.fieldEnd[f]) : str.slice(fi.fieldStart[f], fi.fieldEnd[f]);
 }
 
 /**
@@ -956,7 +960,7 @@ function fieldAtByte(fields, rel) {
   if (inField(lo)) return lo; // 다음 필드의 여는 따옴표
   return -1;
 }
-return { createByteRecordScanner, FieldIndex, fieldOf, fieldText, scanFieldsString, scanRecordFieldsBytes, fieldAtByte };
+return { createByteRecordScanner, FieldIndex, fieldOf, unescapeQuotes, fieldText, scanFieldsString, scanRecordFieldsBytes, fieldAtByte };
 })();
 
 // ===== src/shared/detect.js =====
@@ -1307,7 +1311,9 @@ return { T, TYPE_NAMES, trimSpan, inferType, hexShape, hexNibbleCount, parseHexN
 // ===== src/shared/profiler.js =====
 const M_shared_profiler = (() => {
 const { T, TYPE_NAMES, inferType, hexShape, hexNibbleCount, parseHexNumber, trimSpan } = M_shared_infer;
+const { unescapeQuotes } = M_shared_csv_scan;
 // 열 프로파일러: 채움률, 타입 분포, 수치 통계, 고유값(소도메인 정확 카운터 / 상한 Map), 리저버 샘플, 상위 N.
+
 
 
 const SMALL_DOMAIN = 65536;
@@ -1359,14 +1365,74 @@ function canonical(kind, v, width) {
   return String(v);
 }
 
+/** 숫자만인 str[s..e) 의 10진 값 (5자리 이하에만 쓴다 — 문자열을 만들지 않고) */
+function decDigits(str, s, e) {
+  let v = 0;
+  for (let i = s; i < e; i++) v = v * 10 + str.charCodeAt(i) - 48;
+  return v;
+}
+
+const nibblesOf = (v) => (v < 0x10 ? 1 : v < 0x100 ? 2 : v < 0x1000 ? 3 : 4);
+const digitsOf = (v) => (v < 10 ? 1 : v < 100 ? 2 : v < 1000 ? 3 : v < 10000 ? 4 : 5);
+
+/**
+ * 소도메인 값 글자 str[s..e) 의 모양 번호 (1~255, 문자열을 만들지 않고): 자릿수(앞자리 0 포함) + 64 소문자(dec 는 + 부호) + 128 「0X」.
+ * 번호로 되살릴 수 없는 모양(구분자 · 대소문자 섞임 · - 부호 · 63자리 넘음)은 0. 표시 모양이 아닌 값에만 쓴다.
+ */
+function formCode(kind, str, s, e) {
+  let i = s, code = 0;
+  if (kind === 'hex0x') { if (str.charCodeAt(s + 1) === 0x58) code = 128; i = s + 2; }
+  else if (kind === 'dec' && str.charCodeAt(s) === 43) { code = 64; i = s + 1; }
+  const n = e - i;
+  if (n < 1 || n > 63) return 0;
+  let lower = false, upper = false;
+  for (; i < e; i++) {
+    const c = str.charCodeAt(i);
+    if (c >= 97 && c <= 102) lower = true;
+    else if (c >= 65 && c <= 70) upper = true;
+    else if (c < 48 || c > 57) return 0;
+  }
+  if (lower && upper) return 0;
+  return code | (lower ? 64 : 0) | n;
+}
+/** formCode 의 반대: 값 v 를 그 모양의 글자로 */
+function formText(kind, v, code) {
+  const n = code & 63;
+  if (kind === 'dec') return (code & 64 ? '+' : '') + String(v).padStart(n, '0');
+  const d = v.toString(16).padStart(n, '0');
+  const digits = code & 64 ? d : d.toUpperCase();
+  return kind === 'hex0x' ? (code & 128 ? '0X' : '0x') + digits : digits;
+}
+/** str[s..e) 가 canonical(kind, v, width) 와 글자까지 같은지 (값 대부분이 지나는 길 — formCode 보다 가볍게). v 는 그 글자를 읽은 값 */
+function isCanonical(kind, width, str, s, e, v) {
+  let i = s;
+  if (kind === 'dec') {
+    if (e - s !== digitsOf(v)) return false; // 앞자리 0 · 부호
+    for (; i < e; i++) { const c = str.charCodeAt(i); if (c < 48 || c > 57) return false; }
+    return true;
+  }
+  if (kind === 'hex0x') { if (str.charCodeAt(s + 1) !== 0x78) return false; i = s + 2; } // 0X 는 다른 모양
+  if (e - i !== Math.max(width, nibblesOf(v))) return false; // 0x5C ↔ 0x005C
+  for (; i < e; i++) { const c = str.charCodeAt(i); if (!((c >= 48 && c <= 57) || (c >= 65 && c <= 70))) return false; } // 소문자 · 구분자
+  return true;
+}
+
 /**
  * smallDomain: null | { kind: 'hex0x' | 'barehex' | 'dec', width }
  * bareHex: 이 열의 숫자만/글자 포함 bare 토큰을 16진수로 해석할지 (샘플에서 임시 판정)
+ * finalize() → { stats, counter, rejudge }. rejudge: 임시 판정이 열 전체와 다르면 열 전체로 한 판정, 같으면 null.
+ *   0x 없는 값은 이 판정에 따라 수치가 갈린다(0010 = 10 또는 0x10) — 앞부분만 숫자인 16진수 열을 10진수로 셌다면
+ *   최소·최대·값 분포·워드가 데이터에 없는 값(0x000A)이 되므로, 엔진이 그 열만 rejudge 로 다시 센다.
+ *   판정 기준은 provisionalForColumn 과 같다 (bareHexRule): 16진수 열이면 0x 없는 값도 16진수 — 검색 · 필터 · 그래프와 같다.
  */
 function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 5000, bareHex = false, smallDomain = null, rng = Math.random } = {}) {
   let rows = 0, present = 0, missing = 0, empty = 0, nullTok = 0, count = 0;
   const types = new Uint32Array(6);
   let strictHex = 0, digitsOnly = 0, hexNibMin = Infinity, hexNibMax = 0;
+  // 다시 셀 때 고를 소도메인에 드는 값 수 — 10진수로 바뀔 때(bareHex 였을 때만 센다) 부호 없는 5자리 이하 정수 < 65536,
+  // 16진수로 바뀔 때(아니었을 때만) 4니블 이하 0x 값 · 구분자 없는 4니블 이하 맨 16진수와 각각의 최대 니블
+  let decFit = 0, hex0xFit = 0, hex0xFitNib = 0, bareFit = 0, bareFitNib = 0;
+  let readsByJudge = 0; // bareHex 에 따라 수치가 갈리는 값 수 (0x 값만 있는 열은 판정이 달라도 다시 셀 일이 없다)
   let numCount = 0, numMin = Infinity, numMax = -Infinity, numSum = 0;
   let lenMin = Infinity, lenMax = 0, lenSum = 0;
   const sample = new Float64Array(reservoirSize);
@@ -1375,8 +1441,13 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
   const sampleRows = [];
   // 고유값: 소도메인(16비트 정수) 열은 정확 카운터. 도메인 밖 값(형식 불일치/범위 밖)만 상한 Map 으로 보낸다(혼합).
   // 소도메인이 아닌 열은 처음부터 Map.
+  // 카운터는 수치로 센다(전체 워드 빈도). 상위 값·고유값은 데이터에 적힌 글자 그대로여야 하므로, 칸의 표시 모양과
+  // 글자가 다른 값(0x5c5c · 0x5C · 0012 …)은 값마다 처음 나온 다른 모양 하나를 forms(모양 번호, 1바이트)/formN 에 따로 세고
+  // (소문자 열처럼 모양이 하나면 상한 Map 을 쓰지 않는다 — 넘치면 가장 많은 값도 빠진다), 셋째 모양 · 번호로 못 적는 모양은
+  // 그 글자로 Map 에 세며 offForm 에 적는다. 표시 모양 몫 = counter − formN − offForm.
+  // (예전엔 모두 표시 모양으로 합쳐 0012 → 「12」처럼 데이터에 없는 값이 상위에 올랐다)
   const counter = smallDomain ? new Uint32Array(SMALL_DOMAIN) : null;
-  let smallDistinct = 0;
+  let forms = null, formN = null, offForm = null; // 처음 나올 때 만든다 — 보통은 모두 표시 모양
   let map = smallDomain ? null : new Map();
   let capped = false;
   const kind = smallDomain ? smallDomain.kind : null;
@@ -1391,8 +1462,15 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
 
   function addDistinct(str, s, e, num, isIntegral, t, shape) {
     if (counter !== null && isIntegral && num >= 0 && num < SMALL_DOMAIN && formatMatches(t, shape)) {
-      if (counter[num]++ === 0) smallDistinct++;
-      return;
+      counter[num]++;
+      if (isCanonical(kind, width, str, s, e, num)) return;
+      const code = formCode(kind, str, s, e);
+      if (code !== 0) {
+        if (forms === null) { forms = new Uint8Array(SMALL_DOMAIN); formN = new Uint32Array(SMALL_DOMAIN); }
+        if (forms[num] === 0) forms[num] = code;
+        if (forms[num] === code) { formN[num]++; return; }
+      }
+      (offForm || (offForm = new Uint32Array(SMALL_DOMAIN)))[num]++;
     }
     if (map === null) map = new Map();
     if (e - s > 64) { if (!capped && map.size >= distinctCap) capped = true; return; }
@@ -1408,7 +1486,8 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
     addMissing() { rows++; missing++; },
     add(str, s0, e0, flags, rowIdx) {
       rows++; present++;
-      const [s, e] = trimSpan(str, s0, e0);
+      let [s, e] = trimSpan(str, s0, e0);
+      if (flags & 2) { str = unescapeQuotes(str, s, e); s = 0; e = str.length; } // 따옴표 안 "" 는 " 하나 — 표에 보이는 글자로 센다
       const len = e - s;
       if (len === 0) { empty++; return; }
       const t = inferType(str, s, e);
@@ -1430,16 +1509,27 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
           const v = str.slice(s, e);
           if (!hexExamples.includes(v)) hexExamples.push(v);
         }
+        if (!bareHex && nib <= 4) {
+          if (t === T.HEX) { hex0xFit++; if (nib > hex0xFitNib) hex0xFitNib = nib; }
+          else if (nib === len) { bareFit++; if (nib > bareFitNib) bareFitNib = nib; } // nib ≠ len: 구분자 · 0x
+        }
       }
 
-      // 수치 값
+      // 수치 값 (열 전체 판정용 집계도 타입 갈래 안에서 — 값마다 따로 검사하면 큰 파일에서 눈에 띄게 느려진다)
       let num = NaN, integral = false;
       if (t === T.HEX) { num = parseHexNumber(str, s, e); integral = true; }
       else if (t === T.INT) {
+        readsByJudge++;
         if (bareHex) { num = parseHexNumber(str, s, e); integral = true; }
         else { num = Number(str.slice(s, e)); integral = true; }
-      } else if (t === T.FLOAT) num = Number(str.slice(s, e));
-      else if (t === T.TEXT && bareHex && shape === 2) { num = parseHexNumber(str, s, e); integral = true; }
+        if (bareHex && len <= 5 && str.charCodeAt(s) >= 48 && decDigits(str, s, e) < SMALL_DOMAIN) decFit++; // 부호 없는 5자리 이하
+      } else {
+        // 맨 16진수 열에선 16진수 모양이면 16진수 — CE12 · AB:CD 와 1E40 (10진 지수 1e40 이 아니다). 시각(12:34:56)은 빼고
+        const hexShaped = shape !== 0 && t !== T.DATE;
+        if (hexShaped) readsByJudge++;
+        if (bareHex && hexShaped) { num = parseHexNumber(str, s, e); integral = true; }
+        else if (t === T.FLOAT) num = Number(str.slice(s, e));
+      }
       if (num === num && Number.isFinite(num)) {
         numCount++;
         if (num < numMin) numMin = num;
@@ -1457,9 +1547,25 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
         dominant = TYPE_NAMES[bi];
         dominantShare = best / count;
       }
-      const hexLike = count > 0 && strictHex >= 1 && (strictHex + digitsOnly) / count >= 0.95 && strictHex / count >= 0.2;
+      const hexLike = bareHexRule(strictHex, digitsOnly, count);
+      // 0x 없는 값을 16진수로 읽을지(= hexLike)를 열 전체로 다시 — 임시 판정과 다르고 그 판정으로 읽는 값이 있으면 다시 센다
+      // (앞 2000행이 비어 판정 못 한 1553 넘침 열처럼 0x 값만 있으면 결과가 같다). 다시 셀 소도메인은 값 대부분이
+      // 들면 고른다 (안 드는 값은 어차피 Map 으로 가므로, 섞인 값 하나 때문에 정확 카운터와 워드 빈도를 버리지 않는다)
+      const rejudge = hexLike === bareHex || readsByJudge === 0 ? null : {
+        bareHex: hexLike,
+        smallDomain: !hexLike ? (decFit * 2 > count ? { kind: 'dec', width: 0 } : null)
+          : hex0xFit * 2 > count ? { kind: 'hex0x', width: Math.max(1, hex0xFitNib) }
+          : bareFit * 2 > count ? { kind: 'barehex', width: Math.max(1, bareFitNib) } : null,
+      };
       const items = [];
-      if (counter !== null) for (let v = 0; v < SMALL_DOMAIN; v++) if (counter[v]) items.push([canonical(kind, v, width), counter[v]]);
+      let smallDistinct = 0;
+      if (counter !== null) for (let v = 0; v < SMALL_DOMAIN; v++) {
+        if (!counter[v]) continue;
+        const k = formN ? formN[v] : 0;
+        const n = counter[v] - k - (offForm ? offForm[v] : 0); // 표시 모양 그대로 적힌 것 (셋째 모양부터는 Map 에 그 글자로)
+        if (n) { items.push([canonical(kind, v, width), n]); smallDistinct++; }
+        if (k) { items.push([formText(kind, v, forms[v]), k]); smallDistinct++; }
+      }
       if (map !== null) for (const kv of map) items.push(kv);
       const distinct = smallDistinct + (map ? map.size : 0);
       const distinctExact = !capped;
@@ -1477,14 +1583,22 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
         hexExamples, sampleRows,
         smallDomain: counter !== null, outOfDomain: counter !== null && map ? map.size : 0,
       };
-      return { stats, counter };
+      return { stats, counter, rejudge };
     },
   };
 }
 
 /**
+ * 0x 없는 값(숫자만 · A–F 글자)을 16진수로 읽을 열인지 = 16진수 열(hexLike 와 같은 비율). 검색 · 필터 · 그래프도 hexLike 로 읽으므로
+ * 0x 열에 섞인 255 도 0x255 다 (예전엔 0x 가 하나라도 있으면 10진수로 읽어, 형식이 중간에 바뀌는 열에서 0010 이 「0x000A」 가 됐다).
+ */
+function bareHexRule(strict, digits, n) {
+  return n > 0 && strict >= 1 && (strict + digits) / n >= 0.95 && strict / n >= 0.2;
+}
+
+/**
  * 샘플 행으로 열별 임시 판정: bareHex 와 smallDomain.
- * values: 열의 비어있지 않은 샘플 문자열 배열
+ * values: 열의 비어있지 않은 샘플 문자열 배열. 널 토큰(NA · - …)은 프로파일러처럼 세지 않는다 (hexLike 와 같은 기준)
  */
 function provisionalForColumn(values) {
   let strict = 0, digits = 0, nonEmpty = 0;
@@ -1492,8 +1606,9 @@ function provisionalForColumn(values) {
   for (const v0 of values) {
     const v = v0.trim();
     if (!v) continue;
-    nonEmpty++;
     const t = inferType(v, 0, v.length);
+    if (t === T.NULLTOK) continue;
+    nonEmpty++;
     const shape = hexShape(v, 0, v.length);
     if (shape === 2) strict++; else if (shape === 1) digits++;
     const nib = shape ? hexNibbleCount(v, 0, v.length) : 0;
@@ -1503,14 +1618,14 @@ function provisionalForColumn(values) {
     if (!(shape >= 1 && t !== T.HEX && nib <= 4 && !/[:\-_ ]/.test(v))) allBare = false;
   }
   if (nonEmpty === 0) return { bareHex: false, smallDomain: null };
-  const bareHex = strict >= 1 && (strict + digits) / nonEmpty >= 0.95 && strict / nonEmpty >= 0.2 && !values.some((v) => /^0[xX]/.test(v.trim()));
+  const bareHex = bareHexRule(strict, digits, nonEmpty);
   let smallDomain = null;
   if (allHex0x) smallDomain = { kind: 'hex0x', width: Math.max(1, maxNib) };
   else if (bareHex && allBare) smallDomain = { kind: 'barehex', width: Math.max(1, maxNib) };
   else if (allDec && maxDec < SMALL_DOMAIN) smallDomain = { kind: 'dec', width: 0 };
   return { bareHex, smallDomain };
 }
-return { reservoirPush, histogram, topN, widthBitsFor, createColumnProfiler, provisionalForColumn };
+return { reservoirPush, histogram, topN, widthBitsFor, formCode, isCanonical, createColumnProfiler, provisionalForColumn };
 })();
 
 // ===== src/shared/rng.js =====
@@ -1868,10 +1983,12 @@ return { parseNumber, parseQuery, numEquals, formatNumeric };
 // ===== src/shared/search-cells.js =====
 const M_shared_search_cells = (() => {
 const { trimSpan } = M_shared_infer;
+const { unescapeQuotes } = M_shared_csv_scan;
 const { parseHexQuery } = M_shared_hex;
 const { RowNibbles, buildRowNibbles, matchNibbleSeq } = M_shared_hexrow;
 const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
 // 셀 검색 매처: 텍스트(포함/전체/정규식) · 숫자 동치 · 16진수(hexrow 위임). 블록 단위로 호출된다.
+
 
 
 
@@ -1908,6 +2025,18 @@ function compileText(query, scope, cols) {
   const needle = cs ? pattern : pattern.toLowerCase();
   const L = needle.length;
   let hay = '', nextHit = -1, fallback = false;
+  /** 칸 글자 하나 (블록 색인 없이) */
+  const testValue = (v) => {
+    if (re) {
+      re.lastIndex = 0;
+      const m = re.exec(v);
+      return m ? [m.index, m.index + Math.max(1, m[0].length)] : null;
+    }
+    const cell = cs ? v : v.toLowerCase();
+    if (mode === 'whole') return cell === needle ? [0, v.length] : null;
+    const k = cell.indexOf(needle);
+    return k >= 0 ? [k, k + L] : null;
+  };
   return {
     kind: 'text', scope, scopeAll: !scope,
     prepare(block) {
@@ -1915,18 +2044,9 @@ function compileText(query, scope, cols) {
       else { const lower = block.toLowerCase(); fallback = lower.length !== block.length; hay = fallback ? block : lower; }
       nextHit = -1;
     },
+    testValue,
     testCell(block, s, e) {
-      if (re) {
-        re.lastIndex = 0;
-        const m = re.exec(block.slice(s, e));
-        return m ? [m.index, m.index + Math.max(1, m[0].length)] : null;
-      }
-      if (fallback) {
-        const cell = block.slice(s, e).toLowerCase();
-        if (mode === 'whole') return cell === needle ? [0, e - s] : null;
-        const k = cell.indexOf(needle);
-        return k >= 0 ? [k, k + L] : null;
-      }
+      if (re || fallback) return testValue(block.slice(s, e));
       if (mode === 'whole') return (e - s === L && hay.startsWith(needle, s)) ? [0, L] : null;
       if (nextHit < s) { nextHit = hay.indexOf(needle, s); if (nextHit < 0) nextHit = Infinity; }
       let k = nextHit;
@@ -1943,15 +2063,17 @@ function compileNumeric(query, scope, cols, meta) {
   const treat = opts.treatBareHex || 'auto';
   const hexLike = meta.hexLike || null;
   const bareHexFor = (col) => (treat === 'always' ? true : treat === 'never' ? false : !!(hexLike && hexLike[col]));
+  const testCell = (block, s, e, col) => {
+    const c0 = block.charCodeAt(s);
+    if (!((c0 >= 48 && c0 <= 57) || c0 === 43 || c0 === 45 || c0 === 46 || (c0 >= 65 && c0 <= 70) || (c0 >= 97 && c0 <= 102)) || e - s > 40) return null;
+    const n = parseNumber(block, s, e, { bareHex: bareHexFor(col) });
+    return n && numEquals(n, q) ? [0, e - s] : null;
+  };
   return {
     kind: 'numeric', scope, scopeAll: !scope, value: q,
     prepare() {},
-    testCell(block, s, e, col) {
-      const c0 = block.charCodeAt(s);
-      if (!((c0 >= 48 && c0 <= 57) || c0 === 43 || c0 === 45 || c0 === 46 || (c0 >= 65 && c0 <= 70) || (c0 >= 97 && c0 <= 102)) || e - s > 40) return null;
-      const n = parseNumber(block, s, e, { bareHex: bareHexFor(col) });
-      return n && numEquals(n, q) ? [0, e - s] : null;
-    },
+    testCell,
+    testValue: (v, col) => testCell(v, 0, v.length, col),
   };
 }
 
@@ -1981,6 +2103,13 @@ function compileHex(query, scope, cols, meta) {
   };
 }
 
+/** 칸 하나 — 따옴표 안 "" 가 든 칸은 표에 보이는 글자(" 하나)로, 맞은 위치도 그 글자 기준 */
+function testField(matcher, block, fi, f, col) {
+  const [s, e] = trimSpan(block, fi.fieldStart[f], fi.fieldEnd[f]);
+  if (e <= s) return null;
+  return (fi.fieldFlags[f] & 2) ? matcher.testValue(unescapeQuotes(block, s, e), col) : matcher.testCell(block, s, e, col);
+}
+
 /**
  * 블록 검색. matcher.prepare(block) 는 호출자가 미리 부른다.
  * filterFn(block, fi, rec) 가 false 면 건너뜀. 반환: 필터 통과 레코드 수.
@@ -1999,18 +2128,12 @@ function searchBlock(block, fi, rowBase, matcher, filterFn, sink, maxRecords = I
       for (let j = 0; j < scope.length; j++) {
         const col = scope[j];
         if (col >= fc) break;
-        const f = f0 + col;
-        const [s, e] = trimSpan(block, fi.fieldStart[f], fi.fieldEnd[f]);
-        if (e <= s) continue;
-        const m = matcher.testCell(block, s, e, col);
+        const m = testField(matcher, block, fi, f0 + col, col);
         if (m) sink.push(row, col, col, m[0], m[1]);
       }
     } else {
       for (let col = 0; col < fc; col++) {
-        const f = f0 + col;
-        const [s, e] = trimSpan(block, fi.fieldStart[f], fi.fieldEnd[f]);
-        if (e <= s) continue;
-        const m = matcher.testCell(block, s, e, col);
+        const m = testField(matcher, block, fi, f0 + col, col);
         if (m) sink.push(row, col, col, m[0], m[1]);
       }
     }
@@ -2022,7 +2145,7 @@ return { compileCellMatcher, searchBlock };
 
 // ===== src/shared/filter.js =====
 const M_shared_filter = (() => {
-const { fieldOf } = M_shared_csv_scan;
+const { fieldOf, unescapeQuotes } = M_shared_csv_scan;
 const { trimSpan } = M_shared_infer;
 const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
 // 행 필터: 최대 4개 조건의 AND. 표·검색·그룹 집계·그래프·내보내기 전에 레코드마다 평가한다.
@@ -2133,6 +2256,14 @@ function eqAny(specs, str, s, e, bareHex, flags = null) {
   return any;
 }
 
+/** 칸 f 의 값 범위 [str, s, e] — 앞뒤 공백을 자르고, 따옴표 안 "" 가 든 칸은 표에 보이는 글자(" 하나)로 */
+function cellSpan(str, fi, f) {
+  const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
+  if (!(fi.fieldFlags[f] & 2)) return [str, s, e];
+  const v = unescapeQuotes(str, s, e);
+  return [v, 0, v.length];
+}
+
 /**
  * 「값이 나온 때」: 한 열의 여러 값과 한꺼번에 「=」 (값마다 필터 「=」 과 같은 결과) — (str, fi, rec, flags) → 하나라도 같으면 true,
  * flags[i] 는 값 i 와 같은지. 필드가 없는 행은 모두 아니다.
@@ -2143,8 +2274,8 @@ function compileMarkMatcher(col, values, meta = {}) {
   return (str, fi, rec, flags) => {
     const f = fieldOf(fi, rec, col);
     if (f < 0) { flags.fill(0); return false; }
-    const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
-    return eqAny(specs, str, s, e, bareHex, flags);
+    const [t, s, e] = cellSpan(str, fi, f);
+    return eqAny(specs, t, s, e, bareHex, flags);
   };
 }
 
@@ -2178,16 +2309,16 @@ function compileFilter(conds, meta = {}) {
     for (const c of compiled) {
       const f = fieldOf(fi, rec, c.col);
       if (f < 0) { if (c.op === 'neq' || c.op === 'empty') continue; return false; }
-      const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
+      const [t, s, e] = cellSpan(str, fi, f);
       if (c.op === 'nonempty') { if (e <= s) return false; } else if (c.op === 'empty') { if (e > s) return false; } else if (c.op === 'eq' || c.op === 'neq') {
-        const eq = eqMatch(c.eq, str, s, e, c.bareHex);
+        const eq = eqMatch(c.eq, t, s, e, c.bareHex);
         if (c.op === 'eq' ? !eq : eq) return false;
       } else if (c.op === 'in') {
-        if (!eqAny(c.alts, str, s, e, c.bareHex)) return false;
+        if (!eqAny(c.alts, t, s, e, c.bareHex)) return false;
       } else if (c.op === 'contains') {
-        if (str.slice(s, e).toLowerCase().indexOf(c.text) < 0) return false;
+        if (t.slice(s, e).toLowerCase().indexOf(c.text) < 0) return false;
       } else if (c.op === 'range') {
-        const n = parseNumber(str, s, e, { bareHex: c.bareHex });
+        const n = parseNumber(t, s, e, { bareHex: c.bareHex });
         if (!n) return false;
         const v = n.i !== undefined ? Number(n.i) : n.f;
         if (c.min != null && v < c.min) return false;
@@ -2894,11 +3025,13 @@ return { looksLikeOle, looksLikeZip, xmlUnescape, parseStyles, elapsedText, exce
 // ===== src/shared/series.js =====
 const M_shared_series = (() => {
 const { trimSpan, parseHexNumber } = M_shared_infer;
+const { unescapeQuotes } = M_shared_csv_scan;
 // 시간(X축)에 따른 열 변화 — 어떤 열을 어떻게 그릴지 정하고, X 구간마다 값을 모은다.
 // 열마다 「값이 들어오는 주기」도 함께 센다: 값이 있는 행끼리의 X(시간) 간격 분포 → 가장 많은 간격(주기)과 그 비율.
 // 워커와 메인 스레드 폴백에서 같은 코드로 돈다 (DOM 사용 금지).
 //   숫자·16진수 열 → 구간별 최소·최대·평균(선 + 범위 띠)
 //   값 종류가 적은 글자 열 → 구간별 값 개수(100% 누적 영역)
+
 
 
 const MAX_CATS = 5;        // 범주 열에서 따로 그리는 값 수 (나머지는 기타) — 색 구분이 되는 한도
@@ -3052,9 +3185,9 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null, per
   let anyTotal = 0;
   const series = plan.map((p) => {
     if (p.kind === 'cat') {
-      // 키는 프로파일과 같게 — 앞뒤 공백만 자른 원래 글자(따옴표 안 "" 그대로). 보이는 이름만 따옴표를 푼다.
+      // 키는 프로파일 상위 값과 같게 — 앞뒤 공백을 자르고 따옴표 안 "" 를 푼, 표에 보이는 글자
       const K = p.cats.length + (p.other ? 1 : 0);
-      const labels = [...p.cats.map((v) => v.replace(/""/g, '"')), ...(p.other ? ['기타'] : [])];
+      const labels = [...p.cats, ...(p.other ? ['기타'] : [])];
       return { col: p.col, kind: 'cat', index: new Map(p.cats.map((v, i) => [v, i])), other: p.other ? p.cats.length : -1, K, counts: new Uint32Array(B * K), labels };
     }
     const min = new Float64Array(B).fill(Infinity), max = new Float64Array(B).fill(-Infinity);
@@ -3115,10 +3248,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null, per
       } else {
         const [a, e] = trimSpan(text, fi.fieldStart[f], fi.fieldEnd[f]);
         if (e <= a) continue;
-        const v = text.slice(a, e);
-        let idx = s.index.get(v);
-        // 프로파일은 작은 정수를 정규형으로 센다 (007 → 7)
-        if (idx === undefined && v.length < 16 && /^\d+$/.test(v)) idx = s.index.get(String(Number(v)));
+        let idx = s.index.get((fi.fieldFlags[f] & 2) ? unescapeQuotes(text, a, e) : text.slice(a, e));
         if (idx === undefined) { if (s.other < 0) continue; idx = s.other; }
         s.counts[b * s.K + idx]++;
       }
@@ -3151,7 +3281,7 @@ return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, PERIOD_BINS, PERIOD
 
 // ===== src/worker/engine.js =====
 const M_worker_engine = (() => {
-const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
+const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, unescapeQuotes, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
 const { detectEncoding, detectDelimiter, detectHeader, makeDecoder, firstRecords } = M_shared_detect;
 const { U32Vec, U16Vec, rowOfOffset } = M_shared_offsets;
 const { MSG } = M_shared_protocol;
@@ -3577,36 +3707,57 @@ class Engine {
         profs.push(createColumnProfiler(c, ds.header[c], { distinctCap, reservoirSize, bareHex: prov.bareHex, smallDomain: prov.smallDomain, rng }));
       }
 
-      let done = 0, lastReport = 0;
       const total = ds.size;
-      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
-        if (gen !== this.gen) return;
-        await this.yieldToPriority(gen);
-        if (gen !== this.gen) return;
-        const text = ds.decoder.decode(blk.u8);
-        scanFieldsString(text, D, 34, fi);
-        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
-        for (let k = 0; k < nRec; k++) {
-          const row = blk.rowStart + k;
-          const f0 = fi.recFirst[k], fc = fi.recCount[k];
-          const lim = fc < cols ? fc : cols;
-          for (let c = 0; c < lim; c++) { const f = f0 + c; profs[c].add(text, fi.fieldStart[f], fi.fieldEnd[f], fi.fieldFlags[f], row); }
-          for (let c = lim; c < cols; c++) profs[c].addMissing();
+      /** 파일을 한 번 읽으며 열 프로파일러에 넣는다. only: 이 열들만 (다시 셀 때) — 끝까지 읽었으면 true */
+      const feed = async (only) => {
+        let done = 0, lastReport = 0;
+        for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+          if (gen !== this.gen) return false;
+          await this.yieldToPriority(gen);
+          if (gen !== this.gen) return false;
+          const text = ds.decoder.decode(blk.u8);
+          scanFieldsString(text, D, 34, fi);
+          const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+          for (let k = 0; k < nRec; k++) {
+            const row = blk.rowStart + k;
+            const f0 = fi.recFirst[k], fc = fi.recCount[k];
+            if (only) {
+              for (const c of only) { const f = f0 + c; if (c < fc) profs[c].add(text, fi.fieldStart[f], fi.fieldEnd[f], fi.fieldFlags[f], row); else profs[c].addMissing(); }
+              continue;
+            }
+            const lim = fc < cols ? fc : cols;
+            for (let c = 0; c < lim; c++) { const f = f0 + c; profs[c].add(text, fi.fieldStart[f], fi.fieldEnd[f], fi.fieldFlags[f], row); }
+            for (let c = lim; c < cols; c++) profs[c].addMissing();
+          }
+          done += blk.u8.length;
+          if (done - lastReport >= (16 << 20)) {
+            lastReport = done;
+            this.post({ type: MSG.PROFILE_PROGRESS, done, total, rows: blk.rowEnd, again: !!only });
+          }
         }
-        done += blk.u8.length;
-        if (done - lastReport >= (16 << 20)) {
-          lastReport = done;
-          this.post({ type: MSG.PROFILE_PROGRESS, done, total, rows: blk.rowEnd });
-        }
+        return gen === this.gen;
+      };
+      if (!await feed(null)) return;
+      const results = profs.map((p) => p.finalize());
+      // 앞 2000행으로 한 임시 판정(0x 없는 값을 16진수로 읽을지)이 열 전체와 다른 열 — 앞부분만 숫자인 16진수 열 등 — 은
+      // 그 판정으로 다시 센다. 그대로 두면 0010 을 10 으로 읽은 최소·최대·값 분포·워드처럼 데이터에 없는 값이 나온다.
+      const again = [];
+      for (let c = 0; c < cols; c++) {
+        if (!results[c].rejudge) continue;
+        again.push(c);
+        profs[c] = createColumnProfiler(c, ds.header[c], { distinctCap, reservoirSize, ...results[c].rejudge, rng });
       }
-      if (gen !== this.gen) return;
+      if (again.length) {
+        if (!await feed(again)) return;
+        for (const c of again) results[c] = profs[c].finalize();
+      }
 
       const stats = [];
       const hexLike = new Uint8Array(cols);
       const padNibbles = new Uint8Array(cols);
       let wordFreq = null;
       for (let c = 0; c < cols; c++) {
-        const { stats: st, counter } = profs[c].finalize();
+        const { stats: st, counter } = results[c];
         stats.push(st);
         hexLike[c] = st.hexLike ? 1 : 0;
         padNibbles[c] = st.hexLike ? Math.min(255, st.hexNibblesMax) : 0;
@@ -3855,8 +4006,9 @@ class Engine {
           for (let j = 0; j < cols.length; j++) {
             const c = cols[j];
             if (c >= fc) { parts[j] = GROUP_MISSING; continue; }
-            const [s, e] = trimSpan(text, fi.fieldStart[f0 + c], fi.fieldEnd[f0 + c]);
-            parts[j] = e > s ? text.slice(s, e) : GROUP_EMPTY;
+            const f = f0 + c;
+            const [s, e] = trimSpan(text, fi.fieldStart[f], fi.fieldEnd[f]);
+            parts[j] = e <= s ? GROUP_EMPTY : (fi.fieldFlags[f] & 2) ? unescapeQuotes(text, s, e) : text.slice(s, e); // 표에 보이는 글자 — 누르면 「=」 필터
           }
           counter.add(parts);
         }
@@ -4178,10 +4330,14 @@ function fieldOf(fi, rec, col) {
   return col < fi.recCount[rec] ? fi.recFirst[rec] + col : -1;
 }
 
+/** 인용 필드 [s,e) 의 "" 를 " 하나로 — 표에 보이는 글자. flags bit1(fieldFlags & 2)인 칸에만 쓴다 */
+function unescapeQuotes(str, s, e) {
+  return str.slice(s, e).replace(/""/g, '"');
+}
+
 /** 필드 텍스트 (인용 해제 포함) */
 function fieldText(str, fi, f) {
-  const s = str.slice(fi.fieldStart[f], fi.fieldEnd[f]);
-  return (fi.fieldFlags[f] & 2) ? s.replace(/""/g, '"') : s;
+  return (fi.fieldFlags[f] & 2) ? unescapeQuotes(str, fi.fieldStart[f], fi.fieldEnd[f]) : str.slice(fi.fieldStart[f], fi.fieldEnd[f]);
 }
 
 /**
@@ -4344,7 +4500,7 @@ function fieldAtByte(fields, rel) {
   if (inField(lo)) return lo; // 다음 필드의 여는 따옴표
   return -1;
 }
-return { createByteRecordScanner, FieldIndex, fieldOf, fieldText, scanFieldsString, scanRecordFieldsBytes, fieldAtByte };
+return { createByteRecordScanner, FieldIndex, fieldOf, unescapeQuotes, fieldText, scanFieldsString, scanRecordFieldsBytes, fieldAtByte };
 })();
 
 // ===== src/shared/detect.js =====
@@ -4695,7 +4851,9 @@ return { T, TYPE_NAMES, trimSpan, inferType, hexShape, hexNibbleCount, parseHexN
 // ===== src/shared/profiler.js =====
 const M_shared_profiler = (() => {
 const { T, TYPE_NAMES, inferType, hexShape, hexNibbleCount, parseHexNumber, trimSpan } = M_shared_infer;
+const { unescapeQuotes } = M_shared_csv_scan;
 // 열 프로파일러: 채움률, 타입 분포, 수치 통계, 고유값(소도메인 정확 카운터 / 상한 Map), 리저버 샘플, 상위 N.
+
 
 
 const SMALL_DOMAIN = 65536;
@@ -4747,14 +4905,74 @@ function canonical(kind, v, width) {
   return String(v);
 }
 
+/** 숫자만인 str[s..e) 의 10진 값 (5자리 이하에만 쓴다 — 문자열을 만들지 않고) */
+function decDigits(str, s, e) {
+  let v = 0;
+  for (let i = s; i < e; i++) v = v * 10 + str.charCodeAt(i) - 48;
+  return v;
+}
+
+const nibblesOf = (v) => (v < 0x10 ? 1 : v < 0x100 ? 2 : v < 0x1000 ? 3 : 4);
+const digitsOf = (v) => (v < 10 ? 1 : v < 100 ? 2 : v < 1000 ? 3 : v < 10000 ? 4 : 5);
+
+/**
+ * 소도메인 값 글자 str[s..e) 의 모양 번호 (1~255, 문자열을 만들지 않고): 자릿수(앞자리 0 포함) + 64 소문자(dec 는 + 부호) + 128 「0X」.
+ * 번호로 되살릴 수 없는 모양(구분자 · 대소문자 섞임 · - 부호 · 63자리 넘음)은 0. 표시 모양이 아닌 값에만 쓴다.
+ */
+function formCode(kind, str, s, e) {
+  let i = s, code = 0;
+  if (kind === 'hex0x') { if (str.charCodeAt(s + 1) === 0x58) code = 128; i = s + 2; }
+  else if (kind === 'dec' && str.charCodeAt(s) === 43) { code = 64; i = s + 1; }
+  const n = e - i;
+  if (n < 1 || n > 63) return 0;
+  let lower = false, upper = false;
+  for (; i < e; i++) {
+    const c = str.charCodeAt(i);
+    if (c >= 97 && c <= 102) lower = true;
+    else if (c >= 65 && c <= 70) upper = true;
+    else if (c < 48 || c > 57) return 0;
+  }
+  if (lower && upper) return 0;
+  return code | (lower ? 64 : 0) | n;
+}
+/** formCode 의 반대: 값 v 를 그 모양의 글자로 */
+function formText(kind, v, code) {
+  const n = code & 63;
+  if (kind === 'dec') return (code & 64 ? '+' : '') + String(v).padStart(n, '0');
+  const d = v.toString(16).padStart(n, '0');
+  const digits = code & 64 ? d : d.toUpperCase();
+  return kind === 'hex0x' ? (code & 128 ? '0X' : '0x') + digits : digits;
+}
+/** str[s..e) 가 canonical(kind, v, width) 와 글자까지 같은지 (값 대부분이 지나는 길 — formCode 보다 가볍게). v 는 그 글자를 읽은 값 */
+function isCanonical(kind, width, str, s, e, v) {
+  let i = s;
+  if (kind === 'dec') {
+    if (e - s !== digitsOf(v)) return false; // 앞자리 0 · 부호
+    for (; i < e; i++) { const c = str.charCodeAt(i); if (c < 48 || c > 57) return false; }
+    return true;
+  }
+  if (kind === 'hex0x') { if (str.charCodeAt(s + 1) !== 0x78) return false; i = s + 2; } // 0X 는 다른 모양
+  if (e - i !== Math.max(width, nibblesOf(v))) return false; // 0x5C ↔ 0x005C
+  for (; i < e; i++) { const c = str.charCodeAt(i); if (!((c >= 48 && c <= 57) || (c >= 65 && c <= 70))) return false; } // 소문자 · 구분자
+  return true;
+}
+
 /**
  * smallDomain: null | { kind: 'hex0x' | 'barehex' | 'dec', width }
  * bareHex: 이 열의 숫자만/글자 포함 bare 토큰을 16진수로 해석할지 (샘플에서 임시 판정)
+ * finalize() → { stats, counter, rejudge }. rejudge: 임시 판정이 열 전체와 다르면 열 전체로 한 판정, 같으면 null.
+ *   0x 없는 값은 이 판정에 따라 수치가 갈린다(0010 = 10 또는 0x10) — 앞부분만 숫자인 16진수 열을 10진수로 셌다면
+ *   최소·최대·값 분포·워드가 데이터에 없는 값(0x000A)이 되므로, 엔진이 그 열만 rejudge 로 다시 센다.
+ *   판정 기준은 provisionalForColumn 과 같다 (bareHexRule): 16진수 열이면 0x 없는 값도 16진수 — 검색 · 필터 · 그래프와 같다.
  */
 function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 5000, bareHex = false, smallDomain = null, rng = Math.random } = {}) {
   let rows = 0, present = 0, missing = 0, empty = 0, nullTok = 0, count = 0;
   const types = new Uint32Array(6);
   let strictHex = 0, digitsOnly = 0, hexNibMin = Infinity, hexNibMax = 0;
+  // 다시 셀 때 고를 소도메인에 드는 값 수 — 10진수로 바뀔 때(bareHex 였을 때만 센다) 부호 없는 5자리 이하 정수 < 65536,
+  // 16진수로 바뀔 때(아니었을 때만) 4니블 이하 0x 값 · 구분자 없는 4니블 이하 맨 16진수와 각각의 최대 니블
+  let decFit = 0, hex0xFit = 0, hex0xFitNib = 0, bareFit = 0, bareFitNib = 0;
+  let readsByJudge = 0; // bareHex 에 따라 수치가 갈리는 값 수 (0x 값만 있는 열은 판정이 달라도 다시 셀 일이 없다)
   let numCount = 0, numMin = Infinity, numMax = -Infinity, numSum = 0;
   let lenMin = Infinity, lenMax = 0, lenSum = 0;
   const sample = new Float64Array(reservoirSize);
@@ -4763,8 +4981,13 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
   const sampleRows = [];
   // 고유값: 소도메인(16비트 정수) 열은 정확 카운터. 도메인 밖 값(형식 불일치/범위 밖)만 상한 Map 으로 보낸다(혼합).
   // 소도메인이 아닌 열은 처음부터 Map.
+  // 카운터는 수치로 센다(전체 워드 빈도). 상위 값·고유값은 데이터에 적힌 글자 그대로여야 하므로, 칸의 표시 모양과
+  // 글자가 다른 값(0x5c5c · 0x5C · 0012 …)은 값마다 처음 나온 다른 모양 하나를 forms(모양 번호, 1바이트)/formN 에 따로 세고
+  // (소문자 열처럼 모양이 하나면 상한 Map 을 쓰지 않는다 — 넘치면 가장 많은 값도 빠진다), 셋째 모양 · 번호로 못 적는 모양은
+  // 그 글자로 Map 에 세며 offForm 에 적는다. 표시 모양 몫 = counter − formN − offForm.
+  // (예전엔 모두 표시 모양으로 합쳐 0012 → 「12」처럼 데이터에 없는 값이 상위에 올랐다)
   const counter = smallDomain ? new Uint32Array(SMALL_DOMAIN) : null;
-  let smallDistinct = 0;
+  let forms = null, formN = null, offForm = null; // 처음 나올 때 만든다 — 보통은 모두 표시 모양
   let map = smallDomain ? null : new Map();
   let capped = false;
   const kind = smallDomain ? smallDomain.kind : null;
@@ -4779,8 +5002,15 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
 
   function addDistinct(str, s, e, num, isIntegral, t, shape) {
     if (counter !== null && isIntegral && num >= 0 && num < SMALL_DOMAIN && formatMatches(t, shape)) {
-      if (counter[num]++ === 0) smallDistinct++;
-      return;
+      counter[num]++;
+      if (isCanonical(kind, width, str, s, e, num)) return;
+      const code = formCode(kind, str, s, e);
+      if (code !== 0) {
+        if (forms === null) { forms = new Uint8Array(SMALL_DOMAIN); formN = new Uint32Array(SMALL_DOMAIN); }
+        if (forms[num] === 0) forms[num] = code;
+        if (forms[num] === code) { formN[num]++; return; }
+      }
+      (offForm || (offForm = new Uint32Array(SMALL_DOMAIN)))[num]++;
     }
     if (map === null) map = new Map();
     if (e - s > 64) { if (!capped && map.size >= distinctCap) capped = true; return; }
@@ -4796,7 +5026,8 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
     addMissing() { rows++; missing++; },
     add(str, s0, e0, flags, rowIdx) {
       rows++; present++;
-      const [s, e] = trimSpan(str, s0, e0);
+      let [s, e] = trimSpan(str, s0, e0);
+      if (flags & 2) { str = unescapeQuotes(str, s, e); s = 0; e = str.length; } // 따옴표 안 "" 는 " 하나 — 표에 보이는 글자로 센다
       const len = e - s;
       if (len === 0) { empty++; return; }
       const t = inferType(str, s, e);
@@ -4818,16 +5049,27 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
           const v = str.slice(s, e);
           if (!hexExamples.includes(v)) hexExamples.push(v);
         }
+        if (!bareHex && nib <= 4) {
+          if (t === T.HEX) { hex0xFit++; if (nib > hex0xFitNib) hex0xFitNib = nib; }
+          else if (nib === len) { bareFit++; if (nib > bareFitNib) bareFitNib = nib; } // nib ≠ len: 구분자 · 0x
+        }
       }
 
-      // 수치 값
+      // 수치 값 (열 전체 판정용 집계도 타입 갈래 안에서 — 값마다 따로 검사하면 큰 파일에서 눈에 띄게 느려진다)
       let num = NaN, integral = false;
       if (t === T.HEX) { num = parseHexNumber(str, s, e); integral = true; }
       else if (t === T.INT) {
+        readsByJudge++;
         if (bareHex) { num = parseHexNumber(str, s, e); integral = true; }
         else { num = Number(str.slice(s, e)); integral = true; }
-      } else if (t === T.FLOAT) num = Number(str.slice(s, e));
-      else if (t === T.TEXT && bareHex && shape === 2) { num = parseHexNumber(str, s, e); integral = true; }
+        if (bareHex && len <= 5 && str.charCodeAt(s) >= 48 && decDigits(str, s, e) < SMALL_DOMAIN) decFit++; // 부호 없는 5자리 이하
+      } else {
+        // 맨 16진수 열에선 16진수 모양이면 16진수 — CE12 · AB:CD 와 1E40 (10진 지수 1e40 이 아니다). 시각(12:34:56)은 빼고
+        const hexShaped = shape !== 0 && t !== T.DATE;
+        if (hexShaped) readsByJudge++;
+        if (bareHex && hexShaped) { num = parseHexNumber(str, s, e); integral = true; }
+        else if (t === T.FLOAT) num = Number(str.slice(s, e));
+      }
       if (num === num && Number.isFinite(num)) {
         numCount++;
         if (num < numMin) numMin = num;
@@ -4845,9 +5087,25 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
         dominant = TYPE_NAMES[bi];
         dominantShare = best / count;
       }
-      const hexLike = count > 0 && strictHex >= 1 && (strictHex + digitsOnly) / count >= 0.95 && strictHex / count >= 0.2;
+      const hexLike = bareHexRule(strictHex, digitsOnly, count);
+      // 0x 없는 값을 16진수로 읽을지(= hexLike)를 열 전체로 다시 — 임시 판정과 다르고 그 판정으로 읽는 값이 있으면 다시 센다
+      // (앞 2000행이 비어 판정 못 한 1553 넘침 열처럼 0x 값만 있으면 결과가 같다). 다시 셀 소도메인은 값 대부분이
+      // 들면 고른다 (안 드는 값은 어차피 Map 으로 가므로, 섞인 값 하나 때문에 정확 카운터와 워드 빈도를 버리지 않는다)
+      const rejudge = hexLike === bareHex || readsByJudge === 0 ? null : {
+        bareHex: hexLike,
+        smallDomain: !hexLike ? (decFit * 2 > count ? { kind: 'dec', width: 0 } : null)
+          : hex0xFit * 2 > count ? { kind: 'hex0x', width: Math.max(1, hex0xFitNib) }
+          : bareFit * 2 > count ? { kind: 'barehex', width: Math.max(1, bareFitNib) } : null,
+      };
       const items = [];
-      if (counter !== null) for (let v = 0; v < SMALL_DOMAIN; v++) if (counter[v]) items.push([canonical(kind, v, width), counter[v]]);
+      let smallDistinct = 0;
+      if (counter !== null) for (let v = 0; v < SMALL_DOMAIN; v++) {
+        if (!counter[v]) continue;
+        const k = formN ? formN[v] : 0;
+        const n = counter[v] - k - (offForm ? offForm[v] : 0); // 표시 모양 그대로 적힌 것 (셋째 모양부터는 Map 에 그 글자로)
+        if (n) { items.push([canonical(kind, v, width), n]); smallDistinct++; }
+        if (k) { items.push([formText(kind, v, forms[v]), k]); smallDistinct++; }
+      }
       if (map !== null) for (const kv of map) items.push(kv);
       const distinct = smallDistinct + (map ? map.size : 0);
       const distinctExact = !capped;
@@ -4865,14 +5123,22 @@ function createColumnProfiler(col, name, { distinctCap = 10000, reservoirSize = 
         hexExamples, sampleRows,
         smallDomain: counter !== null, outOfDomain: counter !== null && map ? map.size : 0,
       };
-      return { stats, counter };
+      return { stats, counter, rejudge };
     },
   };
 }
 
 /**
+ * 0x 없는 값(숫자만 · A–F 글자)을 16진수로 읽을 열인지 = 16진수 열(hexLike 와 같은 비율). 검색 · 필터 · 그래프도 hexLike 로 읽으므로
+ * 0x 열에 섞인 255 도 0x255 다 (예전엔 0x 가 하나라도 있으면 10진수로 읽어, 형식이 중간에 바뀌는 열에서 0010 이 「0x000A」 가 됐다).
+ */
+function bareHexRule(strict, digits, n) {
+  return n > 0 && strict >= 1 && (strict + digits) / n >= 0.95 && strict / n >= 0.2;
+}
+
+/**
  * 샘플 행으로 열별 임시 판정: bareHex 와 smallDomain.
- * values: 열의 비어있지 않은 샘플 문자열 배열
+ * values: 열의 비어있지 않은 샘플 문자열 배열. 널 토큰(NA · - …)은 프로파일러처럼 세지 않는다 (hexLike 와 같은 기준)
  */
 function provisionalForColumn(values) {
   let strict = 0, digits = 0, nonEmpty = 0;
@@ -4880,8 +5146,9 @@ function provisionalForColumn(values) {
   for (const v0 of values) {
     const v = v0.trim();
     if (!v) continue;
-    nonEmpty++;
     const t = inferType(v, 0, v.length);
+    if (t === T.NULLTOK) continue;
+    nonEmpty++;
     const shape = hexShape(v, 0, v.length);
     if (shape === 2) strict++; else if (shape === 1) digits++;
     const nib = shape ? hexNibbleCount(v, 0, v.length) : 0;
@@ -4891,14 +5158,14 @@ function provisionalForColumn(values) {
     if (!(shape >= 1 && t !== T.HEX && nib <= 4 && !/[:\-_ ]/.test(v))) allBare = false;
   }
   if (nonEmpty === 0) return { bareHex: false, smallDomain: null };
-  const bareHex = strict >= 1 && (strict + digits) / nonEmpty >= 0.95 && strict / nonEmpty >= 0.2 && !values.some((v) => /^0[xX]/.test(v.trim()));
+  const bareHex = bareHexRule(strict, digits, nonEmpty);
   let smallDomain = null;
   if (allHex0x) smallDomain = { kind: 'hex0x', width: Math.max(1, maxNib) };
   else if (bareHex && allBare) smallDomain = { kind: 'barehex', width: Math.max(1, maxNib) };
   else if (allDec && maxDec < SMALL_DOMAIN) smallDomain = { kind: 'dec', width: 0 };
   return { bareHex, smallDomain };
 }
-return { reservoirPush, histogram, topN, widthBitsFor, createColumnProfiler, provisionalForColumn };
+return { reservoirPush, histogram, topN, widthBitsFor, formCode, isCanonical, createColumnProfiler, provisionalForColumn };
 })();
 
 // ===== src/shared/rng.js =====
@@ -5256,10 +5523,12 @@ return { parseNumber, parseQuery, numEquals, formatNumeric };
 // ===== src/shared/search-cells.js =====
 const M_shared_search_cells = (() => {
 const { trimSpan } = M_shared_infer;
+const { unescapeQuotes } = M_shared_csv_scan;
 const { parseHexQuery } = M_shared_hex;
 const { RowNibbles, buildRowNibbles, matchNibbleSeq } = M_shared_hexrow;
 const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
 // 셀 검색 매처: 텍스트(포함/전체/정규식) · 숫자 동치 · 16진수(hexrow 위임). 블록 단위로 호출된다.
+
 
 
 
@@ -5296,6 +5565,18 @@ function compileText(query, scope, cols) {
   const needle = cs ? pattern : pattern.toLowerCase();
   const L = needle.length;
   let hay = '', nextHit = -1, fallback = false;
+  /** 칸 글자 하나 (블록 색인 없이) */
+  const testValue = (v) => {
+    if (re) {
+      re.lastIndex = 0;
+      const m = re.exec(v);
+      return m ? [m.index, m.index + Math.max(1, m[0].length)] : null;
+    }
+    const cell = cs ? v : v.toLowerCase();
+    if (mode === 'whole') return cell === needle ? [0, v.length] : null;
+    const k = cell.indexOf(needle);
+    return k >= 0 ? [k, k + L] : null;
+  };
   return {
     kind: 'text', scope, scopeAll: !scope,
     prepare(block) {
@@ -5303,18 +5584,9 @@ function compileText(query, scope, cols) {
       else { const lower = block.toLowerCase(); fallback = lower.length !== block.length; hay = fallback ? block : lower; }
       nextHit = -1;
     },
+    testValue,
     testCell(block, s, e) {
-      if (re) {
-        re.lastIndex = 0;
-        const m = re.exec(block.slice(s, e));
-        return m ? [m.index, m.index + Math.max(1, m[0].length)] : null;
-      }
-      if (fallback) {
-        const cell = block.slice(s, e).toLowerCase();
-        if (mode === 'whole') return cell === needle ? [0, e - s] : null;
-        const k = cell.indexOf(needle);
-        return k >= 0 ? [k, k + L] : null;
-      }
+      if (re || fallback) return testValue(block.slice(s, e));
       if (mode === 'whole') return (e - s === L && hay.startsWith(needle, s)) ? [0, L] : null;
       if (nextHit < s) { nextHit = hay.indexOf(needle, s); if (nextHit < 0) nextHit = Infinity; }
       let k = nextHit;
@@ -5331,15 +5603,17 @@ function compileNumeric(query, scope, cols, meta) {
   const treat = opts.treatBareHex || 'auto';
   const hexLike = meta.hexLike || null;
   const bareHexFor = (col) => (treat === 'always' ? true : treat === 'never' ? false : !!(hexLike && hexLike[col]));
+  const testCell = (block, s, e, col) => {
+    const c0 = block.charCodeAt(s);
+    if (!((c0 >= 48 && c0 <= 57) || c0 === 43 || c0 === 45 || c0 === 46 || (c0 >= 65 && c0 <= 70) || (c0 >= 97 && c0 <= 102)) || e - s > 40) return null;
+    const n = parseNumber(block, s, e, { bareHex: bareHexFor(col) });
+    return n && numEquals(n, q) ? [0, e - s] : null;
+  };
   return {
     kind: 'numeric', scope, scopeAll: !scope, value: q,
     prepare() {},
-    testCell(block, s, e, col) {
-      const c0 = block.charCodeAt(s);
-      if (!((c0 >= 48 && c0 <= 57) || c0 === 43 || c0 === 45 || c0 === 46 || (c0 >= 65 && c0 <= 70) || (c0 >= 97 && c0 <= 102)) || e - s > 40) return null;
-      const n = parseNumber(block, s, e, { bareHex: bareHexFor(col) });
-      return n && numEquals(n, q) ? [0, e - s] : null;
-    },
+    testCell,
+    testValue: (v, col) => testCell(v, 0, v.length, col),
   };
 }
 
@@ -5369,6 +5643,13 @@ function compileHex(query, scope, cols, meta) {
   };
 }
 
+/** 칸 하나 — 따옴표 안 "" 가 든 칸은 표에 보이는 글자(" 하나)로, 맞은 위치도 그 글자 기준 */
+function testField(matcher, block, fi, f, col) {
+  const [s, e] = trimSpan(block, fi.fieldStart[f], fi.fieldEnd[f]);
+  if (e <= s) return null;
+  return (fi.fieldFlags[f] & 2) ? matcher.testValue(unescapeQuotes(block, s, e), col) : matcher.testCell(block, s, e, col);
+}
+
 /**
  * 블록 검색. matcher.prepare(block) 는 호출자가 미리 부른다.
  * filterFn(block, fi, rec) 가 false 면 건너뜀. 반환: 필터 통과 레코드 수.
@@ -5387,18 +5668,12 @@ function searchBlock(block, fi, rowBase, matcher, filterFn, sink, maxRecords = I
       for (let j = 0; j < scope.length; j++) {
         const col = scope[j];
         if (col >= fc) break;
-        const f = f0 + col;
-        const [s, e] = trimSpan(block, fi.fieldStart[f], fi.fieldEnd[f]);
-        if (e <= s) continue;
-        const m = matcher.testCell(block, s, e, col);
+        const m = testField(matcher, block, fi, f0 + col, col);
         if (m) sink.push(row, col, col, m[0], m[1]);
       }
     } else {
       for (let col = 0; col < fc; col++) {
-        const f = f0 + col;
-        const [s, e] = trimSpan(block, fi.fieldStart[f], fi.fieldEnd[f]);
-        if (e <= s) continue;
-        const m = matcher.testCell(block, s, e, col);
+        const m = testField(matcher, block, fi, f0 + col, col);
         if (m) sink.push(row, col, col, m[0], m[1]);
       }
     }
@@ -5410,7 +5685,7 @@ return { compileCellMatcher, searchBlock };
 
 // ===== src/shared/filter.js =====
 const M_shared_filter = (() => {
-const { fieldOf } = M_shared_csv_scan;
+const { fieldOf, unescapeQuotes } = M_shared_csv_scan;
 const { trimSpan } = M_shared_infer;
 const { parseNumber, parseQuery, numEquals } = M_shared_numeric;
 // 행 필터: 최대 4개 조건의 AND. 표·검색·그룹 집계·그래프·내보내기 전에 레코드마다 평가한다.
@@ -5521,6 +5796,14 @@ function eqAny(specs, str, s, e, bareHex, flags = null) {
   return any;
 }
 
+/** 칸 f 의 값 범위 [str, s, e] — 앞뒤 공백을 자르고, 따옴표 안 "" 가 든 칸은 표에 보이는 글자(" 하나)로 */
+function cellSpan(str, fi, f) {
+  const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
+  if (!(fi.fieldFlags[f] & 2)) return [str, s, e];
+  const v = unescapeQuotes(str, s, e);
+  return [v, 0, v.length];
+}
+
 /**
  * 「값이 나온 때」: 한 열의 여러 값과 한꺼번에 「=」 (값마다 필터 「=」 과 같은 결과) — (str, fi, rec, flags) → 하나라도 같으면 true,
  * flags[i] 는 값 i 와 같은지. 필드가 없는 행은 모두 아니다.
@@ -5531,8 +5814,8 @@ function compileMarkMatcher(col, values, meta = {}) {
   return (str, fi, rec, flags) => {
     const f = fieldOf(fi, rec, col);
     if (f < 0) { flags.fill(0); return false; }
-    const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
-    return eqAny(specs, str, s, e, bareHex, flags);
+    const [t, s, e] = cellSpan(str, fi, f);
+    return eqAny(specs, t, s, e, bareHex, flags);
   };
 }
 
@@ -5566,16 +5849,16 @@ function compileFilter(conds, meta = {}) {
     for (const c of compiled) {
       const f = fieldOf(fi, rec, c.col);
       if (f < 0) { if (c.op === 'neq' || c.op === 'empty') continue; return false; }
-      const [s, e] = trimSpan(str, fi.fieldStart[f], fi.fieldEnd[f]);
+      const [t, s, e] = cellSpan(str, fi, f);
       if (c.op === 'nonempty') { if (e <= s) return false; } else if (c.op === 'empty') { if (e > s) return false; } else if (c.op === 'eq' || c.op === 'neq') {
-        const eq = eqMatch(c.eq, str, s, e, c.bareHex);
+        const eq = eqMatch(c.eq, t, s, e, c.bareHex);
         if (c.op === 'eq' ? !eq : eq) return false;
       } else if (c.op === 'in') {
-        if (!eqAny(c.alts, str, s, e, c.bareHex)) return false;
+        if (!eqAny(c.alts, t, s, e, c.bareHex)) return false;
       } else if (c.op === 'contains') {
-        if (str.slice(s, e).toLowerCase().indexOf(c.text) < 0) return false;
+        if (t.slice(s, e).toLowerCase().indexOf(c.text) < 0) return false;
       } else if (c.op === 'range') {
-        const n = parseNumber(str, s, e, { bareHex: c.bareHex });
+        const n = parseNumber(t, s, e, { bareHex: c.bareHex });
         if (!n) return false;
         const v = n.i !== undefined ? Number(n.i) : n.f;
         if (c.min != null && v < c.min) return false;
@@ -6282,11 +6565,13 @@ return { looksLikeOle, looksLikeZip, xmlUnescape, parseStyles, elapsedText, exce
 // ===== src/shared/series.js =====
 const M_shared_series = (() => {
 const { trimSpan, parseHexNumber } = M_shared_infer;
+const { unescapeQuotes } = M_shared_csv_scan;
 // 시간(X축)에 따른 열 변화 — 어떤 열을 어떻게 그릴지 정하고, X 구간마다 값을 모은다.
 // 열마다 「값이 들어오는 주기」도 함께 센다: 값이 있는 행끼리의 X(시간) 간격 분포 → 가장 많은 간격(주기)과 그 비율.
 // 워커와 메인 스레드 폴백에서 같은 코드로 돈다 (DOM 사용 금지).
 //   숫자·16진수 열 → 구간별 최소·최대·평균(선 + 범위 띠)
 //   값 종류가 적은 글자 열 → 구간별 값 개수(100% 누적 영역)
+
 
 
 const MAX_CATS = 5;        // 범주 열에서 따로 그리는 값 수 (나머지는 기타) — 색 구분이 되는 한도
@@ -6440,9 +6725,9 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null, per
   let anyTotal = 0;
   const series = plan.map((p) => {
     if (p.kind === 'cat') {
-      // 키는 프로파일과 같게 — 앞뒤 공백만 자른 원래 글자(따옴표 안 "" 그대로). 보이는 이름만 따옴표를 푼다.
+      // 키는 프로파일 상위 값과 같게 — 앞뒤 공백을 자르고 따옴표 안 "" 를 푼, 표에 보이는 글자
       const K = p.cats.length + (p.other ? 1 : 0);
-      const labels = [...p.cats.map((v) => v.replace(/""/g, '"')), ...(p.other ? ['기타'] : [])];
+      const labels = [...p.cats, ...(p.other ? ['기타'] : [])];
       return { col: p.col, kind: 'cat', index: new Map(p.cats.map((v, i) => [v, i])), other: p.other ? p.cats.length : -1, K, counts: new Uint32Array(B * K), labels };
     }
     const min = new Float64Array(B).fill(Infinity), max = new Float64Array(B).fill(-Infinity);
@@ -6503,10 +6788,7 @@ function createSeriesAccumulator({ plan, xCol, x0, x1, buckets, mark = null, per
       } else {
         const [a, e] = trimSpan(text, fi.fieldStart[f], fi.fieldEnd[f]);
         if (e <= a) continue;
-        const v = text.slice(a, e);
-        let idx = s.index.get(v);
-        // 프로파일은 작은 정수를 정규형으로 센다 (007 → 7)
-        if (idx === undefined && v.length < 16 && /^\d+$/.test(v)) idx = s.index.get(String(Number(v)));
+        let idx = s.index.get((fi.fieldFlags[f] & 2) ? unescapeQuotes(text, a, e) : text.slice(a, e));
         if (idx === undefined) { if (s.other < 0) continue; idx = s.other; }
         s.counts[b * s.K + idx]++;
       }
@@ -6539,7 +6821,7 @@ return { MAX_CATS, planSeries, xAxisOptions, defaultXColumn, PERIOD_BINS, PERIOD
 
 // ===== src/worker/engine.js =====
 const M_worker_engine = (() => {
-const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
+const { createByteRecordScanner, FieldIndex, scanFieldsString, fieldText, unescapeQuotes, scanRecordFieldsBytes, fieldAtByte } = M_shared_csv_scan;
 const { detectEncoding, detectDelimiter, detectHeader, makeDecoder, firstRecords } = M_shared_detect;
 const { U32Vec, U16Vec, rowOfOffset } = M_shared_offsets;
 const { MSG } = M_shared_protocol;
@@ -6965,36 +7247,57 @@ class Engine {
         profs.push(createColumnProfiler(c, ds.header[c], { distinctCap, reservoirSize, bareHex: prov.bareHex, smallDomain: prov.smallDomain, rng }));
       }
 
-      let done = 0, lastReport = 0;
       const total = ds.size;
-      for await (const blk of this.rowBlocks(0, ds.rowCount)) {
-        if (gen !== this.gen) return;
-        await this.yieldToPriority(gen);
-        if (gen !== this.gen) return;
-        const text = ds.decoder.decode(blk.u8);
-        scanFieldsString(text, D, 34, fi);
-        const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
-        for (let k = 0; k < nRec; k++) {
-          const row = blk.rowStart + k;
-          const f0 = fi.recFirst[k], fc = fi.recCount[k];
-          const lim = fc < cols ? fc : cols;
-          for (let c = 0; c < lim; c++) { const f = f0 + c; profs[c].add(text, fi.fieldStart[f], fi.fieldEnd[f], fi.fieldFlags[f], row); }
-          for (let c = lim; c < cols; c++) profs[c].addMissing();
+      /** 파일을 한 번 읽으며 열 프로파일러에 넣는다. only: 이 열들만 (다시 셀 때) — 끝까지 읽었으면 true */
+      const feed = async (only) => {
+        let done = 0, lastReport = 0;
+        for await (const blk of this.rowBlocks(0, ds.rowCount)) {
+          if (gen !== this.gen) return false;
+          await this.yieldToPriority(gen);
+          if (gen !== this.gen) return false;
+          const text = ds.decoder.decode(blk.u8);
+          scanFieldsString(text, D, 34, fi);
+          const nRec = Math.min(fi.nRec, blk.rowEnd - blk.rowStart);
+          for (let k = 0; k < nRec; k++) {
+            const row = blk.rowStart + k;
+            const f0 = fi.recFirst[k], fc = fi.recCount[k];
+            if (only) {
+              for (const c of only) { const f = f0 + c; if (c < fc) profs[c].add(text, fi.fieldStart[f], fi.fieldEnd[f], fi.fieldFlags[f], row); else profs[c].addMissing(); }
+              continue;
+            }
+            const lim = fc < cols ? fc : cols;
+            for (let c = 0; c < lim; c++) { const f = f0 + c; profs[c].add(text, fi.fieldStart[f], fi.fieldEnd[f], fi.fieldFlags[f], row); }
+            for (let c = lim; c < cols; c++) profs[c].addMissing();
+          }
+          done += blk.u8.length;
+          if (done - lastReport >= (16 << 20)) {
+            lastReport = done;
+            this.post({ type: MSG.PROFILE_PROGRESS, done, total, rows: blk.rowEnd, again: !!only });
+          }
         }
-        done += blk.u8.length;
-        if (done - lastReport >= (16 << 20)) {
-          lastReport = done;
-          this.post({ type: MSG.PROFILE_PROGRESS, done, total, rows: blk.rowEnd });
-        }
+        return gen === this.gen;
+      };
+      if (!await feed(null)) return;
+      const results = profs.map((p) => p.finalize());
+      // 앞 2000행으로 한 임시 판정(0x 없는 값을 16진수로 읽을지)이 열 전체와 다른 열 — 앞부분만 숫자인 16진수 열 등 — 은
+      // 그 판정으로 다시 센다. 그대로 두면 0010 을 10 으로 읽은 최소·최대·값 분포·워드처럼 데이터에 없는 값이 나온다.
+      const again = [];
+      for (let c = 0; c < cols; c++) {
+        if (!results[c].rejudge) continue;
+        again.push(c);
+        profs[c] = createColumnProfiler(c, ds.header[c], { distinctCap, reservoirSize, ...results[c].rejudge, rng });
       }
-      if (gen !== this.gen) return;
+      if (again.length) {
+        if (!await feed(again)) return;
+        for (const c of again) results[c] = profs[c].finalize();
+      }
 
       const stats = [];
       const hexLike = new Uint8Array(cols);
       const padNibbles = new Uint8Array(cols);
       let wordFreq = null;
       for (let c = 0; c < cols; c++) {
-        const { stats: st, counter } = profs[c].finalize();
+        const { stats: st, counter } = results[c];
         stats.push(st);
         hexLike[c] = st.hexLike ? 1 : 0;
         padNibbles[c] = st.hexLike ? Math.min(255, st.hexNibblesMax) : 0;
@@ -7243,8 +7546,9 @@ class Engine {
           for (let j = 0; j < cols.length; j++) {
             const c = cols[j];
             if (c >= fc) { parts[j] = GROUP_MISSING; continue; }
-            const [s, e] = trimSpan(text, fi.fieldStart[f0 + c], fi.fieldEnd[f0 + c]);
-            parts[j] = e > s ? text.slice(s, e) : GROUP_EMPTY;
+            const f = f0 + c;
+            const [s, e] = trimSpan(text, fi.fieldStart[f], fi.fieldEnd[f]);
+            parts[j] = e <= s ? GROUP_EMPTY : (fi.fieldFlags[f] & 2) ? unescapeQuotes(text, s, e) : text.slice(s, e); // 표에 보이는 글자 — 누르면 「=」 필터
           }
           counter.add(parts);
         }
@@ -11503,7 +11807,7 @@ function onEvent(msg) {
       onIndexed(msg);
       break;
     case MSG.PROFILE_PROGRESS:
-      statusBar.setProgress('프로파일', msg.total ? msg.done / msg.total : null);
+      statusBar.setProgress(msg.again ? '프로파일 · 16진수 판정이 바뀐 열 다시 세기' : '프로파일', msg.total ? msg.done / msg.total : null);
       profileView.setProgress(msg.total ? msg.done / msg.total : 0);
       break;
     case MSG.PROFILED:
