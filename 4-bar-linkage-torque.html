@@ -1115,6 +1115,11 @@ canvas.hover { cursor: grab; }
           <div class="mcell" id="csCellIn"><i>입력측 μ</i><b id="lCSMuIn">—</b></div>
           <div class="mcell" id="csCellOut"><i>출력측 μ</i><b id="lCSMuOut">—</b></div>
         </div>
+        <!-- 토크 증가의 대가: 끝단으로 갈수록 T₄ 가 커지는 만큼 푸시로드 축력과 서보 회전량도 커진다(가상일) -->
+        <div class="mstrip" style="margin:3px 0 0" title="입력측 전달각 μ_in 이 작아질수록(크랭크·커플러가 일직선에 가까울수록) 토크는 커지지만, 커플러 축력 F = T₂/(a·sin μ_in) 와 조종면 1° 당 서보 회전량(= MA = c·sin μ_out / (a·sin μ_in))도 함께 커집니다(배율은 서로 다름).">
+          <div class="mcell"><i>푸시로드 축력 F</i><b id="lCSF" style="color:var(--coupler)">—</b></div>
+          <div class="mcell"><i>서보 회전 / 조종면 1°</i><b id="lCSRatio" style="color:var(--crank)">—</b></div>
+        </div>
         <!-- 기준 설정: 조종면을 움직이지 않고 '지금 위치를 0°로' 재정의 -->
         <div style="display:flex;justify-content:center;margin-top:4px;">
           <button onclick="csSetNeutral()" title="조종면을 움직이지 않고, 현재 θ₄ 위치를 δ=0° 기준으로 재정의합니다 (위 '중립' 버튼은 반대로 δ=0° 위치로 이동)"
@@ -2836,6 +2841,16 @@ function updateCSUI(){
   };
   setMu('lCSMuIn',  tr?tr.muIn:NaN);
   setMu('lCSMuOut', tr?tr.mu  :NaN);
+  // 대가 두 칸: 푸시로드 축력 F 와 서보 회전비(=|MA|, 조종면 1° 에 서보가 도는 각). 중립 대비 배수를 함께 —
+  // "끝단 토크가 크다" 를 "그만큼 링크가 세게 밀리고 서보가 더 돈다" 로 읽게 한다.
+  { const fEl=document.getElementById('lCSF'), rEl=document.getElementById('lCSRatio');
+    const okTr=tr&&isFinite(tr.ma);
+    const q0=calcMAatT4(S.a,S.b,S.c,gLen(),csNeutralT4(),S.sol);
+    const F=okTr?couplerForce(T2,S.a,tr.muIn):NaN, F0=q0?couplerForce(T2,S.a,q0.muIn):NaN;
+    const rel=(v,v0)=>(isFinite(v)&&isFinite(v0)&&v0>0&&Math.abs(v/v0-1)>=0.005)?'<u>중립×'+(v/v0).toFixed(2)+'</u>':'';
+    if(fEl) fEl.innerHTML = okTr ? (T2? fmtN(F)+'<u>N</u>'+rel(F,F0) : '0<u>N</u>') : '—';
+    if(rEl) rEl.innerHTML = okTr ? Math.abs(tr.ma).toFixed(2)+'<u>°/°</u>'+rel(Math.abs(tr.ma),q0?Math.abs(q0.ma):NaN) : '—';
+  }
   drawSVPlot();                 // 펼쳐져 있을 때만 실제로 그린다
 }
 
@@ -2910,6 +2925,14 @@ function calcTorque(){
 
   return { ma, mu, muIn };
 }
+
+// 커플러(푸시로드) 축력 F [N] — 2력 부재라 T₂ = F·a·sin μ_in → F = |T₂| / (a·sin μ_in), a 는 mm.
+// 출력토크가 끝단에서 커지는 것(MA ∝ 1/sin μ_in)과 같은 원인으로 함께 커진다. μ_in→0 이면 ∞.
+function couplerForce(T2,a,muInDeg){
+  const s=Math.sin(muInDeg*RAD);
+  return (s>1e-9&&a>0)?Math.abs(T2)/(a*1e-3*s):Infinity;
+}
+const fmtN=v=>isFinite(v)?(v>=9999.5?'>9999':v.toFixed(0)):'∞';
 
 // draw() 를 거쳐야 한다 — T₄ 는 δ 카드(updateCSUI)와 **캔버스 칩**(updateOverlay) 두 곳에
 // 뜨는데, updateOverlay 는 draw() 에서만 불린다. updateCSUI 만 부르면 T₂ 를 바꿨을 때
@@ -3334,7 +3357,8 @@ function drawTorquePlot(){
     c2.beginPath(); c2.arc(cx,cy,5,0,Math.PI*2);
     c2.fillStyle="#ff9f0a"; c2.fill();
     c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
-    const lbl=curTq.toFixed(2)+" N·m";   // δ 는 아래 알약(노드별)에 표시
+    const _qc=calcMAatT4(a,b,c,d,clampedT4,sol);
+    const lbl=curTq.toFixed(2)+" N·m"+(_qc&&T2?" · F "+fmtN(couplerForce(T2,a,_qc.muIn))+" N":"");   // δ 는 아래 알약(노드별)에 표시
     c2.font="600 9px -apple-system,sans-serif";
     const lw=c2.measureText(lbl).width;
     // 위치 후보: 우상 → 좌상 → 우하 → 좌하 순으로 최대값 라벨과 겹치지 않는 곳 선택
@@ -3378,7 +3402,8 @@ function drawTorquePlot(){
       c2.fillStyle="#5e5ce6"; c2.fill();
       c2.strokeStyle="#fff"; c2.lineWidth=1.4; c2.stroke();
       // 라벨: 어느 끝단인지 + 그 지점 토크
-      const lbl=e.lab+' '+e.v+'° · '+tq.toFixed(2)+' N·m';
+      const _qe=calcMAatT4(a,b,c,d,e.deg,sol);   // 끝단 토크가 큰 만큼 푸시로드도 세게 밀린다 — 축력을 함께
+      const lbl=e.lab+' '+e.v+'° · '+tq.toFixed(2)+' N·m'+(_qe&&T2?' · F '+fmtN(couplerForce(T2,a,_qe.muIn))+' N':'');
       c2.font="600 8px -apple-system,sans-serif";
       const lw=c2.measureText(lbl).width;
       const cands=[{x:x+8,y:y-8},{x:x-lw-10,y:y-8},{x:x+8,y:y+20},{x:x-lw-10,y:y+20}];
@@ -4531,7 +4556,10 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     const imbal=mx>1e-12?Math.abs(mm-mp)/mx:0;   // sym 이면 |T₋−T₊|/max 와 동일
     const minMgn=Math.min(mm,mp);
     const score=sym?(tm+tp+wmax):(mode==='torque'?tn:minMgn);
-    return{t0,tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,muInArg,muOutArg,
+    // 푸시로드 축력: 최대는 μ_in 최솟값 자세(같은 _ts 표본), 중립은 θ₄₀
+    const _q0=feasibleAt(S.a,bv,S.c,gLen(),t0,S.sol);
+    const fMax=couplerForce(T2,S.a,muInMin), fN=_q0?couplerForce(T2,S.a,_q0.muIn):null;
+    return{t0,tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,muInArg,muOutArg,fMax,fN,
       imbal,marginM:mm,marginP:mp,minMgn,
       score,physLo,physHi,contained};
   } finally { S.c=sc; S.a=sa; S.d=sd; }
@@ -4597,6 +4625,10 @@ function buildOptMetrics(m){
     m.wmax.toFixed(2)+' N·m @ θ₄ '+degShow(m.warg,1)+'°','var(--follower)');
   if(m.tn!==null) s+=row('|T₄| @ 중립각'+(isObjNeutral?' <span style="color:var(--text3)">(목적함수)</span>':''),
     m.tn.toFixed(2)+' N·m',isObjNeutral?'var(--purple)':'var(--text2)');
+  if(m.fMax!==undefined&&m.fN!==null&&m.fN!==undefined)
+    s+=row('푸시로드 축력 F <span style="color:var(--text3)">(중립 → 작동범위 최대, 입력측 μ 최소 지점)</span>',
+      fmtN(m.fN)+' → '+fmtN(m.fMax)+' N'+(isFinite(m.fMax)&&m.fN>0?' <span style="color:var(--text3)">(×'+(m.fMax/m.fN).toFixed(2)+')</span>':''),
+      'var(--coupler)');
   if(sym){
     s+=row('세 토크 합 <span style="color:var(--text3)">(목적함수)</span>',m.score.toFixed(2)+' N·m','var(--purple)');
   } else {

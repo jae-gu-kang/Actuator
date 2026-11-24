@@ -616,14 +616,14 @@ async function clickByText(frame, txt){
       ctx.fillText=function(t,x,y){ drawn.push(String(t)); return orig(t,x,y); };
       csGo('zero');  drawTorquePlot();
       const curCard=num(g('lCST4').textContent);
-      const curPlot=drawn.filter(t=>/^[\d.]+ N·m$/.test(t)).pop();
+      const curPlot=drawn.filter(t=>/^[\d.]+ N·m · F \d+ N$/.test(t)).pop();   // T₂≠0 이면 푸시로드 축력이 반드시 붙는다
       // 알약 윗줄(θ₄)도 격자가 아닌 실제 각도여야 한다 — 아랫줄 δ 와 모순되면 안 된다
       const pill=drawn.filter(t=>/^[\d.]+°$/.test(t)).map(t=>parseFloat(t));
       const curPill=pill.some(v=>Math.abs(v-S.t4)<0.051), pillT4=+S.t4.toFixed(2);
       drawn.length=0;
       csGo('up');    drawTorquePlot();
       const upCard=num(g('lCST4').textContent);
-      const upPlot=drawn.filter(t=>/^상향 [\d.]+° · [\d.]+ N·m$/.test(t)).pop();   // 범례 문구 제외
+      const upPlot=drawn.filter(t=>/^상향 [\d.]+° · [\d.]+ N·m · F \d+ N$/.test(t)).pop();   // 범례 문구 제외
       const upPlotVal=upPlot?num(upPlot.split('·')[1]):null;
       return {ok: Math.abs(curCard-num(curPlot))<0.005 && upPlotVal!==null
                   && Math.abs(upCard-upPlotVal)<0.005 && curPill,
@@ -1090,6 +1090,48 @@ async function clickByText(frame, txt){
                && out.apply424.neutral==='64.0' && out.apply424.t4===64, ...out};
     });
     rec('linkage: 0° 를 넘는 조립 구간 — 옵티마이저 θ₄₀ 0~360 표시 · 64°=424° 같은 판정 · 적용 후 이탈 없음', ow.ok===true, JSON.stringify(ow));
+
+    // 끝단 토크 증가의 대가 — 푸시로드 축력 F 와 서보 회전비. 구현 식(couplerForce)을 베끼지 않고
+    // 실제 자세(solve 의 A·B 좌표)에서 독립 계산한다: 크랭크 접선에 실리는 커플러 힘 성분이 T₂ 를 만든다
+    //   T₂ = F · |O₂A × û_AB| (û_AB = 커플러 방향 단위벡터) → F = T₂ / |a × û|, 서보 회전비 = |dθ₂/dθ₄| (유한차분).
+    const cf = await f.evaluate(()=>{ const g=id=>document.getElementById(id);
+      const sv={a:S.a,b:S.b,c:S.c,d:S.d,t4:S.t4,T2:g('iTorque').value,sym:getDeflect().sym,
+                def:g('iDeflect').value,neu:g('iT4Neutral').value}, out={};
+      const num=id=>parseFloat(g(id).textContent);
+      try{
+        g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink(); g('iTorque').value='3';
+        // 앞 테스트가 남긴 타각 설정(비대칭 ±8 → 10° 버림 끝단 0)에 기대지 않는다
+        setDeflectMode('sym'); g('iDeflect').value='25'; g('iT4Neutral').value='100'; updateCSUI();
+        const ind=t4=>{ const s=solve(S.a,S.b,S.c,gLen(),t4).find(q=>q.type===S.sol);
+          const ux=s.Bx-s.Ax, uy=s.By-s.Ay, L=Math.hypot(ux,uy);
+          const F=3/(Math.abs(s.Ax*uy-s.Ay*ux)/L*1e-3);
+          const h=1e-4, p1=solve(S.a,S.b,S.c,gLen(),t4+h).find(q=>q.type===S.sol), p0=solve(S.a,S.b,S.c,gLen(),t4-h).find(q=>q.type===S.sol);
+          let dt=p1.t2-p0.t2; dt=((dt+540)%360)-180;
+          return {F, R:Math.abs(dt/(2*h))}; };
+        for(const [k,go] of [['zero','zero'],['up','up'],['down','down']]){
+          csGo(go); onTorque();
+          const want=ind(S.t4);
+          out[k]={t4:+S.t4.toFixed(2), F:num('lCSF'), R:num('lCSRatio'), wantF:+want.F.toFixed(1), wantR:+want.R.toFixed(3),
+                  rel:/중립×/.test(g('lCSF').textContent)};
+        }
+        // 그래프 끝단 표식 라벨에 F 가 붙는가
+        const c2=g('torquePlot').getContext('2d'), _ft=c2.fillText, texts=[];
+        c2.fillText=function(t){ texts.push(String(t)); return _ft.apply(this,arguments); };
+        try{ drawTorquePlot(); } finally { c2.fillText=_ft; }
+        out.lbl=texts.filter(t=>/^(상향|하향) .* · F \d+ N$/.test(t));
+        // AI 결과 카드의 푸시로드 축력 행: 작동범위 최대 F 는 μ_in 이 가장 나쁜 끝(상향 120°)의 값, 중립은 θ₄₀ 값
+        const m=evalDesign(40,100,100,20,20,3,5,'',20,100);
+        out.opt={fN:+m.fN.toFixed(1), fMax:+m.fMax.toFixed(1), wantN:+ind(100).F.toFixed(1), wantMax:+ind(120).F.toFixed(1)};
+        out.optRow=buildOptMetrics({...m,t0:100}).includes('푸시로드 축력 F');
+      } finally { setDeflectMode(sv.sym?'sym':'asym'); g('iDeflect').value=sv.def; g('iT4Neutral').value=sv.neu;
+        g('iTorque').value=sv.T2; g('ia').value=sv.a; g('ib').value=sv.b; g('ic').value=sv.c; g('id').value=sv.d; onLink(); setT4(sv.t4); onTorque(); }
+      const near=(x,y,t)=>Math.abs(x-y)<=t;
+      const ok=['zero','up','down'].every(k=>near(out[k].F,out[k].wantF,0.5)&&near(out[k].R,out[k].wantR,0.005))
+        && out.zero.F===150 && !out.zero.rel && out.up.rel && out.down.rel && out.up.F>out.zero.F && out.lbl.length===2
+        && near(out.opt.fN,out.opt.wantN,0.05) && near(out.opt.fMax,out.opt.wantMax,0.05) && out.optRow;
+      return {ok, ...out};
+    });
+    rec('linkage: 끝단 토크 증가의 대가 — 푸시로드 축력 F · 서보 회전비가 독립 계산과 일치 · 그래프 표식에 F', cf.ok===true, JSON.stringify(cf));
 
     // 작동기 배치 「각도」 모드: |O₂O₄|=d 그대로 O₂ 를 O₄ 중심으로 회전. 강체 회전이라
     // 기구학(L·MA·θ₂)은 α 와 무관하고, y오프셋 모드 값은 따로 보관돼 되돌리면 살아난다.

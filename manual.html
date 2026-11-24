@@ -1004,6 +1004,17 @@ body {
           해석기의 MA 는 마찰 없는 강체의 정확한 토크비(가상일 원리) <strong>MA = T₄/T₂ = ω₂/ω₄ = c · sin μ_out / (a · sin μ_in)</strong> 입니다. 기본값에서 θ₄ 100° 는 2.00, θ₄ 75° 는 3.05 입니다. 식대로라면 입력측 전달각이 0° 로 가는 <strong>입력 토글</strong>(크랭크와 커플러가 일직선)에서 MA 가 한없이 커지지만, 그 자세는 커플러·핀에 걸리는 힘도 한없이 커져 쓸 수 있는 토크가 아닙니다. 그래서 해석기는 <strong>두 전달각이 모두 47° 이상인 구간에서만</strong> 최대 토크·교점·가용 각도·최적화 점수를 세고, 그 밖의 곡선은 흐린 점선(참고)으로 그립니다. 힌지모멘트 계산기의 링키지 한계도 같은 식이며, 47° 미만 타각의 한계값에는 * 를 붙입니다.
           <span style="display:block;margin-top:6px;font-size:12.5px;color:var(--text3);">2026-10-24 이전 버전은 MA 를 (c/a)·sin μ_in·sin μ_out 로 계산해, 입력측 전달각이 90° 에서 멀어질수록 토크가 sin²μ_in 배만큼 작게 나왔습니다(θ₄ 75° 에서 1.01 대 3.05). 그 무렵 저장한 결과와 비교할 때 참고하세요.</span>
         </p>
+        <span id="anc-linkage-endcost" style="display:block;position:relative;top:-80px;visibility:hidden;"></span><div class="sub-h">끝단에서 토크가 커지는 것은 정상 — 대신 축력과 서보 회전이 같이 커진다</div>
+        <p class="lead" style="font-size:13.5px;">
+          기본값처럼 중립 부근에서 μ_in 이 90° 에 가까운 형상에서는 출력토크 곡선이 중립에서 가장 낮고 양 끝으로 갈수록 올라가는 <strong>U 자</strong>입니다. 오류가 아니라 위 식 그대로입니다 — 끝단으로 갈수록 크랭크와 커플러가 일직선에 가까워져(μ_in 감소) 조종면 1° 를 움직이는 데 서보가 더 많이 돌고, 그만큼 세게 밉니다(토글 클램프와 같은 원리). 공짜가 아니어서 <strong>푸시로드 축력 F = T₂ / (a·sin μ_in)</strong> 와 <strong>조종면 1° 당 서보 회전(= MA)</strong> 도 함께 커집니다. 그래서 설계 판단은 이렇게 읽습니다: <strong>가장 약한 자세는 곡선의 최저점</strong>(기본값·대칭 최적화 결과에서는 대개 중립 — 다른 형상은 그래프에서 확인)이고, 끝단은 토크 여유 대신 링크·베어링 하중과 서보 행정을 더 씁니다. 두 값의 배율은 서로 다릅니다(F ∝ 1/sin μ_in, 서보 회전 ∝ sin μ_out / sin μ_in).
+        </p>
+        <table class="input-table" style="margin-top:8px;">
+          <tr><th>기본값 (T₂ 3 N·m)</th><th>μ_in</th><th>T₄</th><th>푸시로드 축력 F</th><th>서보 회전 / 조종면 1°</th></tr>
+          <tr><td>중립 θ₄ 100°</td><td>87.3°</td><td>6.00 N·m</td><td>150 N</td><td>2.00</td></tr>
+          <tr><td>하향 20° (θ₄ 80°)</td><td>49.7°</td><td>7.27 N·m</td><td>197 N (×1.31)</td><td>2.42 (×1.21)</td></tr>
+          <tr><td>상향 20° (θ₄ 120°)</td><td>45.6° ⚠</td><td>8.08 N·m</td><td>210 N (×1.40)</td><td>2.69 (×1.34)</td></tr>
+        </table>
+        <p class="lead" style="font-size:13px;margin-top:6px;">조종면 각도 카드의 둘째 줄(<strong>푸시로드 축력 F · 서보 회전 / 조종면 1°</strong>, 중립 대비 배수), 출력토크 그래프의 현재 위치·상향/하향 표식 라벨(<code>· F 210 N</code>), AI 최적화 결과 카드의 <strong>푸시로드 축력 F (중립 → 작동범위 최대)</strong> 행에 같은 값이 나옵니다. 푸시로드·로드엔드·혼 볼트 강도는 이 최대 F 로 확인하세요.</p>
       </div>
 
       <div class="card concept">
@@ -1074,7 +1085,7 @@ body {
             <div class="step-num">3</div>
             <div class="step-body">
               <h4>입력 토크 · 결과 읽기</h4>
-              <p><strong>액추에이터 / 서보암</strong>의 <strong>입력 토크 T₂</strong>에 작동기 토크를 넣으면 <code>T₄ = T₂ × MA</code> 가 계산되어, 조종면 각도 카드에 <strong>출력토크 T₄ · 입력측 μ · 출력측 μ</strong> 가 나옵니다. μ 는 47° 이상 초록, 40° 이상 주황, 40° 미만 빨강+⚠ 입니다. 전 범위 곡선은 <strong>출력토크 변화</strong> 그래프에서 봅니다.</p>
+              <p><strong>액추에이터 / 서보암</strong>의 <strong>입력 토크 T₂</strong>에 작동기 토크를 넣으면 <code>T₄ = T₂ × MA</code> 가 계산되어, 조종면 각도 카드에 <strong>출력토크 T₄ · 입력측 μ · 출력측 μ</strong> 와 그 대가인 <strong>푸시로드 축력 F · 서보 회전비</strong>가 나옵니다. μ 는 47° 이상 초록, 40° 이상 주황, 40° 미만 빨강+⚠ 입니다. 전 범위 곡선은 <strong>출력토크 변화</strong> 그래프에서 봅니다.</p>
             </div>
           </div>
           <div class="step">
@@ -1309,6 +1320,7 @@ body {
         <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
           <li><strong>읽기값과 슬라이더</strong> — 카드 오른쪽 위 큰 글씨가 현재 타각(<code>중립 0.0°</code> / <code>상향 −20.0°</code> / <code>하향 +20.0°</code>)이고, 아래 슬라이더로 직접 끌 수 있습니다. 접어 둔 θ₄ 슬라이더나 캔버스 드래그로 <strong>입력한 타각범위를 벗어나면</strong> 읽기값 끝에 <code>⚠</code>가 붙습니다 — 아래 μ 의 <code>⚠</code>(전달각 불량)와는 다른 뜻입니다.</li>
           <li><strong>지표 3종</strong> — 현재 자세의 <strong>출력토크 T₄</strong>·<strong>입력측 μ</strong>·<strong>출력측 μ</strong>를 한 줄에 보여줍니다. T₄는 크기값이라 출력링크색 고정, μ는 값 자체가 판정이라 <strong>47° 이상 초록 · 40° 이상 주황 · 40° 미만 빨강+⚠</strong>입니다.</li>
+          <li><strong>둘째 줄 — 토크 증가의 대가</strong> — <strong>푸시로드 축력 F</strong>(= T₂ / (a·sin μ_in), N)와 <strong>서보 회전 / 조종면 1°</strong>(= |MA|, °/°). 중립이 아니면 <code>중립×1.40</code> 처럼 중립 대비 배수가 붙습니다. 끝단으로 갈수록 T₄ 와 함께 커집니다(<a href="#" onclick="showSection('linkage','anc-linkage-endcost');return false;">왜?</a>).</li>
           <li><strong>이동 버튼</strong> — 왼쪽부터 부호 순서로 <code>▲ 상향 −N°</code> · <code>−1°</code> · <code>중립</code> · <code>+1°</code> · <code>하향 +N° ▼</code>. 양 끝 버튼의 N은 입력한 타각을 <strong>10° 단위로 내린 값</strong>이라 딱 떨어지는 각도로 갑니다(상향 35° → 30°, 25.5° → 20°). 버림값이 0이면 중립과 같아 버튼이 숨습니다. 가운데 ±1°는 트림이고 타각범위 끝에서 멈춥니다.</li>
           <li><strong>"중립 지정"</strong> — 조종면을 <em>움직이지 않고</em> 현재 θ₄를 δ=0° 기준으로 재정의합니다(위 <strong>중립</strong> 버튼은 반대로 δ=0° 위치로 <em>이동</em>). 여기서 정한 θ₄₀가 출력토크 그래프의 δ 눈금과 힌지모멘트·리깅 연동의 기준각이 됩니다.</li>
           <li><strong>최적화 결과와 대조</strong> — 결과 카드의 <strong>작동범위 내 최소 전달각</strong>은 범위 <em>전체</em>의 최솟값이라 중립(δ=0)의 값과 다른 게 정상입니다. 카드가 최솟값이 나오는 δ를 함께 표시하므로, <strong>"적용" 후</strong> 그 δ로 옮기면 이 카드에 같은 수가 뜹니다. <strong>최적화가 고른 형상</strong>에서는 입력측과 출력측의 최솟값이 대개 <strong>서로 반대쪽 끝단</strong>에서 나옵니다(끝단 불균형 제약이 μ 를 양끝으로 밀기 때문이며, 손으로 고친 형상에서는 같은 쪽일 수도 있습니다).</li>
@@ -1410,7 +1422,7 @@ body {
 
         <ul class="points">
           <li><strong>비대칭의 생각</strong> — 필요한 힌지모멘트가 타각에 비례한다고 보면, 큰 타각 쪽에 더 큰 토크가 필요합니다. 그래서 "토크 ÷ 타각"(여유율)을 양쪽이 비슷하게 맞추는데, 공력 상수는 비율에서 지워지므로 <strong>힌지모멘트 값을 몰라도</strong> 됩니다. 먼저 여유율 균형이 가장 좋은 해의 최소 여유율 M* 를 찾고, 그 90% 를 하한으로 지키면서 중립 토크가 가장 큰 해를 고릅니다.</li>
-          <li><strong>결과 카드</strong> — 머리줄에 고정/변수 링크와 탐색 범위, 링크비 성향. 변수인 링크만 「추천 … 링크」 칸이 생기고(커플러 b 0.25 mm, θ₄₀ 0.5° 단위 편집), 지표: 작동 범위 · 작동범위 내 최소 전달각(입력·출력, 각각 나오는 δ) · 양 끝단 |T₄| · 끝단 불균형(비대칭은 토크비와 여유율 불균형) · 범위 내 최대 |T₄| 와 그 θ₄ · 중립 |T₄| · 세 토크 합(비대칭은 최소 안전여유 N·m/°) · 물리 가용범위 · 토크 요구도 충족 ✓ / 미달 ✗(약한 쪽 끝단 기준).</li>
+          <li><strong>결과 카드</strong> — 머리줄에 고정/변수 링크와 탐색 범위, 링크비 성향. 변수인 링크만 「추천 … 링크」 칸이 생기고(커플러 b 0.25 mm, θ₄₀ 0.5° 단위 편집), 지표: 작동 범위 · 작동범위 내 최소 전달각(입력·출력, 각각 나오는 δ) · 양 끝단 |T₄| · 끝단 불균형(비대칭은 토크비와 여유율 불균형) · 범위 내 최대 |T₄| 와 그 θ₄ · 중립 |T₄| · 푸시로드 축력 F(중립 → 작동범위 최대) · 세 토크 합(비대칭은 최소 안전여유 N·m/°) · 물리 가용범위 · 토크 요구도 충족 ✓ / 미달 ✗(약한 쪽 끝단 기준).</li>
           <li><strong>배너</strong> — 주황: 조건을 다 만족하는 해가 없어 차선(전달각 차선 · 불균형 차선)을 보여 줌. 파랑: 불균형 기준을 넘지만 토크가 N% 높아 그 해를 고름(승격), 또는 최적값이 탐색 범위 경계(c · a · d, 1 mm 이내)에 붙어 범위를 넓히면 더 나을 수 있음.</li>
           <li><strong>이 값 적용</strong> — 변수 링크 길이와 θ₄₀ 를 기구에 쓰고 θ₄ = θ₄₀(δ = 0)으로 옮깁니다. 버튼 이름은 변수로 고른 항목에 맞춰 바뀌고, <strong>상세 접기</strong>로 결과 카드를 접어도 항상 보입니다. 계산이 실패하거나, 접힌 채 적용했는데 사유가 떠 있으면 자동으로 펼쳐집니다.</li>
         </ul>
@@ -1521,7 +1533,7 @@ body {
 </figure>
         <table class="input-table" style="margin-top:14px;">
           <tr><th>그래프</th><th>X축</th><th>내용</th></tr>
-          <tr><td><strong>출력토크 변화</strong></td><td>θ₄ (°)<br><span class="unit">현재 자세가 속한 조립 구간 ±5°, 하향이 왼쪽</span></td><td><strong>가로축</strong>은 지금 θ₄ 가 속한 조립 구간입니다 — 혼이 지상링크 아래(180~360°)에 있으면 그 구간을, 구간이 0°·180° 를 넘어 이어지면 끊지 않고 그립니다(눈금은 0~360° 로 접어 표시, 예: 340° → 0° → 20°). |T₄(θ₄)| 곡선 — 두 전달각이 47° 이상인 구간은 빨간 실선(격자가 아니라 <strong>정확한 μ 경계까지</strong>), 그 밖은 흐린 점선(「μ&lt;47° 구간 (참고)」, 토글 쪽으로 솟는 부분은 축 위에서 잘림). <strong>최대</strong>(라벨 「max (μ≥47°)」 — μ ≥ 47° 구간 안에서만, 구간 경계까지 포함. 그 밖의 조종면 표식이 더 클 수 있음)·현재 위치, <strong>토크 요구도</strong> 선과 교점(μ ≥ 47° 구간 안의 교점만), 끝단 마진 음영, 보라색 <strong>조종면 상향·하향 표식</strong>(타각을 10° 단위로 내린 끝, 예: 「하향 20° · 7.27 N·m」). 세로축은 μ ≥ 47° 구간 값·표식·요구도가 모두 보이도록 잡힙니다. 아래 칸에 θ₄ / δ 두 줄 눈금. 그래프 아래 박스에 <strong>물리 가용 각도</strong>와 <strong>토크 가용 각도</strong>(없으면 「범위 0° (μ≥47° 구간에서 요구도 미달)」)</td></tr>
+          <tr><td><strong>출력토크 변화</strong></td><td>θ₄ (°)<br><span class="unit">현재 자세가 속한 조립 구간 ±5°, 하향이 왼쪽</span></td><td><strong>가로축</strong>은 지금 θ₄ 가 속한 조립 구간입니다 — 혼이 지상링크 아래(180~360°)에 있으면 그 구간을, 구간이 0°·180° 를 넘어 이어지면 끊지 않고 그립니다(눈금은 0~360° 로 접어 표시, 예: 340° → 0° → 20°). |T₄(θ₄)| 곡선 — 두 전달각이 47° 이상인 구간은 빨간 실선(격자가 아니라 <strong>정확한 μ 경계까지</strong>), 그 밖은 흐린 점선(「μ&lt;47° 구간 (참고)」, 토글 쪽으로 솟는 부분은 축 위에서 잘림). <strong>최대</strong>(라벨 「max (μ≥47°)」 — μ ≥ 47° 구간 안에서만, 구간 경계까지 포함. 그 밖의 조종면 표식이 더 클 수 있음)·현재 위치, <strong>토크 요구도</strong> 선과 교점(μ ≥ 47° 구간 안의 교점만), 끝단 마진 음영, 보라색 <strong>조종면 상향·하향 표식</strong>(타각을 10° 단위로 내린 끝, 예: 「하향 20° · 7.27 N·m · F 197 N」 — 현재 위치 라벨에도 푸시로드 축력 F 가 붙음). 세로축은 μ ≥ 47° 구간 값·표식·요구도가 모두 보이도록 잡힙니다. 아래 칸에 θ₄ / δ 두 줄 눈금. 그래프 아래 박스에 <strong>물리 가용 각도</strong>와 <strong>토크 가용 각도</strong>(없으면 「범위 0° (μ≥47° 구간에서 요구도 미달)」)</td></tr>
           <tr><td><strong>커플러 길이 영향</strong></td><td>b (mm)</td><td>조립 가능한 b 에서 최대 T₄(왼축, 범례 「최대 T₄ (μ≥47°)」 — 두 전달각이 47° 이상인 자세 중 최대)와 가용각(오른축). <strong>가용각 (μ반영)</strong>(두 μ ≥ 47° 최장 구간) · <strong>토크 가용</strong>(출력토크 박스와 같은 정의 — μ ≥ 47° 이면서 요구도 이상인 가장 긴 연속 구간) 체크박스로 곡선 토글. 최고토크·최대 가용각·현재 b 표식</td></tr>
           <tr><td><strong>설계변수 스윕</strong><br>(역설계 검토)</td><td>변수 링크 1개 (mm)<br><span class="unit">타각은 입력값 고정</span></td><td>모달 창. 고른 링크를 약 40단계로 <strong>강제</strong>하면서 매 점마다 <strong>나머지 변수와 θ₄₀ 를 다시 최적화</strong> → 왼축 토크(최대·끝단·중립), 오른축 <strong>작동범위 내 최소 μ</strong>(입력·출력)와 47° 기준선. 차선으로 풀린 점은 주황 점·띠. "이 값으로 못박으면 어디까지 되는가" 를 읽습니다. 창을 닫으면 계산이 중단·폐기됩니다</td></tr>
         </table>
@@ -5026,6 +5038,7 @@ const SEARCH_INDEX = [
   { id:'linkage', anchor:'anc-torque-span',         title:'토크 가용 각도',                    keywords:'토크 가용 각도 torque span 요구도 μ 47 최장 연속 구간 교점 선형 보간 이분법 경계 79.0 119.4 40.4 U자 두 구간 긴 쪽 19.9 커플러 같은 계산' },
   { id:'linkage', anchor:'anc-transmission-angle',  title:'전달각 (Transmission Angle)',       keywords:'전달각 μ 40도 47도 45도 90도 예각 접기 커플러 출력 크랭크 입력측 출력측 transmission angle 색 초록 주황 빨강' },
   { id:'linkage', anchor:'anc-ma',                  title:'기계적 이득 (MA)',                  keywords:'기계적이득 MA mechanical advantage c sin μ_out a sin μ_in T₄ T₂ 가상일 virtual work ω₂/ω₄ 커플러 축력 토글 무한대 47' },
+  { id:'linkage', anchor:'anc-linkage-endcost',     title:'끝단 토크 증가와 그 대가 (축력·서보 회전)', keywords:'끝단 토크 커짐 U자 정상 토글 클램프 푸시로드 축력 F 커플러 힘 T₂/(a·sin μ_in) 서보 회전비 조종면 1° MA 중립 배수 로드엔드 혼 볼트 강도 가장 약한 자세 중립' },
   { id:'linkage', anchor:'anc-eff-ground',          title:'유효 지상링크 L',                   keywords:'유효 지상링크 L √(d²+e²) y오프셋 e 편심 Grashof 자동 탐색 범위 연동 d 각도 배치 L=d' },
   { id:'linkage', anchor:'anc-margin-ratio',        title:'끝단 불균형 · 여유율',              keywords:'끝단 불균형 imbalance 여유율 margin 토크 ÷ 타각 N·m/° 비대칭 균형 힌지모멘트 비례' },
   { id:'linkage', anchor:'anc-grashof',             title:'Grashof 조건',                     keywords:'Grashof 조건 s l p q 완전회전 크랭크 로커 최단 최장 배지' },
