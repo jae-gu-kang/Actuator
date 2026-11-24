@@ -1020,6 +1020,77 @@ async function clickByText(frame, txt){
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 토크 가용 각도 — 출력토크 박스와 커플러 그래프가 같은 최장 연속 구간', ts.ok===true, JSON.stringify(ts));
 
+    // 출력토크 그래프 정의역 = 현재 θ₄ 가 속한 조립 구간 (예전엔 θ₄ 0~180° 고정 스캔).
+    //  · 혼이 지상링크 아래(θ₄ 260°): 예전엔 70~130° 를 그리고 현재 마커가 없었다
+    //  · 구간이 180° 를 넘음(b 70, 116~244°): 예전엔 180° 에서 잘려 물리 범위 끝이 가짜 175° 였다
+    //  · 구간이 0° 를 넘음(b 130, 274~86°): 예전엔 0~86° 만 그려 물리 범위가 5~81° 였다
+    // 함께: 물리 범위 끝은 이분법 경계(기본 74.5~125.5, 예전 정수 75~125), 최대 라벨에 μ 기준 명시,
+    // 실선이 최대 마커(μ 경계)까지 닿는지(예전엔 격자 119° 에서 끊겨 0.4° 짧았다), 박스=커플러 가용 각도.
+    const tw = await f.evaluate(()=>{ const g=id=>document.getElementById(id);
+      const sv={a:S.a,b:S.b,c:S.c,d:S.d,t4:S.t4}, el=g('iMotorTorque'), oldReq=el.value, out={};
+      const pc=g('torquePlot'), c2=pc.getContext('2d');
+      const O={ft:c2.fillText, bp:c2.beginPath, mv:c2.moveTo, ln:c2.lineTo, st:c2.stroke, arc:c2.arc};
+      try{
+        el.value='3';
+        const T2=parseFloat(g('iTorque').value)||0, marg=Math.max(0,parseFloat(g('iMarginAngle').value)||0);
+        for(const [name,b,t4] of [['def',100,100],['mirror',100,260],['s180',70,175],['s0',130,5]]){
+          g('ia').value=20; g('ib').value=b; g('ic').value=40; g('id').value=100; onLink(); setT4(t4); draw();
+          const texts=[], solid=[], arcs=[]; let path=[];
+          c2.fillText=function(t,x,y){ texts.push(String(t)); return O.ft.apply(this,arguments); };
+          c2.beginPath=function(){ path=[]; return O.bp.apply(this,arguments); };
+          c2.moveTo=function(x,y){ path.push(x); return O.mv.apply(this,arguments); };
+          c2.lineTo=function(x,y){ path.push(x); return O.ln.apply(this,arguments); };
+          c2.stroke=function(){ if(String(c2.strokeStyle)==='#ff453a'&&Math.abs(c2.lineWidth-2.2)<1e-3&&path.length>2) solid.push(...path); return O.st.apply(this,arguments); };   // lineWidth 는 float32, 범례 선(2점)은 제외
+          c2.arc=function(x,y,r){ arcs.push({x,r}); return O.arc.apply(this,arguments); };
+          try{ drawTorquePlot(); } finally { Object.assign(c2,{fillText:O.ft,beginPath:O.bp,moveTo:O.mv,lineTo:O.ln,stroke:O.st,arc:O.arc}); }
+          const maxLbl=texts.find(t=>t.startsWith('max'))||null;
+          const maxArc=arcs.find(a=>Math.abs(a.r-4.5)<1e-9);
+          out[name]={ phys:g('physRangeText').textContent, usable:g('usableRangeText').textContent,
+            cur:texts.includes((+norm(t4)).toFixed(1)+'°'), maxLbl,
+            solidGap: maxArc&&solid.length? +Math.min(...solid.map(x=>Math.abs(x-maxArc.x))).toFixed(2) : null,
+            box:+((g('usableRangeText').textContent.match(/범위 ([\d.]+)°/)||[])[1]),
+            coupler:+couplerMetrics(S.b,T2,marg,3).torqueSpan.toFixed(1) };
+        }
+      } finally { el.value=oldReq; g('ia').value=sv.a; g('ib').value=sv.b; g('ic').value=sv.c; g('id').value=sv.d; onLink(); setT4(sv.t4); draw(); }
+      const has=(t,s)=>t.includes(s);
+      const ok = has(out.def.phys,'(74.5° ~ 125.5°)')
+        && has(out.mirror.phys,'(234.5° ~ 285.5°)') && has(out.mirror.usable,'(240.6° ~ 281.0°)')
+        && has(out.s180.phys,'(120.9° ~ 239.1°)')
+        && has(out.s0.phys,'(278.6° ~ 81.4°)')
+        && ['def','mirror','s180','s0'].every(k=>out[k].cur && out[k].maxLbl && out[k].maxLbl.startsWith('max (μ≥47°) ')
+                                              && out[k].solidGap!==null && out[k].solidGap<0.5 && out[k].box===out[k].coupler);
+      return {ok, ...out};
+    });
+    rec('linkage: 토크 그래프 정의역 = 현재 자세의 조립 구간(0°·180° 넘음) · 이분법 끝 · 실선이 μ 경계까지', tw.ok===true, JSON.stringify(tw));
+
+    // 조립 구간이 0° 를 넘는 형상(b 130, 274~86°)에서 옵티마이저 θ₄₀ 는 펼친 좌표(예: 424°)로 나올 수 있다.
+    // 카드·적용·전송은 0~360 으로 접고, 같은 자세를 64° 로 읽든 424° 로 읽든 같은 판정이어야 한다.
+    // (리뷰에서 잡힘: 적용 직후 현재 θ₄ 가 64° 로 바뀌면 카드가 424° 를 「작동범위 이탈!」 로 판정했다)
+    const ow = await f.evaluate(async ()=>{ const g=id=>document.getElementById(id);
+      const sv={a:S.a,b:S.b,c:S.c,d:S.d,t4:S.t4,def:g('iDeflect').value,neu:g('iT4Neutral').value}, out={};
+      try{
+        g('ia').value=20; g('ib').value=130; g('ic').value=40; g('id').value=100; onLink();
+        const T2=parseFloat(g('iTorque').value)||0;
+        const ev=(t4,t0)=>{ setT4(t4); const m=evalDesign(40,130,t0,10,10,T2,5,'',20,100); return m.err?m.err:m.contained; };
+        out.ev={ at5_64:ev(5,64), at5_424:ev(5,424), at350_64:ev(350,64), at350_424:ev(350,424) };
+        // 끝까지: 현재 θ₄ 350° 에서 최적화 → 카드 θ₄₀ 가 0~360 · 적용 후 재평가에 「이탈」 없음
+        setT4(350); g('iDeflect').value='10'; updateCSUI(); doOptimize();
+        out.cardT0=parseFloat(g('optEditT0')?.value);
+        if(typeof applyOptFromCard==='function') applyOptFromCard();
+        await new Promise(r=>setTimeout(r,400));
+        out.neutral=parseFloat(g('iT4Neutral').value); out.t4=S.t4;
+        out.leave=(g('optResult')?.textContent||'').includes('이탈');
+        // 위 최적화는 다른 c 로 옮겨가 펼친 값이 안 나온다 — 접기 자체는 424° 를 직접 넣어 고정한다
+        applyOpt(130,424,40,20,100);
+        out.apply424={neutral:g('iT4Neutral').value, t4:+S.t4.toFixed(6)};
+      } finally { g('iDeflect').value=sv.def; g('iT4Neutral').value=sv.neu;
+        g('ia').value=sv.a; g('ib').value=sv.b; g('ic').value=sv.c; g('id').value=sv.d; onLink(); setT4(sv.t4); updateCSUI(); draw(); }
+      const in360=v=>isFinite(v)&&v>=0&&v<360;
+      return {ok: Object.values(out.ev).every(v=>v===true) && in360(out.cardT0) && in360(out.neutral) && out.leave===false
+               && out.apply424.neutral==='64.0' && out.apply424.t4===64, ...out};
+    });
+    rec('linkage: 0° 를 넘는 조립 구간 — 옵티마이저 θ₄₀ 0~360 표시 · 64°=424° 같은 판정 · 적용 후 이탈 없음', ow.ok===true, JSON.stringify(ow));
+
     // 작동기 배치 「각도」 모드: |O₂O₄|=d 그대로 O₂ 를 O₄ 중심으로 회전. 강체 회전이라
     // 기구학(L·MA·θ₂)은 α 와 무관하고, y오프셋 모드 값은 따로 보관돼 되돌리면 살아난다.
     // 함께 θ 호가 실제 각(θ₂·θ₄)만큼 그려지는지 — 예전엔 360°−θ 쪽 호를 그렸다.

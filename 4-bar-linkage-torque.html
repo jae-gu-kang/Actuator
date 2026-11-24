@@ -3022,10 +3022,12 @@ function drawTorquePlot(){
   const _csDf=getDeflect(), _csT40=csNeutralT4();
   const csEnds=[{lab:'상향',sgn:1,v:csFloor10(_csDf.dp)},
                 {lab:'하향',sgn:-1,v:csFloor10(_csDf.dm)}]
-    .filter(e=>e.v>0).map(e=>({lab:e.lab, v:e.v, deg:_csT40+e.sgn*e.v}));
+    .filter(e=>e.v>0).map(e=>({lab:e.lab, sgn:e.sgn, v:e.v, deg:_csT40+e.sgn*e.v}));
   // 노드별 조종면기준 각도 δ = −((노드 θ₄) − 중립각 θ₄₀)  (부호 규약: −상향 / +하향).
   // 정의역(x축)에 균일 눈금으로 쓰지 않고, 각 노드 알약 아래줄에 그 노드 위치의 δ 로 표시.
-  const csDegStr=deg=>{ let dv=Math.round((_csT40-deg)*10)/10;
+  // _csRef: 그래프 창 좌표로 펼친 중립각 (창을 정한 뒤 아래에서 다시 맞춘다 — 0°·360° 를 넘는 창 대비)
+  let _csRef=_csT40;
+  const csDegStr=deg=>{ let dv=Math.round((_csRef-deg)*10)/10;
     if(Math.abs(dv)<0.05) return '0°';
     const m=Math.abs(dv); return (dv>0?'+':'−')+(m%1===0?m.toFixed(0):m.toFixed(1))+'°'; };
 
@@ -3052,28 +3054,28 @@ function drawTorquePlot(){
   const PW=W2, PH=PH_CANVAS;
   const IH=PH-PAD.t-PAD.b;
 
-  // ── 정의역 자동 탐색: 유효 해가 존재하는 θ₄ 범위를 0~180° 전체에서 찾음 ──
-  const SCAN_MIN=0, SCAN_MAX=180;
-  let autoMin=null, autoMax=null;
-  for(let deg=SCAN_MIN; deg<=SCAN_MAX; deg++){
-    const res=calcMAatT4(a,b,c,d,deg,sol);
-    if(res!==null&&isFinite(res.ma)){
-      if(autoMin===null) autoMin=deg;
-      autoMax=deg;
-    }
-  }
+  // ── 정의역: 현재 θ₄ 가 속한 조립 구간 (0°·180°·360° 를 넘어 이어진다) ──
+  // 각도는 이 창 좌표로 펼쳐 계산하고(예: 274°~446°), 화면에 쓸 때만 0~360 으로 접는다(degShow).
+  const win=assemblyWindow(a,b,c,d,sol,curT4deg);
   const _pb=document.getElementById('physRangeBox');
   const _pt=document.getElementById('physRangeText');
-  if(autoMin===null){ if(_pb) _pb.style.display='none'; return; }
+  if(!win){ if(_pb) _pb.style.display='none'; return; }
+  const autoMin=win.lo, autoMax=win.hi;             // 이분법 경계 (예전엔 1° 격자 정수라 최대 1° 안쪽)
+  const curU=unwrapTo(win,curT4deg);
+  _csRef=unwrapTo(win,_csT40);
+  csEnds.forEach(e=>{ e.deg=_csRef+e.sgn*e.v; });
 
-  // ── 물리 가용 각도: 유효 해 범위(autoMin~autoMax) − 양끝단 마진 ──
-  const physLo=autoMin+marginVal, physHi=autoMax-marginVal;
+  // ── 물리 가용 각도: 유효 해 범위(autoMin~autoMax) − 양끝단 마진 (한 바퀴 전체 조립이면 끝단이 없다) ──
+  const mEff=win.full?0:marginVal;
+  const physLo=autoMin+mEff, physHi=autoMax-mEff;
   const physSpan=Math.max(0, physHi-physLo);
   if(_pb){
     _pb.style.display='block';
     if(_pt){
-      if(physSpan>0){
-        _pt.textContent='범위 '+physSpan.toFixed(1)+'° ('+physLo.toFixed(1)+'° ~ '+physHi.toFixed(1)+'°), 중간 값 '+((physLo+physHi)/2).toFixed(1)+'°'
+      if(win.full){
+        _pt.textContent='범위 360°  (출력 링크가 한 바퀴 전체 조립 — 끝단 없음)';
+      } else if(physSpan>0){
+        _pt.textContent='범위 '+physSpan.toFixed(1)+'° ('+degShow(physLo,1)+'° ~ '+degShow(physHi,1)+'°), 중간 값 '+degShow((physLo+physHi)/2,1)+'°'
           +(marginVal>0?'  · 마진 ±'+marginVal.toFixed(1)+'°':'');
       } else {
         _pt.textContent='범위 0°  (마진 '+marginVal.toFixed(1)+'°가 물리 범위 '+(autoMax-autoMin).toFixed(1)+'°를 초과)';
@@ -3081,9 +3083,9 @@ function drawTorquePlot(){
     }
   }
 
-  // 여백 5° 추가 후 10° 단위로 정렬
-  const T4_MIN=Math.max(0,  Math.floor((autoMin-5)/10)*10);
-  const T4_MAX=Math.min(180, Math.ceil( (autoMax+5)/10)*10);
+  // 여백 5° 추가 후 10° 단위로 정렬 (창 좌표라 0 미만·360 초과도 그대로)
+  const T4_MIN=Math.floor((autoMin-5)/10)*10;
+  const T4_MAX=Math.ceil( (autoMax+5)/10)*10;
   const T4_RANGE=Math.max(T4_MAX-T4_MIN,1);
   const xStep=T4_RANGE>100?20:10;
 
@@ -3091,7 +3093,8 @@ function drawTorquePlot(){
   // 갈수록 T₄→∞ 라, 최대·교점·가용 각도·Y축은 이 구간 값만 쓰고 나머지는 흐리게 잘라 그린다.
   const T4arr=[], T4ok=[];
   for(let deg=T4_MIN; deg<=T4_MAX; deg++){
-    const res=calcMAatT4(a,b,c,d,deg,sol);
+    // 창 밖 격자는 비운다 — 여백 안에 다른 조립 구간이 걸려도 이어지지 않는 자세라 그리지 않는다
+    const res=(deg>=win.iLo&&deg<=win.iHi)?calcMAatT4(a,b,c,d,deg,sol):null;
     if(res===null||!isFinite(res.ma)){T4arr.push(null);T4ok.push(false);}
     else{T4arr.push(Math.abs(T2*res.ma));T4ok.push(res.mu>=OPT_MU_MIN);}
   }
@@ -3115,12 +3118,16 @@ function drawTorquePlot(){
   //    토크는 토글 쪽으로 갈수록 커져 최대가 대개 μ 경계에 붙으므로, 1° 격자 대신 경계를 이분법으로 잡는다.
   let maxAt=null, maxT4=-Infinity;
   T4arr.forEach((v,i)=>{ if(v!==null&&T4ok[i]&&v>maxT4){maxT4=v;maxAt=T4_MIN+i;} });
+  // μ 경계(이분법) — 최대값 후보이자, 실선·채움을 격자(정수°)가 아니라 이 정확한 경계까지 긋는 데 쓴다
+  const muBnd=[];   // {i, deg, v}: 칸 [i, i+1] 안의 경계
   for(let i=0;i<N;i++){
     if(T4ok[i]===T4ok[i+1]) continue;
     const gi=T4ok[i]?i:i+1, bi=T4ok[i]?i+1:i;
-    const dg=bisectMuBoundary(a,b,c,d,sol,T4_MIN+bi,T4_MIN+gi);
+    const dg=Math.min(win.hi,Math.max(win.lo,bisectMuBoundary(a,b,c,d,sol,T4_MIN+bi,T4_MIN+gi)));   // full 이면 창 밖까지 나갈 수 있어 자른다
     const v=tqAt(dg);
-    if(v!==null&&v>maxT4){maxT4=v;maxAt=dg;}
+    if(v===null) continue;
+    muBnd.push({i, deg:dg, v});
+    if(v>maxT4){maxT4=v;maxAt=dg;}
   }
   const maxIdx=maxAt===null?-1:maxAt-T4_MIN;   // 소수 인덱스 (xp 는 실수 인덱스를 받는다)
 
@@ -3130,7 +3137,7 @@ function drawTorquePlot(){
   // 현재 위치·조종면 끝단 마커는 μ 미달이어도 값을 찍으므로 축에 넣되, 토글 바로 옆이면 축이
   // 무너지지 않게 2배에서 자른다(넘는 마커는 플롯 위 가장자리에 붙여 그린다 — ypc).
   { const cap=2*Math.max(...scaleT4);
-    [Math.max(T4_MIN,Math.min(T4_MAX,curT4deg)), ...csEnds.filter(e=>e.deg>=T4_MIN&&e.deg<=T4_MAX).map(e=>e.deg)]
+    [Math.max(T4_MIN,Math.min(T4_MAX,curU)), ...csEnds.filter(e=>e.deg>=T4_MIN&&e.deg<=T4_MAX).map(e=>e.deg)]
       .forEach(dg=>{ const v=tqAt(dg); if(v!==null) scaleT4.push(Math.min(v,cap)); }); }
   // 가상일 비 곡선은 조립 범위 끝에서 0 으로 떨어지지 않아 축 하한이 높게 잡힌다 → 요구도 선이 축 밖으로
   // 빠지지 않게 요구도 값도 축에 넣는다(값이 지나치게 크면 그대로 보여 주는 게 맞다 — 미달이라는 뜻이니까).
@@ -3163,7 +3170,7 @@ function drawTorquePlot(){
   // ── X 격자: 범위에 따라 자동 간격 ──
   for(let deg=T4_MIN; deg<=T4_MAX; deg+=xStep){
     const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
-    const major=(deg%30===0||deg===T4_MIN||deg===T4_MAX);
+    const major=(norm(deg)%30===0||deg===T4_MIN||deg===T4_MAX);
     c2.strokeStyle=major?"rgba(60,60,67,0.09)":"rgba(60,60,67,0.045)";
     c2.lineWidth=major?0.9:0.6;
     c2.beginPath(); c2.moveTo(x,PAD.t); c2.lineTo(x,PAD.t+IH); c2.stroke();
@@ -3211,7 +3218,7 @@ function drawTorquePlot(){
   const xLabelStart=Math.ceil(T4_MIN/xStep)*xStep;
   for(let deg=xLabelStart; deg<=T4_MAX; deg+=xStep){
     const x=PAD.l+((deg-T4_MIN)/T4_RANGE)*IW;
-    c2.fillText(deg+"°", x, PAD.t+IH+12);
+    c2.fillText(norm(deg)+"°", x, PAD.t+IH+12);      // 창 좌표 → 0~360 표시 (예: 370 → 10°)
   }
   // δ 는 정의역(x축)에 균일 눈금으로 쓰지 않는다 — 각 노드 알약 아래줄에 노드별 δ 로 표시.
   // 축 이름(θ₄)만 우측 여백에.
@@ -3245,25 +3252,33 @@ function drawTorquePlot(){
   c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,6); c2.clip();
   const grad=c2.createLinearGradient(0,PAD.t,0,PAD.t+IH);
   grad.addColorStop(0,"rgba(255,69,58,0.18)"); grad.addColorStop(1,"rgba(255,69,58,0.0)");
-  c2.beginPath(); let st=false, lastIdx=-1;
-  for(let i=0;i<=N;i++){
-    if(T4arr[i]===null||!T4ok[i]){
-      if(st){c2.lineTo(xp(lastIdx),yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();c2.beginPath();st=false;}
+  // 그릴 점: 1° 격자 + μ 경계점(이분법). 경계점은 μ 충족(ok) 쪽 끝으로 넣어, 실선·채움이 격자에서
+  // 끊기지 않고 정확한 경계(= 최대 마커·가용 각도 끝)까지 이어진다. 예전엔 격자에서 끝나 최대 1° 짧았다.
+  const pts=[];
+  { let bi=0;
+    for(let i=0;i<=N;i++){
+      pts.push({x:xp(i), v:T4arr[i], ok:T4arr[i]!==null&&T4ok[i]});
+      while(bi<muBnd.length&&muBnd[bi].i===i){ const m=muBnd[bi++]; pts.push({x:xp(m.deg-T4_MIN), v:m.v, ok:true, bnd:true}); }
+    } }
+  c2.beginPath(); let st=false, lastX=0;
+  for(const q of pts){
+    if(q.v===null||!q.ok){
+      if(st){c2.lineTo(lastX,yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();c2.beginPath();st=false;}
       continue;
     }
-    const x=xp(i),y=yp(T4arr[i]);
-    if(!st){c2.moveTo(x,yp(0));c2.lineTo(x,y);st=true;}else c2.lineTo(x,y);
-    lastIdx=i;
+    const y=yp(q.v);
+    if(!st){c2.moveTo(q.x,yp(0));c2.lineTo(q.x,y);st=true;}else c2.lineTo(q.x,y);
+    lastX=q.x;
   }
-  if(st){c2.lineTo(xp(lastIdx),yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();}
+  if(st){c2.lineTo(lastX,yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();}
 
   // ── T4 곡선: 전체(μ 미달 포함)는 흐린 점선, μ 충족 구간만 빨간 실선으로 덮는다 ──
   const tracePath=okOnly=>{
     c2.beginPath(); let on=false;
-    for(let i=0;i<=N;i++){
-      if(T4arr[i]===null||(okOnly&&!T4ok[i])){on=false;continue;}
-      const x=xp(i),y=yp(T4arr[i]);
-      if(!on){c2.moveTo(x,y);on=true;}else c2.lineTo(x,y);
+    for(const q of pts){
+      if(q.v===null||(okOnly&&!q.ok)){on=false;continue;}
+      const y=yp(q.v);
+      if(!on){c2.moveTo(q.x,y);on=true;}else c2.lineTo(q.x,y);
     }
   };
   tracePath(false);
@@ -3279,7 +3294,6 @@ function drawTorquePlot(){
   let maxLabelRect=null;
   if(maxIdx>=0){
     const mx=xp(maxIdx), my=yp(maxT4);
-    const maxDeg=(T4_MIN+maxIdx).toFixed(1);
     // 수직 점선
     c2.strokeStyle="rgba(50,215,75,0.35)"; c2.lineWidth=1; c2.setLineDash([3,2]);
     c2.beginPath(); c2.moveTo(mx,my); c2.lineTo(mx,PAD.t+IH); c2.stroke();
@@ -3289,7 +3303,8 @@ function drawTorquePlot(){
     c2.fillStyle="rgba(50,215,75,0.95)"; c2.fill();
     c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
     // 토크값 라벨 (마커 위)
-    const mlabel="max "+maxT4.toFixed(2)+" N·m";
+    // μ 충족 구간의 최대 — 그 밖(흐린 점선)의 조종면 끝단 마커가 더 클 수 있어 기준을 라벨에 밝힌다
+    const mlabel="max (μ≥"+OPT_MU_MIN+"°) "+maxT4.toFixed(2)+" N·m";
     c2.font="600 8px -apple-system,sans-serif";
     const mw=c2.measureText(mlabel).width;
     const mlx=maxIdx>N*0.7 ? mx-mw-8 : mx+7;
@@ -3304,12 +3319,12 @@ function drawTorquePlot(){
   // 최대값 X축 라벨을 xAxisLabels 배열에 등록
   const xAxisLabels=[]; // {x, label, color, bg}
   if(maxIdx>=0){
-    xAxisLabels.push({x:xp(maxIdx), label:(T4_MIN+maxIdx).toFixed(1)+"°", sub:csDegStr(T4_MIN+maxIdx),
+    xAxisLabels.push({x:xp(maxIdx), label:degShow(T4_MIN+maxIdx,1)+"°", sub:csDegStr(T4_MIN+maxIdx),
       color:"rgba(20,130,40,0.95)", bg:"rgba(50,215,75,0.15)"});
   }
 
   // ── 현재 위치 마커 (주황) ──
-  const clampedT4=Math.max(T4_MIN,Math.min(T4_MAX,curT4deg));
+  const clampedT4=Math.max(T4_MIN,Math.min(T4_MAX,curU));
   const curTq=tqAt(clampedT4);                 // 격자 반올림 없이 현재 θ₄ 그대로
   if(curTq!==null){
     const cx=xp(clampedT4-T4_MIN), cy=ypc(curTq);
@@ -3343,7 +3358,7 @@ function drawTorquePlot(){
     c2.fillStyle="#b06000"; c2.textAlign="left";
     c2.fillText(lbl, lx+1, ly);
     // 현재 출력각(θ₄)+조종면기준 각도(δ)를 축 아래 알약에 두 줄로 (max·교점 라벨과 겹침 자동 회피)
-    xAxisLabels.push({x:cx, label:clampedT4.toFixed(1)+"°", sub:csDegStr(clampedT4),
+    xAxisLabels.push({x:cx, label:degShow(clampedT4,1)+"°", sub:csDegStr(clampedT4),
       color:"#b06000", bg:"rgba(255,159,10,0.18)"});
   }
 
@@ -3379,7 +3394,7 @@ function drawTorquePlot(){
       c2.beginPath(); c2.roundRect(lx-3,ly-10,lw+8,14,4); c2.fill();
       c2.fillStyle="#4b49c4"; c2.textAlign="left";
       c2.fillText(lbl, lx+1, ly);
-      xAxisLabels.push({x, label:e.deg.toFixed(1)+"°", sub:csDegStr(e.deg),
+      xAxisLabels.push({x, label:degShow(e.deg,1)+"°", sub:csDegStr(e.deg),
         color:"#4b49c4", bg:"rgba(94,92,230,0.15)"});
     }
   }
@@ -3415,12 +3430,12 @@ function drawTorquePlot(){
 
     // 토크 가용 각도 = |T₄| ≥ 요구도 ∧ μ ≥ OPT_MU_MIN 인 최장 연속 구간 (커플러 그래프와 같은 함수).
     // 곡선 전체가 요구도 위면 교점이 없어도 μ 충족 구간 전체가 가용 각도다.
-    const usable=torqueUsableRun(a,b,c,d,sol,T2,motorVal,T4_MIN,T4arr,T4ok);
+    const usable=torqueUsableRun(a,b,c,d,sol,T2,motorVal,T4_MIN,T4arr,T4ok,win);
 
     // 가용 각도 텍스트 업데이트
     if(_rt){
       if(usable&&usable.hi-usable.lo>1e-6){
-        _rt.textContent='범위 '+(usable.hi-usable.lo).toFixed(1)+'° ('+usable.lo.toFixed(1)+'° ~ '+usable.hi.toFixed(1)+'°), 중간 값 '+((usable.lo+usable.hi)/2).toFixed(1)+'°';
+        _rt.textContent='범위 '+(usable.hi-usable.lo).toFixed(1)+'° ('+degShow(usable.lo,1)+'° ~ '+degShow(usable.hi,1)+'°), 중간 값 '+degShow((usable.lo+usable.hi)/2,1)+'°';
       } else {
         _rt.textContent='범위 0°  (μ≥'+OPT_MU_MIN+'° 구간에서 요구도 미달)';
       }
@@ -3466,7 +3481,7 @@ function drawTorquePlot(){
         c2.setLineDash([]);
 
         // 교점 X라벨을 xAxisLabels 배열에 등록
-        xAxisLabels.push({x:xi, label:t4cross.toFixed(1)+"°", sub:csDegStr(t4cross),
+        xAxisLabels.push({x:xi, label:degShow(t4cross,1)+"°", sub:csDegStr(t4cross),
           color:"rgba(130,30,200,0.95)", bg:"rgba(191,90,242,0.15)"});
         c2.restore();
     });
@@ -3520,7 +3535,7 @@ function drawTorquePlot(){
 
 // ── COUPLER SWEEP PLOT ──
 // 커플러 길이 b를 스윕하며 각 b에 대해:
-//   maxAbs = θ₄(0~180°) 중 입력·출력 μ≥OPT_MU_MIN 인 자세에서의 최대 |T₄| (토글 쪽 T₄→∞ 제외)
+//   maxAbs = 현재 θ₄ 가 속한 조립 구간(assemblyWindow) 중 입력·출력 μ≥OPT_MU_MIN 인 자세에서의 최대 |T₄| (토글 쪽 T₄→∞ 제외)
 //   span   = 물리 가용 각도 = (유효 해가 존재하는 θ₄ 범위) − 양끝단 마진×2
 // 주어진 θ₄(deg)에서 해가 존재하는지 + MA 반환 (없으면 null)
 function feasibleAt(a,b,c,d,deg,sol){
@@ -3547,11 +3562,45 @@ function bisectMuBoundary(a,b,c,d,sol,badDeg,goodDeg){
   return hi;
 }
 
+// 조립 가능한 θ₄ 의 **연속 구간** 중 anchor(보통 현재 θ₄)를 품은 것 — 없으면 anchor 에서 가장 가까운 것.
+// 예전에는 그래프·커플러 그래프·옵티마이저가 θ₄ 0~180° 만 훑어, 혼이 지상링크 아래(180~360°)에 있거나
+// 조립 구간이 0°·180° 를 넘어 이어지는 형상에서 엉뚱한 구간을 그리거나 180° 에서 잘린 가짜 경계를 보였다.
+// 반환 {lo,hi,iLo,iHi,full}: lo/hi = 이분법 경계(°), iLo/iHi = 그 안쪽 정수 격자 끝. 각도는 anchor 근처로
+// 펼친 값이라 lo<0 이나 hi>360 일 수 있다(표시할 때만 norm). full=true 면 한 바퀴 전체 조립 → [anchor∓180].
+// 구간이 0~180 안에 있으면 예전 스캔과 같은 정수 쌍으로 이분법을 하므로 경계값이 비트 단위로 같다.
+function assemblyWindow(a,b,c,d,sol,anchor){
+  // 빠른 기각: |AB| 가 가질 수 있는 거리 [max(0, d−a−c, a−d−c, c−d−a), d+a+c] 밖이면 어떤 θ₄ 에서도
+  // 조립 불가. 옵티마이저가 훑는 b 의 상당수가 여기 걸린다 — 없으면 한 바퀴(361점)를 다 보고서야 null.
+  // calcMAatT4 의 허용오차(잔차 1.5mm)보다 넉넉히 2mm 여유를 둬 경계 근처 판정은 아래 스캔에 맡긴다.
+  if(b>d+a+c+2 || b<Math.max(0,d-a-c,a-d-c,c-d-a)-2) return null;
+  const f=deg=>!!feasibleAt(a,b,c,d,deg,sol);
+  const A=Math.round(isFinite(anchor)?anchor:90);
+  let k0=null;
+  for(let k=0;k<=180&&k0===null;k++){
+    if(f(A+k)) k0=A+k; else if(k&&f(A-k)) k0=A-k;
+  }
+  if(k0===null) return null;
+  let iLo=k0, iHi=k0;
+  while(iHi-iLo<360 && f(iLo-1)) iLo--;
+  while(iHi-iLo<360 && f(iHi+1)) iHi++;
+  if(iHi-iLo>=359){
+    const lo=A-180, hi=A+180;
+    return {lo, hi, iLo:lo, iHi:hi, full:true};
+  }
+  return { lo:bisectBoundary(a,b,c,d,sol,iLo-1,iLo), hi:bisectBoundary(a,b,c,d,sol,iHi+1,iHi), iLo, iHi, full:false };
+}
+// 창 좌표로 펼치기: deg 를 360° 배수만큼 옮겨 창 가운데에 가장 가깝게
+function unwrapTo(win,deg){ const mid=(win.lo+win.hi)/2; return deg+360*Math.round((mid-deg)/360); }
+// 표시용 각도 (0~360)
+const degShow=(v,n)=>{ const r=norm(+v.toFixed(n)); return (r>=360-0.5*Math.pow(10,-n)?0:r).toFixed(n); };
+
 // 토크 가용 각도 — |T₄| ≥ 요구도 ∧ 입력·출력 μ ≥ OPT_MU_MIN 인 **가장 긴 연속 구간** {lo,hi} (없으면 null).
 // 출력토크 박스와 커플러 그래프가 함께 쓴다 — 두 벌로 두면 정의가 갈라진다(가상일 비 곡선은 U자라 요구도가
 // 최솟값 바로 위면 구간이 둘로 갈리고, 합계와 최장 구간이 크게 달라진다). vals[i]·ok[i] 는 θ₄ = d0+i 의 1° 격자.
 // 칸 안에서는 토크를 선형 보간해 요구도 교점을 잡고, μ 충족이 바뀌는 칸은 경계각을 이분법으로 찾아 그 안쪽만 센다.
-function torqueUsableRun(a,b,c,d,sol,T2,req,d0,vals,ok){
+// lim {lo,hi}(선택): 한 바퀴 전체 조립(full)에서는 창 밖 패딩 칸도 실제로 조립돼, μ 경계 이분법이 창 밖(≈1°)까지
+// 나간다 — 창 끝에서 자른다.
+function torqueUsableRun(a,b,c,d,sol,T2,req,d0,vals,ok,lim){
   const part=(x0,v0,x1,v1)=>{            // [x0,x1] 에서 토크가 v0→v1 직선일 때 v ≥ req 인 부분
     const s0=v0>=req, s1=v1>=req;
     if(s0&&s1) return [x0,x1];
@@ -3565,7 +3614,8 @@ function torqueUsableRun(a,b,c,d,sol,T2,req,d0,vals,ok){
     if(ok[i]&&ok[i+1]) p=part(d0+i,vals[i],d0+i+1,vals[i+1]);
     else if(ok[i]!==ok[i+1]){
       const g=ok[i]?i:i+1, bd=ok[i]?i+1:i;
-      const dg=bisectMuBoundary(a,b,c,d,sol,d0+bd,d0+g);
+      let dg=bisectMuBoundary(a,b,c,d,sol,d0+bd,d0+g);
+      if(lim) dg=Math.min(lim.hi,Math.max(lim.lo,dg));
       const r=feasibleAt(a,b,c,d,dg,sol);
       if(r){ const vb=Math.abs(T2*r.ma); p=g<bd?part(d0+g,vals[g],dg,vb):part(dg,vb,d0+g,vals[g]); }
     }
@@ -3578,35 +3628,35 @@ function torqueUsableRun(a,b,c,d,sol,T2,req,d0,vals,ok){
 
 function couplerMetrics(bVal, T2, marginVal, motorVal){
   const{a,c,sol}=S, d=gLen();
+  // 현재 θ₄ 가 속한 조립 구간만 본다(0~180 고정 스캔 대신). 배열은 구간 양옆에 '해 없음' 칸을 하나씩
+  // 둔다 — 구간 끝 칸의 μ 경계·요구도 교점 처리가 예전 0~180 스캔(밖은 null)과 똑같아진다.
+  const win=assemblyWindow(a,bVal,c,d,sol,S.t4);
+  if(!win) return null;
+  const d0=win.iLo-1, n=win.iHi-win.iLo+3;
   const vals=[], okArr=[];
-  let firstIdx=null, lastIdx=null, maxAbs=-Infinity;
-  for(let deg=0; deg<=180; deg++){
-    const r=feasibleAt(a,bVal,c,d,deg,sol);
+  let maxAbs=-Infinity;
+  for(let i=0;i<n;i++){
+    const deg=d0+i;
+    const r=(deg>=win.iLo&&deg<=win.iHi)?feasibleAt(a,bVal,c,d,deg,sol):null;
     if(r){
-      if(firstIdx===null) firstIdx=deg;
-      lastIdx=deg;
       const val=Math.abs(T2*r.ma);
       const ok=r.mu>=OPT_MU_MIN;   // 전달각 기준(§2-4) 충족 여부
-      vals.push(val);
-      okArr.push(ok);
+      vals.push(val); okArr.push(ok);
       if(ok&&val>maxAbs) maxAbs=val;
     } else { vals.push(null); okArr.push(false); }
   }
-  if(firstIdx===null) return null;
   // 최대 T₄ 는 대개 μ 경계(토글 쪽)에 붙는다 — 1° 격자만 보면 b 에 따라 톱니처럼 흔들리므로
   // 경계를 이분법으로 잡아 그 자세의 값도 후보에 넣는다.
-  for(let deg=0; deg<180; deg++){
-    if(okArr[deg]===okArr[deg+1]) continue;
-    const g=okArr[deg]?deg:deg+1, bd=okArr[deg]?deg+1:deg;
-    const r=feasibleAt(a,bVal,c,d,bisectMuBoundary(a,bVal,c,d,sol,bd,g),sol);
+  for(let i=0;i+1<n;i++){
+    if(okArr[i]===okArr[i+1]) continue;
+    const g=okArr[i]?i:i+1, bd=okArr[i]?i+1:i;
+    const dg=Math.min(win.hi,Math.max(win.lo,bisectMuBoundary(a,bVal,c,d,sol,d0+bd,d0+g)));
+    const r=feasibleAt(a,bVal,c,d,dg,sol);
     if(r){ const v=Math.abs(T2*r.ma); if(v>maxAbs) maxAbs=v; }
   }
 
   // ── 조립 가능 경계 (서브디그리 정밀, 끝단 마진 적용용) ──
-  let firstDeg=firstIdx, lastDeg=lastIdx;
-  if(firstIdx>0) firstDeg=bisectBoundary(a,bVal,c,d,sol, firstIdx-1, firstIdx);
-  if(lastIdx<180)  lastDeg=bisectBoundary(a,bVal,c,d,sol, lastIdx+1, lastIdx);
-
+  const firstDeg=win.lo, lastDeg=win.hi;
   const m=(isNaN(marginVal)||marginVal<0)?0:marginVal;
 
   // ── 가용 각도 (전달각 반영): 해 존재 ∧ μ′≥기준 인 최장 연속 구간을 찾고
@@ -3614,21 +3664,21 @@ function couplerMetrics(bVal, T2, marginVal, motorVal){
   let physSpan=0;
   {
     let runS=null, bestS=null, bestE=null, bestLen=-1;
-    for(let deg=0; deg<=181; deg++){
-      const ok=deg<=180&&okArr[deg];
-      if(ok){ if(runS===null) runS=deg; }
+    for(let i=0;i<=n;i++){
+      const ok=i<n&&okArr[i];
+      if(ok){ if(runS===null) runS=i; }
       else if(runS!==null){
-        const len=(deg-1)-runS;
-        if(len>bestLen){ bestLen=len; bestS=runS; bestE=deg-1; }
+        const len=(i-1)-runS;
+        if(len>bestLen){ bestLen=len; bestS=runS; bestE=i-1; }
         runS=null;
       }
     }
     if(bestS!==null){
-      let muLo=bestS, muHi=bestE;
-      if(bestS>0)  muLo=bisectMuBoundary(a,bVal,c,d,sol, bestS-1, bestS);
-      if(bestE<180) muHi=bisectMuBoundary(a,bVal,c,d,sol, bestE+1, bestE);
-      const lo=Math.max(firstDeg+m, muLo);
-      const hi=Math.min(lastDeg-m, muHi);
+      // 양옆 패딩 칸은 늘 '해 없음' 이라 bestS-1·bestE+1 이 언제나 배열 안이다
+      const muLo=Math.max(win.lo,bisectMuBoundary(a,bVal,c,d,sol, d0+bestS-1, d0+bestS));
+      const muHi=Math.min(win.hi,bisectMuBoundary(a,bVal,c,d,sol, d0+bestE+1, d0+bestE));
+      const lo=Math.max(firstDeg+(win.full?0:m), muLo);
+      const hi=Math.min(lastDeg-(win.full?0:m), muHi);
       physSpan=Math.max(0, hi-lo);
     }
   }
@@ -3636,7 +3686,7 @@ function couplerMetrics(bVal, T2, marginVal, motorVal){
   // ── 토크 가용 각도: 출력토크 박스와 같은 정의(최장 연속 구간) ──
   let torqueSpan=NaN;
   if(!isNaN(motorVal)){
-    const run=torqueUsableRun(a,bVal,c,d,sol,T2,motorVal,0,vals,okArr);
+    const run=torqueUsableRun(a,bVal,c,d,sol,T2,motorVal,d0,vals,okArr,win);
     torqueSpan=run?run.hi-run.lo:0;
   }
   return{maxAbs:isFinite(maxAbs)?maxAbs:null, physSpan, torqueSpan};
@@ -3683,7 +3733,7 @@ function drawCouplerPlot(){
   let feasMin=null, feasMax=null;
   for(let bv=B_LO; bv<=B_HI; bv++){
     let ok=false;
-    for(let deg=0; deg<=180; deg+=4){
+    for(let deg=0; deg<360; deg+=4){            // 조립 구간이 아래쪽(180~360°)에만 있어도 찾는다
       const r=calcMAatT4(a,bv,c,d,deg,S.sol);
       if(r!==null&&isFinite(r.ma)){ok=true;break;}
     }
@@ -3990,17 +4040,11 @@ function scheduleCouplerPlot(){
 //         maximize min(|T₄(θ₄₀−δ)|, |T₄(θ₄₀+δ)|)  (worst 끝단 토크 최대화 = 양끝 균형)
 
 // 주어진 b 에서 유효 해가 존재하는 θ₄ 경계 (이분법 sub-degree 정밀)
+// 현재 θ₄ 가 속한 조립 구간(assemblyWindow) — 0°·180° 를 넘어 이어지는 구간도 자르지 않는다.
 function feasibleRangeOf(bVal){
   const{a,c,sol}=S, d=gLen();
-  let first=null,last=null;
-  for(let deg=0;deg<=180;deg++){
-    if(feasibleAt(a,bVal,c,d,deg,sol)){ if(first===null) first=deg; last=deg; }
-  }
-  if(first===null) return null;
-  let lo=first, hi=last;
-  if(first>0)  lo=bisectBoundary(a,bVal,c,d,sol,first-1,first);
-  if(last<180) hi=bisectBoundary(a,bVal,c,d,sol,last+1,last);
-  return{lo,hi};
+  const w=assemblyWindow(a,bVal,c,d,sol,S.t4);
+  return w?{lo:w.lo,hi:w.hi,full:w.full}:null;
 }
 
 // 주어진 b, θ₄(deg) 에서의 |T₄| (해 없으면 null)
@@ -4077,9 +4121,10 @@ function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
   const imbalLim=optImbalLimit(dm,dp);            // 불균형 상한 (대칭·일반 10%, 강비대칭 ~30%)
   const fr=feasibleRangeOf(bVal);
   if(!fr) return null;
-  // 물리 가용범위: 화면에 표시되는 정수 스캔 경계와 동일한 보수적 경계 사용
-  // (이분법 경계를 그대로 쓰면 추천 작동범위가 표시된 가용범위보다 최대 1° 밖에 걸칠 수 있음)
-  const physLo=Math.ceil(fr.lo-1e-6)+margin, physHi=Math.floor(fr.hi+1e-6)-margin;
+  // 물리 가용범위: 이분법 경계를 정수로 안쪽 반올림한 보수적 경계 사용 — 화면의 물리 가용 범위(이분법
+  // 경계 그대로)보다 늘 안쪽이라 추천 작동범위가 표시 범위 밖에 걸치지 않는다. (예전 화면은 정수 스캔이었다)
+  const mg=fr.full?0:margin;                       // 한 바퀴 전체 조립이면 끝단(토글)이 없다 — 이음매에 마진을 빼지 않는다
+  const physLo=Math.ceil(fr.lo-1e-6)+mg, physHi=Math.floor(fr.hi+1e-6)-mg;
   // 비대칭은 물리 가용범위가 작동범위보다 최소 ASYM_RANGE_SLACK(1°) 크도록 요구 (끝단 버퍼 확보)
   const needSpan=(dm+dp)+(sym?0:ASYM_RANGE_SLACK);
   if(physHi-physLo<needSpan-1e-9) return null;   // 타각범위 미수용/버퍼 부족 → 탈락
@@ -4422,7 +4467,7 @@ function doOptimize(){
         ?' <span style="color:var(--text3)">(기존 '+c0+')</span>':''),
       'optEditC',best.cOpt,1,'mm','#248a3d'):'')
     +(OPTVARS.b.v?editRow('추천 커플러 b','optEditB',+(+best.b).toFixed(2),0.25,'mm','var(--coupler)'):'')
-    +editRow('추천 중립각 θ₄₀','optEditT0',+best.t0.toFixed(1),0.5,'°','var(--follower)')
+    +editRow('추천 중립각 θ₄₀','optEditT0',+degShow(best.t0,1),0.5,'°','var(--follower)')   // 0~360 으로 접어 표시
     +'<div class="result-divider"></div>'
     +'<div id="optMetrics"></div>'
     +'</div>';
@@ -4455,7 +4500,11 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
   try{
     const fr=feasibleRangeOf(bv);
     if(!fr) return{err:'이 (c, b) 조합은 어떤 θ₄ 에서도 조립되지 않습니다'};
-    const physLo=Math.ceil(fr.lo-1e-6)+marginVal, physHi=Math.floor(fr.hi+1e-6)-marginVal;
+    // 조립 구간은 현재 θ₄ 근처로 펼친 각도(0~360 밖일 수 있음)라, 입력 θ₄₀ 도 같은 좌표로 옮긴 뒤 판정한다
+    // — 안 그러면 같은 자세를 64° 와 424° 로 다르게 읽어 「작동범위 이탈」 로 잘못 판정한다.
+    t0=unwrapTo(fr,t0);
+    const mg=fr.full?0:marginVal;                   // bestNeutralForB 와 같은 규약
+    const physLo=Math.ceil(fr.lo-1e-6)+mg, physHi=Math.floor(fr.hi+1e-6)-mg;
     const contained=(t0-dm>=physLo-1e-9)&&(t0+dp<=physHi+1e-9);
     const tm=absT4At(bv,t0-dm,T2), tp=absT4At(bv,t0+dp,T2), tn=absT4At(bv,t0,T2);
     let wmax=-Infinity,warg=null,muMin=Infinity,gap=false;
@@ -4482,7 +4531,7 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     const imbal=mx>1e-12?Math.abs(mm-mp)/mx:0;   // sym 이면 |T₋−T₊|/max 와 동일
     const minMgn=Math.min(mm,mp);
     const score=sym?(tm+tp+wmax):(mode==='torque'?tn:minMgn);
-    return{tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,muInArg,muOutArg,
+    return{t0,tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,muInArg,muOutArg,
       imbal,marginM:mm,marginP:mp,minMgn,
       score,physLo,physHi,contained};
   } finally { S.c=sc; S.a=sa; S.d=sd; }
@@ -4496,12 +4545,12 @@ function buildOptMetrics(m){
   if(m.err){
     let s='<div style="font-size:11px;color:var(--red);font-weight:600;padding:4px 0;line-height:1.5;">⚠︎ '+m.err+'</div>';
     if(m.physLo!==undefined)
-      s+=row('물리 가용범위',m.physLo.toFixed(1)+'° ~ '+m.physHi.toFixed(1)+'°','#1ca3ec');
+      s+=row('물리 가용범위',degShow(m.physLo,1)+'° ~ '+degShow(m.physHi,1)+'°','#1ca3ec');
     return s;
   }
   const rangeLbl=sym?('±'+dp.toFixed(1)+'°'):('상향 '+dp.toFixed(1)+'° / 하향 '+dm.toFixed(1)+'°');
   let s='';
-  s+=row('작동 범위',(m.t0-dm).toFixed(1)+'° ~ '+(m.t0+dp).toFixed(1)+'° ('+rangeLbl+')',
+  s+=row('작동 범위',degShow(m.t0-dm,1)+'° ~ '+degShow(m.t0+dp,1)+'° ('+rangeLbl+')',
     m.contained?'var(--text)':'var(--red)');
   {
     // mu 는 임계값 합성치라 각도로 못 읽는다 → 실제 muIn/muOut 최솟값을 보여준다
@@ -4545,7 +4594,7 @@ function buildOptMetrics(m){
   }
   const isObjNeutral=!sym&&mode==='torque';
   s+=row('최대 |T₄| <span style="color:var(--text3)">(범위 내)</span>',
-    m.wmax.toFixed(2)+' N·m @ θ₄ '+m.warg.toFixed(1)+'°','var(--follower)');
+    m.wmax.toFixed(2)+' N·m @ θ₄ '+degShow(m.warg,1)+'°','var(--follower)');
   if(m.tn!==null) s+=row('|T₄| @ 중립각'+(isObjNeutral?' <span style="color:var(--text3)">(목적함수)</span>':''),
     m.tn.toFixed(2)+' N·m',isObjNeutral?'var(--purple)':'var(--text2)');
   if(sym){
@@ -4558,7 +4607,7 @@ function buildOptMetrics(m){
       minMgn.toFixed(3)+' N·m/°',mode==='torque'?(floorOk?'#1a9c3e':'var(--red)'):'var(--purple)');
   }
   s+='<div class="result-divider"></div>';
-  s+=row('물리 가용범위',m.physLo.toFixed(1)+'° ~ '+m.physHi.toFixed(1)+'° (마진 '+margin.toFixed(1)+'° 제외)'
+  s+=row('물리 가용범위',degShow(m.physLo,1)+'° ~ '+degShow(m.physHi,1)+'° (마진 '+margin.toFixed(1)+'° 제외)'
     +(m.contained?'':' — <b style="color:var(--red)">작동범위 이탈!</b>'),'#1ca3ec');
   if(hasMotor)
     s+=row('토크 요구도 '+motorVal.toFixed(2)+' N·m',
@@ -4599,7 +4648,7 @@ function recalcOptCard(){
   const cv=cvR!==undefined?cvR:S.c, bv=bvR!==undefined?bvR:S.b,
         av=avR!==undefined?avR:S.a, dv=dvR!==undefined?dvR:S.d;
   const m=evalDesign(cv,bv,t0,_optCtx.dm,_optCtx.dp,_optCtx.T2,_optCtx.margin,_optCtx.mode,av,dv);
-  m.t0=t0;
+  if(m.t0===undefined) m.t0=t0;   // evalDesign 이 조립 구간 좌표로 옮긴 값을 우선 (표시는 degShow 로 접는다)
   _optCardErr=!!m.err;      // 조립 불가 등 — 링크를 바꾸면 접힌 채로도 여기에 걸린다
   mDiv.innerHTML=buildOptMetrics(m);
 }
@@ -4638,7 +4687,7 @@ function applyOpt(bVal,t4Val,cVal,aVal,dVal){
   setT4(t4Val);
   // 최적화의 θ₄₀ 는 중립각이므로 힌지모멘트 연동 중립각에도 반영
   const nEl=document.getElementById('iT4Neutral');
-  if(nEl) nEl.value=(+t4Val).toFixed(1);
+  if(nEl) nEl.value=degShow(+t4Val,1);           // 조립 구간 좌표(예: 424°)를 0~360 으로
   draw(); scheduleCouplerPlot();
 }
 
@@ -5459,6 +5508,7 @@ function sendToHM(){
   const T2  = parseFloat(document.getElementById('iTorque').value) || 0;
   let  t4n  = parseFloat(document.getElementById('iT4Neutral').value);
   if(isNaN(t4n)) t4n = S.t4;
+  t4n = norm(t4n);                        // 받는 도구는 0~360 θ₄ 를 기대
 
   const payload = {
     v: 1,
@@ -5489,6 +5539,7 @@ function sendToHM(){
 function sendToRig(){
   let t4n = parseFloat(document.getElementById('iT4Neutral').value);
   if(isNaN(t4n)) t4n = S.t4;
+  t4n = norm(t4n);                        // 받는 도구는 0~360 θ₄ 를 기대
 
   const df = getDeflect();                 // 운용 범위(타각): {dm, dp, sym}
   const rng = { sym: df.sym,               // 대칭이면 ±dp(=dm), 비대칭이면 +dp / −dm
