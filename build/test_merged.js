@@ -1088,6 +1088,24 @@ async function clickByText(frame, txt){
     });
     rec('linkage: 작동기 배치 각도 모드 — d 유지 · O₄ 고정 · 기구학 불변 · 호가 실제 각만큼 · d 드래그 안정', pl.ok===true, JSON.stringify(pl));
 
+    // 작동기 배치 참조값: 고르지 않은 쪽 값이 읽기 전용으로 뜨고, d 가 바뀌면 따라 바뀐다.
+    // y오프셋 e=25, d=100 → α=atan(25/100)=14.0°, L=103.1 / 각도 α=30, d=100 → e=50.0, 가로=86.6 (d=80 → 40.0, 69.3)
+    const pr = await f.evaluate(()=>{ const g=id=>document.getElementById(id);
+      const sv={d:S.d,offY:S.offY,place:S.place,ang:S.placeAng}, out={};
+      const ref=()=>g('servoPlaceRef').textContent.replace(/\s+/g,' ');
+      try{
+        g('id').value=100; onLink(); g('iServoOffY').value=25; g('iServoAng').value=30;
+        setServoPlace('y');   out.y=ref();
+        setServoPlace('ang'); out.ang=ref();
+        g('id').value=80; onLink(); out.ang80=ref();
+      } finally { g('id').value=sv.d; onLink(); g('iServoOffY').value=sv.offY; g('iServoAng').value=sv.ang; setServoPlace(sv.place); }
+      const has=(t,...xs)=>xs.every(x=>t.includes(x));
+      return {ok: has(out.y,'14.0°','103.1 mm') && !out.y.includes('이격')
+               && has(out.ang,'50.0 mm','86.6 mm') && !out.ang.includes('atan')
+               && has(out.ang80,'40.0 mm','69.3 mm'), ...out};
+    });
+    rec('linkage: 작동기 배치 참조값 — y오프셋엔 각도·L, 각도엔 y 이격·가로 (d 연동)', pr.ok===true, JSON.stringify(pr));
+
     // 불변식: '도달 불가 경고가 꺼져 있으면 θ₂ 판독값은 실제 자세와 일치'.
     // lT2 갱신이 포커스 가드 안에 있으면, 도달 불가 값을 친 채 draw() 가 한 번 돌 때
     // 배너만 꺼지고 거짓 각도가 판독값에 남는다(캔버스 hover 만으로 재현).

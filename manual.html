@@ -1133,7 +1133,7 @@ body {
         <ul class="points">
           <li><strong>프리셋</strong> — Hitec MDD961WP(전체 길이 54.5 · 본체 40 · 폭 20 · 샤프트 오프셋 14.9 · 마운트홀 Ø5 · 암 폭 9 · 허브 Ø11 mm). 치수를 하나라도 고치면 「직접 입력(커스텀)」으로 바뀝니다.</li>
           <li><strong>서보암 길이 = 크랭크 a</strong> — 링크 길이의 a 한 곳에서만 입력합니다. 푸시로드 홀은 M3 고정.</li>
-          <li><strong>작동기 배치</strong> — 아래 <code>y오프셋 (L 변화)</code> / <code>각도 (d 고정)</code> 버튼으로 O₂ 를 옮기는 방식을 고릅니다. 두 칸의 값은 따로 보관되어 방식을 되돌리면 이전 값이 그대로 살아나고, 계산에는 <strong>고른 방식의 값만</strong> 쓰입니다.
+          <li><strong>작동기 배치</strong> — 아래 <code>y오프셋 (L 변화)</code> / <code>각도 (d 고정)</code> 버튼으로 O₂ 를 옮기는 방식을 고릅니다. 두 칸의 값은 따로 보관되어 방식을 되돌리면 이전 값이 그대로 살아나고, 계산에는 <strong>고른 방식의 값만</strong> 쓰입니다. 버튼 아래에는 <strong>고르지 않은 쪽 값이 「참조」로</strong> 뜹니다 — y오프셋 모드엔 각도 α = atan(e/d) 와 L, 각도 모드엔 y 이격 e = d·sinα 와 가로 거리 d·cosα (읽기 전용, d 를 바꾸면 따라 바뀜). 캔버스 치수 라벨에도 괄호로 함께 붙습니다(예: <code>y오프셋 = 25 mm (α 14.0°)</code>, <code>O₂ 각도 = 30.0° (e 50.0 mm)</code>).
             <ul>
               <li><strong>y오프셋 e</strong> — O₂ 를 위아래로만 옮깁니다. O₂–O₄ 실제 거리가 L = √(d²+e²) 로 늘어 <strong>MA·토크·가용범위가 다시 계산</strong>됩니다.</li>
               <li><strong>각도 α</strong> — O₂ 를 O₄ 둘레 반지름 d 원 위로 돌립니다(+ 위, − 아래). 지상링크 길이가 d 그대로라 기구 전체가 <strong>강체 회전</strong>할 뿐이어서 <strong>MA·토크·서보 행정·최적화 결과는 α 와 무관</strong>합니다. 바뀌는 것은 화면 배치뿐 — 서보 몸체(장착 기울기는 수평 기준)와 링크의 상대 방향, 그리고 수평 기준 혼 각도(= θ₄ − α)입니다. 서보를 비스듬히 놓을 공간 배치를 볼 때 쓰세요.</li>
@@ -5010,7 +5010,7 @@ const SEARCH_INDEX = [
   { id:'linkage', anchor:'anc-linkage-sign',        title:'기초 — 부호 규약 (δ · θ₄ · 서보각)', keywords:'기초 개념 부호 규약 상향 마이너스 하향 플러스 θ₄ = θ₄₀ − δ 중립 그래프 축 방향 반대 서보각 반시계 방향 −1' },
   { id:'linkage', anchor:'anc-linkage-how',         title:'4-Bar Linkage — 사용 방법',        keywords:'링크 길이 입력 자물쇠 개방형 교차형 Grashof 자세 조종면 각도 서보각도 입력 토크 T₂ 전달각 그래프 토크 요구도 끝단 마진 AI 최적화 대칭 비대칭 스윕 힌지모멘트 리깅 보내기' },
   { id:'linkage', anchor:'anc-linkage-params',      title:'4-Bar Linkage — 입력 파라미터',    keywords:'파라미터 d a b c mm δ θ₄ θ₂ T₂ 장착 기울기 y오프셋 O₂ 각도 α 배치 타각범위 대칭 비대칭 상향 하향 토크요구도 끝단마진 중립각 기본값 범위 빈 칸 0 이전 값' },
-  { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암',               keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 M3 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 표시 토글 커스텀 inch 25.4 mm 장착 기울기 tilt 180 y오프셋 편심 offY 유효 지상링크 L 작동기 배치 각도 α O₂ 회전 O₄ 중심 d 고정 강체 회전' },
+  { id:'linkage', anchor:'anc-linkage-servo',       title:'액추에이터 / 서보암',               keywords:'액추에이터 서보 서보암 작동기 크랭크 홀간거리 M3 푸시로드 마운트홀 프리셋 Hitec MDD961WP 몸체 표시 토글 커스텀 inch 25.4 mm 장착 기울기 tilt 180 y오프셋 편심 offY 유효 지상링크 L 작동기 배치 각도 α O₂ 회전 O₄ 중심 d 고정 강체 회전 참조값 y 이격 거리 atan sinα' },
   { id:'linkage', anchor:'anc-linkage-svangle',     title:'서보각도 (Δθ₂) 카드',              keywords:'서보각도 서보 각도 Δθ₂ 크랭크 회전량 총 행정 스트로크 상향 끝 하향 끝 중립 0도 반시계 CCW 부호 180도 초과 누적 좌우 반전 좌측 우측 거울상 되꺾임 변환식 3차식 최소제곱 계수 잔차 식 복사 서보 선정 가동각 대응 그래프 비선형성 직선 대비 축 전환 FCA_RIG 59.4 55.5 114.9' },
   { id:'linkage', anchor:'anc-linkage-cs',          title:'조종면 각도 (δ) 카드',              keywords:'조종면 각도 δ 타각 부호 규약 상향 마이너스 하향 플러스 중립 지정 트림 1도 10도 단위 상향 하향 버튼 출력토크 T₄ 입력측 출력측 전달각 μ 47 40 슬라이더 경고' },
   { id:'linkage', anchor:'anc-linkage-ai',          title:'AI 최적 설계 추천',                 keywords:'AI 최적 설계 추천 최적값 계산 타각 범위 대칭 비대칭 목적함수 세 토크 합 중립 토크 여유율 균형 90% 제약 전달각 47 불균형 10% 30% 차선 fallback 승격 20% 배너 경계 탐색범위 이 값 적용 상세 접기 자물쇠 고정 변수 자동 범위 0.2 0.8 L 토크 1/a 스케일 불변 결과 카드' },
