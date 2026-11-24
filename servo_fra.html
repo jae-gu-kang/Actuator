@@ -274,7 +274,7 @@ table.dtbl tr.bw-row td:first-child { color: #c01008; font-weight: 500; }
       <svg viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v12"/></svg>
     </div>
     <div class="drop-title">CSV 파일을 여기에 드롭하세요</div>
-    <div class="drop-sub">표준: t, u, y · FRF 로그: ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg</div>
+    <div class="drop-sub">표준: t, u, y (time · input · output 도 가능) · FRF 로그: ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg</div>
     <div class="drop-btns">
       <label class="drop-btn drop-btn-default" for="fi">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -303,7 +303,7 @@ table.dtbl tr.bw-row td:first-child { color: #c01008; font-weight: 500; }
         <button class="mode-btn" id="modeStepBtn" onclick="setMode('step',this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 20 4 4"/><polyline points="4 20 20 20"/><line x1="4" y1="16" x2="8" y2="16"/><line x1="8" y1="16" x2="8" y2="11"/><line x1="8" y1="11" x2="13" y2="11"/><line x1="13" y1="11" x2="13" y2="7"/><line x1="13" y1="7" x2="20" y2="7"/></svg>
           스텝 주파수
-          <span class="mode-desc">주파수별 구간 데이터 · 구간별 RMS/위상 직접 계산</span>
+          <span class="mode-desc">주파수별 구간 데이터 · 구간별 단일 주파수 DFT로 게인/위상 계산</span>
         </button>
       </div>
     </div>
@@ -353,7 +353,7 @@ table.dtbl tr.bw-row td:first-child { color: #c01008; font-weight: 500; }
     <div id="bode" class="sec">
       <div class="chart-card">
         <div class="chart-hdr">
-          <div><div class="chart-title">Bode Plot</div><div id="bodeSubLbl" class="chart-sub">저주파 기준 정규화 · 공유 주파수 축</div></div>
+          <div><div class="chart-title">Bode Plot</div><div id="bodeSubLbl" class="chart-sub">저주파 기준 크기 정규화 · 공유 주파수 축</div></div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <div class="legend">
               <span><span class="lpip" style="background:#bf5af2"></span>크기 (dB)</span>
@@ -451,18 +451,21 @@ function loadFile(f){
 function parseCSV(txt){
   // 터미널 로그 등 앞부분 쓰레기 제거 → 실제 헤더 행 탐색
   const lines=txt.replace(/\r/g,'').split('\n');
+  // 열 이름 판정은 헤더 탐색과 표준 포맷 파싱이 같이 씀 — 따로 두면 time,input,output 처럼 파싱은 되는데 헤더로 못 찾음
+  const isT=h=>['t','n','time','index'].includes(h),isU=h=>h==='u'||h==='input',isY=h=>h==='y'||h==='output';
+  const FMT='\n\n지원 포맷 (열 이름 대소문자 무관):\n① 표준 — 시간 t / n / time / index (생략 가능), 입력 u / input, 출력 y / output\n② FRF 로그 — ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg';
   let headerIdx=-1;
   for(let i=0;i<lines.length;i++){
     const l=lines[i].toLowerCase().trim();
     if(!l||l.startsWith('#'))continue;
     const cols=l.split(',').map(h=>h.trim());
-    if(cols.includes('u')||cols.includes('y')||cols.includes('t')||
+    if(cols.some(h=>isT(h)||isU(h)||isY(h))||
        cols.includes('cmd_mdeg')||cols.includes('angle_mdeg')){
       headerIdx=i;break;
     }
   }
   if(headerIdx<0){
-    alert('헤더를 찾을 수 없습니다.\n\n지원 포맷:\n① t, u, y  (표준)\n② ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg  (FRF 로그)');
+    alert('헤더를 찾을 수 없습니다.'+FMT);
     return;
   }
 
@@ -477,14 +480,18 @@ function parseCSV(txt){
     // 스텝 주파수 구간 파싱
     const segments=[]; // [{freqHz, t[], u[], y[]}]
     let curFreq=null,curT=[],curU=[],curY=[];
+    // 머리글보다 앞에 온 마커(# freq_mHz=… 다음 줄에 머리글)도 첫 구간 주파수로 — 안 보면 첫 구간이 통째로 빠짐
+    for(let i=0;i<headerIdx;i++){const m=lines[i].trim().startsWith('#')&&lines[i].match(/freq_mHz=(\d+)/);if(m)curFreq=parseInt(m[1])/1000;}
     for(let i=headerIdx+1;i<lines.length;i++){
       const l=lines[i].trim();
       if(!l)continue;
       if(l.startsWith('#')){
-        // 구간 저장
-        if(curFreq!==null&&curT.length>0)segments.push({freqHz:curFreq,t:[...curT],u:[...curU],y:[...curY]});
+        // 새 '# freq_mHz=' 마커에서만 구간을 끊음 — 다른 주석 줄에서도 저장하면 구간이 계속 쌓여 같은 주파수가 중복됨
         const m=l.match(/freq_mHz=(\d+)/);
-        if(m){curFreq=parseInt(m[1])/1000;curT=[];curU=[];curY=[];}
+        if(m){
+          if(curFreq!==null&&curT.length>0)segments.push({freqHz:curFreq,t:[...curT],u:[...curU],y:[...curY]});
+          curFreq=parseInt(m[1])/1000;curT=[];curU=[];curY=[];
+        }
         continue;
       }
       const c=l.split(',');
@@ -507,11 +514,11 @@ function parseCSV(txt){
   }
 
   // ── 표준 포맷: t/n, u, y ──
-  const ti=hdr.findIndex(h=>['t','n','time','index'].includes(h));
-  const ui=hdr.findIndex(h=>h==='u'||h==='input');
-  const yi=hdr.findIndex(h=>h==='y'||h==='output');
+  const ti=hdr.findIndex(isT);
+  const ui=hdr.findIndex(isU);
+  const yi=hdr.findIndex(isY);
   if(ui<0||yi<0){
-    alert('컬럼을 인식할 수 없습니다.\n\n지원 포맷:\n① t, u, y  (표준)\n② ms, freq_mHz, t_ms, cmd_pos, cmd_mdeg, enc_count, angle_mdeg  (FRF 로그)');
+    alert('컬럼을 인식할 수 없습니다.'+FMT);
     return;
   }
   const t=[],u=[],y=[];
@@ -581,7 +588,9 @@ function loss(ws,HM2,wn,zeta){
 }
 
 function adamOptimize(ws,HM2,wn0,zeta0,iters=600){
-  let wn=wn0,zeta=zeta0;
+  // ωn 은 ln ωn 으로 갱신 — Adam 한 걸음이 lr 고정이라, ωn 그대로면 600회 합쳐 ~3 rad/s 밖에 못 움직여
+  // 고주파일수록 격자 간격(15~20%)을 못 건너고 시작 격자점 근처에 묶임(5→4.91, 100→108 Hz). 로그면 걸음이 상대값(0.5%)
+  let lnWn=Math.log(wn0),wn=wn0,zeta=zeta0;
   let mWn=0,vWn=0,mZ=0,vZ=0;
   const beta1=0.9,beta2=0.999,eps=1e-8,lr=0.005;
   for(let t=1;t<=iters;t++){
@@ -592,9 +601,11 @@ function adamOptimize(ws,HM2,wn0,zeta0,iters=600){
       gWn+=2*err*(4*wn*wn2*D-wn2*wn2*(4*wn*(wn2-w2)+8*zeta*zeta*wn*w2))/(D*D);
       gZ +=2*err*(-wn2*wn2*8*zeta*wn2*w2/(D*D));
     }
+    gWn*=wn; // ∂L/∂lnωn = ωn·∂L/∂ωn
     mWn=0.9*mWn+(1-0.9)*gWn; vWn=0.999*vWn+(1-0.999)*gWn*gWn;
     mZ =0.9*mZ +(1-0.9)*gZ;  vZ =0.999*vZ +(1-0.999)*gZ*gZ;
-    wn =Math.max(wn -lr*(mWn/(1-Math.pow(0.9,t)))/(Math.sqrt(vWn/(1-Math.pow(0.999,t)))+eps), 0.1);
+    lnWn=Math.max(lnWn-lr*(mWn/(1-Math.pow(0.9,t)))/(Math.sqrt(vWn/(1-Math.pow(0.999,t)))+eps), Math.log(0.1));
+    wn=Math.exp(lnWn);
     zeta=Math.max(Math.min(zeta-lr*(mZ/(1-Math.pow(0.9,t)))/(Math.sqrt(vZ/(1-Math.pow(0.999,t)))+eps),3.0),0.01);
   }
   return{wn,zeta,l:loss(ws,HM2,wn,zeta)};
@@ -668,14 +679,13 @@ function runStepAnalysis(){
     if(u.length<4)return;
     // 앞 20% 과도구간 제거 후 정상상태만 사용
     const skip=Math.floor(u.length*0.2);
-    const us=u.slice(skip),ys=y.slice(skip);
-    // RMS 계산
-    const rmsU=Math.sqrt(us.reduce((s,v)=>s+v*v,0)/us.length);
-    const rmsY=Math.sqrt(ys.reduce((s,v)=>s+v*v,0)/ys.length);
-    const gain=rmsY/(rmsU+1e-12);
-    // 위상: 상호상관으로 지연 추정
     const dt=seg.t.length>1?(seg.t[1]-seg.t[0]):0.001;
-    const T=1/freqHz;
+    // 남은 정상상태를 마커 주파수의 정수 주기로 자름(뒤쪽 유지) — 주기가 잘린 채 창 없이 DFT 하면 누설로
+    // 주기 수가 적은 저주파 구간의 게인·위상이 틀어짐. 한 주기도 안 되면 그대로 사용
+    const L=u.length-skip,nCyc=Math.floor(L*dt*freqHz+1e-9);
+    const n=nCyc>=1?Math.min(L,Math.round(nCyc/(freqHz*dt))):L;
+    const us=u.slice(u.length-n),ys=y.slice(u.length-n);
+    // 게인·위상 모두 마커 주파수 한 점의 DFT 비(Y/U)로 계산 — RMS 비를 쓰면 고조파·잡음까지 게인에 섞임
     // DFT at exactly freqHz
     const w=2*Math.PI*freqHz;
     let reU=0,imU=0,reY=0,imY=0;
@@ -700,7 +710,16 @@ function runStepAnalysis(){
 
   if(fSlice.length<2){alert('유효한 구간이 부족합니다.');return}
 
-  // 0dB 정규화 (첫 구간 기준)
+  // 주파수 순으로 정렬 — 대역폭 교차 탐색·피팅 격자 범위·축 범위가 모두 오름차순을 전제(파일 순서 무관)
+  const ord=fSlice.map((_,i)=>i).sort((a,b)=>fSlice[a]-fSlice[b]);
+  [fSlice,HdB,HPh,HMagNorm,Coh].forEach(a=>{const c=ord.map(i=>a[i]);a.splice(0,a.length,...c)});
+
+  // 극성 반전(출력 부호가 반대인 로그)은 최저 주파수 구간 위상에서 180° 배수만 걷어냄 — 연속 스윕과 같은 규칙,
+  // 실제 지연은 그대로 남는다. 안 하면 위상이 −180° 부근에서 시작해 −90° 교차(위상 대역폭)를 못 찾음
+  const pol=Math.round(HPh[0]/180)*180;
+  if(pol!==0) HPh.forEach((v,i)=>{let p=v-pol;while(p>10)p-=360;while(p<-360)p+=360;HPh[i]=p;});
+
+  // 0dB 정규화 (최저 주파수 구간 기준)
   const ref0=HdB[0];
   const HdBn=HdB.map(v=>v-ref0);
   const HMagN=HMagNorm.map(v=>v/HMagNorm[0]);
@@ -708,22 +727,10 @@ function runStepAnalysis(){
   const{wn,zeta,fitted}=fit2ndOrder(fSlice,HMagN);
   const fn=wn/(2*Math.PI);
 
-  // 피팅 모델 곡선으로 촘촘한 주파수 그리드 생성 → 정확한 BW 계산
-  const fMin=fSlice[0],fMax=fSlice[fSlice.length-1];
-  const nGrid=2000;
-  const fGrid=Array.from({length:nGrid},(_,i)=>fMin*Math.pow(fMax/fMin,i/(nGrid-1)));
-  const fittedGrid=fGrid.map(f=>Math.sqrt(h2mag(2*Math.PI*f,wn,zeta)));
-  const fittedGridN=fittedGrid.map(v=>v/fittedGrid[0]); // 정규화
-  const HdBgrid=fittedGridN.map(v=>20*Math.log10(v+1e-300));
-  // 위상: 2차 시스템 모델 위상 = -arctan(2ζ(f/fn) / (1-(f/fn)²))
-  const HPhGrid=fGrid.map(f=>{
-    const r=f/fn,ph=-Math.atan2(2*zeta*r,1-r*r)*180/Math.PI;
-    return ph;
-  });
-
-  // 피팅 곡선 기준 BW 계산
-  const bwAmpF=calcBW(fGrid,HdBgrid,-3);
-  const bwPhF=calcBW(fGrid,HPhGrid,-90);
+  // 대역폭은 측정 구간 점에서 직접 (연속 스윕과 같은 선형보간)
+  // 모델(2차, 지연 없음)에서 읽으면 위상 대역폭이 항상 fn 과 같아져 실제 지연·추가 지상을 놓침
+  const bwAmpF=calcBW(fSlice,HdBn,-3);
+  const bwPhF=calcBW(fSlice,HPh,-90);
 
   const bodeXmin=logX?Math.max(fSlice[0],0.1):0;
   const bodeXmax=fSlice[fSlice.length-1]*1.1;
@@ -756,7 +763,10 @@ function runContinuousAnalysis(){
   if(refIdxs.length>0){
     const mags=refIdxs.map(i=>Math.sqrt(allHR[i]**2+allHI[i]**2));
     refMag=mags.reduce((a,b)=>a+b,0)/mags.length;
-    refPhase=refIdxs.map(i=>Math.atan2(allHI[i],allHR[i])).reduce((a,b)=>a+b,0)/refIdxs.length;
+    // 위상은 극성 반전(180° 배수)만 제거 — 기준 위상을 통째로 빼면 저주파에서 이미 생긴 실제 지연이 사라져
+    // −90° 대역폭이 높게 나옴(샘플: 기준 −19.6°, 4.3 → 5.2 Hz). 평균은 ±180° 경계에서 깨지지 않게 복소 평균의 각도로
+    const ph=Math.atan2(refIdxs.reduce((s,i)=>s+allHI[i],0),refIdxs.reduce((s,i)=>s+allHR[i],0));
+    refPhase=Math.round(ph/Math.PI)*Math.PI;
   }
   const validIdxs=allFreqs.map((f,i)=>i).filter(i=>allFreqs[i]<=sweepFmax*1.05&&allFreqs[i]>=fRes);
   const fSlice=validIdxs.map(i=>allFreqs[i]),HdB=[],HPh=[],HMagNorm=[],Coh=[];
@@ -786,7 +796,8 @@ function runContinuousAnalysis(){
 
   // 스윕 파형을 주파수 축으로 변환: t → f(t) = f0 * k^t (로그 스윕)
   // f0 = 스윕 시작 주파수(=fSlice[0]), sweepFmax = 스윕 끝 주파수, T = 총 시간
-  const tMin=t[0],tMax=t[t.length-1],uMax=Math.max(...u.map(Math.abs));
+  // 샘플 길이 배열은 Math.max(...) 스프레드 금지 — 인자 수 한계(~12만)를 넘으면 스택 초과로 분석이 멈춤
+  const tMin=t[0],tMax=t[t.length-1],uMax=u.reduce((m,v)=>Math.max(m,Math.abs(v)),0);
   const sweepF0=fSlice[0],sweepT=tMax-tMin;
   const logK=Math.log(sweepFmax/sweepF0)/sweepT;
   const dsTime=downsample(t,u,y,MAX_PTS);
@@ -805,6 +816,9 @@ function runContinuousAnalysis(){
   drawCharts();
 }
 
+// 감쇠 유형 라벨 — KPI 카드와 Transfer Function 탭이 같은 기준을 쓰도록 한 곳에서
+function zetaLbl(z){return z<0.5?'부족 감쇠':z<0.707?'적정 감쇠':z<1?'과감쇠 근접':'과감쇠'}
+
 function renderResults(){
   const{bwAmpF,bwPhF,fn,wn,zeta,fSlice,sweepFmax,isStep}=R;
   document.getElementById('kpiRow').innerHTML=`
@@ -819,7 +833,7 @@ function renderResults(){
       <div class="kpi-sub">2차 시스템 피팅 추정</div></div>
     <div class="kpi-card kpi-blue"><div class="kpi-lbl">감쇠비 ζ</div>
       <div class="kpi-val">${zeta.toFixed(4)}</div>
-      <div class="kpi-sub">${zeta<0.5?'부족 감쇠':zeta<0.707?'적정 감쇠':zeta<1?'과감쇠 근접':'과감쇠'}</div></div>`;
+      <div class="kpi-sub">${zetaLbl(zeta)}</div></div>`;
 
   if(isStep){
     document.getElementById('statsRow').innerHTML=`
@@ -829,7 +843,7 @@ function renderResults(){
   }
 
   document.getElementById('bodeSubLbl').textContent=
-    `${isStep?'스텝 주파수 · 구간별 DFT 계산':'저주파 기준 정규화 · Welch FFT'} · ${fSlice[0].toFixed(2)} – ${sweepFmax.toFixed(1)} Hz`;
+    `${isStep?'스텝 주파수 · 구간별 DFT 계산':'저주파 기준 크기 정규화 · Welch FFT'} · ${fSlice[0].toFixed(2)} – ${sweepFmax.toFixed(1)} Hz`;
 
   // 탭 제목 업데이트
   const timeBtn=document.querySelector('[onclick="sw(\'time\',this)"]');
@@ -910,7 +924,7 @@ function drawCharts(){
       }
     });
     const allY2=[...uPts.map(p=>p.y),...yPts.map(p=>p.y)];
-    const yMin2=Math.min(...allY2),yMax2=Math.max(...allY2);
+    const yMin2=allY2.reduce((m,v)=>Math.min(m,v),Infinity),yMax2=allY2.reduce((m,v)=>Math.max(m,v),-Infinity); // 스프레드는 긴 파일에서 스택 초과
     const yPad2=(yMax2-yMin2)*0.1||0.5;
     document.getElementById('timeChartTitle').textContent='스텝 파형';
     document.getElementById('timeChartSub').textContent='주파수별 구간 데이터 · 각 주파수에서의 명령/응답 분포';
@@ -964,7 +978,7 @@ function drawCharts(){
     <div class="tf-param"><div class="tf-param-lbl">고유 진동수 fn</div><div class="tf-param-val">${fn.toFixed(3)}<span class="tf-param-unit">Hz</span></div></div>
     <div class="tf-param"><div class="tf-param-lbl">각 고유 진동수 ωn</div><div class="tf-param-val">${wn.toFixed(3)}<span class="tf-param-unit">rad/s</span></div></div>
     <div class="tf-param"><div class="tf-param-lbl">감쇠비 ζ</div><div class="tf-param-val">${zeta.toFixed(4)}</div></div>
-    <div class="tf-param"><div class="tf-param-lbl">감쇠 유형</div><div class="tf-param-val" style="font-size:13px">${zeta<1?'부족 감쇠':'과감쇠'}</div></div>`;
+    <div class="tf-param"><div class="tf-param-lbl">감쇠 유형</div><div class="tf-param-val" style="font-size:13px">${zetaLbl(zeta)}</div></div>`;
   document.getElementById('tfEq').textContent=`H(s) = ${(wn*wn).toFixed(2)} / (s² + ${(2*zeta*wn).toFixed(2)}s + ${(wn*wn).toFixed(2)})`;
   mk('cTf',[mkDs('측정 |H(f)|',HMagNorm,fSlice,'#ff9f0a',2),mkDs('피팅 모델',fitted,fSlice,'#0071e3',1.5)],bOpts('|H(f)|',logX,bodeXmin,bodeXmax));
 

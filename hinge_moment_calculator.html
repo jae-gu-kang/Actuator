@@ -350,6 +350,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .htable td.warn{background:#fef3c7;color:#92400e}
 .htable td.unreach{background:#f1f5f9;color:#b0b7c3}
 .htable td.limcol{background:#f5f3ff;color:#5b21b6;font-weight:600;border-right:2px solid #ddd6fe}
+.htable td.limcol.lowmu{background:#fff7ed;color:#c2410c}
 .htable thead th.limcol{background:#ede9fe;color:#5b21b6;border-right:2px solid #ddd6fe}
 
 /* ── 받음각 α(V) 근사 ── */
@@ -606,7 +607,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
           </div>
         </div>
       </div>
-      <div class="note" style="margin-top:8px">표준 형상 가정으로 산출된 추정값입니다. 실제 항공기 형상에 맞춰 정밀 계산하려면 DATCOM 보정 모드를 사용하세요.</div>
+      <div class="note" style="margin-top:8px">기본값은 표준 형상 가정의 추정값입니다 (델타윙 엘러본은 별도 값). 형상 차이를 반영하려면 DATCOM 보정 모드를 사용하세요.</div>
     </div>
     <!-- DATCOM 형상 (DATCOM 모드) -->
     <div id="panel-ch-datcom" class="hide">
@@ -669,7 +670,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         <div class="vtail-row"><span class="vtail-k">피치 분배 (cos Γ)</span><span class="vtail-v" id="vt-pitch">—</span></div>
         <div class="vtail-row"><span class="vtail-k">요 분배 (sin Γ)</span><span class="vtail-v" id="vt-yaw">—</span></div>
       </div>
-      <div class="note" style="margin-top:8px">아음속(Mach ≤ 0.8) 적용. C<sub>H</sub> 계수는 형상으로부터 자동 산출됩니다. 필드 클릭 시 아래 도식이 강조됩니다.</div>
+      <div class="note" style="margin-top:8px">아음속(Mach ≤ 0.8) 적용. C<sub>H</sub> 계수 = 조종면 기본값 × 표준 형상 대비 형상 변화 비율 (표준 형상에서는 기본 모드와 같음 — |δ| &gt; 10° 는 K<sub>def</sub> 만큼 작아짐). 필드 클릭 시 아래 도식이 강조됩니다.</div>
     </div>
     <div class="divider"></div>
     <div style="margin-bottom:7px">
@@ -782,7 +783,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   </div>
   <div class="ht-linkbox" id="ht-linkbox">
     <div class="lk-row">
-      <span><b>4바 링키지 연동</b> <span id="lk-summary" style="font-variant-numeric:tabular-nums"></span></span>
+      <span><b>4바 링키지 연동</b> <span id="lk-summary" style="font-variant-numeric:tabular-nums"></span><span id="lk-note" style="color:#ea580c"></span></span>
       <span style="display:flex;gap:8px;align-items:center">
         <label class="lk-toggle"><input type="checkbox" id="lk-enable" checked> 링키지 한계 사용</label>
         <button class="lk-btn" id="lk-clear">연동 해제</button>
@@ -790,7 +791,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       </span>
     </div>
     <div class="lk-edit" id="lk-edit">
-      <div class="lk-edit-note">연동 해제됨 — 4바 링키지 값을 직접 수정할 수 있습니다. (기본값은 연동으로 전달된 값)</div>
+      <div class="lk-edit-note">연동 해제됨 — 4바 링키지 값을 직접 수정할 수 있습니다. (기본값은 연동으로 전달된 값 · 4바 해석기에서 새로 보내면 새 값이 우선)</div>
       <div class="lk-edit-grid">
         <div class="lk-field"><label>a (크랭크)</label><input type="number" id="lke-a" step="0.5" min="0.1"><span class="lk-u">mm</span></div>
         <div class="lk-field"><label>b (커플러)</label><input type="number" id="lke-b" step="0.5" min="0.1"><span class="lk-u">mm</span></div>
@@ -994,9 +995,10 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 // ── Data ─────────────────────────────────────────────────────────────────────
 const AC_SURFACES={
   // CH 계수 단위: /deg  (calcOne에서 def·alpha를 도(°) 그대로 곱함)
-  // 기본값 산출: 각 조종면 타입의 표준 형상(아래 주석 참조)을 가정하고
-  //              DATCOM 함수에 K_exp 보정 포함하여 산출.
-  //              DATCOM 모드에서 형상을 변경하면 이 기본값으로부터의 상대 변화를 보여줌.
+  // 기본값 산출: 엘러본 외 조종면은 표준 형상(아래 주석 참조)을 가정하고
+  //              DATCOM 함수에 K_exp 보정 포함하여 산출 (DATCOM 값과 5자리 일치).
+  //              엘러본 아웃/인은 별도 값(아웃≠인)이라 표준 형상 DATCOM 값(−0.00550/−0.00317)과 다름.
+  //              DATCOM 모드는 이 기본값에 형상 비율을 곱함(dcCH) → 형상을 변경하면 이 기본값으로부터의 상대 변화를 보여줌.
   //
   // 표준 형상 가정:
   //   플랩       : cf/c=0.30, t/c=0.12, AR=6.0, Λ=0°
@@ -1005,7 +1007,7 @@ const AC_SURFACES={
   //   러더       : cf/c=0.30, t/c=0.12, AR=1.8, Λ=15°  (수직미익 짧은 AR)
   //   러더베이터 : cf/c=0.30, t/c=0.10, AR=3.5, Λ=10°
   //   올무빙     : 전체 가동, AR=4.0, t/c=0.08, 피벗 0.30c
-  //   엘러본(아웃/인 공통) : cf/c=0.25, t/c=0.12, AR=5.0, Λ=0° (코드·면적 동일 가정)
+  //   엘러본(아웃/인 공통) : cf/c=0.25, t/c=0.12, AR=5.0, Λ=0° (형상 비율의 기준일 뿐, CH 기본값은 이 형상의 DATCOM 값 아님)
   conv: [{id:'flap', name:'플랩',       ch0:0,chd:-.00611,cha:-.00365},
          {id:'ail',  name:'에일러론',   ch0:0,chd:-.00577,cha:-.00333},
          {id:'elev', name:'엘리베이터', ch0:0,chd:-.00588,cha:-.00362},
@@ -1084,9 +1086,10 @@ function datcomCH(p, defAbs){
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-// AC_SURFACES 기본 CH값은 아래 dc 표준 형상 + DATCOM(K_exp 포함)으로 산출됨.
-// → DATCOM 모드 첫 전환 시 두 모드의 H가 거의 동일.
-// → 사용자가 dc 형상을 변경하면 그 차이만큼 DATCOM H가 변함.
+// AC_SURFACES 기본 CH값은 아래 dc 표준 형상 + DATCOM(K_exp 포함)으로 산출됨 (엘러본 제외).
+// DATCOM 모드 계수 = 기본값 × datcomCH(현재 형상)/datcomCH(표준 형상) (dcCH)
+// → 표준 형상에서는 두 모드 H 동일 (기본값이 DATCOM 값과 다른 엘러본 포함). 단 |δ|>10° 는 K_def 만큼 차이.
+// → 사용자가 dc 형상을 변경하면 그 비율만큼 DATCOM H가 변함.
 const STD_DC = {
   // 일반 고정익
   flap:   {cf:.30, tc:.12, ar:6.0, sweep:0,  spani:.10, spano:.50},
@@ -1097,7 +1100,8 @@ const STD_DC = {
   rudvat: {cf:.30, tc:.10, ar:3.5, sweep:10, spani:.10, spano:.95},
   // 올무빙
   allmv:  {cf:1.00,tc:.08, ar:4.0, sweep:0,  spani:.05, spano:.95, pivot:.30},
-  // 델타윙 — 아웃/인 형상(cf/c, t/c, AR, Λ) 동일 → CH 기본값 동일.
+  // 델타윙 — 아웃/인 표준 형상(cf/c, t/c, AR, Λ) 동일. 단 CH 기본값은 아웃≠인이고
+  // 이 형상의 DATCOM 값과도 다름 → DATCOM 모드는 형상 비율로만 반영 (dcCH).
   // spani/spano는 평면도 표시용 스팬 위치만 구분 (CH 계산에 미사용).
   elvon_out: {cf:.25, tc:.12, ar:5.0, sweep:0,  spani:.525, spano:.95},
   elvon_in:  {cf:.25, tc:.12, ar:5.0, sweep:0,  spani:.10,  spano:.525},
@@ -1129,6 +1133,14 @@ function initState(s){
 }
 function getCurSurf(){return AC_SURFACES[curAC].find(s=>s.id===curSurfId);}
 function getCurState(){if(!surfStates[curAC])surfStates[curAC]={};if(!surfStates[curAC][curSurfId])surfStates[curAC][curSurfId]=initState(getCurSurf());return surfStates[curAC][curSurfId];}
+// DATCOM 모드 계수: 현재 조종면 기본값 × datcomCH(현재 형상, |δ|) / datcomCH(표준 형상, δ=0)
+// datcomCH를 그대로 쓰면 기본값이 DATCOM 값과 다른 엘러본은 모드 전환만으로 H가 바뀜(−18.66 → −9.60 N·m).
+// 비율로 쓰면 표준 형상에선 두 모드가 같고, 형상 변경·K_def만 기본값 대비 상대 변화로 반영됨.
+// (그 외 조종면은 기본값 = DATCOM 표준값이라 비율 ≈ 1 → 결과 사실상 불변)
+function dcCH(p, defAbs){
+  const s=getCurSurf(), ref=datcomCH({...initState(s).dc,type:s.id},0), o=datcomCH(p,defAbs);
+  return { ch0:o.ch0, chd:s.chd*o.chd/ref.chd, cha:s.cha*o.cha/ref.cha };
+}
 
 // ── Surface tabs ──────────────────────────────────────────────────────────────
 function renderSurfBar(){
@@ -1287,13 +1299,13 @@ function calcOne(p,ch0,chd,cha){
   const q=.5*p.rho*p.V*p.V;
   // CH 계수 단위 /deg → 편향각·받음각을 도(°) 그대로 곱함
   const CH=ch0+chd*p.def+cha*p.alpha;
-  return{q,CH,H:CH*q*p.area*p.mac,load:q*p.area,mach:p.V/340.3,chd_t:chd*p.def,cha_t:cha*p.alpha};
+  return{q,CH,H:CH*q*p.area*p.mac,load:q*p.area,chd_t:chd*p.def,cha_t:cha*p.alpha};
 }
 function regime(m){if(m<.3)return['저속 아음속','b-low'];if(m<.8)return['고속 아음속','b-mid'];if(m<1.2)return['천음속','b-mid'];return['초음속','b-hi'];}
 function getActiveCH(){
   const i=getInputs();
   if(mode==='datcom'){
-    const o=datcomCH({...i.dc,type:getCurSurf().id}, i.def);
+    const o=dcCH({...i.dc,type:getCurSurf().id}, i.def);
     st('dc-out-ch0',o.ch0.toFixed(5));st('dc-out-chd',chTo(o.chd).toFixed(5));st('dc-out-cha',chTo(o.cha).toFixed(5));
     return o;
   }
@@ -1303,21 +1315,22 @@ function getActiveCH(){
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(){
   const i=getInputs(),ch=getActiveCH(),r=calcOne(i,ch.ch0,ch.chd,ch.cha);
-  const [rt,rc]=regime(r.mach),surf=getCurSurf();
+  // KPI Mach·영역 배지도 속도 단위(M)·풍동 패널과 같은 ISA 음속(현재 고도·ΔT) 기준 — 고정 340.3이면 고도에서 어긋남
+  const Tisa=isaT(i.alt,i.dT),sos=Math.sqrt(1.4*287.05*Tisa),mach=i.V/sos;
+  const [rt,rc]=regime(mach),surf=getCurSurf();
 
   // 현재 탭 H를 state에 저장
   getCurState().lastH = r.H;
 
   document.getElementById('k-hm').innerHTML=r.H.toFixed(2)+'<span class="u">N·m</span>';
   document.getElementById('k-regime').innerHTML=`<span class="badge ${rc}">${rt}</span> · ${surf.name} · δ = ${i.def}°`;
-  st('k-regime2',`q = ${r.q.toFixed(0)} Pa · M ${r.mach.toFixed(3)} · V = ${i.V} m/s`);
+  st('k-regime2',`q = ${r.q.toFixed(0)} Pa · M ${mach.toFixed(3)} · V = ${i.V} m/s`);
   st('d-rho',i.rho.toFixed(4)+' kg/m³');
   // 풍동 패널: 온도/음속/Mach/Re + 시뮬레이션 파라미터 전달
-  const Tisa=isaT(i.alt,i.dT),sos=Math.sqrt(1.4*287.05*Tisa);
   const mu=1.458e-6*Math.pow(Tisa,1.5)/(Tisa+110.4);      // Sutherland 점성
   st('wt-temp',(Tisa-273.15).toFixed(1)+' °C');
   st('wt-sos',sos.toFixed(1)+' m/s');
-  st('wt-mach',(i.V/sos).toFixed(3));
+  st('wt-mach',mach.toFixed(3));
   st('wt-re',(i.rho*i.V*i.mac/mu/1e6).toFixed(2)+'×10⁶');
   st('wt-cond','V '+i.V+' m/s · α '+i.alpha+'° · δ '+i.def+'°');
   if(typeof wtSet==='function') wtSet({V:i.V,def:i.def,alpha:i.alpha,
@@ -1370,7 +1383,7 @@ function drawChart(){
   const isDatcom = mode==='datcom';
   const dcParam = isDatcom ? {...i.dc, type:getCurSurf().id} : null;
   // 현재 def 기준의 ch (속도/면적 차트는 def 고정)
-  const chFixed = isDatcom ? datcomCH(dcParam, i.def) : {ch0:i.ch0,chd:i.chd,cha:i.cha};
+  const chFixed = isDatcom ? dcCH(dcParam, i.def) : {ch0:i.ch0,chd:i.chd,cha:i.cha};
   const base={area:i.area,V:i.V,def:i.def,mac:i.mac,rho:i.rho,alpha:i.alpha};
   let labels=[],data=[],xl='';
   if(tab==='spd'){
@@ -1380,7 +1393,7 @@ function drawChart(){
     // 편향각 스윕: K_def 보정이 def에 따라 달라지므로 매 점마다 재계산
     for(let d=-30;d<=30;d++){
       labels.push(d);
-      const ch_d = isDatcom ? datcomCH(dcParam, d) : chFixed;
+      const ch_d = isDatcom ? dcCH(dcParam, d) : chFixed;
       data.push(+calcOne({...base,def:d},ch_d.ch0,ch_d.chd,ch_d.cha).H.toFixed(3));
     }
     xl='편향각 δ (°)';
@@ -1532,8 +1545,8 @@ function drawPlanform(){
             font-family="-apple-system,sans-serif" font-size="${fs}" fill="#94a3b8" font-weight="500">FLOW</text>
     </g>
     <!-- 루트/팁 경계 점선 (스팬 치수선까지만) -->
-    <line x1="${x0}" y1="${rootLEy-6}" x2="${x0}" y2="${maxTEy+10}" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3"/>
-    <line x1="${x1}" y1="${tipLEy-6}" x2="${x1}" y2="${maxTEy+10}" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3"/>
+    <line x1="${x0}" y1="${rootLEy-6}" x2="${x0}" y2="${maxTEy+10}" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3" id="hl-spani-line"/>
+    <line x1="${x1}" y1="${tipLEy-6}" x2="${x1}" y2="${maxTEy+10}" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="4,3" id="hl-spano-line"/>
     <!-- 날개 패널 -->
     <path d="${wingP}" class="d-wing"/>
     <!-- 조종면 -->
@@ -1557,7 +1570,7 @@ function drawPlanform(){
     <line x1="${x1+14}" y1="${tipCfY}" x2="${x1+22}" y2="${tipCfY}" class="d-dim"/>
     <line x1="${x1+14}" y1="${tipTEy}" x2="${x1+22}" y2="${tipTEy}" class="d-dim"/>
     <text x="${x1+25}" y="${(tipCfY+tipTEy)/2+5}"
-          font-family="-apple-system,sans-serif" font-size="${fs}" fill="#8b5cf6" font-weight="600" id="hl-cf-text">cf=${(dc.cf*100).toFixed(0)}%</text>
+          font-family="-apple-system,sans-serif" font-size="${fs}" fill="#8b5cf6" font-weight="600" id="hl-cf-pct">cf=${(dc.cf*100).toFixed(0)}%</text>
     <!-- 스팬 치수 + AR -->
     <line x1="${x0}" y1="${maxTEy+16}" x2="${x1}" y2="${maxTEy+16}" class="d-dim"/>
     <line x1="${x0}" y1="${maxTEy+12}" x2="${x0}" y2="${maxTEy+20}" class="d-dim"/>
@@ -1568,12 +1581,12 @@ function drawPlanform(){
     <text x="${x0}" y="${maxTEy+50}" text-anchor="middle"
           font-family="-apple-system,sans-serif" font-size="${fs}" fill="#64748b" font-weight="600">루트</text>
     <text x="${x0}" y="${maxTEy+66}" text-anchor="middle"
-          font-family="-apple-system,sans-serif" font-size="${fs}" fill="#94a3b8">η<tspan font-size="9" baseline-shift="sub">i</tspan>=${dc.spani.toFixed(2)}</text>
+          font-family="-apple-system,sans-serif" font-size="${fs}" fill="#94a3b8" id="hl-spani-text">η<tspan font-size="9" baseline-shift="sub">i</tspan>=${dc.spani.toFixed(2)}</text>
     <!-- 팁 라벨 -->
     <text x="${x1}" y="${maxTEy+50}" text-anchor="middle"
           font-family="-apple-system,sans-serif" font-size="${fs}" fill="#64748b" font-weight="600">팁</text>
     <text x="${x1}" y="${maxTEy+66}" text-anchor="middle"
-          font-family="-apple-system,sans-serif" font-size="${fs}" fill="#94a3b8">η<tspan font-size="9" baseline-shift="sub">o</tspan>=${dc.spano.toFixed(2)}</text>
+          font-family="-apple-system,sans-serif" font-size="${fs}" fill="#94a3b8" id="hl-spano-text">η<tspan font-size="9" baseline-shift="sub">o</tspan>=${dc.spano.toFixed(2)}</text>
     <!-- 후퇴각 호 — LE 위쪽(rootLEy)에서 수평선과 LE기울기 사이 각도 표시 -->
     ${dc.sweep>1?`
       <!-- 수평 기준선 (점선) -->
@@ -1714,16 +1727,18 @@ function drawExtra(){
     wrap.classList.add('hide');
   }
 }
-function drawDiags(){drawSection();drawPlanform();drawExtra();}
+function drawDiags(){drawSection();drawPlanform();drawExtra();hlDiag(hlKey);}   // 입력마다 SVG를 다시 그리므로 포커스 필드 강조를 재적용
 
 // Highlight on focus
-const HL={'dc-cf':['hl-cf','hl-cf-text'],'dc-tc':['hl-tc-text'],'dc-hinge':['hl-hinge'],'dc-balance':['hl-bal','hl-bal-text'],'dc-spani':['hl-spani-line','hl-spani-text'],'dc-spano':['hl-spano-line','hl-spano-text'],'dc-ar':['hl-ar-text'],'dc-sweep':['hl-sw-text'],'dc-dihedral':['hl-dih-text'],'dc-pivot':['hl-pivot','hl-pivot-text']};
+const HL={'dc-cf':['hl-cf','hl-cf-text','hl-cf-pct'],'dc-tc':['hl-tc-line','hl-tc-text'],'dc-hinge':['hl-hinge'],'dc-balance':['hl-bal','hl-bal-text'],'dc-spani':['hl-spani-line','hl-spani-text'],'dc-spano':['hl-spano-line','hl-spano-text'],'dc-ar':['hl-ar-text'],'dc-sweep':['hl-sw-text'],'dc-dihedral':['hl-dih-text'],'dc-pivot':['hl-pivot','hl-pivot-text']};
+let hlKey=null;   // 현재 포커스된 DATCOM 필드 (redraw 후 재강조용)
 function hlDiag(key){
+  hlKey=key;
   document.querySelectorAll('[id^="hl-"]').forEach(el=>{el.style.stroke='';el.style.fill='';el.style.fontWeight='';el.style.strokeWidth='';});
   if(!key||!HL[key])return;
   HL[key].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    if(el.tagName==='line'||el.tagName==='path'){el.style.stroke='#2563eb';el.style.strokeWidth='2px';}
+    if(el.tagName==='line'||el.tagName==='path'||el.tagName==='rect'){el.style.stroke='#2563eb';el.style.strokeWidth='2px';}
     if(el.tagName==='circle'){el.style.fill='#2563eb';}
     if(el.tagName==='text'||el.tagName==='tspan'){el.style.fill='#2563eb';el.style.fontWeight='700';}
   });
@@ -1744,9 +1759,13 @@ document.getElementById('f-alpha-d').addEventListener('input',()=>{sv('f-alpha',
 // {a,b,c,d,sol,T2,t4n,dir} 를 전달. 테이블의 한계값이 타각별 가용 토크 |T₄(δ)|로 대체됨.
 let linkage=null;
 const LK_KEY='hm_linkage_v1';
+let lkFresh=false;   // 이번 로드에서 URL 해시로 새 전송분을 받았는지 (구버전 수동 기록 판정용)
+const lkTs=o=>+(o&&o.ts)||0;   // 전송분 시각 (4바 해석기가 ts=Date.now() 부여)
 
-// 4바 링키지 해석기의 calcMAatT4 와 동일한 수학 (θ₄ → θ₂,θ₃ → MA = T₄/T₂)
-// MA는 (c/a)·sin(θ₃−θ₂)·sin(θ₃−θ₄) — 길이 비율만 사용하므로 단위 무관
+// 4바 링키지 해석기의 calcMAatT4 와 동일한 수학 (θ₄ → θ₂,θ₃ → MA = T₄/T₂, 전달각 μ)
+// MA = (c/a)·sin(θ₃−θ₄)/sin(θ₃−θ₂) — 가상일 비 T₄/T₂ = dθ₂/dθ₄. 길이 비율만 사용하므로 단위 무관.
+// 입력 토글(μ_in→0)로 갈수록 MA→∞ 라, 4바 해석기의 설계 하한 μ≥47° 밖의 한계값은 참고로만 표시한다.
+const LK_MU_MIN=47;   // 4바 해석기 OPT_MU_MIN(45+마진 2)과 같은 값
 function lkMA(a,b,c,d,t4d,solType){
   const RAD=Math.PI/180, DEG=180/Math.PI;
   const norm=x=>{x=x%360;return x<0?x+360:x;};
@@ -1765,17 +1784,20 @@ function lkMA(a,b,c,d,t4d,solType){
   const Bx=d+c*Math.cos(t4),By=c*Math.sin(t4);
   if(Math.abs(Math.hypot(Bx-Ax,By-Ay)-b)>1.5) return null;   // 조립 불가 (도달 불가 θ₄)
   const t3=Math.atan2(By-Ay,Bx-Ax);
-  return (c/a)*Math.sin(t3-t2)*Math.sin(t3-t4);
+  const fold=x=>{ let m=Math.abs(x*DEG)%360; if(m>180) m=360-m; if(m>90) m=180-m; return m; };   // 접힌 예각 0~90°
+  return { ma:(c/a)*Math.sin(t3-t4)/Math.sin(t3-t2),
+           mu:Math.min(fold(t3-t2), fold(t3-t4)) };   // 입력(a↔b)·출력(b↔c) 중 나쁜 쪽
 }
 
-// 타각 δ(°, 음수 가능) → 해당 θ₄에서의 가용 힌지모멘트 한계 |T₄| (N·m). 도달 불가면 null.
-function lkLimit(dDeg){
+// 타각 δ(°, 음수 가능) → 해당 θ₄에서의 {가용 힌지모멘트 한계 |T₄| (N·m), 전달각 μ}. 도달 불가면 null.
+function lkAt(dDeg){
   if(!linkage) return null;
   const t4=(+linkage.t4n)+(+linkage.dir)*dDeg;
-  const ma=lkMA(+linkage.a,+linkage.b,+linkage.c,+linkage.d,t4,linkage.sol);
-  if(ma===null||!isFinite(ma)) return null;
-  return Math.abs((+linkage.T2)*ma);
+  const r=lkMA(+linkage.a,+linkage.b,+linkage.c,+linkage.d,t4,linkage.sol);
+  if(r===null||!isFinite(r.ma)) return null;
+  return { lim:Math.abs((+linkage.T2)*r.ma), mu:r.mu };
 }
+function lkLimit(dDeg){ const r=lkAt(dDeg); return r?r.lim:null; }
 
 function lkActive(){
   return !!linkage && document.getElementById('lk-enable').checked;
@@ -1790,6 +1812,7 @@ function lkUpdateLimitInput(){
 function lkApply(obj){
   if(!obj||!isFinite(+obj.a)||!isFinite(+obj.T2)) return;
   linkage=obj;
+  st('lk-note','');
   document.getElementById('ht-linkbox').classList.add('show');
   document.getElementById('lk-summary').textContent=
     ' a='+obj.a+' b='+obj.b+' c='+obj.c+' d='+obj.d+
@@ -1805,6 +1828,7 @@ function lkInit(){
     try{
       const obj=JSON.parse(decodeURIComponent(m[1]));
       try{localStorage.setItem(LK_KEY,JSON.stringify(obj));}catch(e){}
+      lkFresh=true;
       lkApply(obj);
       history.replaceState(null,'',location.pathname+location.search);
       return;
@@ -1821,7 +1845,9 @@ document.getElementById('lk-enable').addEventListener('change',lkUpdateLimitInpu
 // ── 연동 해제 → 수동 편집 모드 ──
 // "연동 해제"를 누르면 실시간 연동을 끊고, 전달받은 값이 채워진 입력칸이 열려
 // a/b/c/d/해유형/T₂/θ₄₀/방향을 직접 수정할 수 있음. 다시 누르면(재연동) localStorage 값으로 복귀.
-let lkManual=false;
+// 수동 기록에는 기준 전송분의 ts(baseTs)를 함께 저장 → 그보다 새 전송분이 오면 새 값이 우선(수동 기록 폐기),
+// 마지막 전송 이후의 수동 수정은 새로고침해도 유지.
+let lkManual=false, lkBaseTs=0;
 const LK_MKEY='hm_linkage_manual_v1';
 const LKE_IDS=['lke-a','lke-b','lke-c','lke-d','lke-sol','lke-t2','lke-t4n','lke-dir'];
 
@@ -1856,6 +1882,8 @@ function lkSetManualUI(on){
 }
 function lkEnterManual(seed){
   if(!linkage&&!seed) return;
+  lkBaseTs=seed?(+seed.baseTs||0):lkTs(linkage);   // 이 수동 편집이 기준으로 삼은 전송분
+  st('lk-note','');
   lkManual=true;
   lkFillEditFields(seed||linkage);
   lkSetManualUI(true);
@@ -1871,8 +1899,16 @@ function lkApplyManual(){
     ' · '+(obj.sol==='cross'?'교차형':'개방형')+
     ' · T₂='+(+obj.T2).toFixed(2)+' N·m · θ₄₀='+(+obj.t4n).toFixed(1)+
     '° · δ+ → θ₄ '+(+obj.dir>0?'증가':'감소');
-  try{localStorage.setItem(LK_MKEY,JSON.stringify(obj));}catch(e){}
+  try{localStorage.setItem(LK_MKEY,JSON.stringify({...obj,baseTs:lkBaseTs}));}catch(e){}
   lkUpdateLimitInput();
+}
+// 수동 편집이 기준으로 삼은 것보다 새 전송분 → 새 값 적용, 수동 기록 폐기 + 안내
+function lkDropManual(obj){
+  lkManual=false;
+  try{localStorage.removeItem(LK_MKEY);}catch(e){}
+  lkSetManualUI(false);
+  lkApply(obj);
+  st('lk-note',' · 새로 전송된 값 적용 (이전 수동 수정 폐기)');
 }
 LKE_IDS.forEach(id=>{
   const el=document.getElementById(id);
@@ -1904,17 +1940,28 @@ document.getElementById('lk-remove').addEventListener('click',()=>{
   document.getElementById('ht-linkbox').classList.remove('show');
   lkUpdateLimitInput();
 });
-// 4바 페이지가 다른 탭에서 재전송하면 실시간 갱신 (수동 편집 중에는 무시)
+// 4바 페이지가 다른 탭에서 재전송하면 실시간 갱신 (수동 편집 중이면 기준보다 새 전송분일 때만 → 수동 폐기)
+// 수동 중 무시하면 새로고침 때 그 전송분이 뒤늦게 이겨, 그 사이 한 수동 수정까지 버려지므로 즉시 반영
 window.addEventListener('storage',e=>{
-  if(e.key===LK_KEY&&e.newValue&&!lkManual){
-    try{lkApply(JSON.parse(e.newValue));}catch(err){}
+  if(e.key===LK_KEY&&e.newValue){
+    try{
+      const obj=JSON.parse(e.newValue);
+      if(!lkManual) lkApply(obj);
+      else if(lkTs(obj)>lkBaseTs) lkDropManual(obj);
+    }catch(err){}
   }
 });
 lkInit();
-// 이전 세션의 수동 편집 상태 복원
+// 이전 세션의 수동 편집 상태 복원 — 단 수동 편집의 기준 전송분보다 새 전송분을 받았으면 새 값 우선
 try{
   const mraw=localStorage.getItem(LK_MKEY);
-  if(mraw) lkEnterManual(JSON.parse(mraw));
+  if(mraw){
+    const mo=JSON.parse(mraw);
+    // baseTs 없는 구버전 기록: 이번에 해시로 새로 받은 게 아니면 현재 전송분을 기준으로 간주(유지)
+    if(mo.baseTs==null&&!lkFresh) mo.baseTs=lkTs(linkage);
+    if(linkage&&lkTs(linkage)>(+mo.baseTs||0)) lkDropManual(linkage);
+    else lkEnterManual(mo);
+  }
 }catch(e){}
 
 // ── 속도 상한 자동 기본값 (비행속도 × 1.1) ──────────────────────────────────
@@ -1973,7 +2020,7 @@ function trimSolve(n){
 function trimH(al,de){
   const i=getInputs();
   const ch = mode==='datcom'
-    ? datcomCH({...i.dc,type:getCurSurf().id}, de)
+    ? dcCH({...i.dc,type:getCurSurf().id}, de)
     : {ch0:i.ch0,chd:i.chd,cha:i.cha};
   const V=trVms, q=.5*i.rho*V*V;
   return (ch.ch0+ch.chd*de+ch.cha*al)*q*i.area*i.mac;
@@ -1997,10 +2044,11 @@ function fillTrimKPI(id,r,n){
   const H=trimH(r.al,r.de);
   let s2='H = '+H.toFixed(3)+' N\u00b7m';
   if(lkActive()){
-    const lim=lkLimit(r.de);
+    const lk=lkAt(r.de), lim=lk?lk.lim:null;
+    const muNote=(lk&&lk.mu<LK_MU_MIN)?' \u00b7 \u03bc '+lk.mu.toFixed(1)+'\u00b0 < '+LK_MU_MIN+'\u00b0 (\ucc38\uace0)':'';
     if(lim===null) s2+=' \u00b7 <span class="tr-over">\ub9c1\ud0a4\uc9c0 \ub3c4\ub2ec \ubd88\uac00</span>';
-    else if(Math.abs(H)<lim) s2+=' \u00b7 <span class="tr-ok">\ub9c1\ud0a4\uc9c0 \uc5ec\uc720 '+((1-Math.abs(H)/lim)*100).toFixed(0)+'% (\ud55c\uacc4 '+lim.toFixed(2)+')</span>';
-    else s2+=' \u00b7 <span class="tr-over">\ub9c1\ud0a4\uc9c0 \ud55c\uacc4 \ucd08\uacfc! (\ud55c\uacc4 '+lim.toFixed(2)+')</span>';
+    else if(Math.abs(H)<lim) s2+=' \u00b7 <span class="tr-ok">\ub9c1\ud0a4\uc9c0 \uc5ec\uc720 '+((1-Math.abs(H)/lim)*100).toFixed(0)+'% (\ud55c\uacc4 '+lim.toFixed(2)+muNote+')</span>';
+    else s2+=' \u00b7 <span class="tr-over">\ub9c1\ud0a4\uc9c0 \ud55c\uacc4 \ucd08\uacfc! (\ud55c\uacc4 '+lim.toFixed(2)+muNote+')</span>';
   }
   if(sub2) sub2.innerHTML=s2;
 }
@@ -2149,11 +2197,15 @@ function genHTable(){
   defs.forEach(d=>{
     const dLabel = dstep<1 ? d.toFixed(1) : d.toFixed(0);
     html+='<tr><th>'+dLabel+'°</th>';
-    const rowLim=useLk?lkLimit(d):limit;   // 링키지 연동: 이 타각에서의 가용 |T₄|, 도달불가면 null
+    const rowLk=useLk?lkAt(d):null;
+    const rowLim=useLk?(rowLk?rowLk.lim:null):limit;   // 링키지 연동: 이 타각에서의 가용 |T₄|, 도달불가면 null
     if(useLk){
-      html+='<td class="limcol">'+(rowLim===null?'도달불가':rowLim.toFixed(2))+'</td>';
+      // μ<47° 행은 토글 쪽이라 한계가 크게 나오지만 커플러 하중·민감도가 커지는 자세 → 참고값으로 표시
+      const lowMu=rowLk&&rowLk.mu<LK_MU_MIN;
+      html+='<td class="limcol'+(lowMu?' lowmu':'')+'"'+(lowMu?' title="전달각 μ '+rowLk.mu.toFixed(1)+'° < '+LK_MU_MIN+'° — 참고값"':'')+'>'
+        +(rowLim===null?'도달불가':rowLim.toFixed(2)+(lowMu?' *':''))+'</td>';
     }
-    const ch=isDatcom?datcomCH(dcParam,d):chBasic;
+    const ch=isDatcom?dcCH(dcParam,d):chBasic;
     speeds.forEach(v=>{
       const r=calcOne({area:i.area,V:v,def:d,mac:i.mac,rho:i.rho,alpha:alphaOf(v)},ch.ch0,ch.chd,ch.cha);
       const absH=Math.abs(r.H);
@@ -2174,7 +2226,8 @@ function genHTable(){
     '<span><i style="background:#fff;border:1px solid #e2e8f0"></i>정상 범위</span>'+
     (useLk
       ?'<span><i style="background:#f5f3ff;border:1px solid #ddd6fe"></i>한계 |H| = 타각별 링키지 가용 토크</span>'+
-       '<span><i style="background:#f1f5f9;border:1px solid #cbd5e1"></i>링키지 도달 불가 각도</span>'
+       '<span><i style="background:#f1f5f9;border:1px solid #cbd5e1"></i>링키지 도달 불가 각도</span>'+
+       '<span><i style="background:#fff7ed;border:1px solid #fdba74"></i>* 전달각 μ &lt; '+LK_MU_MIN+'° — 토글 근처 참고값</span>'
       :'');
 
   document.getElementById('ht-out').innerHTML=html;

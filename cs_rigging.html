@@ -1800,6 +1800,7 @@ function parseTxtAndRestore(text, filename) {
       }
       if (idx >= 0) measureData[s][idx] = { actual: row.actual, fb: row.fb };
     });
+    resetOffsetState(s); // 복원한 값이 새 기준
     restoredSurfs.push(s);
   });
 
@@ -2037,6 +2038,9 @@ function setViewMode(mode) {
     multiArea.style.display  = 'none';
     theoryArea.style.display = 'none';
     tabsWrap.style.display   = '';
+    // 전체 보기에서 바꾼 값·회귀식으로 표·오프셋 표시·결과 카드를 다시 그린다
+    // (오프셋 버튼은 화면 표 값을 읽으므로 옛 표가 남아 있으면 전체 보기 수정이 덮인다)
+    if (currentSurface) selectSurface(currentSurface);
   } else if (mode === 'all') {
     singleArea.style.display = 'none';
     multiArea.style.display  = 'block';
@@ -2143,6 +2147,7 @@ function buildMiniCard(surfKey) {
           var slot = miniDataIndex(surfKey, ri);
           surfCommands[surfKey][slot] = num;
         }
+        resetLinearState(surfKey); // 단일 표 명령 수정(saveCmd)과 같이 선형 기준을 비움
         this.className = 'mini-input mini-cmd-input' + (v !== '' ? ' filled' : '');
       };
       inpCmd.onpaste = function(e) { handleMiniPaste(e, surfKey, ri, 0); };
@@ -2214,7 +2219,7 @@ function applySinglePasteText(startRow, startCol, text) {
   var rows = parsePastedGrid(text);
   var cmds = surfCommands[currentSurface];
   var data = measureData[currentSurface];
-  var changed = 0;
+  var changed = 0, actualTouched = false;
 
   rows.forEach(function(rowVals, ri) {
     var r = startRow + ri;
@@ -2231,6 +2236,7 @@ function applySinglePasteText(startRow, startCol, text) {
         cmds[r] = (trimmed === '' || isNaN(num)) ? null : num;
       } else if (c === 1) {
         data[r].actual = (trimmed === '' || isNaN(num)) ? null : num;
+        actualTouched = true;
       } else if (c === 2) {
         data[r].fb = (trimmed === '' || isNaN(num)) ? null : num;
       }
@@ -2238,7 +2244,8 @@ function applySinglePasteText(startRow, startCol, text) {
     });
   });
 
-  resetLinearState(currentSurface);
+  // 실제 값을 덮었으면 균등 누적까지 비운다(값 직접 입력과 같은 처리) — 명령·피드백만 붙였으면 선형 기준만
+  if (actualTouched) resetOffsetState(currentSurface); else resetLinearState(currentSurface);
   buildTable();
   showPasteToast(changed ? rows.length : '붙여넣을 숫자값이 없습니다');
 }
@@ -2249,7 +2256,7 @@ function applyMiniPasteText(surfKey, startRow, startCol, text) {
   var visibleLen = isSFP ? surfCommands[surfKey].length : COMPACT_INDEXES.length;
   var storedCmds = surfCommands[surfKey];
   var data = measureData[surfKey];
-  var changed = 0;
+  var changed = 0, actualTouched = false;
 
   rows.forEach(function(rowVals, ri) {
     var visibleRow = startRow + ri;
@@ -2269,6 +2276,7 @@ function applyMiniPasteText(surfKey, startRow, startCol, text) {
         storedCmds[dataIdx] = (trimmed === '' || isNaN(num)) ? null : num;
       } else if (c === 1) {
         data[dataIdx].actual = (trimmed === '' || isNaN(num)) ? null : num;
+        actualTouched = true;
       } else if (c === 2) {
         data[dataIdx].fb = (trimmed === '' || isNaN(num)) ? null : num;
       }
@@ -2276,6 +2284,7 @@ function applyMiniPasteText(surfKey, startRow, startCol, text) {
     });
   });
 
+  if (actualTouched) resetOffsetState(surfKey); else resetLinearState(surfKey); // 단일 표 붙여넣기와 같은 처리
   var oldCard = document.getElementById('mini-tbody-' + surfKey)?.closest('.mini-tbl-card');
   if (oldCard && oldCard.parentNode) {
     oldCard.parentNode.replaceChild(buildMiniCard(surfKey), oldCard);
@@ -2290,6 +2299,8 @@ function saveMiniVal(surfKey, idx, field, input) {
   if (!measureData[surfKey][idx]) measureData[surfKey][idx] = { actual:null, fb:null };
   measureData[surfKey][idx][field] = num;
   input.className = 'mini-input' + (v !== '' ? ' filled' : '');
+  // 단일 표 직접 수정(saveVal)과 같이 오프셋 누적값·선형 기준을 비운다 — 옛 기준값으로 이 수정이 덮이지 않게
+  if (field === 'actual') resetOffsetState(surfKey);
 }
 
 function computeMultiRegression() {
@@ -2305,6 +2316,7 @@ function computeMultiRegression() {
     if (rd && rd.hasFwd) results.push(s + ' R²=' + (rd.r2fwd ? rd.r2fwd.toFixed(3) : '-'));
   });
   currentSurface = prev;
+  showRegressionForCurrent(); // 결과 카드는 마지막으로 계산한 면이 아니라 선택한 면 (없으면 숨김)
   showStatus('rig-status', '전체 회귀 완료 — ' + (results.length ? results.join(' | ') : '데이터 없음'), results.length ? 'ok' : 'warn');
 }
 
@@ -2351,8 +2363,7 @@ function buildTable() {
   cmds.forEach((cmd, i) => {
     const av = data[i] ? (data[i].actual !== null ? data[i].actual : '') : '';
     const fv = data[i] ? (data[i].fb     !== null ? data[i].fb     : '') : '';
-    const defCmdArr = DEFAULT_COMMANDS;
-    const isDefault = (cmd === defCmdArr[i]) || (cmd === null && defCmdArr[i] === null);
+    const isDefault = isDefaultCommand(currentSurface, i, cmd);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
@@ -2392,7 +2403,8 @@ function parseNumeric(raw) {
 }
 
 function isDefaultCommand(surface, idx, value) {
-  const defArr = DEFAULT_COMMANDS;
+  // 조종면마다 자기 기본 목록과 비교 — SFP 는 빈칸 4개라 ELV 목록과 비교하면 빈 행이 수정됨으로 보인다
+  const defArr = SFP_SET.has(surface) ? [null, null, null, null] : DEFAULT_COMMANDS;
   const def = defArr[idx];
   return (value === def) || (value === null && def === null);
 }
@@ -2587,6 +2599,20 @@ function resetLinearState(surface) {
   if (surface === currentSurface && lnegEl) lnegEl.textContent = '0.0°';
 }
 
+// 측정값이 바뀌면 오프셋 누적값·선형 기준을 비운다 (값 직접 입력과 같은 처리)
+// — 남겨 두면 다음 선형 클릭·균등 reset 이 옛 기준으로 새 값을 덮는다
+function resetOffsetState(surface) {
+  offsets[surface].pos = 0;
+  offsets[surface].neg = 0;
+  if (surface === currentSurface) {
+    var posEl = document.getElementById('offset-pos-val');
+    var negEl = document.getElementById('offset-neg-val');
+    if (posEl) posEl.textContent = '0.0°';
+    if (negEl) negEl.textContent = '0.0°';
+  }
+  resetLinearState(surface);
+}
+
 function applyLinear(sign, delta) {
   if (!currentSurface) return;
   var lo   = linearOffsets[currentSurface];
@@ -2742,8 +2768,11 @@ function clearAllSurfaces() {
     measureData[s]  = defCmds.map(function() { return { actual:null, fb:null }; });
     offsets[s]       = { pos:0, neg:0 };
     linearOffsets[s] = { pos:0, neg:0 };
+    delete regressionData[s]; // 단일 초기화와 같이 회귀식도 지움
   });
   buildMultiView();
+  if (currentSurface) buildTable(); // 단일 보기로 돌아갔을 때 지운 값이 남아 보이지 않게
+  document.getElementById('regression-result').style.display = 'none';
   // 오프셋 표시 초기화
   ['offset-pos-val','offset-neg-val','linear-pos-val','linear-neg-val'].forEach(function(id) {
     var el = document.getElementById(id);
@@ -2766,6 +2795,7 @@ function autoFillDemo() {
       fb:     +((cmd*0.98 + 0.2*Math.sin(cmd*0.12)+ n()).toFixed(2))
     };
   });
+  resetOffsetState(currentSurface); // 새 예시 값이 새 기준
   buildTable();
 }
 
@@ -2786,6 +2816,7 @@ function autoFillDemoAll() {
         fb:     +((cmd*0.98 + 0.2*Math.sin(cmd*0.12)+ n()).toFixed(2))
       };
     });
+    resetOffsetState(s); // 새 예시 값이 새 기준
   });
   // 미니 테이블 전체 갱신
   buildMultiView();
@@ -2953,9 +2984,10 @@ function showRegressionForCurrent() {
 }
 
 function buildOutput() {
-  // Compute any surface with enough data (if not already done)
+  // 모든 조종면을 지금 표 값으로 다시 맞춘다 — 「회귀식 계산」 뒤 수정·붙여넣기·오프셋한 값도 JSON 에 반영.
+  // 데이터가 모자라면 회귀식을 지워 불러온 JSON 값(없으면 0)으로 돌아가게 한다.
   SURFACES.forEach(s => {
-    if (regressionData[s]) return;
+    delete regressionData[s];
     const data  = measureData[s];
     const isSFP = SFP_SET.has(s);
     const minPts = isSFP?2:4;
@@ -2975,11 +3007,10 @@ function buildOutput() {
       const fwd = xsRig.length>=minPts ? fit(xsRig,ysRig) : null;
       const rev = xsRev.length>=minPts ? fit(xsRev,ysRev) : null;
       if (fwd||rev){
-        const prev = regressionData[s]||{};
         regressionData[s]={
-          fwd:   fwd?fwd.coeffs:(prev.fwd||[0,0,0,0]),
+          fwd:   fwd?fwd.coeffs:[0,0,0,0],
           r2fwd: fwd?fwd.r2:null,
-          rev:   rev?rev.coeffs:(prev.rev||[0,0,0,0]),
+          rev:   rev?rev.coeffs:[0,0,0,0],
           r2rev: rev?rev.r2:null,
           hasFwd:!!fwd, hasRev:!!rev,
           order:isSFP?1:3
@@ -2991,18 +3022,18 @@ function buildOutput() {
   const sid = getSID();
   const out = { SID: sid };
 
-  // FCA_RIG_0 ~ 7
+  // FCA_RIG_0 ~ 7 — 맞춘 회귀식이 없으면 불러온 JSON 값, 그것도 없으면 0
   for (let i=0;i<8;i++){
     const s = SURFACES[i];
     const rd = s ? regressionData[s] : null;
-    out[`FCA_RIG_${i}`] = rd ? rd.fwd
+    out[`FCA_RIG_${i}`] = rd && rd.hasFwd ? rd.fwd
       : (originalJSON?.[`FCA_RIG_${i}`] ?? [0,0,0,0]);
   }
-  // FCA_RIG_REVERS_0 ~ 7
+  // FCA_RIG_REVERS_0 ~ 7 — 피드백이 없어 REVERS 를 못 맞춘 조종면도 불러온 JSON 값을 지킨다 (0 으로 덮지 않음)
   for (let i=0;i<8;i++){
     const s = SURFACES[i];
     const rd = s ? regressionData[s] : null;
-    out[`FCA_RIG_REVERS_${i}`] = rd ? rd.rev
+    out[`FCA_RIG_REVERS_${i}`] = rd && rd.hasRev ? rd.rev
       : (originalJSON?.[`FCA_RIG_REVERS_${i}`] ?? [0,0,0,0]);
   }
 
@@ -3084,6 +3115,9 @@ function startRigging() {
   document.getElementById('json-out-wrap').style.display='block';
   initRigOffsetPanel();
   updateDownloadPreview();
+  // 다시 맞춘 계수를 회귀 결과 카드·이론 비교에도 반영 — 화면 계수 = JSON 계수
+  if (currentSurface) showRegressionForCurrent();
+  if (currentViewMode === 'theory') { theoryRefreshCompareList(); theoryCompute(); }
 }
 
 // ── JSON plain text 생성 ──
@@ -3244,15 +3278,23 @@ function applyRigOffset(idx) {
   applyRigOffsetByKey('FCA_RIG_', idx, rigBaseA0);
 }
 
+// a₀ 오프셋 패널에 지금 들어 있는 값 (패널이 아직 없거나 SFP 면 0)
+function rigA0Offset(prefix, idx) {
+  var el = document.getElementById(prefix.replace(/_/g,'') + 'off' + idx);
+  return el ? (parseFloat(el.value) || 0) : 0;
+}
+
 function applyRigOffsetByKey(prefix, idx, baseStore) {
   if (!window._rigOutput) return;
   var arr = window._rigOutput[prefix + idx];
   if (!arr || arr.length !== 4) return;
+  // 출력용 사본에만 a₀ 를 더한다 — 원본 배열은 저장된 회귀식·불러온 JSON 이라 바꾸면
+  // 다음 「리깅 시작」(패널 0) 과 이론 비교에 오프셋이 숨어 남는다
+  arr = window._rigOutput[prefix + idx] = arr.slice();
 
-  var inputId = prefix.replace(/_/g,'') + 'off' + idx;
   var resultId = prefix.replace(/_/g,'') + 'result' + idx;
 
-  var offsetVal = parseFloat(document.getElementById(inputId).value) || 0;
+  var offsetVal = rigA0Offset(prefix, idx);
   var base = (baseStore[idx] !== undefined) ? baseStore[idx] : arr[3];
   arr[3] = Math.round((base + offsetVal) * 1e9) / 1e9;
 
@@ -3263,6 +3305,7 @@ function applyRigOffsetByKey(prefix, idx, baseStore) {
       : arr[3].toFixed(4);
   }
   renderJSON(window._rigOutput);
+  if (prefix === 'FCA_RIG_' && currentViewMode === 'theory') theoryCompute(); // 이론 비교도 내보내는 계수로
 }
 
 function renderJSON(obj) {
@@ -3271,6 +3314,8 @@ function renderJSON(obj) {
   document.getElementById('json-output').value = text;
   // contenteditable div (하이라이팅 표시)
   document.getElementById('json-display').innerHTML = highlightJSON(text);
+  // 비교 파일이 열려 있으면 새 출력 기준으로 양쪽 차이 강조를 다시 입힌다
+  if (_compareJSON) renderCompareView(document.getElementById('compare-file-label').textContent);
 }
 
 // ── contenteditable 편집 시 hidden textarea 동기화 ──
@@ -4345,9 +4390,13 @@ function theoryCompute() {
   let cmp = null;
   if (cmpSurf && regressionData[cmpSurf] && regressionData[cmpSurf].hasFwd) {
     const mc  = regressionData[cmpSurf].fwd.map(Number);
+    // JSON 으로 내보내는 FCA_RIG 와 같은 계수로 비교 — a₀ 오프셋 패널 값까지 더한다 (h·p·a 는 a₀ 와 무관)
+    const a0off = rigA0Offset('FCA_RIG_', SURFACES.indexOf(cmpSurf));
+    if (a0off) mc[3] = Math.round((mc[3] + a0off) * 1e9) / 1e9;
     const mdp = theoryDepressed(mc);
     cmp = { surf: cmpSurf, coeffs: mc, dp: mdp, color: SURF_COLORS[cmpSurf] || '#888' };
-    gridHtml += coeffCard('실측 회귀 — ' + cmpSurf + ' (FCA_RIG)', mc,
+    gridHtml += coeffCard('<span>실측 회귀 — ' + cmpSurf + ' (FCA_RIG' +
+      (a0off ? ', <span style="text-transform:none;">a₀ 오프셋 ' + (a0off > 0 ? '+' : '') + a0off + '</span>' : '') + ')</span>', mc,
       mdp ? '<div class="coeff-eq" style="margin-top:6px;">h = <span class="cv">' + theoryFmt(mdp.h, 3) +
             '°</span>,&nbsp; p = <span class="cv">' + theoryFmt(mdp.p, 4) +
             '</span>,&nbsp; a = <span class="cv">' + theoryFmt(mdp.a) + '</span></div>'
