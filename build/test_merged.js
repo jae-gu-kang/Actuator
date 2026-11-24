@@ -616,14 +616,14 @@ async function clickByText(frame, txt){
       ctx.fillText=function(t,x,y){ drawn.push(String(t)); return orig(t,x,y); };
       csGo('zero');  drawTorquePlot();
       const curCard=num(g('lCST4').textContent);
-      const curPlot=drawn.filter(t=>/^[\d.]+ N·m · F \d+ N$/.test(t)).pop();   // T₂≠0 이면 푸시로드 축력이 반드시 붙는다
+      const curPlot=drawn.filter(t=>/^[\d.]+ N·m$/.test(t)).pop();
       // 알약 윗줄(θ₄)도 격자가 아닌 실제 각도여야 한다 — 아랫줄 δ 와 모순되면 안 된다
       const pill=drawn.filter(t=>/^[\d.]+°$/.test(t)).map(t=>parseFloat(t));
       const curPill=pill.some(v=>Math.abs(v-S.t4)<0.051), pillT4=+S.t4.toFixed(2);
       drawn.length=0;
       csGo('up');    drawTorquePlot();
       const upCard=num(g('lCST4').textContent);
-      const upPlot=drawn.filter(t=>/^상향 [\d.]+° · [\d.]+ N·m · F \d+ N$/.test(t)).pop();   // 범례 문구 제외
+      const upPlot=drawn.filter(t=>/^상향 [\d.]+° · [\d.]+ N·m$/.test(t)).pop();   // 범례 문구 제외
       const upPlotVal=upPlot?num(upPlot.split('·')[1]):null;
       return {ok: Math.abs(curCard-num(curPlot))<0.005 && upPlotVal!==null
                   && Math.abs(upCard-upPlotVal)<0.005 && curPill,
@@ -955,8 +955,8 @@ async function clickByText(frame, txt){
     rec('linkage: 토크 그래프 x축에 조종면 각도(δ) 눈금 — 중립각 연동', dax.ok===true, JSON.stringify(dax));
 
     // 입력측 전달각(크랭크 a ↔ 커플러 b).
-    // |MA| = (c/a)·sin(μ출력)/sin(μ입력) 항등(가상일 비)으로 정의가 맞는지 검증하고,
-    // 같은 값이 수치 미분 dθ₂/dθ₄ 와도 맞는지(가상일 원리 자체) 확인한다.
+    // |MA| = (c/a)·sin(μ입력)·sin(μ출력) 항등(전달각 투영식)으로 정의가 맞는지 검증하고,
+    // 기본 형상에서 중립 부근(θ₄ 100°)이 양 끝(80°·120°)보다 큰지(사용자 요구: 중립 최대) 확인한다.
     // 47/47 통일 이후 muIn 이 '참조값' 이 아니라 제약이라는 것(mu=min(입력,출력))과
     // 조종면 각도(δ) 카드에 입력측·출력측이 함께 표시되는지 확인한다.
     const mi = await f.evaluate(()=>{ try{
@@ -966,14 +966,20 @@ async function clickByText(frame, txt){
         const t=calcTorque();
         if(!t||t.muIn===undefined) return {err:'no-muIn at '+t4};
         if(!(t.muIn>0&&t.muIn<=90)) return {err:'muIn out of range: '+t.muIn};
-        const pred=(S.c/S.a)*Math.sin(t.mu*Math.PI/180)/Math.sin(t.muIn*Math.PI/180);
+        const pred=(S.c/S.a)*Math.sin(t.mu*Math.PI/180)*Math.sin(t.muIn*Math.PI/180);
         worst=Math.max(worst, Math.abs(Math.abs(t.ma)-pred));
-        const h=1e-3, p1=calcMAatT4(S.a,S.b,S.c,gLen(),t4+h,S.sol), p0=calcMAatT4(S.a,S.b,S.c,gLen(),t4-h,S.sol);
-        if(!p1||!p0) return {err:'no fd pose at '+t4};
-        let dt2=p1.t2-p0.t2; if(dt2>180) dt2-=360; if(dt2<-180) dt2+=360;
-        worstFd=Math.max(worstFd, Math.abs(Math.abs(dt2/(2*h))-Math.abs(t.ma)));
+        const q=calcMAatT4(S.a,S.b,S.c,gLen(),t4,S.sol);   // 두 경로(calcTorque·calcMAatT4)가 같은 식
+        if(!q) return {err:'no calcMAatT4 pose at '+t4};
+        worstFd=Math.max(worstFd, Math.abs(Math.abs(q.ma)-Math.abs(t.ma)));
       }
-      if(worstFd>1e-4) return {err:'MA ≠ dθ₂/dθ₄ (가상일 비): '+worstFd};
+      if(worstFd>1e-9) return {err:'calcTorque ≠ calcMAatT4: '+worstFd};
+      { const _s={a:S.a,b:S.b,c:S.c,d:S.d,offY:S.offY};
+        let mN,mL,mH;
+        try{ S.a=20; S.b=100; S.c=40; S.d=100; S.offY=0;
+          const m=t=>Math.abs(calcMAatT4(S.a,S.b,S.c,gLen(),t,S.sol).ma);
+          mN=m(100); mL=m(80); mH=m(120);
+        } finally { Object.assign(S,_s); }
+        if(!(mN>mL&&mN>mH)) return {err:'중립이 최대가 아님: 80°='+mL+' 100°='+mN+' 120°='+mH}; }
       // calcMAatT4 가 제약용 mu 를 두 측의 최소로 내는지 (옵티마이저가 그 mu 를 실제로
       // 게이트에 쓰는지는 build/test_optvars.js 가 추천 결과의 muIn·muOut 로 따로 단언한다).
       // 입력측이 더 나쁜 자세가 표본에 실제로 있어야 공허하지 않다
@@ -998,8 +1004,8 @@ async function clickByText(frame, txt){
     rec('linkage: 입력측 전달각 — MA 항등 · calcMAatT4 의 mu=min(입력,출력) · δ 카드 표시', mi.ok===true, JSON.stringify(mi));
 
     // 토크 가용 각도: 출력토크 박스와 커플러 그래프가 같은 정의(최장 연속 구간)를 쓰는지.
-    // 가상일 비 곡선은 U자라 요구도가 최솟값(기본 형상 6.00) 바로 위면 구간이 둘로 갈린다 —
-    // 합계(≈36.7°)와 최장 구간(≈19.9°)이 크게 달라 두 곳이 따로 세면 바로 드러난다.
+    // 전달각 투영식 곡선은 중립(θ₄ 100°, 5.99 N·m)이 꼭짓점인 ∩ 모양 — 요구도 5 N·m 은
+    // 84.6~114.4° 한 구간(29.8°, 0.001° 격자 독립 계산)이고 요구도 3 은 μ 경계가 끝을 정한다(40.4°).
     const ts = await f.evaluate(()=>{ try{
       const el=document.getElementById('iMotorTorque'), old=el.value;
       const sv={a:S.a,b:S.b,c:S.c,d:S.d,offY:S.offY,t4:S.t4};
@@ -1008,15 +1014,15 @@ async function clickByText(frame, txt){
         S.a=20; S.b=100; S.c=40; S.d=100; S.offY=0; setT4(100);
         const T2=parseFloat(document.getElementById('iTorque').value)||0;
         const marg=Math.max(0, parseFloat(document.getElementById('iMarginAngle').value)||0);
-        for(const req of [3,6]){
+        for(const req of [3,5]){
           el.value=String(req); draw(); drawTorquePlot();
           const box=+((document.getElementById('usableRangeText').textContent.match(/범위 ([\d.]+)°/)||[])[1]);
           out[req]={box, coupler:+couplerMetrics(S.b,T2,marg,req).torqueSpan.toFixed(1)};
         }
       } finally { el.value=old; Object.assign(S,sv); setT4(sv.t4); draw(); }
-      // 40.4 = μ 경계 칸까지 센 값(경계 칸을 빼면 40.0), 19.9 = 두 구간 중 긴 쪽(첫 구간이면 16.8, 합이면 36.7)
-      return {ok: out[3].box===out[3].coupler && out[6].box===out[6].coupler
-                  && Math.abs(out[3].box-40.4)<0.05 && Math.abs(out[6].box-19.9)<0.05, ...out};
+      // 40.4 = μ 경계 칸까지 센 값(경계 칸을 빼면 40.0), 29.8 = 요구도 교점 사이(선형 보간)
+      return {ok: out[3].box===out[3].coupler && out[5].box===out[5].coupler
+                  && Math.abs(out[3].box-40.4)<0.05 && Math.abs(out[5].box-29.8)<0.1, ...out};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 토크 가용 각도 — 출력토크 박스와 커플러 그래프가 같은 최장 연속 구간', ts.ok===true, JSON.stringify(ts));
 
@@ -1090,48 +1096,6 @@ async function clickByText(frame, txt){
                && out.apply424.neutral==='64.0' && out.apply424.t4===64, ...out};
     });
     rec('linkage: 0° 를 넘는 조립 구간 — 옵티마이저 θ₄₀ 0~360 표시 · 64°=424° 같은 판정 · 적용 후 이탈 없음', ow.ok===true, JSON.stringify(ow));
-
-    // 끝단 토크 증가의 대가 — 푸시로드 축력 F 와 서보 회전비. 구현 식(couplerForce)을 베끼지 않고
-    // 실제 자세(solve 의 A·B 좌표)에서 독립 계산한다: 크랭크 접선에 실리는 커플러 힘 성분이 T₂ 를 만든다
-    //   T₂ = F · |O₂A × û_AB| (û_AB = 커플러 방향 단위벡터) → F = T₂ / |a × û|, 서보 회전비 = |dθ₂/dθ₄| (유한차분).
-    const cf = await f.evaluate(()=>{ const g=id=>document.getElementById(id);
-      const sv={a:S.a,b:S.b,c:S.c,d:S.d,t4:S.t4,T2:g('iTorque').value,sym:getDeflect().sym,
-                def:g('iDeflect').value,neu:g('iT4Neutral').value}, out={};
-      const num=id=>parseFloat(g(id).textContent);
-      try{
-        g('ia').value=20; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink(); g('iTorque').value='3';
-        // 앞 테스트가 남긴 타각 설정(비대칭 ±8 → 10° 버림 끝단 0)에 기대지 않는다
-        setDeflectMode('sym'); g('iDeflect').value='25'; g('iT4Neutral').value='100'; updateCSUI();
-        const ind=t4=>{ const s=solve(S.a,S.b,S.c,gLen(),t4).find(q=>q.type===S.sol);
-          const ux=s.Bx-s.Ax, uy=s.By-s.Ay, L=Math.hypot(ux,uy);
-          const F=3/(Math.abs(s.Ax*uy-s.Ay*ux)/L*1e-3);
-          const h=1e-4, p1=solve(S.a,S.b,S.c,gLen(),t4+h).find(q=>q.type===S.sol), p0=solve(S.a,S.b,S.c,gLen(),t4-h).find(q=>q.type===S.sol);
-          let dt=p1.t2-p0.t2; dt=((dt+540)%360)-180;
-          return {F, R:Math.abs(dt/(2*h))}; };
-        for(const [k,go] of [['zero','zero'],['up','up'],['down','down']]){
-          csGo(go); onTorque();
-          const want=ind(S.t4);
-          out[k]={t4:+S.t4.toFixed(2), F:num('lCSF'), R:num('lCSRatio'), wantF:+want.F.toFixed(1), wantR:+want.R.toFixed(3),
-                  rel:/중립×/.test(g('lCSF').textContent)};
-        }
-        // 그래프 끝단 표식 라벨에 F 가 붙는가
-        const c2=g('torquePlot').getContext('2d'), _ft=c2.fillText, texts=[];
-        c2.fillText=function(t){ texts.push(String(t)); return _ft.apply(this,arguments); };
-        try{ drawTorquePlot(); } finally { c2.fillText=_ft; }
-        out.lbl=texts.filter(t=>/^(상향|하향) .* · F \d+ N$/.test(t));
-        // AI 결과 카드의 푸시로드 축력 행: 작동범위 최대 F 는 μ_in 이 가장 나쁜 끝(상향 120°)의 값, 중립은 θ₄₀ 값
-        const m=evalDesign(40,100,100,20,20,3,5,'',20,100);
-        out.opt={fN:+m.fN.toFixed(1), fMax:+m.fMax.toFixed(1), wantN:+ind(100).F.toFixed(1), wantMax:+ind(120).F.toFixed(1)};
-        out.optRow=buildOptMetrics({...m,t0:100}).includes('푸시로드 축력 F');
-      } finally { setDeflectMode(sv.sym?'sym':'asym'); g('iDeflect').value=sv.def; g('iT4Neutral').value=sv.neu;
-        g('iTorque').value=sv.T2; g('ia').value=sv.a; g('ib').value=sv.b; g('ic').value=sv.c; g('id').value=sv.d; onLink(); setT4(sv.t4); onTorque(); }
-      const near=(x,y,t)=>Math.abs(x-y)<=t;
-      const ok=['zero','up','down'].every(k=>near(out[k].F,out[k].wantF,0.5)&&near(out[k].R,out[k].wantR,0.005))
-        && out.zero.F===150 && !out.zero.rel && out.up.rel && out.down.rel && out.up.F>out.zero.F && out.lbl.length===2
-        && near(out.opt.fN,out.opt.wantN,0.05) && near(out.opt.fMax,out.opt.wantMax,0.05) && out.optRow;
-      return {ok, ...out};
-    });
-    rec('linkage: 끝단 토크 증가의 대가 — 푸시로드 축력 F · 서보 회전비가 독립 계산과 일치 · 그래프 표식에 F', cf.ok===true, JSON.stringify(cf));
 
     // 작동기 배치 「각도」 모드: |O₂O₄|=d 그대로 O₂ 를 O₄ 중심으로 회전. 강체 회전이라
     // 기구학(L·MA·θ₂)은 α 와 무관하고, y오프셋 모드 값은 따로 보관돼 되돌리면 살아난다.
@@ -1292,6 +1256,14 @@ async function clickByText(frame, txt){
     rec('hinge: html2canvas 인라인 로드(오프라인)', info.h2c, 'typeof html2canvas='+info.h2c);
     rec('hinge: 힌지모멘트 H KPI 계산', /[0-9]/.test(info.khm), 'k-hm="'+info.khm.trim()+'"');
     rec('hinge: 4바 링키지 연동 수신 표시', info.linkbox!=='none' && info.linkbox!=='none-el', 'linkbox display='+info.linkbox);
+    // 힌지 lkMA 는 4바 calcMAatT4 의 사본이다 — 한쪽만 고치면 두 도구의 한계가 갈라진다.
+    // 기본 형상 기준값은 스크래치 독립 계산((c/a)·sin μ_in·sin μ_out): 75° 1.0105 · 100° 1.9970 · 120° 1.3728
+    const lk = await f.evaluate(()=>{ try{
+      const want={75:1.0105,100:1.9970,120:1.3728}, got={};
+      for(const t of [75,100,120]){ const r=lkMA(20,100,40,100,t,'open'); got[t]=r?+Math.abs(r.ma).toFixed(4):null; }
+      return {ok:Object.keys(want).every(t=>got[t]!==null&&Math.abs(got[t]-want[t])<5e-4), got};
+    }catch(e){ return {err:e.message}; } });
+    rec('hinge: lkMA = 4바 MA 식 (c/a)·sin μ_in·sin μ_out — 중립 최대', lk.ok===true, JSON.stringify(lk));
     await sleep(700); // let wind-tunnel animation & chart paint
     const cr = await canvasReport(f);
     const wt = await f.evaluate(()=>{ const c=document.getElementById('wtCanvas'); if(!c)return 'no-el'; try{const ctx=c.getContext('2d');const d=ctx.getImageData(0,0,c.width,c.height).data;let p=0;for(let i=3;i<d.length;i+=4)if(d[i])p++;return p>50?'animating':'blank';}catch(e){return 'ERR';} });

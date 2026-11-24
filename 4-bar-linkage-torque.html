@@ -1115,11 +1115,6 @@ canvas.hover { cursor: grab; }
           <div class="mcell" id="csCellIn"><i>입력측 μ</i><b id="lCSMuIn">—</b></div>
           <div class="mcell" id="csCellOut"><i>출력측 μ</i><b id="lCSMuOut">—</b></div>
         </div>
-        <!-- 토크 증가의 대가: 끝단으로 갈수록 T₄ 가 커지는 만큼 푸시로드 축력과 서보 회전량도 커진다(가상일) -->
-        <div class="mstrip" style="margin:3px 0 0" title="입력측 전달각 μ_in 이 작아질수록(크랭크·커플러가 일직선에 가까울수록) 토크는 커지지만, 커플러 축력 F = T₂/(a·sin μ_in) 와 조종면 1° 당 서보 회전량(= MA = c·sin μ_out / (a·sin μ_in))도 함께 커집니다(배율은 서로 다름).">
-          <div class="mcell"><i>푸시로드 축력 F</i><b id="lCSF" style="color:var(--coupler)">—</b></div>
-          <div class="mcell"><i>서보 회전 / 조종면 1°</i><b id="lCSRatio" style="color:var(--crank)">—</b></div>
-        </div>
         <!-- 기준 설정: 조종면을 움직이지 않고 '지금 위치를 0°로' 재정의 -->
         <div style="display:flex;justify-content:center;margin-top:4px;">
           <button onclick="csSetNeutral()" title="조종면을 움직이지 않고, 현재 θ₄ 위치를 δ=0° 기준으로 재정의합니다 (위 '중립' 버튼은 반대로 δ=0° 위치로 이동)"
@@ -2841,16 +2836,6 @@ function updateCSUI(){
   };
   setMu('lCSMuIn',  tr?tr.muIn:NaN);
   setMu('lCSMuOut', tr?tr.mu  :NaN);
-  // 대가 두 칸: 푸시로드 축력 F 와 서보 회전비(=|MA|, 조종면 1° 에 서보가 도는 각). 중립 대비 배수를 함께 —
-  // "끝단 토크가 크다" 를 "그만큼 링크가 세게 밀리고 서보가 더 돈다" 로 읽게 한다.
-  { const fEl=document.getElementById('lCSF'), rEl=document.getElementById('lCSRatio');
-    const okTr=tr&&isFinite(tr.ma);
-    const q0=calcMAatT4(S.a,S.b,S.c,gLen(),csNeutralT4(),S.sol);
-    const F=okTr?couplerForce(T2,S.a,tr.muIn):NaN, F0=q0?couplerForce(T2,S.a,q0.muIn):NaN;
-    const rel=(v,v0)=>(isFinite(v)&&isFinite(v0)&&v0>0&&Math.abs(v/v0-1)>=0.005)?'<u>중립×'+(v/v0).toFixed(2)+'</u>':'';
-    if(fEl) fEl.innerHTML = okTr ? (T2? fmtN(F)+'<u>N</u>'+rel(F,F0) : '0<u>N</u>') : '—';
-    if(rEl) rEl.innerHTML = okTr ? Math.abs(tr.ma).toFixed(2)+'<u>°/°</u>'+rel(Math.abs(tr.ma),q0?Math.abs(q0.ma):NaN) : '—';
-  }
   drawSVPlot();                 // 펼쳐져 있을 때만 실제로 그린다
 }
 
@@ -2882,10 +2867,11 @@ function setSol(type){
 }
 
 // ── TORQUE ──
-// Mechanical advantage via virtual work: T4/T2 = dθ2/dθ4
-// Computed ANALYTICALLY from the velocity loop-closure equations (no numerical diff):
-//   a·sin(θ2-θ3)·ω2 = c·sin(θ4-θ3)·ω4  →  ω4/ω2 = a·sin(θ2-θ3) / (c·sin(θ4-θ3))
-//   T4/T2 = ω2/ω4  (power conservation, assuming η=1)
+// 기계적 이득 MA = T4/T2 = (c/a)·sin μ_in·sin μ_out  (전달각 투영식, 2026-11-24 사용자 지시로 복원)
+//   서보 토크 T2 → 크랭크 끝 접선력 T2/a → 커플러 방향 성분 (T2/a)·sin μ_in
+//   → 출력링크 접선 성분 ×sin μ_out → T4 = (T2/a)·sin μ_in · c · sin μ_out
+//   두 전달각이 90° 인 자세(대개 중립)에서 최대, 어느 쪽 전달각이 나빠져도 토크가 줄어든다.
+//   (가상일 비 (c/a)·sin μ_out/sin μ_in 은 c32d71b 에서 도입했다가 이 식으로 되돌림)
 // 전달각 μ 표시 — δ 카드(mstrip)와 토크 결과 카드가 같은 값에 같은 색·같은 배지를 쓰도록
 // 여기 한 곳에서만 정한다. 판정은 반드시 **화면에 찍히는 반올림값**으로 한다 — raw 로 판정하면
 // 46.96° 가 "47.0°" 로 찍히면서 색은 미달(주황)이 되어 숫자와 색이 서로 다른 말을 한다.
@@ -2905,16 +2891,10 @@ function calcTorque(){
 
   const t2r=act.t2*RAD, t3r=act.t3*RAD, t4r=t4*RAD;
 
-  // T4 = T2 * (c/a) * sin(θ₃−θ₄) / sin(θ₃−θ₂)   (위 가상일 비와 같은 식)
-  // 커플러는 2력 부재라 축력 F 만 전달한다:
-  //   T2 = F * a * sin(θ₃−θ₂)  → F = T2 / (a·sin μ_in)   (크랭크 접선 성분이 T2 를 만든다)
-  //   T4 = F * c * sin(θ₃−θ₄)                          (커플러→출력링크)
-  // 예전 식 (c/a)·sin_in·sin_out 은 F 를 T2/a 에 sin_in 을 **곱해** 구해 sin²μ_in 만큼 작게 나왔다
-  // (기본 형상 θ₄ 75°: 1.01 vs 정확 3.05). μ_in→0(입력 토글)이면 MA→∞ — 실제로 커플러 축력도
-  // 무한대로 커지는 자세라, 토크 지표(그래프 최대·가용 각도)는 μ≥OPT_MU_MIN 구간에서만 센다.
+  // T4 = T2 * (c/a) * sin(θ₃−θ₂) * sin(θ₃−θ₄)   (위 전달각 투영식 — calcMAatT4·힌지 lkMA 와 같은 식)
   const sin_in  = Math.sin(t3r - t2r);
   const sin_out = Math.sin(t3r - t4r);
-  const ma = (c/a) * sin_out / sin_in;
+  const ma = (c/a) * sin_in * sin_out;
 
   // 전달각(접힌 예각, 0~90°)
   const fold=deg=>{ let m=Math.abs(deg)%360; if(m>180) m=360-m; if(m>90) m=180-m; return m; };
@@ -2925,14 +2905,6 @@ function calcTorque(){
 
   return { ma, mu, muIn };
 }
-
-// 커플러(푸시로드) 축력 F [N] — 2력 부재라 T₂ = F·a·sin μ_in → F = |T₂| / (a·sin μ_in), a 는 mm.
-// 출력토크가 끝단에서 커지는 것(MA ∝ 1/sin μ_in)과 같은 원인으로 함께 커진다. μ_in→0 이면 ∞.
-function couplerForce(T2,a,muInDeg){
-  const s=Math.sin(muInDeg*RAD);
-  return (s>1e-9&&a>0)?Math.abs(T2)/(a*1e-3*s):Infinity;
-}
-const fmtN=v=>isFinite(v)?(v>=9999.5?'>9999':v.toFixed(0)):'∞';
 
 // draw() 를 거쳐야 한다 — T₄ 는 δ 카드(updateCSUI)와 **캔버스 칩**(updateOverlay) 두 곳에
 // 뜨는데, updateOverlay 는 draw() 에서만 불린다. updateCSUI 만 부르면 T₂ 를 바꿨을 때
@@ -2961,11 +2933,10 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   const t3=Math.atan2(By-Ay,Bx-Ax);
   const sin_in  = Math.sin(t3 - t2r);
   const sin_out = Math.sin(t3 - t4);
-  const ma = (c/a) * sin_out / sin_in;   // calcTorque 와 같은 가상일 비 (sin_in=0 이면 ±Infinity → 호출부 isFinite 로 거름)
+  const ma = (c/a) * sin_in * sin_out;   // calcTorque 와 같은 전달각 투영식
   // 전달각 두 측 (접힌 예각 0~90°)
   //   muOut = 커플러 b ↔ 출력링크 c  ·  muIn = 크랭크 a ↔ 커플러 b
-  // |MA| = (c/a)·sin(muOut)/sin(muIn) — 출력측이 나쁘면 토크가 줄고, 입력측이 나쁘면 토크는
-  // 커지지만 커플러 축력·민감도가 함께 커진다. 그래서 두 측 모두 같은 하한(OPT_MU_MIN)을 건다.
+  // |MA| = (c/a)·sin(muIn)·sin(muOut) — 어느 쪽이 나빠져도 토크가 준다. 두 측 모두 같은 하한(OPT_MU_MIN)을 건다.
   // %360 으로 자기정규화한다 — 이걸 빼면 호출부가 인자를 미리 norm 해야 한다는 숨은 전제가
   // 생기고, 실제로 t3(atan2 원본, (−180,180])를 t4d·t2([0,360))와 빼면서 −540 까지 내려가
   // 음수 μ 가 나왔다(θ₄>180 자세, 실측 2233건 → 0건). θ₄≤180 결과는 불변.
@@ -3112,8 +3083,8 @@ function drawTorquePlot(){
   const T4_RANGE=Math.max(T4_MAX-T4_MIN,1);
   const xStep=T4_RANGE>100?20:10;
 
-  // T4ok[i]: 입력·출력 전달각 모두 ≥ OPT_MU_MIN. 가상일 비는 조립 범위 끝(입력 토글, μ_in→0)으로
-  // 갈수록 T₄→∞ 라, 최대·교점·가용 각도·Y축은 이 구간 값만 쓰고 나머지는 흐리게 잘라 그린다.
+  // T4ok[i]: 입력·출력 전달각 모두 ≥ OPT_MU_MIN. 최대·교점·가용 각도·Y축은 이 구간 값만 쓰고
+  // 나머지(설계 하한 밖)는 흐리게 그린다.
   const T4arr=[], T4ok=[];
   for(let deg=T4_MIN; deg<=T4_MAX; deg++){
     // 창 밖 격자는 비운다 — 여백 안에 다른 조립 구간이 걸려도 이어지지 않는 자세라 그리지 않는다
@@ -3137,8 +3108,7 @@ function drawTorquePlot(){
 
   // ── 치역(T4) Y축: nice step ──
   const okT4=T4arr.filter((v,i)=>v!==null&&T4ok[i]);
-  // ── 최대값: μ 충족 구간에서만 찾는다 — 토글 쪽 발산값은 쓸 수 있는 토크가 아니다.
-  //    토크는 토글 쪽으로 갈수록 커져 최대가 대개 μ 경계에 붙으므로, 1° 격자 대신 경계를 이분법으로 잡는다.
+  // ── 최대값: μ 충족 구간에서만 찾는다. 경계값도 후보로 넣어 1° 격자 사이를 놓치지 않는다.
   let maxAt=null, maxT4=-Infinity;
   T4arr.forEach((v,i)=>{ if(v!==null&&T4ok[i]&&v>maxT4){maxT4=v;maxAt=T4_MIN+i;} });
   // μ 경계(이분법) — 최대값 후보이자, 실선·채움을 격자(정수°)가 아니라 이 정확한 경계까지 긋는 데 쓴다
@@ -3154,16 +3124,16 @@ function drawTorquePlot(){
   }
   const maxIdx=maxAt===null?-1:maxAt-T4_MIN;   // 소수 인덱스 (xp 는 실수 인덱스를 받는다)
 
-  // μ 충족 구간이 없으면(나쁜 형상) 작은 쪽 절반 값으로 축을 잡는다 — 토글 쪽 발산값이 축을 먹지 않게
+  // μ 충족 구간이 없으면(나쁜 형상) 작은 쪽 절반 값으로 축을 잡는다
   const scaleT4=(okT4.length?okT4:validT4.slice().sort((p,q)=>p-q).slice(0,Math.ceil(validT4.length/2))).slice();
   if(maxAt!==null) scaleT4.push(maxT4);
-  // 현재 위치·조종면 끝단 마커는 μ 미달이어도 값을 찍으므로 축에 넣되, 토글 바로 옆이면 축이
-  // 무너지지 않게 2배에서 자른다(넘는 마커는 플롯 위 가장자리에 붙여 그린다 — ypc).
+  // 현재 위치·조종면 끝단 마커는 μ 미달이어도 값을 찍으므로 축에 넣되, 축이 무너지지 않게
+  // 2배에서 자른다(넘는 마커는 플롯 위 가장자리에 붙여 그린다 — ypc).
   { const cap=2*Math.max(...scaleT4);
     [Math.max(T4_MIN,Math.min(T4_MAX,curU)), ...csEnds.filter(e=>e.deg>=T4_MIN&&e.deg<=T4_MAX).map(e=>e.deg)]
       .forEach(dg=>{ const v=tqAt(dg); if(v!==null) scaleT4.push(Math.min(v,cap)); }); }
-  // 가상일 비 곡선은 조립 범위 끝에서 0 으로 떨어지지 않아 축 하한이 높게 잡힌다 → 요구도 선이 축 밖으로
-  // 빠지지 않게 요구도 값도 축에 넣는다(값이 지나치게 크면 그대로 보여 주는 게 맞다 — 미달이라는 뜻이니까).
+  // 축이 μ 충족 구간 값으로만 잡히면 요구도 선이 축 밖으로 빠질 수 있다 →
+  // 요구도 값도 축에 넣는다(값이 지나치게 크면 그대로 보여 주는 게 맞다 — 미달이라는 뜻이니까).
   if(_legHasMotor&&_legMotorV>0) scaleT4.push(_legMotorV);
   const t4min=Math.min(...scaleT4), t4max=Math.max(...scaleT4);
   const rawSpan=Math.max(Math.abs(t4max-t4min),0.01);
@@ -3270,7 +3240,7 @@ function drawTorquePlot(){
 
 
 
-  // ── T4 그라디언트 채우기 (μ 충족 구간만) + 곡선 ── 축 위로 솟는 토글 쪽은 플롯 영역에서 잘라낸다
+  // ── T4 그라디언트 채우기 (μ 충족 구간만) + 곡선 ── 축 밖으로 나가는 부분은 플롯 영역에서 잘라낸다
   c2.save();
   c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,6); c2.clip();
   const grad=c2.createLinearGradient(0,PAD.t,0,PAD.t+IH);
@@ -3357,8 +3327,7 @@ function drawTorquePlot(){
     c2.beginPath(); c2.arc(cx,cy,5,0,Math.PI*2);
     c2.fillStyle="#ff9f0a"; c2.fill();
     c2.strokeStyle="#fff"; c2.lineWidth=1.5; c2.stroke();
-    const _qc=calcMAatT4(a,b,c,d,clampedT4,sol);
-    const lbl=curTq.toFixed(2)+" N·m"+(_qc&&T2?" · F "+fmtN(couplerForce(T2,a,_qc.muIn))+" N":"");   // δ 는 아래 알약(노드별)에 표시
+    const lbl=curTq.toFixed(2)+" N·m";   // δ 는 아래 알약(노드별)에 표시
     c2.font="600 9px -apple-system,sans-serif";
     const lw=c2.measureText(lbl).width;
     // 위치 후보: 우상 → 좌상 → 우하 → 좌하 순으로 최대값 라벨과 겹치지 않는 곳 선택
@@ -3402,8 +3371,7 @@ function drawTorquePlot(){
       c2.fillStyle="#5e5ce6"; c2.fill();
       c2.strokeStyle="#fff"; c2.lineWidth=1.4; c2.stroke();
       // 라벨: 어느 끝단인지 + 그 지점 토크
-      const _qe=calcMAatT4(a,b,c,d,e.deg,sol);   // 끝단 토크가 큰 만큼 푸시로드도 세게 밀린다 — 축력을 함께
-      const lbl=e.lab+' '+e.v+'° · '+tq.toFixed(2)+' N·m'+(_qe&&T2?' · F '+fmtN(couplerForce(T2,a,_qe.muIn))+' N':'');
+      const lbl=e.lab+' '+e.v+'° · '+tq.toFixed(2)+' N·m';
       c2.font="600 8px -apple-system,sans-serif";
       const lw=c2.measureText(lbl).width;
       const cands=[{x:x+8,y:y-8},{x:x-lw-10,y:y-8},{x:x+8,y:y+20},{x:x-lw-10,y:y+20}];
@@ -3560,7 +3528,7 @@ function drawTorquePlot(){
 
 // ── COUPLER SWEEP PLOT ──
 // 커플러 길이 b를 스윕하며 각 b에 대해:
-//   maxAbs = 현재 θ₄ 가 속한 조립 구간(assemblyWindow) 중 입력·출력 μ≥OPT_MU_MIN 인 자세에서의 최대 |T₄| (토글 쪽 T₄→∞ 제외)
+//   maxAbs = 현재 θ₄ 가 속한 조립 구간(assemblyWindow) 중 입력·출력 μ≥OPT_MU_MIN 인 자세에서의 최대 |T₄| (설계 하한 밖 자세 제외)
 //   span   = 물리 가용 각도 = (유효 해가 존재하는 θ₄ 범위) − 양끝단 마진×2
 // 주어진 θ₄(deg)에서 해가 존재하는지 + MA 반환 (없으면 null)
 function feasibleAt(a,b,c,d,deg,sol){
@@ -3620,7 +3588,7 @@ function unwrapTo(win,deg){ const mid=(win.lo+win.hi)/2; return deg+360*Math.rou
 const degShow=(v,n)=>{ const r=norm(+v.toFixed(n)); return (r>=360-0.5*Math.pow(10,-n)?0:r).toFixed(n); };
 
 // 토크 가용 각도 — |T₄| ≥ 요구도 ∧ 입력·출력 μ ≥ OPT_MU_MIN 인 **가장 긴 연속 구간** {lo,hi} (없으면 null).
-// 출력토크 박스와 커플러 그래프가 함께 쓴다 — 두 벌로 두면 정의가 갈라진다(가상일 비 곡선은 U자라 요구도가
+// 출력토크 박스와 커플러 그래프가 함께 쓴다 — 두 벌로 두면 정의가 갈라진다(곡선 모양에 따라 요구도가
 // 최솟값 바로 위면 구간이 둘로 갈리고, 합계와 최장 구간이 크게 달라진다). vals[i]·ok[i] 는 θ₄ = d0+i 의 1° 격자.
 // 칸 안에서는 토크를 선형 보간해 요구도 교점을 잡고, μ 충족이 바뀌는 칸은 경계각을 이분법으로 찾아 그 안쪽만 센다.
 // lim {lo,hi}(선택): 한 바퀴 전체 조립(full)에서는 창 밖 패딩 칸도 실제로 조립돼, μ 경계 이분법이 창 밖(≈1°)까지
@@ -3670,7 +3638,7 @@ function couplerMetrics(bVal, T2, marginVal, motorVal){
       if(ok&&val>maxAbs) maxAbs=val;
     } else { vals.push(null); okArr.push(false); }
   }
-  // 최대 T₄ 는 대개 μ 경계(토글 쪽)에 붙는다 — 1° 격자만 보면 b 에 따라 톱니처럼 흔들리므로
+  // 최대 T₄ 가 μ 경계에 붙는 형상이 있다 — 1° 격자만 보면 b 에 따라 톱니처럼 흔들리므로
   // 경계를 이분법으로 잡아 그 자세의 값도 후보에 넣는다.
   for(let i=0;i+1<n;i++){
     if(okArr[i]===okArr[i+1]) continue;
@@ -4556,10 +4524,7 @@ function evalDesign(cv,bv,t0,dm,dp,T2,marginVal,mode,av,dv){
     const imbal=mx>1e-12?Math.abs(mm-mp)/mx:0;   // sym 이면 |T₋−T₊|/max 와 동일
     const minMgn=Math.min(mm,mp);
     const score=sym?(tm+tp+wmax):(mode==='torque'?tn:minMgn);
-    // 푸시로드 축력: 최대는 μ_in 최솟값 자세(같은 _ts 표본), 중립은 θ₄₀
-    const _q0=feasibleAt(S.a,bv,S.c,gLen(),t0,S.sol);
-    const fMax=couplerForce(T2,S.a,muInMin), fN=_q0?couplerForce(T2,S.a,_q0.muIn):null;
-    return{t0,tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,muInArg,muOutArg,fMax,fN,
+    return{t0,tm,tp,tn,worst:Math.min(tm,tp),wmax,warg,muMin,muInMin,muOutMin,muInArg,muOutArg,
       imbal,marginM:mm,marginP:mp,minMgn,
       score,physLo,physHi,contained};
   } finally { S.c=sc; S.a=sa; S.d=sd; }
@@ -4625,10 +4590,6 @@ function buildOptMetrics(m){
     m.wmax.toFixed(2)+' N·m @ θ₄ '+degShow(m.warg,1)+'°','var(--follower)');
   if(m.tn!==null) s+=row('|T₄| @ 중립각'+(isObjNeutral?' <span style="color:var(--text3)">(목적함수)</span>':''),
     m.tn.toFixed(2)+' N·m',isObjNeutral?'var(--purple)':'var(--text2)');
-  if(m.fMax!==undefined&&m.fN!==null&&m.fN!==undefined)
-    s+=row('푸시로드 축력 F <span style="color:var(--text3)">(중립 → 작동범위 최대, 입력측 μ 최소 지점)</span>',
-      fmtN(m.fN)+' → '+fmtN(m.fMax)+' N'+(isFinite(m.fMax)&&m.fN>0?' <span style="color:var(--text3)">(×'+(m.fMax/m.fN).toFixed(2)+')</span>':''),
-      'var(--coupler)');
   if(sym){
     s+=row('세 토크 합 <span style="color:var(--text3)">(목적함수)</span>',m.score.toFixed(2)+' N·m','var(--purple)');
   } else {

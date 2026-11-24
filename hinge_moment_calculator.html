@@ -1763,8 +1763,8 @@ let lkFresh=false;   // 이번 로드에서 URL 해시로 새 전송분을 받�
 const lkTs=o=>+(o&&o.ts)||0;   // 전송분 시각 (4바 해석기가 ts=Date.now() 부여)
 
 // 4바 링키지 해석기의 calcMAatT4 와 동일한 수학 (θ₄ → θ₂,θ₃ → MA = T₄/T₂, 전달각 μ)
-// MA = (c/a)·sin(θ₃−θ₄)/sin(θ₃−θ₂) — 가상일 비 T₄/T₂ = dθ₂/dθ₄. 길이 비율만 사용하므로 단위 무관.
-// 입력 토글(μ_in→0)로 갈수록 MA→∞ 라, 4바 해석기의 설계 하한 μ≥47° 밖의 한계값은 참고로만 표시한다.
+// MA = (c/a)·sin(θ₃−θ₂)·sin(θ₃−θ₄) — 전달각 투영식(4바 해석기와 동일). 길이 비율만 사용하므로 단위 무관.
+// 4바 해석기의 설계 하한 μ≥47° 밖의 한계값은 참고로만 표시한다.
 const LK_MU_MIN=47;   // 4바 해석기 OPT_MU_MIN(45+마진 2)과 같은 값
 function lkMA(a,b,c,d,t4d,solType){
   const RAD=Math.PI/180, DEG=180/Math.PI;
@@ -1785,7 +1785,7 @@ function lkMA(a,b,c,d,t4d,solType){
   if(Math.abs(Math.hypot(Bx-Ax,By-Ay)-b)>1.5) return null;   // 조립 불가 (도달 불가 θ₄)
   const t3=Math.atan2(By-Ay,Bx-Ax);
   const fold=x=>{ let m=Math.abs(x*DEG)%360; if(m>180) m=360-m; if(m>90) m=180-m; return m; };   // 접힌 예각 0~90°
-  return { ma:(c/a)*Math.sin(t3-t4)/Math.sin(t3-t2),
+  return { ma:(c/a)*Math.sin(t3-t2)*Math.sin(t3-t4),
            mu:Math.min(fold(t3-t2), fold(t3-t4)) };   // 입력(a↔b)·출력(b↔c) 중 나쁜 쪽
 }
 
@@ -2200,7 +2200,7 @@ function genHTable(){
     const rowLk=useLk?lkAt(d):null;
     const rowLim=useLk?(rowLk?rowLk.lim:null):limit;   // 링키지 연동: 이 타각에서의 가용 |T₄|, 도달불가면 null
     if(useLk){
-      // μ<47° 행은 토글 쪽이라 한계가 크게 나오지만 커플러 하중·민감도가 커지는 자세 → 참고값으로 표시
+      // μ<47° 행은 전달각 설계 하한 밖의 자세 → 참고값으로 표시
       const lowMu=rowLk&&rowLk.mu<LK_MU_MIN;
       html+='<td class="limcol'+(lowMu?' lowmu':'')+'"'+(lowMu?' title="전달각 μ '+rowLk.mu.toFixed(1)+'° < '+LK_MU_MIN+'° — 참고값"':'')+'>'
         +(rowLim===null?'도달불가':rowLim.toFixed(2)+(lowMu?' *':''))+'</td>';
@@ -2227,7 +2227,7 @@ function genHTable(){
     (useLk
       ?'<span><i style="background:#f5f3ff;border:1px solid #ddd6fe"></i>한계 |H| = 타각별 링키지 가용 토크</span>'+
        '<span><i style="background:#f1f5f9;border:1px solid #cbd5e1"></i>링키지 도달 불가 각도</span>'+
-       '<span><i style="background:#fff7ed;border:1px solid #fdba74"></i>* 전달각 μ &lt; '+LK_MU_MIN+'° — 토글 근처 참고값</span>'
+       '<span><i style="background:#fff7ed;border:1px solid #fdba74"></i>* 전달각 μ &lt; '+LK_MU_MIN+'° — 설계 하한 밖 참고값</span>'
       :'');
 
   document.getElementById('ht-out').innerHTML=html;
