@@ -1596,14 +1596,17 @@ function placeRef(){
   const o=o2World(), e=o[1], h=S.d-o[0];
   return { e, h, ang:Math.atan2(e,h)*DEG, L:Math.hypot(h,e) };
 }
+const f1z=v=>(Math.abs(v)<0.05?0:v).toFixed(1);   // 소수 1자리, "-0.0" 대신 "0.0"
+let _placeRefHtml='';
 function updatePlaceRef(){
   const el=document.getElementById('servoPlaceRef'); if(!el) return;
-  const r=placeRef(), f1=v=>(Math.abs(v)<0.05?0:v).toFixed(1);
+  const r=placeRef(), f1=f1z;
   const item=(k,v)=>`<span><span style="color:var(--text3)">${k}</span> <b style="color:var(--text);font-weight:600">${v}</b></span>`;
   const tag='<span style="font-size:10px;font-weight:600;color:var(--text3);border:1px solid var(--border2);border-radius:5px;padding:0 5px;">참조</span>';
-  el.innerHTML = tag + (S.place==='ang'
+  const html = tag + (S.place==='ang'
     ? item('y 이격 e = d·sinα', f1(r.e)+' mm') + item('가로 = d·cosα', f1(r.h)+' mm')
     : item('각도 α = atan(e/d)', f1(r.ang)+'°') + item('L', f1(r.L)+' mm'));
+  if(html!==_placeRefHtml){ el.innerHTML=html; _placeRefHtml=html; }   // draw() 는 마우스 이동마다 불린다
 }
 
 function draw(){
@@ -1709,7 +1712,7 @@ function drawMech(sol,main){
     ctx.strokeStyle=hexAlpha(C.crank,0.45); ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(wx(0)-9,wy(0)); ctx.lineTo(wx(0)+9,wy(0)); ctx.stroke();
     ctx.restore();
-    midLabel(base,O2,`y오프셋 = ${S.offY} mm (α ${placeRef().ang.toFixed(1)}°)`,C.crank);
+    midLabel(base,O2,`y오프셋 = ${S.offY} mm (α ${f1z(placeRef().ang)}°)`,C.crank);
   }
   // 작동기 배치 각도 — 0 이 아닐 때만: O₄ 에서 수평(−x) 기준선 → 지상링크(O₄→O₂) 호.
   // θ₄ 호(r=44)와 겹치지 않게 반지름을 더 크게 잡는다.
@@ -1719,7 +1722,7 @@ function drawMech(sol,main){
     ctx.strokeStyle=hexAlpha(C.crank,0.45); ctx.lineWidth=1; ctx.setLineDash([4,3]);
     ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx-R-10,cy); ctx.stroke();
     ctx.restore();
-    arcAng(cx,cy,-(S.placeAng)*RAD,R,C.crank,`O₂ 각도 = ${(+S.placeAng).toFixed(1)}° (e ${placeRef().e.toFixed(1)} mm)`,Math.PI);
+    arcAng(cx,cy,-(S.placeAng)*RAD,R,C.crank,`O₂ 각도 = ${(+S.placeAng).toFixed(1)}° (e ${f1z(placeRef().e)} mm)`,Math.PI);
   }
 
   // 작동기 장착 기울기 — 서보 몸체를 그릴 때만, 0 이 아닐 때만.

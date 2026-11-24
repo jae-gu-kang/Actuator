@@ -1098,11 +1098,16 @@ async function clickByText(frame, txt){
         setServoPlace('y');   out.y=ref();
         setServoPlace('ang'); out.ang=ref();
         g('id').value=80; onLink(); out.ang80=ref();
+        // 부호: O₂ 가 아래면 α·e 가 음수, 가로 거리는 양수 그대로
+        g('id').value=100; onLink(); g('iServoAng').value=-30; onServoOffset(); out.angNeg=ref();
+        g('iServoOffY').value=-25; setServoPlace('y'); out.yNeg=ref();
       } finally { g('id').value=sv.d; onLink(); g('iServoOffY').value=sv.offY; g('iServoAng').value=sv.ang; setServoPlace(sv.place); }
-      const has=(t,...xs)=>xs.every(x=>t.includes(x));
+      // 숫자 토큰 단위로 비교 — includes('14.0°') 는 '-14.0°' 도 맞혀 부호 회귀를 놓친다
+      const has=(t,...xs)=>xs.every(x=>new RegExp('(^|[^-\\d.])'+x.replace(/[.\-]/g,'\\$&')+'(?![\\d])').test(t));
       return {ok: has(out.y,'14.0°','103.1 mm') && !out.y.includes('이격')
                && has(out.ang,'50.0 mm','86.6 mm') && !out.ang.includes('atan')
-               && has(out.ang80,'40.0 mm','69.3 mm'), ...out};
+               && has(out.ang80,'40.0 mm','69.3 mm')
+               && has(out.angNeg,'-50.0 mm','86.6 mm') && has(out.yNeg,'-14.0°','103.1 mm'), ...out};
     });
     rec('linkage: 작동기 배치 참조값 — y오프셋엔 각도·L, 각도엔 y 이격·가로 (d 연동)', pr.ok===true, JSON.stringify(pr));
 
