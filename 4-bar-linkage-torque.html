@@ -2245,15 +2245,34 @@ function onMove(p){
     const q=toCanon(sx(p.x),sy(p.y)), wx2=q[0], wy2=q[1]; let nl;   // 캐노니컬 좌표에서 길이 산출
     const act=S.solutions&&(S.solutions.find(s=>s.type===S.sol)||S.solutions[0]);
     if(t.link==='a') nl=Math.max(5,Math.round(Math.hypot(wx2,wy2)));
-    else if(t.link==='d') nl=Math.max(10,Math.round(Math.abs(wx2)*2));
+    else if(t.link==='d'){
+      // d 는 월드 좌표에서 직접 구한다. 캐노니컬 x 는 O₂ 기준인데, 각도 배치에선 O₂ 자체가 d 에
+      // 따라 움직여(o2World) 마우스가 멈춰 있어도 d 가 되먹임으로 발산했고(α≥60°), y오프셋에선
+      // 2·x' ≈ L=√(d²+e²) 이 d 로 들어가 끌 때마다 커졌다.
+      // 지상링크 중점 = d·v (y오프셋: v=[½, ·] → x 만 d 에 비례 / 각도: v=[1−½cosα, ½sinα]).
+      const px=sx(p.x), py=sy(p.y);
+      let dv;
+      if(S.place==='ang'){
+        const r=(S.placeAng||0)*RAD, vx=1-Math.cos(r)/2, vy=Math.sin(r)/2;
+        dv=(px*vx+py*vy)/(vx*vx+vy*vy);                 // |p − d·v| 최소
+      } else dv=Math.abs(px)*2;                          // 중점 x = d/2
+      nl=Math.min(400,Math.max(10,Math.round(dv)));
+    }
     else if(t.link==='c') nl=Math.max(5,Math.round(Math.hypot(wx2-gLen(),wy2)));
     else if(t.link==='b'&&act) nl=Math.max(5,Math.round(Math.hypot(wx2-act.Ax,wy2-act.Ay)));
-    if(nl!==undefined){S[t.link]=nl;document.getElementById('i'+t.link).value=nl;setTransform();updateGrashof();scheduleCouplerPlot();}
+    // 끄는 동안에는 화면 맞춤(setTransform)을 하지 않는다 — 길이가 바뀔 때마다 배율·중심이 다시
+    // 잡히면 같은 마우스 픽셀이 다른 월드 점이 되어, 마우스를 멈춰도 길이가 계속 줄거나 늘었다.
+    // 놓을 때(endDrag) 한 번 맞춘다.
+    if(nl!==undefined){S[t.link]=nl;document.getElementById('i'+t.link).value=nl;updateGrashof();scheduleCouplerPlot();}
   }
   draw();
 }
 
-function endDrag(){drag=null;cv.classList.remove('drag');updateOptVarUI();}  // 드래그로 바뀐 a·c·d 를 탐색범위 표시에 1회 반영
+function endDrag(){
+  const wasMid=drag&&drag.t&&drag.t.type==='mid';
+  drag=null;cv.classList.remove('drag');updateOptVarUI();  // 드래그로 바뀐 a·c·d 를 탐색범위 표시에 1회 반영
+  if(wasMid){setTransform();draw();}                     // 끄는 동안 미뤄 둔 화면 맞춤
+}
 
 // ── CONTROLS ──
 function onLink(){

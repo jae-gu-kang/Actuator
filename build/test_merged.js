@@ -1031,7 +1031,6 @@ async function clickByText(frame, txt){
         g('iServoOffY').value=25; setServoPlace('y');
         const yL=gLen();
         setServoPlace('ang');
-        const ref=(()=>{ const m=calcMAatT4(S.a,S.b,S.c,S.d,S.t4,S.sol); return m.ma; })();
         const ctx2=document.getElementById('cv').getContext('2d'), _arc=ctx2.arc.bind(ctx2);
         for(const al of [0,30,-40,135]){
           g('iServoAng').value=al; onServoOffset();
@@ -1042,28 +1041,52 @@ async function clickByText(frame, txt){
             O4ok: Math.abs(O4[0]-S.d)<1e-9 && Math.abs(O4[1])<1e-9,
             O2ok: Math.abs(O2[0]-S.d*(1-Math.cos(r)))<1e-9 && Math.abs(O2[1]-S.d*Math.sin(r))<1e-9,
             rtok: Math.abs(rt[0]-12.3)<1e-9 && Math.abs(rt[1]+4.5)<1e-9,
-            dMA: Math.abs(calcMAatT4(S.a,S.b,S.c,gLen(),S.t4,S.sol).ma-ref), t2:+act.t2.toFixed(9)});
-          // 반지름 44 호(θ₂·θ₄)의 실제 휩쓴 각
-          const sweeps=[];
+            t2:+act.t2.toFixed(9)});
+          // 호의 실제 휩쓴 각(부호 포함, 화면 기준 반시계 +): r=44 는 θ₂·θ₄, r=72 는 O₂ 각도 호.
+          // O₂ 각도 호는 수평(−x)에서 O₄→O₂ 방향(π−α)까지 → 수학 각 −α 만큼(＋α 면 시계 방향).
+          const sweeps=[], o2arc=[];
           ctx2.arc=function(x,y,rr,s0,s1,ccw){
-            if(Math.abs(rr-44)<1e-9){ const T=2*Math.PI; let sw=ccw?(s0-s1):(s1-s0); sw=((sw%T)+T)%T; sweeps.push(sw*180/Math.PI); }
+            const T=2*Math.PI; let sw=ccw?(s0-s1):(s1-s0); sw=((sw%T)+T)%T;
+            if(Math.abs(rr-44)<1e-9) sweeps.push(sw*180/Math.PI);
+            if(Math.abs(rr-72)<1e-9) o2arc.push((ccw?1:-1)*sw*180/Math.PI);
             return _arc(x,y,rr,s0,s1,ccw); };
           try{ draw(); } finally { ctx2.arc=_arc; }
-          out.arcs.push({al, sweeps:sweeps.map(v=>+v.toFixed(2)), want:[+act.t2.toFixed(2), +S.t4.toFixed(2)]});
+          out.arcs.push({al, sweeps:sweeps.map(v=>+v.toFixed(2)), want:[+act.t2.toFixed(2), +S.t4.toFixed(2)],
+                         o2arc:o2arc.map(v=>+v.toFixed(2))});
         }
-        setServoPlace('y');
+        // 지상링크 d 중점 드래그: 마우스를 멈춘 채 여러 번 움직임 이벤트가 와도 d 가 한 값에 머물러야
+        // 한다(예전엔 각도 배치 α≥60° 에서 O₂ 가 d 에 따라 움직여 되먹임으로 발산, y오프셋에선 d→L 로 커짐).
+        // 마우스는 「d=90 일 때의 중점」에 둔다 → 그대로 90 이 나와야 한다.
+        out.drag=[];
+        const dragAt=(want)=>{
+          S.d=100; g('id').value=100; onLink();
+          let mx, my;
+          if(S.place==='ang'){ const r=S.placeAng*Math.PI/180; mx=want*(1-Math.cos(r)/2); my=want*Math.sin(r)/2; }
+          else { mx=want/2; my=S.offY/2; }
+          const px={x:wx(mx), y:wy(my)};
+          drag={t:{type:'mid',link:'d'}};
+          const seq=[]; for(let k=0;k<8;k++){ onMove({x:px.x,y:px.y}); seq.push(S.d); }
+          endDrag(); return seq;
+        };
+        for(const al of [30,90,135]){ g('iServoAng').value=al; onServoOffset(); out.drag.push({al, seq:dragAt(90)}); }
+        setServoPlace('y'); out.drag.push({offY:25, seq:dragAt(90)});
+        S.d=100; g('id').value=100; onLink();
         out.yBack=+gLen().toFixed(9); out.yL=+yL.toFixed(9);
       } finally { S.a=sv.a; S.b=sv.b; S.c=sv.c; S.d=sv.d; g('iServoOffY').value=sv.offY;
         g('iServoAng').value=sv.ang; setServoPlace(sv.place); setT4(sv.t4); draw(); }
       const t20=out.geo[0].t2;
-      const geoOk=out.geo.every(q=>q.L===100 && q.dist===100 && q.O4ok && q.O2ok && q.rtok && q.dMA<1e-12 && q.t2===t20);
+      // t2===t20 이 「기구학이 α 와 무관」 의 실제 검사(MA 는 L=d 로만 정해지므로 L===100 이 함께 고정)
+      const geoOk=out.geo.every(q=>q.L===100 && q.dist===100 && q.O4ok && q.O2ok && q.rtok && q.t2===t20);
+      const o2ArcOk=out.arcs.every(q=> q.al===0 ? q.o2arc.length===0
+        : q.o2arc.length===2 && q.o2arc.every(v=>Math.abs(v+q.al)<0.02));
+      const dragOk=out.drag.every(q=>q.seq.every(v=>v===90));
       // 각 호는 채움+선 두 번 그린다 → [θ₂,θ₂,θ₄,θ₄]
       const arcOk=out.arcs.every(q=>q.sweeps.length===4
         && Math.abs(q.sweeps[0]-q.want[0])<0.02 && Math.abs(q.sweeps[1]-q.want[0])<0.02
         && Math.abs(q.sweeps[2]-q.want[1])<0.02 && Math.abs(q.sweeps[3]-q.want[1])<0.02);
-      return {ok: geoOk && arcOk && out.yBack===out.yL && Math.abs(out.yL-Math.hypot(100,25))<1e-9, geoOk, arcOk, ...out};
+      return {ok: geoOk && arcOk && o2ArcOk && dragOk && out.yBack===out.yL && Math.abs(out.yL-Math.hypot(100,25))<1e-9, geoOk, arcOk, o2ArcOk, dragOk, ...out};
     });
-    rec('linkage: 작동기 배치 각도 모드 — d 유지 · O₄ 고정 · 기구학 불변 · θ 호가 실제 각만큼', pl.ok===true, JSON.stringify(pl));
+    rec('linkage: 작동기 배치 각도 모드 — d 유지 · O₄ 고정 · 기구학 불변 · 호가 실제 각만큼 · d 드래그 안정', pl.ok===true, JSON.stringify(pl));
 
     // 불변식: '도달 불가 경고가 꺼져 있으면 θ₂ 판독값은 실제 자세와 일치'.
     // lT2 갱신이 포커스 가드 안에 있으면, 도달 불가 값을 친 채 draw() 가 한 번 돌 때
