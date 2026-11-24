@@ -2410,14 +2410,16 @@ function onCSAngle(v){
 // 끝단에 닿으면 더 넘어가지 않는다(반올림/스냅 없이 정확히 step 만큼).
 function csTrim(step){ onCSAngle(csDelta()+step); }
 
-// 타각 끝단을 10° 단위로 버림 — 딱 떨어지는 각도로 가려고. 상향 35° → 30°, 하향 26° → 20°.
-function csFloor10(v){ return isFinite(v)&&v>0 ? Math.floor(v/10)*10 : 0; }
+// 조종면 작동 끝단 = 입력한 타각범위 그대로(0.1° 반올림 — 입력 단위). 카드의 상향/하향 버튼과
+// 출력토크 그래프의 끝단 마커가 이 한 함수를 함께 쓴다. 예전엔 10° 단위 버림(±25 → ±20)이라
+// 입력 범위와 다른 각도로 가고 다른 각도를 표시했다. 0 이하·비유한이면 0(버튼 숨김·마커 없음).
+function csEnd(v){ return isFinite(v)&&v>0 ? Math.round(v*10)/10 : 0; }
 
-// 조종면 이동 명령 — 'up'=상향 버림값(−δ), 'zero'=중립(0), 'down'=하향 버림값(+δ).
+// 조종면 이동 명령 — 'up'=상향 끝(−δ₋), 'zero'=중립(0), 'down'=하향 끝(+δ₊).
 // onCSAngle 이 범위 클램프·setT4·draw·읽기값 동기화를 모두 처리한다.
 function csGo(kind){
   const df=getDeflect();
-  onCSAngle(kind==='up'? -csFloor10(df.dp) : (kind==='down'? csFloor10(df.dm) : 0));
+  onCSAngle(kind==='up'? -csEnd(df.dp) : (kind==='down'? csEnd(df.dm) : 0));
 }
 function csSetNeutral(){                        // 현재 θ₄ 를 조종면 중립(δ=0)으로 지정
   const el=document.getElementById('iT4Neutral'); if(el) el.value=(+S.t4).toFixed(1);
@@ -2794,8 +2796,8 @@ function updateCSUI(){
   updateSliderTrack('slCS', (dc+dp)/span*100);
   const up=document.getElementById('lCSup'), dn=document.getElementById('lCSdn'),
         nt=document.getElementById('lCSneutral'), rd=document.getElementById('lCS');
-  // 버튼은 '갈 수 있는 각도'(10° 버림)를 보여준다. 버림값이 0 이면 중립과 같아 숨긴다.
-  const fUp=csFloor10(dp), fDn=csFloor10(dm);
+  // 버튼은 입력한 타각범위 끝을 보여준다. 0 이면 중립과 같아 숨긴다.
+  const fUp=csEnd(dp), fDn=csEnd(dm);
   if(up){ up.textContent='▲ 상향 −'+fUp+'°'; up.style.display=fUp>0?'':'none'; }
   if(dn){ dn.textContent='하향 +'+fDn+'° ▼'; dn.style.display=fDn>0?'':'none'; }
   if(nt) nt.textContent=(+csNeutralT4()).toFixed(0);
@@ -2997,6 +2999,7 @@ function drawLegendOnCanvas(c2, rows, left, top){
   c2.restore();
 }
 
+const PLOT_VIEW_MAX=180;   // 출력토크 그래프 가로축 최대 폭(°)
 function drawTorquePlot(){
   try{
   const pc=document.getElementById("torquePlot");
@@ -3010,12 +3013,12 @@ function drawTorquePlot(){
   const _legMotorV=parseFloat(_legMotorEl?.value);
   const _legHasMotor=!isNaN(_legMotorV)&&_legMotorEl.value.trim()!=="";
 
-  // 조종면 작동 끝단(10° 버림) — 조종면 각도 카드의 상향/하향 버튼이 가는 지점.
+  // 조종면 작동 끝단 = 입력한 타각범위 그대로(csEnd) — 조종면 각도 카드의 상향/하향 버튼이 가는 지점과 같다.
   // 기구 위치라 sgn 은 그대로다(상향 = θ₄ 증가). 부호 규약(상향 −/하향 +)은 표시용 δ 에만 적용되고,
-  // 그 표시는 csDegStr 가 담당한다. 카드와 같은 csFloor10 을 쓰므로 끝단은 항상 일치한다.
+  // 그 표시는 csDegStr 가 담당한다.
   const _csDf=getDeflect(), _csT40=csNeutralT4();
-  const csEnds=[{lab:'상향',sgn:1,v:csFloor10(_csDf.dp)},
-                {lab:'하향',sgn:-1,v:csFloor10(_csDf.dm)}]
+  const csEnds=[{lab:'상향',sgn:1,v:csEnd(_csDf.dp)},
+                {lab:'하향',sgn:-1,v:csEnd(_csDf.dm)}]
     .filter(e=>e.v>0).map(e=>({lab:e.lab, sgn:e.sgn, v:e.v, deg:_csT40+e.sgn*e.v}));
   // 노드별 조종면기준 각도 δ = −((노드 θ₄) − 중립각 θ₄₀)  (부호 규약: −상향 / +하향).
   // 정의역(x축)에 균일 눈금으로 쓰지 않고, 각 노드 알약 아래줄에 그 노드 위치의 δ 로 표시.
@@ -3077,21 +3080,35 @@ function drawTorquePlot(){
     }
   }
 
-  // 여백 5° 추가 후 10° 단위로 정렬 (창 좌표라 0 미만·360 초과도 그대로)
-  const T4_MIN=Math.floor((autoMin-5)/10)*10;
-  const T4_MAX=Math.ceil( (autoMax+5)/10)*10;
+  // 여백 5° 추가 후 10° 단위로 정렬 (창 좌표라 0 미만·360 초과도 그대로) — 계산용 전체 범위
+  const T4_MIN_ALL=Math.floor((autoMin-5)/10)*10;
+  const T4_MAX_ALL=Math.ceil( (autoMax+5)/10)*10;
+  // 보이는 범위는 최대 PLOT_VIEW_MAX(180°). 한 바퀴 조립(평행사변형 등)이면 360° 를 다 그려 봉우리가
+  // 납작해지고 눈금·알약이 겹쳤다 — 중립각 θ₄₀ 를 가운데 두고 자르되, 현재 θ₄ 가 밖이면 그쪽으로 민다.
+  // 토크 가용 각도(박스)는 커플러 그래프와 같은 정의를 지키도록 전체 범위(T4arrAll)로 계산한다.
+  let T4_MIN=T4_MIN_ALL, T4_MAX=T4_MAX_ALL;
+  if(T4_MAX_ALL-T4_MIN_ALL>PLOT_VIEW_MAX){
+    let lo=Math.round((_csRef-PLOT_VIEW_MAX/2)/10)*10;
+    if(curU<lo+5) lo=Math.floor((curU-5)/10)*10;
+    if(curU>lo+PLOT_VIEW_MAX-5) lo=Math.ceil((curU+5)/10)*10-PLOT_VIEW_MAX;
+    lo=Math.max(T4_MIN_ALL, Math.min(T4_MAX_ALL-PLOT_VIEW_MAX, lo));
+    T4_MIN=lo; T4_MAX=lo+PLOT_VIEW_MAX;
+  }
   const T4_RANGE=Math.max(T4_MAX-T4_MIN,1);
   const xStep=T4_RANGE>100?20:10;
 
   // T4ok[i]: 입력·출력 전달각 모두 ≥ OPT_MU_MIN. 최대·교점·가용 각도·Y축은 이 구간 값만 쓰고
   // 나머지(설계 하한 밖)는 흐리게 그린다.
-  const T4arr=[], T4ok=[];
-  for(let deg=T4_MIN; deg<=T4_MAX; deg++){
+  const T4arrAll=[], T4okAll=[];
+  for(let deg=T4_MIN_ALL; deg<=T4_MAX_ALL; deg++){
     // 창 밖 격자는 비운다 — 여백 안에 다른 조립 구간이 걸려도 이어지지 않는 자세라 그리지 않는다
     const res=(deg>=win.iLo&&deg<=win.iHi)?calcMAatT4(a,b,c,d,deg,sol):null;
-    if(res===null||!isFinite(res.ma)){T4arr.push(null);T4ok.push(false);}
-    else{T4arr.push(Math.abs(T2*res.ma));T4ok.push(res.mu>=OPT_MU_MIN);}
+    if(res===null||!isFinite(res.ma)){T4arrAll.push(null);T4okAll.push(false);}
+    else{T4arrAll.push(Math.abs(T2*res.ma));T4okAll.push(res.mu>=OPT_MU_MIN);}
   }
+  // 그리기·최대·교점 표식은 보이는 범위만 (180° 를 넘지 않으면 전체와 같다)
+  const _vs=T4_MIN-T4_MIN_ALL, _ve=T4_MAX-T4_MIN_ALL+1;
+  const T4arr=T4arrAll.slice(_vs,_ve), T4ok=T4okAll.slice(_vs,_ve);
   const N=Math.max(T4arr.length-1,1);
   // T4arr 는 1° 정수 격자다. 중립각 θ₄₀ 가 정수가 아니면(최적화 적용 후가 보통 그렇다)
   // 끝단·현재위치가 격자에 안 떨어져 T4arr[round(...)] 를 읽으면 조종면 각도 카드와
@@ -3122,11 +3139,25 @@ function drawTorquePlot(){
     muBnd.push({i, deg:dg, v});
     if(v>maxT4){maxT4=v;maxAt=dg;}
   }
-  const maxIdx=maxAt===null?-1:maxAt-T4_MIN;   // 소수 인덱스 (xp 는 실수 인덱스를 받는다)
+  // 보이는 범위가 전체보다 좁으면(180° 상한) 최대는 전체 구간에서 찾는다 — 커플러 그래프 maxAbs 와 같은 값.
+  // 그 자세가 화면 밖이면 표식을 그리지 않는다(화면 가장자리에 가짜 최대가 찍히지 않게).
+  if(_vs>0||_ve<T4arrAll.length){
+    maxAt=null; maxT4=-Infinity;
+    T4arrAll.forEach((v,i)=>{ if(v!==null&&T4okAll[i]&&v>maxT4){maxT4=v;maxAt=T4_MIN_ALL+i;} });
+    for(let i=0;i+1<T4arrAll.length;i++){
+      if(T4okAll[i]===T4okAll[i+1]) continue;
+      const gi=T4okAll[i]?i:i+1, bi=T4okAll[i]?i+1:i;
+      const dg=Math.min(win.hi,Math.max(win.lo,bisectMuBoundary(a,b,c,d,sol,T4_MIN_ALL+bi,T4_MIN_ALL+gi)));
+      const v=tqAt(dg);
+      if(v!==null&&v>maxT4){maxT4=v;maxAt=dg;}
+    }
+  }
+  const maxIn=maxAt!==null&&maxAt>=T4_MIN&&maxAt<=T4_MAX;
+  const maxIdx=maxIn?maxAt-T4_MIN:-1;   // 소수 인덱스 (xp 는 실수 인덱스를 받는다)
 
   // μ 충족 구간이 없으면(나쁜 형상) 작은 쪽 절반 값으로 축을 잡는다
   const scaleT4=(okT4.length?okT4:validT4.slice().sort((p,q)=>p-q).slice(0,Math.ceil(validT4.length/2))).slice();
-  if(maxAt!==null) scaleT4.push(maxT4);
+  if(maxIn) scaleT4.push(maxT4);
   // 현재 위치·조종면 끝단 마커는 μ 미달이어도 값을 찍으므로 축에 넣되, 축이 무너지지 않게
   // 2배에서 자른다(넘는 마커는 플롯 위 가장자리에 붙여 그린다 — ypc).
   { const cap=2*Math.max(...scaleT4);
@@ -3355,7 +3386,7 @@ function drawTorquePlot(){
       color:"#b06000", bg:"rgba(255,159,10,0.18)"});
   }
 
-  // ── 조종면 작동 끝단(10° 버림) 마커 — 각도와 그 지점의 T₄ 를 함께 표시 ──
+  // ── 조종면 작동 끝단(입력 타각범위) 마커 — 각도와 그 지점의 T₄ 를 함께 표시 ──
   {
     const inter2=(r1,r2)=>r1&&r2&&!(r1.x+r1.w<r2.x||r2.x+r2.w<r1.x||r1.y+r1.h<r2.y||r2.y+r2.h<r1.y);
     const placed=[maxLabelRect].filter(Boolean);
@@ -3423,7 +3454,7 @@ function drawTorquePlot(){
 
     // 토크 가용 각도 = |T₄| ≥ 요구도 ∧ μ ≥ OPT_MU_MIN 인 최장 연속 구간 (커플러 그래프와 같은 함수).
     // 곡선 전체가 요구도 위면 교점이 없어도 μ 충족 구간 전체가 가용 각도다.
-    const usable=torqueUsableRun(a,b,c,d,sol,T2,motorVal,T4_MIN,T4arr,T4ok,win);
+    const usable=torqueUsableRun(a,b,c,d,sol,T2,motorVal,T4_MIN_ALL,T4arrAll,T4okAll,win);
 
     // 가용 각도 텍스트 업데이트
     if(_rt){
@@ -3481,6 +3512,12 @@ function drawTorquePlot(){
   }  // end _hasMotor
 
   // ── X축 라벨 통합 렌더: 겹침 방지 ──
+  // 같은 각도의 알약은 하나만 — 요구도가 곡선 꼭짓점에 닿으면(예: 평행사변형 3.00 = 최대) 최대·교점 2개가
+  // 같은 "90.0°" 로 세 줄 쌓여 범례를 덮었다. 등록 순서(최대 → 현재 → 끝단 → 교점)가 우선순위다.
+  for(let i=xAxisLabels.length-1;i>0;i--){
+    const l=xAxisLabels[i];
+    if(xAxisLabels.slice(0,i).some(k=>k.label===l.label&&Math.abs(k.x-l.x)<2)) xAxisLabels.splice(i,1);
+  }
   if(xAxisLabels.length>0){
     c2.font="700 9px -apple-system,sans-serif";
     // x 좌표 기준 정렬

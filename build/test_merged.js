@@ -170,15 +170,15 @@ async function clickByText(frame, txt){
       dn.click(); const tdn=S.t4;          // 하향 최대 (δ=+10) → θ₄ 90
       const dDn=csDelta();                 //            하향은 양수
       z.click();  const tz=S.t4;           // 중립 → 0
-      // 끝단이 10° 배수가 아니면 버림값으로 간다 — 상35/하26 → 상향 30 / 하향 20
-      document.getElementById('iDeflectP').value=35;
-      document.getElementById('iDeflectM').value=26; updateCSUI();
+      // 끝단이 10° 배수가 아니어도 입력값 그대로 간다 — 상25/하26.5 → 상향 25 / 하향 26.5 (예전 버림 20/20)
+      document.getElementById('iDeflectP').value=25;
+      document.getElementById('iDeflectM').value=26.5; updateCSUI();
       const lup=up.textContent, ldn=dn.textContent;
-      up.click(); const fup=S.t4;          // 상향 30 → 130
-      dn.click(); const fdn=S.t4;          // 하향 20 → 80
-      // 끝단이 10° 미만이면 버림값 0 → 버튼 숨김
-      document.getElementById('iDeflectP').value=8;
-      document.getElementById('iDeflectM').value=8; updateCSUI();
+      up.click(); const fup=S.t4;          // 상향 25 → 125
+      dn.click(); const fdn=S.t4;          // 하향 26.5 → 73.5
+      // 타각 0 → 중립과 같아 버튼 숨김
+      document.getElementById('iDeflectP').value=0;
+      document.getElementById('iDeflectM').value=0; updateCSUI();
       const hidden = up.style.display==='none' && dn.style.display==='none';
       document.getElementById('iDeflectP').value=30;
       document.getElementById('iDeflectM').value=10; updateCSUI();
@@ -198,8 +198,8 @@ async function clickByText(frame, txt){
       setDeflectMode('sym'); nEl.value=100; csGo('zero');
       return {ok: t0===100 && tup===130 && tdn===90 && tz===100
                   && dUp===-30 && dDn===10                      // 상향 −, 하향 + (부호 규약)
-                  && lup==='▲ 상향 −30°' && ldn==='하향 +20° ▼'  // 35/26 → 버림 30/20
-                  && fup===130 && fdn===80 && hidden
+                  && lup==='▲ 상향 −25°' && ldn==='하향 +26.5° ▼'  // 입력값 그대로
+                  && fup===125 && Math.abs(fdn-73.5)<1e-9 && hidden
                   && r1===99 && r3===97 && r2===98 && rMin===90
                   && afterT4===before && afterN===before,
               t0,tup,tdn,tz,dUp,dDn,lup,ldn,fup,fdn,hidden,r1,r3,r2,rMin,before,afterT4,afterN};
@@ -576,25 +576,55 @@ async function clickByText(frame, txt){
       onLink(); g('iT4Neutral').value=100; setT4(100); draw(); } });
     rec('linkage: 서보각 되꺾임 — 축 전환 시 무의미한 비선형성 수치 대신 사실을 알림', svt.ok===true, JSON.stringify(svt));
 
-    // 출력토크 그래프에 조종면 끝단(10° 버림) 마커가 그려지는가
-    const pm = await f.evaluate(()=>{ try{
-      const sig=(pv,mv)=>{ setDeflectMode('asym');
-        document.getElementById('iDeflectP').value=pv;
-        document.getElementById('iDeflectM').value=mv;
-        document.getElementById('iT4Neutral').value=100;
-        updateCSUI(); drawTorquePlot();
-        return document.getElementById('torquePlot').toDataURL(); };
-      const big=sig(35,26);                      // 버림 30/20 → 마커 2개
-      const small=sig(8,8);                      // 버림 0 → 마커 없음
-      const big2=sig(35,26);
-      const {a,b,c,sol}=S, d=gLen(), T2=+document.getElementById('iTorque').value;
-      const at=deg=>{const q=calcMAatT4(a,b,c,d,deg,sol); return q?+Math.abs(T2*q.ma).toFixed(2):null;};
-      return {ok: big!==small && big===big2 && csFloor10(35)===30 && csFloor10(26)===20
-                  && at(130)!==null && at(80)!==null,
-              fUp:csFloor10(35), fDn:csFloor10(26), tUp:at(130), tDn:at(80),
-              marker:big!==small, stable:big===big2};
-    }catch(e){ return {err:e.message}; } });
-    rec('linkage: 토크 그래프에 조종면 끝단(10° 버림) 마커 표시', pm.ok===true, JSON.stringify(pm));
+    // 출력토크 그래프의 조종면 끝단 마커 = 입력한 타각범위 그대로(10° 버림 아님).
+    // 상25/하26 → 「상향 25°」·「하향 26°」 라벨이 θ₄₀±δ 지점의 T₄ 와 함께 찍혀야 한다(예전엔 20/20).
+    // 아울러 가로축은 최대 180° — 한 바퀴 조립(평행사변형 a=c 40, b=d 100)에서 중립 90° 중심 0~180°,
+    // 토크 가용 각도 박스는 여전히 커플러 그래프와 같은 값(전체 범위로 계산).
+    const pm = await f.evaluate(()=>{
+      const g=id=>document.getElementById(id);
+      const _sv={a:S.a,b:S.b,c:S.c,d:S.d,dp:g('iDeflectP').value,dm:g('iDeflectM').value,req:g('iMotorTorque').value};
+      let _ctx=null;
+      try{
+      const ctx=g('torquePlot').getContext('2d'), drawn=[], orig=ctx.fillText.bind(ctx);
+      _ctx=ctx; ctx.fillText=function(t,x,y){ drawn.push(String(t)); return orig(t,x,y); };
+      setDeflectMode('asym'); g('iDeflectP').value=25; g('iDeflectM').value=26;
+      g('iT4Neutral').value=100; updateCSUI(); drawTorquePlot();
+      const {a,b,c,sol}=S, d=gLen(), T2=+g('iTorque').value;
+      const at=deg=>{const q=calcMAatT4(a,b,c,d,deg,sol); return q?Math.abs(T2*q.ma).toFixed(2):null;};
+      const up=drawn.find(t=>/^상향 [\d.]+° · /.test(t)), dn=drawn.find(t=>/^하향 [\d.]+° · /.test(t));
+      const markOk = up==='상향 25° · '+at(125)+' N·m' && dn==='하향 26° · '+at(74)+' N·m';
+      // 180° 상한 — 평행사변형
+      drawn.length=0;
+      setDeflectMode('sym'); g('iDeflectP').value=20; g('iDeflectM').value=20;
+      g('ia').value=40; g('ib').value=100; g('ic').value=40; g('id').value=100; onLink();
+      g('iT4Neutral').value=90; setT4(90); g('iMotorTorque').value=2; draw(); drawTorquePlot();
+      const full=assemblyWindow(S.a,S.b,S.c,gLen(),S.sol,S.t4).full;
+      const ticks=drawn.filter(t=>/^-?\d+°$/.test(t)).map(t=>parseInt(t));
+      const tq=t=>Math.abs(+g('iTorque').value*calcMAatT4(S.a,S.b,S.c,gLen(),t,S.sol).ma).toFixed(2);
+      const box=+((g('usableRangeText').textContent.match(/범위 ([\d.]+)°/)||[])[1]);
+      const cpl=+couplerMetrics(S.b,+g('iTorque').value,Math.max(0,+g('iMarginAngle').value||0),2).torqueSpan.toFixed(1);
+      const viewOk = full===true && ticks.length>0 && Math.min(...ticks)===0 && Math.max(...ticks)===180;
+      const symOk = tq(90)==='3.00' && tq(70)===tq(110);
+      // 중립 200° · 현재 90° — 보기 창이 현재 θ₄ 쪽으로 밀려 80~260° 가 되고, 가용 구간(54.7~125.3°)은
+      // 창 밖까지 이어진다. 박스는 전체 배열로 계산해야 커플러 그래프와 같고(보기 배열이면 80~125.3),
+      // 최대 표식은 전체 구간에서 찾은 꼭짓점(90°, 3.00)이어야 한다.
+      drawn.length=0;
+      g('iT4Neutral').value=200; setT4(90); draw(); drawTorquePlot();
+      const ticks2=drawn.filter(t=>/^-?\d+°$/.test(t)).map(t=>parseInt(t));
+      const boxTxt=g('usableRangeText').textContent;
+      const box2=+((boxTxt.match(/범위 ([\d.]+)°/)||[])[1]);
+      const cpl2=+couplerMetrics(S.b,+g('iTorque').value,Math.max(0,+g('iMarginAngle').value||0),2).torqueSpan.toFixed(1);
+      const maxLbl=drawn.find(t=>/^max \(μ≥/.test(t))||null;
+      const shiftOk = ticks2.includes(80) && ticks2.includes(260) && !ticks2.includes(0)
+                   && /54\.7° ~ 125\.3°/.test(boxTxt) && box2===cpl2 && maxLbl==='max (μ≥47°) 3.00 N·m';
+      return {ok: markOk && viewOk && symOk && box===cpl && shiftOk, up, dn, full, tickMin:Math.min(...ticks), tickMax:Math.max(...ticks),
+              t90:tq(90), t70:tq(70), t110:tq(110), box, cpl, ticks2:[Math.min(...ticks2),Math.max(...ticks2)], boxTxt, box2, cpl2, maxLbl};
+    }catch(e){ return {err:e.message}; }
+    finally{ if(_ctx) delete _ctx.fillText;
+      g('ia').value=_sv.a; g('ib').value=_sv.b; g('ic').value=_sv.c; g('id').value=_sv.d;
+      g('iDeflectP').value=_sv.dp; g('iDeflectM').value=_sv.dm; g('iMotorTorque').value=_sv.req;
+      setDeflectMode('sym'); g('iT4Neutral').value=100; onLink(); setT4(100); draw(); } });
+    rec('linkage: 토크 그래프 끝단 마커 = 입력 타각범위 · 가로축 최대 180° (평행사변형 대칭)', pm.ok===true, JSON.stringify(pm));
 
     // 플롯 마커가 조종면 각도 카드와 같은 값을 말하는가.
     // T4arr 는 1° 정수 격자라, 중립각 θ₄₀ 가 정수가 아니면(최적화 적용 후가 보통 그렇다)
@@ -940,18 +970,23 @@ async function clickByText(frame, txt){
     rec('linkage: 캔버스 라벨 — 겹침 0 · 예약 누락 없음 · 각도는 고정링크 아래 · 지시선 링크 미교차', lbl.ok===true, JSON.stringify(lbl));
 
     // 토크 그래프 x축에 θ₄ 대응 조종면 각도(δ) 줄이 있는가.
-    // 끝단 마커가 없는 조건(타각 8° → 버림 0)으로 두어 δ 줄만 분리 검증한다.
-    const dax = await f.evaluate(()=>{ try{
+    // 타각 0° 로 두면 끝단 마커가 그려지지 않아 δ 줄만 분리 검증된다.
+    const dax = await f.evaluate(()=>{
+      const _g=id=>document.getElementById(id);
+      const _sv={dp:_g('iDeflectP').value, dm:_g('iDeflectM').value, t40:_g('iT4Neutral').value};
+      try{
       const sig=t40=>{ setDeflectMode('asym');
-        document.getElementById('iDeflectP').value=8;      // 버림 0 → 끝단 마커 없음
-        document.getElementById('iDeflectM').value=8;
+        document.getElementById('iDeflectP').value=0;      // 0 → 끝단 마커 없음
+        document.getElementById('iDeflectM').value=0;
         document.getElementById('iT4Neutral').value=t40;
         updateCSUI(); drawTorquePlot();
         return document.getElementById('torquePlot').toDataURL(); };
       const a=sig(100), b=sig(90), a2=sig(100);
       // θ₄₀ 만 바꿨는데 그래프가 달라져야 = δ 눈금이 중립각에 연동됨
       return {ok: a!==b && a===a2, shifts:a!==b, stable:a===a2};
-    }catch(e){ return {err:e.message}; } });
+    }catch(e){ return {err:e.message}; }
+    finally{ _g('iDeflectP').value=_sv.dp; _g('iDeflectM').value=_sv.dm; _g('iT4Neutral').value=_sv.t40;
+      setDeflectMode('sym'); updateCSUI(); draw(); } });
     rec('linkage: 토크 그래프 x축에 조종면 각도(δ) 눈금 — 중립각 연동', dax.ok===true, JSON.stringify(dax));
 
     // 입력측 전달각(크랭크 a ↔ 커플러 b).

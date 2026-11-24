@@ -1309,7 +1309,7 @@ body {
         <ul style="font-size:14px;color:var(--text2);line-height:1.8;margin:10px 0 0;padding-left:20px;">
           <li><strong>읽기값과 슬라이더</strong> — 카드 오른쪽 위 큰 글씨가 현재 타각(<code>중립 0.0°</code> / <code>상향 −20.0°</code> / <code>하향 +20.0°</code>)이고, 아래 슬라이더로 직접 끌 수 있습니다. 접어 둔 θ₄ 슬라이더나 캔버스 드래그로 <strong>입력한 타각범위를 벗어나면</strong> 읽기값 끝에 <code>⚠</code>가 붙습니다 — 아래 μ 의 <code>⚠</code>(전달각 불량)와는 다른 뜻입니다.</li>
           <li><strong>지표 3종</strong> — 현재 자세의 <strong>출력토크 T₄</strong>·<strong>입력측 μ</strong>·<strong>출력측 μ</strong>를 한 줄에 보여줍니다. T₄는 크기값이라 출력링크색 고정, μ는 값 자체가 판정이라 <strong>47° 이상 초록 · 40° 이상 주황 · 40° 미만 빨강+⚠</strong>입니다.</li>
-          <li><strong>이동 버튼</strong> — 왼쪽부터 부호 순서로 <code>▲ 상향 −N°</code> · <code>−1°</code> · <code>중립</code> · <code>+1°</code> · <code>하향 +N° ▼</code>. 양 끝 버튼의 N은 입력한 타각을 <strong>10° 단위로 내린 값</strong>이라 딱 떨어지는 각도로 갑니다(상향 35° → 30°, 25.5° → 20°). 버림값이 0이면 중립과 같아 버튼이 숨습니다. 가운데 ±1°는 트림이고 타각범위 끝에서 멈춥니다.</li>
+          <li><strong>이동 버튼</strong> — 왼쪽부터 부호 순서로 <code>▲ 상향 −N°</code> · <code>−1°</code> · <code>중립</code> · <code>+1°</code> · <code>하향 +N° ▼</code>. 양 끝 버튼의 N은 <strong>입력한 타각범위의 끝 그대로</strong>입니다(상향 25° → −25°, 25.5° → −25.5°). 출력토크 그래프의 상향·하향 표식과 같은 각도입니다. 타각이 0이면 중립과 같아 버튼이 숨습니다. 가운데 ±1°는 트림이고 타각범위 끝에서 멈춥니다.</li>
           <li><strong>"중립 지정"</strong> — 조종면을 <em>움직이지 않고</em> 현재 θ₄를 δ=0° 기준으로 재정의합니다(위 <strong>중립</strong> 버튼은 반대로 δ=0° 위치로 <em>이동</em>). 여기서 정한 θ₄₀가 출력토크 그래프의 δ 눈금과 힌지모멘트·리깅 연동의 기준각이 됩니다.</li>
           <li><strong>최적화 결과와 대조</strong> — 결과 카드의 <strong>작동범위 내 최소 전달각</strong>은 범위 <em>전체</em>의 최솟값이라 중립(δ=0)의 값과 다른 게 정상입니다. 카드가 최솟값이 나오는 δ를 함께 표시하므로, <strong>"적용" 후</strong> 그 δ로 옮기면 이 카드에 같은 수가 뜹니다. <strong>최적화가 고른 형상</strong>에서는 입력측과 출력측의 최솟값이 대개 <strong>서로 반대쪽 끝단</strong>에서 나옵니다(끝단 불균형 제약이 μ 를 양끝으로 밀기 때문이며, 손으로 고친 형상에서는 같은 쪽일 수도 있습니다).</li>
         </ul>
@@ -1471,10 +1471,10 @@ body {
 <text x="560" y="218" font-size="10" fill="#d70015" text-anchor="end" font-weight="600">μ&lt;47°</text>
 <circle cx="308.3" cy="126.1" r="4" fill="#ff453a" stroke="#ff453a" stroke-width="1.5"/>
 <text x="308.3" y="110" font-size="10.5" fill="#d70015" text-anchor="middle" font-weight="700">최대 5.99 (중립 부근 θ₄ 99.2°)</text>
-<circle cx="171.1" cy="155.6" r="4" fill="#fff" stroke="#bf5af2" stroke-width="2"/>
-<text x="163.1" y="152" font-size="10" fill="#8e3fc0" text-anchor="end" font-weight="600">하향 20° 4.22</text>
-<circle cx="456.9" cy="157.4" r="4" fill="#fff" stroke="#bf5af2" stroke-width="2"/>
-<text x="464.9" y="153.4" font-size="10" fill="#8e3fc0" text-anchor="start" font-weight="600">상향 20° 4.12</text>
+<circle cx="135.4" cy="175.5" r="4" fill="#fff" stroke="#bf5af2" stroke-width="2"/>
+<text x="141" y="162" font-size="10" fill="#8e3fc0" text-anchor="start" font-weight="600">하향 25° 3.03</text>
+<circle cx="492.6" cy="176.2" r="4" fill="#fff" stroke="#bf5af2" stroke-width="2"/>
+<text x="487" y="162" font-size="10" fill="#8e3fc0" text-anchor="end" font-weight="600">상향 25° 3.01</text>
 <line x1="64" y1="316" x2="564" y2="316" stroke="#ececf0" stroke-width="1"/>
 <line x1="64" y1="279.4" x2="564" y2="279.4" stroke="#ececf0" stroke-width="1"/>
 <line x1="64" y1="246" x2="564" y2="246" stroke="#ececf0" stroke-width="1"/>
@@ -1520,7 +1520,7 @@ body {
 </figure>
         <table class="input-table" style="margin-top:14px;">
           <tr><th>그래프</th><th>X축</th><th>내용</th></tr>
-          <tr><td><strong>출력토크 변화</strong></td><td>θ₄ (°)<br><span class="unit">현재 자세가 속한 조립 구간 ±5°, 하향이 왼쪽</span></td><td><strong>가로축</strong>은 지금 θ₄ 가 속한 조립 구간입니다 — 혼이 지상링크 아래(180~360°)에 있으면 그 구간을, 구간이 0°·180° 를 넘어 이어지면 끊지 않고 그립니다(눈금은 0~360° 로 접어 표시, 예: 340° → 0° → 20°). |T₄(θ₄)| 곡선 — 두 전달각이 47° 이상인 구간은 빨간 실선(격자가 아니라 <strong>정확한 μ 경계까지</strong>), 그 밖은 흐린 점선(「μ&lt;47° 구간 (참고)」). <strong>최대</strong>(라벨 「max (μ≥47°)」 — μ ≥ 47° 구간 안에서만, 구간 경계까지 포함)·현재 위치, <strong>토크 요구도</strong> 선과 교점(μ ≥ 47° 구간 안의 교점만), 끝단 마진 음영, 보라색 <strong>조종면 상향·하향 표식</strong>(타각을 10° 단위로 내린 끝, 예: 「하향 20° · 4.22 N·m」). 세로축은 μ ≥ 47° 구간 값·표식·요구도가 모두 보이도록 잡힙니다. 아래 칸에 θ₄ / δ 두 줄 눈금. 그래프 아래 박스에 <strong>물리 가용 각도</strong>와 <strong>토크 가용 각도</strong>(없으면 「범위 0° (μ≥47° 구간에서 요구도 미달)」)</td></tr>
+          <tr><td><strong>출력토크 변화</strong></td><td>θ₄ (°)<br><span class="unit">현재 자세가 속한 조립 구간 ±5°, 하향이 왼쪽</span></td><td><strong>가로축</strong>은 지금 θ₄ 가 속한 조립 구간입니다 — 혼이 지상링크 아래(180~360°)에 있으면 그 구간을, 구간이 0°·180° 를 넘어 이어지면 끊지 않고 그립니다(눈금은 0~360° 로 접어 표시, 예: 340° → 0° → 20°). 보이는 폭은 <strong>최대 180°</strong> 입니다 — 조립 구간이 그보다 넓으면(평행사변형 a=c, b=d 처럼 한 바퀴 다 조립되는 형상 등) 중립각 θ₄₀ 를 가운데 두고 180° 만 그리고, 현재 θ₄ 가 그 밖이면 보이도록 옮깁니다. 토크 가용 각도와 최대값은 전체 구간에서 계산하며, 최대 지점이 화면 밖이면 최대 표식은 그리지 않습니다. |T₄(θ₄)| 곡선 — 두 전달각이 47° 이상인 구간은 빨간 실선(격자가 아니라 <strong>정확한 μ 경계까지</strong>), 그 밖은 흐린 점선(「μ&lt;47° 구간 (참고)」). <strong>최대</strong>(라벨 「max (μ≥47°)」 — μ ≥ 47° 구간 안에서만, 구간 경계까지 포함)·현재 위치, <strong>토크 요구도</strong> 선과 교점(μ ≥ 47° 구간 안의 교점만), 끝단 마진 음영, 보라색 <strong>조종면 상향·하향 표식</strong>(입력한 타각범위의 끝 그대로 — 조종면 각도 카드의 상향·하향 버튼이 가는 각도, 예: ±25° 면 「하향 25° · 3.03 N·m」). 세로축은 μ ≥ 47° 구간 값·표식·요구도가 모두 보이도록 잡힙니다. 아래 칸에 θ₄ / δ 두 줄 눈금. 그래프 아래 박스에 <strong>물리 가용 각도</strong>와 <strong>토크 가용 각도</strong>(없으면 「범위 0° (μ≥47° 구간에서 요구도 미달)」)</td></tr>
           <tr><td><strong>커플러 길이 영향</strong></td><td>b (mm)</td><td>조립 가능한 b 에서 최대 T₄(왼축, 범례 「최대 T₄ (μ≥47°)」 — 두 전달각이 47° 이상인 자세 중 최대)와 가용각(오른축). <strong>가용각 (μ반영)</strong>(두 μ ≥ 47° 최장 구간) · <strong>토크 가용</strong>(출력토크 박스와 같은 정의 — μ ≥ 47° 이면서 요구도 이상인 가장 긴 연속 구간) 체크박스로 곡선 토글. 최고토크·최대 가용각·현재 b 표식</td></tr>
           <tr><td><strong>설계변수 스윕</strong><br>(역설계 검토)</td><td>변수 링크 1개 (mm)<br><span class="unit">타각은 입력값 고정</span></td><td>모달 창. 고른 링크를 약 40단계로 <strong>강제</strong>하면서 매 점마다 <strong>나머지 변수와 θ₄₀ 를 다시 최적화</strong> → 왼축 토크(최대·끝단·중립), 오른축 <strong>작동범위 내 최소 μ</strong>(입력·출력)와 47° 기준선. 차선으로 풀린 점은 주황 점·띠. "이 값으로 못박으면 어디까지 되는가" 를 읽습니다. 창을 닫으면 계산이 중단·폐기됩니다</td></tr>
         </table>
