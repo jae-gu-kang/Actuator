@@ -955,19 +955,25 @@ async function clickByText(frame, txt){
     rec('linkage: 토크 그래프 x축에 조종면 각도(δ) 눈금 — 중립각 연동', dax.ok===true, JSON.stringify(dax));
 
     // 입력측 전달각(크랭크 a ↔ 커플러 b).
-    // |MA| = (c/a)·sin(μ입력)·sin(μ출력) 항등으로 정의가 맞는지 검증하고,
+    // |MA| = (c/a)·sin(μ출력)/sin(μ입력) 항등(가상일 비)으로 정의가 맞는지 검증하고,
+    // 같은 값이 수치 미분 dθ₂/dθ₄ 와도 맞는지(가상일 원리 자체) 확인한다.
     // 47/47 통일 이후 muIn 이 '참조값' 이 아니라 제약이라는 것(mu=min(입력,출력))과
     // 조종면 각도(δ) 카드에 입력측·출력측이 함께 표시되는지 확인한다.
     const mi = await f.evaluate(()=>{ try{
-      let worst=0;
+      let worst=0, worstFd=0;
       for(const t4 of [80,95,110,125]){
         setT4(t4); draw();
         const t=calcTorque();
         if(!t||t.muIn===undefined) return {err:'no-muIn at '+t4};
         if(!(t.muIn>0&&t.muIn<=90)) return {err:'muIn out of range: '+t.muIn};
-        const pred=(S.c/S.a)*Math.sin(t.muIn*Math.PI/180)*Math.sin(t.mu*Math.PI/180);
+        const pred=(S.c/S.a)*Math.sin(t.mu*Math.PI/180)/Math.sin(t.muIn*Math.PI/180);
         worst=Math.max(worst, Math.abs(Math.abs(t.ma)-pred));
+        const h=1e-3, p1=calcMAatT4(S.a,S.b,S.c,gLen(),t4+h,S.sol), p0=calcMAatT4(S.a,S.b,S.c,gLen(),t4-h,S.sol);
+        if(!p1||!p0) return {err:'no fd pose at '+t4};
+        let dt2=p1.t2-p0.t2; if(dt2>180) dt2-=360; if(dt2<-180) dt2+=360;
+        worstFd=Math.max(worstFd, Math.abs(Math.abs(dt2/(2*h))-Math.abs(t.ma)));
       }
+      if(worstFd>1e-4) return {err:'MA ≠ dθ₂/dθ₄ (가상일 비): '+worstFd};
       // calcMAatT4 가 제약용 mu 를 두 측의 최소로 내는지 (옵티마이저가 그 mu 를 실제로
       // 게이트에 쓰는지는 build/test_optvars.js 가 추천 결과의 muIn·muOut 로 따로 단언한다).
       // 입력측이 더 나쁜 자세가 표본에 실제로 있어야 공허하지 않다
@@ -987,9 +993,77 @@ async function clickByText(frame, txt){
       const dIn =document.getElementById('lCSMuIn')?.textContent||'';
       const dOut=document.getElementById('lCSMuOut')?.textContent||'';
       return {ok: worst<1e-9 && /°/.test(dIn) && /°/.test(dOut) && minIsBoth && sawInBinding,
-              worst:+worst.toExponential(1), dIn, dOut, minIsBoth, sawInBinding};
+              worst:+worst.toExponential(1), worstFd:+worstFd.toExponential(1), dIn, dOut, minIsBoth, sawInBinding};
     }catch(e){ return {err:e.message}; } });
     rec('linkage: 입력측 전달각 — MA 항등 · calcMAatT4 의 mu=min(입력,출력) · δ 카드 표시', mi.ok===true, JSON.stringify(mi));
+
+    // 토크 가용 각도: 출력토크 박스와 커플러 그래프가 같은 정의(최장 연속 구간)를 쓰는지.
+    // 가상일 비 곡선은 U자라 요구도가 최솟값(기본 형상 6.00) 바로 위면 구간이 둘로 갈린다 —
+    // 합계(≈36.7°)와 최장 구간(≈19.9°)이 크게 달라 두 곳이 따로 세면 바로 드러난다.
+    const ts = await f.evaluate(()=>{ try{
+      const el=document.getElementById('iMotorTorque'), old=el.value;
+      const sv={a:S.a,b:S.b,c:S.c,d:S.d,offY:S.offY,t4:S.t4};
+      const out={};
+      try{
+        S.a=20; S.b=100; S.c=40; S.d=100; S.offY=0; setT4(100);
+        const T2=parseFloat(document.getElementById('iTorque').value)||0;
+        const marg=Math.max(0, parseFloat(document.getElementById('iMarginAngle').value)||0);
+        for(const req of [3,6]){
+          el.value=String(req); draw(); drawTorquePlot();
+          const box=+((document.getElementById('usableRangeText').textContent.match(/범위 ([\d.]+)°/)||[])[1]);
+          out[req]={box, coupler:+couplerMetrics(S.b,T2,marg,req).torqueSpan.toFixed(1)};
+        }
+      } finally { el.value=old; Object.assign(S,sv); setT4(sv.t4); draw(); }
+      // 40.4 = μ 경계 칸까지 센 값(경계 칸을 빼면 40.0), 19.9 = 두 구간 중 긴 쪽(첫 구간이면 16.8, 합이면 36.7)
+      return {ok: out[3].box===out[3].coupler && out[6].box===out[6].coupler
+                  && Math.abs(out[3].box-40.4)<0.05 && Math.abs(out[6].box-19.9)<0.05, ...out};
+    }catch(e){ return {err:e.message}; } });
+    rec('linkage: 토크 가용 각도 — 출력토크 박스와 커플러 그래프가 같은 최장 연속 구간', ts.ok===true, JSON.stringify(ts));
+
+    // 작동기 배치 「각도」 모드: |O₂O₄|=d 그대로 O₂ 를 O₄ 중심으로 회전. 강체 회전이라
+    // 기구학(L·MA·θ₂)은 α 와 무관하고, y오프셋 모드 값은 따로 보관돼 되돌리면 살아난다.
+    // 함께 θ 호가 실제 각(θ₂·θ₄)만큼 그려지는지 — 예전엔 360°−θ 쪽 호를 그렸다.
+    const pl = await f.evaluate(()=>{ const g=id=>document.getElementById(id);
+      const sv={a:S.a,b:S.b,c:S.c,d:S.d,offY:S.offY,t4:S.t4,place:S.place,ang:S.placeAng};
+      const out={geo:[], arcs:[]};
+      try{
+        S.a=20; S.b=100; S.c=40; S.d=100; setT4(100);
+        g('iServoOffY').value=25; setServoPlace('y');
+        const yL=gLen();
+        setServoPlace('ang');
+        const ref=(()=>{ const m=calcMAatT4(S.a,S.b,S.c,S.d,S.t4,S.sol); return m.ma; })();
+        const ctx2=document.getElementById('cv').getContext('2d'), _arc=ctx2.arc.bind(ctx2);
+        for(const al of [0,30,-40,135]){
+          g('iServoAng').value=al; onServoOffset();
+          const O2=toWorld(0,0), O4=toWorld(gLen(),0), r=al*Math.PI/180;
+          const rt=toCanon(...toWorld(12.3,-4.5));
+          const act=S.solutions.find(s=>s.type===S.sol)||S.solutions[0];
+          out.geo.push({al, L:+gLen().toFixed(9), dist:+Math.hypot(O4[0]-O2[0],O4[1]-O2[1]).toFixed(9),
+            O4ok: Math.abs(O4[0]-S.d)<1e-9 && Math.abs(O4[1])<1e-9,
+            O2ok: Math.abs(O2[0]-S.d*(1-Math.cos(r)))<1e-9 && Math.abs(O2[1]-S.d*Math.sin(r))<1e-9,
+            rtok: Math.abs(rt[0]-12.3)<1e-9 && Math.abs(rt[1]+4.5)<1e-9,
+            dMA: Math.abs(calcMAatT4(S.a,S.b,S.c,gLen(),S.t4,S.sol).ma-ref), t2:+act.t2.toFixed(9)});
+          // 반지름 44 호(θ₂·θ₄)의 실제 휩쓴 각
+          const sweeps=[];
+          ctx2.arc=function(x,y,rr,s0,s1,ccw){
+            if(Math.abs(rr-44)<1e-9){ const T=2*Math.PI; let sw=ccw?(s0-s1):(s1-s0); sw=((sw%T)+T)%T; sweeps.push(sw*180/Math.PI); }
+            return _arc(x,y,rr,s0,s1,ccw); };
+          try{ draw(); } finally { ctx2.arc=_arc; }
+          out.arcs.push({al, sweeps:sweeps.map(v=>+v.toFixed(2)), want:[+act.t2.toFixed(2), +S.t4.toFixed(2)]});
+        }
+        setServoPlace('y');
+        out.yBack=+gLen().toFixed(9); out.yL=+yL.toFixed(9);
+      } finally { S.a=sv.a; S.b=sv.b; S.c=sv.c; S.d=sv.d; g('iServoOffY').value=sv.offY;
+        g('iServoAng').value=sv.ang; setServoPlace(sv.place); setT4(sv.t4); draw(); }
+      const t20=out.geo[0].t2;
+      const geoOk=out.geo.every(q=>q.L===100 && q.dist===100 && q.O4ok && q.O2ok && q.rtok && q.dMA<1e-12 && q.t2===t20);
+      // 각 호는 채움+선 두 번 그린다 → [θ₂,θ₂,θ₄,θ₄]
+      const arcOk=out.arcs.every(q=>q.sweeps.length===4
+        && Math.abs(q.sweeps[0]-q.want[0])<0.02 && Math.abs(q.sweeps[1]-q.want[0])<0.02
+        && Math.abs(q.sweeps[2]-q.want[1])<0.02 && Math.abs(q.sweeps[3]-q.want[1])<0.02);
+      return {ok: geoOk && arcOk && out.yBack===out.yL && Math.abs(out.yL-Math.hypot(100,25))<1e-9, geoOk, arcOk, ...out};
+    });
+    rec('linkage: 작동기 배치 각도 모드 — d 유지 · O₄ 고정 · 기구학 불변 · θ 호가 실제 각만큼', pl.ok===true, JSON.stringify(pl));
 
     // 불변식: '도달 불가 경고가 꺼져 있으면 θ₂ 판독값은 실제 자세와 일치'.
     // lT2 갱신이 포커스 가드 안에 있으면, 도달 불가 값을 친 채 draw() 가 한 번 돌 때

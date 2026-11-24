@@ -809,7 +809,7 @@ canvas.hover { cursor: grab; }
             <span class="u">mm</span>
           </div>
           <button class="lock-btn" id="btnVarLock_d" onclick="toggleOptVar('d')"
-            title="고정 d — 고정: 입력값 유지 (누르면 변수) · 유효 지상링크 L=√(d²+e²) (y오프셋 반영)">🔒</button>
+            title="고정 d — 고정: 입력값 유지 (누르면 변수) · 유효 지상링크 L=√(d²+e²) (y오프셋 반영, 각도 배치는 L=d)">🔒</button>
           <div id="varRange_d" style="display:none;width:100%;gap:4px;align-items:center;">
             <span id="varRangeLbl_d" style="font-size:9.5px;color:var(--text3);white-space:nowrap;">탐색</span>
             <div class="link-field" style="border-radius:6px;flex:1;">
@@ -952,16 +952,25 @@ canvas.hover { cursor: grab; }
           </div>
         </div>
 
-        <!-- 작동기 y오프셋 — O₄ 고정, O₂만 y이동(편심). 지상링크 L=√(d²+e²) 변화 → 토크 재계산 -->
-        <div class="link-card" style="margin-bottom:6px;">
+        <!-- 작동기 배치 — O₄ 고정. y오프셋: O₂ 만 y 이동(L=√(d²+e²) 변화)
+             각도: |O₂O₄|=d 그대로 O₂ 를 O₄ 중심으로 회전 -->
+        <div class="link-card" style="margin-bottom:6px;flex-wrap:wrap;">
           <div class="link-pip" style="background:var(--crank)"></div>
           <div class="link-meta">
-            <div class="link-name">작동기 y오프셋 <span style="color:var(--text3);font-weight:400">O₂ 높이</span></div>
-            <div class="link-sub">O₄ 고정 · O₂만 위(＋)/아래(−) 이동 · 링키지 연동 · L=√(d²+e²) → 토크 재계산</div>
+            <div class="link-name">작동기 배치 <span style="color:var(--text3);font-weight:400" id="servoPlaceNm">O₂ 높이</span></div>
+            <div class="link-sub" id="servoPlaceSub">O₄ 고정 · O₂만 위(＋)/아래(−) 이동 · 링키지 연동 · L=√(d²+e²) → 토크 재계산</div>
           </div>
-          <div class="link-field">
+          <div class="link-field" id="servoOffYField">
             <input type="number" id="iServoOffY" value="0" min="-400" max="400" step="1" oninput="onServoOffset()">
             <span class="u">mm</span>
+          </div>
+          <div class="link-field" id="servoAngField" style="display:none">
+            <input type="number" id="iServoAng" value="0" min="-180" max="180" step="0.5" oninput="onServoOffset()">
+            <span class="u">°</span>
+          </div>
+          <div class="seg-ctrl" style="padding:2px;width:100%;margin-top:6px;">
+            <button class="seg-btn active" id="btnPlaceY"   onclick="setServoPlace('y')"   style="flex:1;padding:4px 8px;font-size:11px;">y오프셋 (L 변화)</button>
+            <button class="seg-btn"        id="btnPlaceAng" onclick="setServoPlace('ang')" style="flex:1;padding:4px 8px;font-size:11px;">각도 (d 고정)</button>
           </div>
         </div>
 
@@ -1372,7 +1381,7 @@ canvas.hover { cursor: grab; }
 
 <script>
 // ── STATE ──
-const S = { a:20, b:100, c:40, d:100, t4:100, sol:'open', solutions:null, offY:0 };
+const S = { a:20, b:100, c:40, d:100, t4:100, sol:'open', solutions:null, offY:0, place:'y', placeAng:0 };
 
 // ── 설계 변수: 링크별 고정/변수 ────────────────────────────────────────────
 // v:true 면 옵티마이저가 그 링크를 탐색, false 면 입력값 고정.
@@ -1487,10 +1496,12 @@ function setTransform(){
   const{a,b,c,d}=S;
   // 서보 표시 시 몸체가 O₂ 밖으로 뻗으므로 뷰 범위에 몸체 최대 반경을 포함(클리핑 방지)
   const servoR = SERVO.show ? 2*((SERVO.bodyLen-SERVO.shaftFromEnd)+SERVO.bodyWid) : 0;
-  // 작동기 y오프셋만큼 세로로 더 뻗으므로 뷰 범위에 반영(클리핑 방지)
-  const range=(Math.max(a+b,c+d,d+a+c,servoR)+Math.abs(S.offY||0))*1.4;
+  // 작동기 배치(y오프셋·각도)만큼 세로로 더 뻗으므로 뷰 범위에 반영(클리핑 방지).
+  // 가로 중심은 O₂·O₄ 의 중점 — y오프셋 모드는 O₂.x=0 이라 기존과 같다.
+  const o2=o2World();
+  const range=(Math.max(a+b,c+d,d+a+c,servoR)+Math.abs(o2[1]))*1.4;
   scale=Math.min((W-60)/range,(H-60)/range)*userZoom;
-  ox=W/2-(d/2)*scale+panX; oy=H*0.62+panY;
+  ox=W/2-((o2[0]+d)/2)*scale+panX; oy=H*0.62+panY;
 }
 
 // ── 캔버스 줌/팬 ──
@@ -1549,15 +1560,28 @@ const sy=py=>-(py-oy)/scale;
 // 기구학은 캐노니컬 프레임(O₂'=원점, O₄'=[L,0])에서 풀고(모든 solve/calcMA/feasible 에
 // gLen() 를 d 로 전달), 그 해를 φ=atan2(-offY,d) 만큼 회전·[0,offY] 평행이동해
 // 월드(화면)에 배치한다. offY=0 → φ=0, L=d 이므로 기존 동작과 완전히 동일.
-const gLen = ()=>Math.hypot(S.d, S.offY||0);
-const gPhi = ()=>Math.atan2(-(S.offY||0), S.d);       // 월드 지상벡터 [d,-offY] 의 각(rad)
+//
+// 각도 모드(S.place='ang'): 지상링크 길이 d 를 그대로 두고 O₂ 를 O₄ 중심으로 α 만큼 돌린다.
+//   O₂ = O₄ + d·[−cos α, sin α]  (α=0 → O₂=[0,0], ＋α → O₂ 위로)  ⟹ L=d, φ=−α.
+// 기구학은 L 만 보므로 각도 모드에서 MA·토크·물리범위는 α 와 무관하다(강체 회전).
+// θ₄ 는 지금처럼 지상링크 기준 — 수평(월드) 기준 혼 각도는 θ₄+φ = θ₄−α.
+function o2World(){                                     // O₂ 의 월드 좌표
+  if(S.place==='ang'){
+    const r=(S.placeAng||0)*RAD;
+    return [S.d*(1-Math.cos(r)), S.d*Math.sin(r)];
+  }
+  return [0, S.offY||0];
+}
+const gLen = ()=>S.place==='ang' ? S.d : Math.hypot(S.d, S.offY||0);
+const gPhi = ()=>S.place==='ang' ? -(S.placeAng||0)*RAD
+                                 : Math.atan2(-(S.offY||0), S.d);   // 월드 지상벡터 O₂→O₄ 의 각(rad)
 function toWorld(px,py){                                // 캐노니컬 → 월드
-  const ph=gPhi(), cs=Math.cos(ph), sn=Math.sin(ph);
-  return [cs*px - sn*py, (S.offY||0) + sn*px + cs*py];
+  const ph=gPhi(), cs=Math.cos(ph), sn=Math.sin(ph), o=o2World();
+  return [o[0] + cs*px - sn*py, o[1] + sn*px + cs*py];
 }
 function toCanon(px,py){                                // 월드 → 캐노니컬 (드래그 입력용)
-  const ph=gPhi(), cs=Math.cos(ph), sn=Math.sin(ph);
-  const x=px, y=py-(S.offY||0);
+  const ph=gPhi(), cs=Math.cos(ph), sn=Math.sin(ph), o=o2World();
+  const x=px-o[0], y=py-o[1];
   return [cs*x + sn*y, -sn*x + cs*y];
 }
 
@@ -1657,7 +1681,7 @@ function drawMech(sol,main){
   midLabel(O4,B,`c = ${S.c} mm`,C.follower);
 
   // 작동기 y오프셋 치수 — 0 이 아닐 때만: O₄ 기준선(y=0) → O₂ 수직거리 표시
-  if(S.offY){
+  if(S.place!=='ang' && S.offY){
     const base=[0,0];                          // O₂ 바로 아래, O₄ 와 같은 높이(y=0)
     drawLink(base,O2,C.crank,1.4,true);        // 수직 치수선(점선)
     ctx.save();                                // 기준선 가로 틱(O₄ 높이 기준)
@@ -1665,6 +1689,16 @@ function drawMech(sol,main){
     ctx.beginPath(); ctx.moveTo(wx(0)-9,wy(0)); ctx.lineTo(wx(0)+9,wy(0)); ctx.stroke();
     ctx.restore();
     midLabel(base,O2,`y오프셋 = ${S.offY} mm`,C.crank);
+  }
+  // 작동기 배치 각도 — 0 이 아닐 때만: O₄ 에서 수평(−x) 기준선 → 지상링크(O₄→O₂) 호.
+  // θ₄ 호(r=44)와 겹치지 않게 반지름을 더 크게 잡는다.
+  if(S.place==='ang' && Math.abs(S.placeAng||0)>0.05){
+    const cx=wx(O4[0]), cy=wy(O4[1]), R=72;
+    ctx.save();
+    ctx.strokeStyle=hexAlpha(C.crank,0.45); ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx-R-10,cy); ctx.stroke();
+    ctx.restore();
+    arcAng(cx,cy,-(S.placeAng)*RAD,R,C.crank,`O₂ 각도 = ${(+S.placeAng).toFixed(1)}°`,Math.PI);
   }
 
   // 작동기 장착 기울기 — 서보 몸체를 그릴 때만, 0 이 아닐 때만.
@@ -1915,9 +1949,9 @@ function drawServoBody(){
   const xNear=shaftFromEnd, xFar=shaftFromEnd-bodyLen;   // 전체(탭 포함) x범위
   const core=Math.min(bodyCore,bodyLen), cHalf=core/2;
   const cMid=(xNear+xFar)/2, cxL=cMid-cHalf, cxR=cMid+cHalf;   // 본체(20×40) x범위
-  // 장착 기울기: 회전축 O₂(=[0,offY]) 고정, 몸체 로컬 +x 축을 tilt(°)만큼 회전 (θ₄·프레임기울기 무관)
+  // 장착 기울기: 회전축 O₂(=o2World()) 고정, 몸체 로컬 +x 축을 tilt(°)만큼 회전 (θ₄·프레임기울기 무관)
   const tr=(SERVO.tilt||0)*RAD;
-  partFrame([0,S.offY||0],[Math.cos(tr),Math.sin(tr)],function(){
+  partFrame(o2World(),[Math.cos(tr),Math.sin(tr)],function(){
     // ① 마운트 플랜지(날개) — 전체 길이, 밝은 알루미늄 (본체보다 밝게 → 구분)
     ctx.beginPath(); roundRect(ctx, xFar, -hw, bodyLen, bodyWid, 4);
     paintCurrentPath({base:'#d4d6da',stroke:'#9a9ca2',lw:1.2,hi:'rgba(255,255,255,0.25)',hiLw:0.6,
@@ -1940,7 +1974,7 @@ function drawServoBody(){
 
 // 서보암(=입력 크랭크 a): O₂ 허브 → A 푸시로드 홀(M3). 길이 = |A-O₂| = S.a
 function drawServoArm(A){
-  const O2=[0,S.offY||0], ax=A[0]-O2[0], ay=A[1]-O2[1];   // A 는 월드 좌표 → O₂ 기준 크랭크 벡터
+  const O2=o2World(), ax=A[0]-O2[0], ay=A[1]-O2[1];   // A 는 월드 좌표 → O₂ 기준 크랭크 벡터
   const a=Math.hypot(ax,ay)||S.a;
   const r0=SERVO.hubDia/2, r1=Math.max(SERVO.armWidth/2, SERVO.m3Dia/2+1.5);
   partFrame(O2,[ax,ay],function(){
@@ -2016,17 +2050,20 @@ function drawArcs(sol){
 // below: {x,y} 화면 단위벡터 — 고정링크 기준 '기구 반대쪽'. 주면 그쪽을 먼저 시도한다.
 function arcAng(cx,cy,angle,r,color,label,base,below){
   base=base||0;                       // 기준선 각(math). base=0 → 기존 동작과 동일
+  // 캔버스는 y 가 아래로 커서 수학 각 +angle 이 화면 각 −angle 이다. 수학 CCW(+)는 화면에서
+  // 각이 줄어드는 쪽 = counterclockwise=true. (예전엔 angle<0 을 넘겨 360°−θ 쪽 호를 그렸다)
+  const ccw=angle>0;
   ctx.save();
   // Arc fill
   ctx.beginPath(); ctx.moveTo(cx,cy);
-  ctx.arc(cx,cy,r,-base,-(base+angle),angle<0);
+  ctx.arc(cx,cy,r,-base,-(base+angle),ccw);
   ctx.closePath();
   ctx.fillStyle=hexAlpha(color,0.08); ctx.fill();
 
   // Arc stroke
   ctx.strokeStyle=color; ctx.lineWidth=1.5;
   ctx.setLineDash([4,3]);
-  ctx.beginPath(); ctx.arc(cx,cy,r,-base,-(base+angle),angle<0); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r,-base,-(base+angle),ccw); ctx.stroke();
 
   // Angle line
   ctx.setLineDash([]);
@@ -2271,12 +2308,30 @@ function onServoTilt(){
   if(isFinite(tv)) SERVO.tilt=norm(tv);
   draw();
 }
-// 작동기 y오프셋(편심 지상링크): O₂ 를 [0,offY] 로 이동 → L·φ 변화. 길이변경과 동일하게 전체 재계산.
+// 작동기 배치: y오프셋(O₂ 를 [0,offY] 로 이동 → L·φ 변화) 또는 각도(|O₂O₄|=d 유지, φ 만 변화).
+// 길이변경과 동일하게 전체 재계산.
 function onServoOffset(){
   const v=+document.getElementById('iServoOffY')?.value;
   if(isFinite(v)) S.offY=Math.max(-400,Math.min(400,v));
+  const g=+document.getElementById('iServoAng')?.value;
+  if(isFinite(g)) S.placeAng=Math.max(-180,Math.min(180,g));
   updateOptVarUI();                                // gLen() 변화 → 자동 탐색범위 갱신
   setTransform(); updateGrashof(); draw(); scheduleCouplerPlot();
+}
+
+// 배치 방식 전환. 두 모드의 입력값은 각자 보관 — 되돌리면 이전 값이 그대로 살아난다.
+function setServoPlace(m){
+  S.place = m==='ang' ? 'ang' : 'y';
+  const ang=S.place==='ang', g=id=>document.getElementById(id);
+  g('btnPlaceY').className='seg-btn'+(ang?'':' active');
+  g('btnPlaceAng').className='seg-btn'+(ang?' active':'');
+  g('servoOffYField').style.display=ang?'none':'';
+  g('servoAngField').style.display=ang?'':'none';
+  g('servoPlaceNm').textContent=ang?'O₄ 중심 회전':'O₂ 높이';
+  g('servoPlaceSub').textContent=ang
+    ? 'O₄ 고정 · |O₂O₄|=d 그대로 O₂ 를 O₄ 중심으로 회전(＋ 위) · 강체 회전이라 토크·MA 불변 · 수평 기준 혼 각도 = θ₄ − α'
+    : 'O₄ 고정 · O₂만 위(＋)/아래(−) 이동 · 링키지 연동 · L=√(d²+e²) → 토크 재계산';
+  onServoOffset();
 }
 
 function setT4(v){
@@ -2385,7 +2440,7 @@ function svSweep(){
   const df=getDeflect();
   const dp=isFinite(df.dp)?df.dp:0, dm=isFinite(df.dm)?df.dm:0;
   const t40=csNeutralT4();
-  const key=[S.a,S.b,S.c,S.d,S.offY,S.sol,t40,dp,dm,_svSide].join('|');
+  const key=[S.a,S.b,S.c,S.d,S.offY,S.place,S.placeAng,S.sol,t40,dp,dm,_svSide].join('|');
   if(_svMemo.key===key) return _svMemo.val;
   let val=null;
   const z=svT2At(t40);
@@ -2792,13 +2847,16 @@ function calcTorque(){
 
   const t2r=act.t2*RAD, t3r=act.t3*RAD, t4r=t4*RAD;
 
-  // T4 = T2 * (c/a) * sin(θ₃−θ₂) * sin(θ₃−θ₄)
-  // F_tangent = T2/a (모터 접선력)
-  // F_coupler = F_tangent * sin(θ₃−θ₂)  (크랭크→커플러 전달 성분)
-  // T4 = F_coupler * c * sin(θ₃−θ₄)    (커플러→출력링크)
+  // T4 = T2 * (c/a) * sin(θ₃−θ₄) / sin(θ₃−θ₂)   (위 가상일 비와 같은 식)
+  // 커플러는 2력 부재라 축력 F 만 전달한다:
+  //   T2 = F * a * sin(θ₃−θ₂)  → F = T2 / (a·sin μ_in)   (크랭크 접선 성분이 T2 를 만든다)
+  //   T4 = F * c * sin(θ₃−θ₄)                          (커플러→출력링크)
+  // 예전 식 (c/a)·sin_in·sin_out 은 F 를 T2/a 에 sin_in 을 **곱해** 구해 sin²μ_in 만큼 작게 나왔다
+  // (기본 형상 θ₄ 75°: 1.01 vs 정확 3.05). μ_in→0(입력 토글)이면 MA→∞ — 실제로 커플러 축력도
+  // 무한대로 커지는 자세라, 토크 지표(그래프 최대·가용 각도)는 μ≥OPT_MU_MIN 구간에서만 센다.
   const sin_in  = Math.sin(t3r - t2r);
   const sin_out = Math.sin(t3r - t4r);
-  const ma = (c/a) * sin_in * sin_out;
+  const ma = (c/a) * sin_out / sin_in;
 
   // 전달각(접힌 예각, 0~90°)
   const fold=deg=>{ let m=Math.abs(deg)%360; if(m>180) m=360-m; if(m>90) m=180-m; return m; };
@@ -2837,10 +2895,11 @@ function calcMAatT4(a,b,c,d,t4d,solType){
   const t3=Math.atan2(By-Ay,Bx-Ax);
   const sin_in  = Math.sin(t3 - t2r);
   const sin_out = Math.sin(t3 - t4);
-  const ma = (c/a) * sin_in * sin_out;
+  const ma = (c/a) * sin_out / sin_in;   // calcTorque 와 같은 가상일 비 (sin_in=0 이면 ±Infinity → 호출부 isFinite 로 거름)
   // 전달각 두 측 (접힌 예각 0~90°)
   //   muOut = 커플러 b ↔ 출력링크 c  ·  muIn = 크랭크 a ↔ 커플러 b
-  // MA = (c/a)·sin(muIn)·sin(muOut) 이라 어느 한쪽만 나빠도 토크 전달이 무너진다.
+  // |MA| = (c/a)·sin(muOut)/sin(muIn) — 출력측이 나쁘면 토크가 줄고, 입력측이 나쁘면 토크는
+  // 커지지만 커플러 축력·민감도가 함께 커진다. 그래서 두 측 모두 같은 하한(OPT_MU_MIN)을 건다.
   // %360 으로 자기정규화한다 — 이걸 빼면 호출부가 인자를 미리 norm 해야 한다는 숨은 전제가
   // 생기고, 실제로 t3(atan2 원본, (−180,180])를 t4d·t2([0,360))와 빼면서 −540 까지 내려가
   // 음수 μ 가 나왔다(θ₄>180 자세, 실측 2233건 → 0건). θ₄≤180 결과는 불변.
@@ -2930,7 +2989,8 @@ function drawTorquePlot(){
   // ── 범례 구성 (캔버스 안에 그림 → 복사/저장에 포함) ──
   const PAD={t:22, b:110, l:56, r:56};   // b: x축 눈금(θ₄)+노드 알약(θ₄/δ 2줄, 최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
-  const legItems=[{type:'line',color:'#ff453a',label:'T₄ 출력토크'}];
+  const legItems=[{type:'line',color:'#ff453a',label:'T₄ 출력토크'},
+                  {type:'dash',color:'rgba(255,69,58,0.45)',label:'μ<'+OPT_MU_MIN+'° 구간 (참고)'}];
   if(_legHasMotor) legItems.push({type:'dash',color:'rgba(191,90,242,0.85)',label:'토크 요구도'});
   if(marginVal>0) legItems.push({type:'dash',color:'rgba(0,140,200,0.75)',label:'물리 가용 범위 경계'});
   if(csEnds.length) legItems.push({type:'dot',color:'#5e5ce6',label:'조종면 상향·하향'});
@@ -2984,11 +3044,13 @@ function drawTorquePlot(){
   const T4_RANGE=Math.max(T4_MAX-T4_MIN,1);
   const xStep=T4_RANGE>100?20:10;
 
-  const T4arr=[];
+  // T4ok[i]: 입력·출력 전달각 모두 ≥ OPT_MU_MIN. 가상일 비는 조립 범위 끝(입력 토글, μ_in→0)으로
+  // 갈수록 T₄→∞ 라, 최대·교점·가용 각도·Y축은 이 구간 값만 쓰고 나머지는 흐리게 잘라 그린다.
+  const T4arr=[], T4ok=[];
   for(let deg=T4_MIN; deg<=T4_MAX; deg++){
     const res=calcMAatT4(a,b,c,d,deg,sol);
-    if(res===null||!isFinite(res.ma)){T4arr.push(null);}
-    else{T4arr.push(Math.abs(T2*res.ma));}
+    if(res===null||!isFinite(res.ma)){T4arr.push(null);T4ok.push(false);}
+    else{T4arr.push(Math.abs(T2*res.ma));T4ok.push(res.mu>=OPT_MU_MIN);}
   }
   const N=Math.max(T4arr.length-1,1);
   // T4arr 는 1° 정수 격자다. 중립각 θ₄₀ 가 정수가 아니면(최적화 적용 후가 보통 그렇다)
@@ -3005,7 +3067,32 @@ function drawTorquePlot(){
   if(titleEl) titleEl.textContent='출력토크 변화';
 
   // ── 치역(T4) Y축: nice step ──
-  const t4min=Math.min(...validT4), t4max=Math.max(...validT4);
+  const okT4=T4arr.filter((v,i)=>v!==null&&T4ok[i]);
+  // ── 최대값: μ 충족 구간에서만 찾는다 — 토글 쪽 발산값은 쓸 수 있는 토크가 아니다.
+  //    토크는 토글 쪽으로 갈수록 커져 최대가 대개 μ 경계에 붙으므로, 1° 격자 대신 경계를 이분법으로 잡는다.
+  let maxAt=null, maxT4=-Infinity;
+  T4arr.forEach((v,i)=>{ if(v!==null&&T4ok[i]&&v>maxT4){maxT4=v;maxAt=T4_MIN+i;} });
+  for(let i=0;i<N;i++){
+    if(T4ok[i]===T4ok[i+1]) continue;
+    const gi=T4ok[i]?i:i+1, bi=T4ok[i]?i+1:i;
+    const dg=bisectMuBoundary(a,b,c,d,sol,T4_MIN+bi,T4_MIN+gi);
+    const v=tqAt(dg);
+    if(v!==null&&v>maxT4){maxT4=v;maxAt=dg;}
+  }
+  const maxIdx=maxAt===null?-1:maxAt-T4_MIN;   // 소수 인덱스 (xp 는 실수 인덱스를 받는다)
+
+  // μ 충족 구간이 없으면(나쁜 형상) 작은 쪽 절반 값으로 축을 잡는다 — 토글 쪽 발산값이 축을 먹지 않게
+  const scaleT4=(okT4.length?okT4:validT4.slice().sort((p,q)=>p-q).slice(0,Math.ceil(validT4.length/2))).slice();
+  if(maxAt!==null) scaleT4.push(maxT4);
+  // 현재 위치·조종면 끝단 마커는 μ 미달이어도 값을 찍으므로 축에 넣되, 토글 바로 옆이면 축이
+  // 무너지지 않게 2배에서 자른다(넘는 마커는 플롯 위 가장자리에 붙여 그린다 — ypc).
+  { const cap=2*Math.max(...scaleT4);
+    [Math.max(T4_MIN,Math.min(T4_MAX,curT4deg)), ...csEnds.filter(e=>e.deg>=T4_MIN&&e.deg<=T4_MAX).map(e=>e.deg)]
+      .forEach(dg=>{ const v=tqAt(dg); if(v!==null) scaleT4.push(Math.min(v,cap)); }); }
+  // 가상일 비 곡선은 조립 범위 끝에서 0 으로 떨어지지 않아 축 하한이 높게 잡힌다 → 요구도 선이 축 밖으로
+  // 빠지지 않게 요구도 값도 축에 넣는다(값이 지나치게 크면 그대로 보여 주는 게 맞다 — 미달이라는 뜻이니까).
+  if(_legHasMotor&&_legMotorV>0) scaleT4.push(_legMotorV);
+  const t4min=Math.min(...scaleT4), t4max=Math.max(...scaleT4);
   const rawSpan=Math.max(Math.abs(t4max-t4min),0.01);
   const rawStep=rawSpan/6;
   const mag=Math.pow(10,Math.floor(Math.log10(rawStep)));
@@ -3019,6 +3106,7 @@ function drawTorquePlot(){
   // ── 좌표 변환 함수 ──
   const xp =i => PAD.l+(i/N)*IW;               // i=0..N → θ₄=45..135
   const yp =v => PAD.t+IH-(v-yLo)/(yHi-yLo)*IH;
+  const ypc=v => Math.max(PAD.t, yp(v));       // 축 위로 넘는 마커는 위 가장자리에 붙인다
 
   c2.clearRect(0,0,PW,PH);
 
@@ -3109,12 +3197,14 @@ function drawTorquePlot(){
 
 
 
-  // ── T4 그라디언트 채우기 ──
+  // ── T4 그라디언트 채우기 (μ 충족 구간만) + 곡선 ── 축 위로 솟는 토글 쪽은 플롯 영역에서 잘라낸다
+  c2.save();
+  c2.beginPath(); c2.roundRect(PAD.l,PAD.t,IW,IH,6); c2.clip();
   const grad=c2.createLinearGradient(0,PAD.t,0,PAD.t+IH);
   grad.addColorStop(0,"rgba(255,69,58,0.18)"); grad.addColorStop(1,"rgba(255,69,58,0.0)");
   c2.beginPath(); let st=false, lastIdx=-1;
   for(let i=0;i<=N;i++){
-    if(T4arr[i]===null){
+    if(T4arr[i]===null||!T4ok[i]){
       if(st){c2.lineTo(xp(lastIdx),yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();c2.beginPath();st=false;}
       continue;
     }
@@ -3124,22 +3214,26 @@ function drawTorquePlot(){
   }
   if(st){c2.lineTo(xp(lastIdx),yp(0));c2.closePath();c2.fillStyle=grad;c2.fill();}
 
-  // ── T4 곡선 (빨간 실선) ──
-  c2.beginPath(); st=false;
-  for(let i=0;i<=N;i++){
-    if(T4arr[i]===null){st=false;continue;}
-    const x=xp(i),y=yp(T4arr[i]);
-    if(!st){c2.moveTo(x,y);st=true;}else c2.lineTo(x,y);
-  }
+  // ── T4 곡선: 전체(μ 미달 포함)는 흐린 점선, μ 충족 구간만 빨간 실선으로 덮는다 ──
+  const tracePath=okOnly=>{
+    c2.beginPath(); let on=false;
+    for(let i=0;i<=N;i++){
+      if(T4arr[i]===null||(okOnly&&!T4ok[i])){on=false;continue;}
+      const x=xp(i),y=yp(T4arr[i]);
+      if(!on){c2.moveTo(x,y);on=true;}else c2.lineTo(x,y);
+    }
+  };
+  tracePath(false);
+  c2.strokeStyle="rgba(255,69,58,0.45)"; c2.lineWidth=1.4; c2.setLineDash([4,3]); c2.stroke(); c2.setLineDash([]);
+  tracePath(true);
   c2.save();
   c2.shadowColor="rgba(255,69,58,0.28)"; c2.shadowBlur=7; c2.shadowOffsetY=2.5;
   c2.strokeStyle="#ff453a"; c2.lineWidth=2.2; c2.lineJoin="round"; c2.lineCap="round"; c2.stroke();
   c2.restore();
+  c2.restore();
 
   // ── 최대값 마커 (초록) ──
   let maxLabelRect=null;
-  const maxT4=Math.max(...validT4);
-  const maxIdx=T4arr.indexOf(maxT4);
   if(maxIdx>=0){
     const mx=xp(maxIdx), my=yp(maxT4);
     const maxDeg=(T4_MIN+maxIdx).toFixed(1);
@@ -3175,7 +3269,7 @@ function drawTorquePlot(){
   const clampedT4=Math.max(T4_MIN,Math.min(T4_MAX,curT4deg));
   const curTq=tqAt(clampedT4);                 // 격자 반올림 없이 현재 θ₄ 그대로
   if(curTq!==null){
-    const cx=xp(clampedT4-T4_MIN), cy=yp(curTq);
+    const cx=xp(clampedT4-T4_MIN), cy=ypc(curTq);
     c2.strokeStyle="rgba(255,159,10,0.45)"; c2.lineWidth=1; c2.setLineDash([3,2]);
     c2.beginPath(); c2.moveTo(cx,PAD.t); c2.lineTo(cx,PAD.t+IH); c2.stroke();
     c2.setLineDash([]);
@@ -3218,7 +3312,7 @@ function drawTorquePlot(){
       if(e.deg<T4_MIN||e.deg>T4_MAX) continue;
       const tq=tqAt(e.deg);
       if(tq===null) continue;
-      const x=xp(e.deg-T4_MIN), y=yp(tq);
+      const x=xp(e.deg-T4_MIN), y=ypc(tq);
       c2.strokeStyle="rgba(94,92,230,0.38)"; c2.lineWidth=1; c2.setLineDash([4,3]);
       c2.beginPath(); c2.moveTo(x,PAD.t); c2.lineTo(x,PAD.t+IH); c2.stroke();
       c2.setLineDash([]);
@@ -3260,11 +3354,12 @@ function drawTorquePlot(){
     // 입력값 있으면 항상 박스 표시
     if(_rb) _rb.style.display='block';
 
-    // 교점 계산 (플롯 범위와 무관하게 데이터 기반으로)
+    // 교점 계산 (플롯 범위와 무관하게 데이터 기반으로) — μ 충족 구간 안의 교점만.
+    // 흐리게 그린 μ 미달 구간에서 곡선이 다시 솟아 만나는 점은 쓸 수 있는 경계가 아니다.
     const intersections=[];
     for(let i=0;i<N;i++){
       const v0=T4arr[i], v1=T4arr[i+1];
-      if(v0===null||v1===null) continue;
+      if(v0===null||v1===null||!T4ok[i]||!T4ok[i+1]) continue;
       // 절댓값 기준 교점 탐색 (교차형 음수 토크 대응)
       const a0=Math.abs(v0), a1=Math.abs(v1);
       if((a0-motorVal)*(a1-motorVal)<=0){
@@ -3275,15 +3370,16 @@ function drawTorquePlot(){
       }
     }
 
+    // 토크 가용 각도 = |T₄| ≥ 요구도 ∧ μ ≥ OPT_MU_MIN 인 최장 연속 구간 (커플러 그래프와 같은 함수).
+    // 곡선 전체가 요구도 위면 교점이 없어도 μ 충족 구간 전체가 가용 각도다.
+    const usable=torqueUsableRun(a,b,c,d,sol,T2,motorVal,T4_MIN,T4arr,T4ok);
+
     // 가용 각도 텍스트 업데이트
     if(_rt){
-      if(intersections.length>=2){
-        const t4A=intersections[0].t4cross, t4B=intersections[intersections.length-1].t4cross;
-        const span=Math.abs(t4B-t4A);
-        const mid=((t4A+t4B)/2).toFixed(1);
-        _rt.textContent='범위 '+span.toFixed(1)+'° ('+t4A.toFixed(1)+'° ~ '+t4B.toFixed(1)+'°), 중간 값 '+mid+'°';
+      if(usable&&usable.hi-usable.lo>1e-6){
+        _rt.textContent='범위 '+(usable.hi-usable.lo).toFixed(1)+'° ('+usable.lo.toFixed(1)+'° ~ '+usable.hi.toFixed(1)+'°), 중간 값 '+((usable.lo+usable.hi)/2).toFixed(1)+'°';
       } else {
-        _rt.textContent='범위 0°  (교점 없음)';
+        _rt.textContent='범위 0°  (μ≥'+OPT_MU_MIN+'° 구간에서 요구도 미달)';
       }
     }
 
@@ -3381,7 +3477,7 @@ function drawTorquePlot(){
 
 // ── COUPLER SWEEP PLOT ──
 // 커플러 길이 b를 스윕하며 각 b에 대해:
-//   maxAbs = θ₄ 전 범위(0~180°)에서의 최대 |T₄|
+//   maxAbs = θ₄(0~180°) 중 입력·출력 μ≥OPT_MU_MIN 인 자세에서의 최대 |T₄| (토글 쪽 T₄→∞ 제외)
 //   span   = 물리 가용 각도 = (유효 해가 존재하는 θ₄ 범위) − 양끝단 마진×2
 // 주어진 θ₄(deg)에서 해가 존재하는지 + MA 반환 (없으면 null)
 function feasibleAt(a,b,c,d,deg,sol){
@@ -3408,22 +3504,60 @@ function bisectMuBoundary(a,b,c,d,sol,badDeg,goodDeg){
   return hi;
 }
 
+// 토크 가용 각도 — |T₄| ≥ 요구도 ∧ 입력·출력 μ ≥ OPT_MU_MIN 인 **가장 긴 연속 구간** {lo,hi} (없으면 null).
+// 출력토크 박스와 커플러 그래프가 함께 쓴다 — 두 벌로 두면 정의가 갈라진다(가상일 비 곡선은 U자라 요구도가
+// 최솟값 바로 위면 구간이 둘로 갈리고, 합계와 최장 구간이 크게 달라진다). vals[i]·ok[i] 는 θ₄ = d0+i 의 1° 격자.
+// 칸 안에서는 토크를 선형 보간해 요구도 교점을 잡고, μ 충족이 바뀌는 칸은 경계각을 이분법으로 찾아 그 안쪽만 센다.
+function torqueUsableRun(a,b,c,d,sol,T2,req,d0,vals,ok){
+  const part=(x0,v0,x1,v1)=>{            // [x0,x1] 에서 토크가 v0→v1 직선일 때 v ≥ req 인 부분
+    const s0=v0>=req, s1=v1>=req;
+    if(s0&&s1) return [x0,x1];
+    if(!s0&&!s1) return null;
+    const xc=x0+(x1-x0)*(req-v0)/(v1-v0);   // 부호가 달라 v0≠v1
+    return s0?[x0,xc]:[xc,x1];
+  };
+  let best=null, cur=null;
+  for(let i=0;i+1<vals.length;i++){
+    let p=null;
+    if(ok[i]&&ok[i+1]) p=part(d0+i,vals[i],d0+i+1,vals[i+1]);
+    else if(ok[i]!==ok[i+1]){
+      const g=ok[i]?i:i+1, bd=ok[i]?i+1:i;
+      const dg=bisectMuBoundary(a,b,c,d,sol,d0+bd,d0+g);
+      const r=feasibleAt(a,b,c,d,dg,sol);
+      if(r){ const vb=Math.abs(T2*r.ma); p=g<bd?part(d0+g,vals[g],dg,vb):part(dg,vb,d0+g,vals[g]); }
+    }
+    if(!p||p[1]<=p[0]) continue;
+    if(cur&&p[0]<=cur.hi+1e-9) cur.hi=Math.max(cur.hi,p[1]); else cur={lo:p[0],hi:p[1]};
+    if(!best||cur.hi-cur.lo>best.hi-best.lo) best={lo:cur.lo,hi:cur.hi};
+  }
+  return best;
+}
+
 function couplerMetrics(bVal, T2, marginVal, motorVal){
   const{a,c,sol}=S, d=gLen();
   const vals=[], okArr=[];
-  let firstIdx=null, lastIdx=null, maxAbs=0;
+  let firstIdx=null, lastIdx=null, maxAbs=-Infinity;
   for(let deg=0; deg<=180; deg++){
     const r=feasibleAt(a,bVal,c,d,deg,sol);
     if(r){
       if(firstIdx===null) firstIdx=deg;
       lastIdx=deg;
       const val=Math.abs(T2*r.ma);
+      const ok=r.mu>=OPT_MU_MIN;   // 전달각 기준(§2-4) 충족 여부
       vals.push(val);
-      okArr.push(r.mu>=OPT_MU_MIN);   // 전달각 기준(§2-4) 충족 여부
-      if(val>maxAbs) maxAbs=val;
+      okArr.push(ok);
+      if(ok&&val>maxAbs) maxAbs=val;
     } else { vals.push(null); okArr.push(false); }
   }
   if(firstIdx===null) return null;
+  // 최대 T₄ 는 대개 μ 경계(토글 쪽)에 붙는다 — 1° 격자만 보면 b 에 따라 톱니처럼 흔들리므로
+  // 경계를 이분법으로 잡아 그 자세의 값도 후보에 넣는다.
+  for(let deg=0; deg<180; deg++){
+    if(okArr[deg]===okArr[deg+1]) continue;
+    const g=okArr[deg]?deg:deg+1, bd=okArr[deg]?deg+1:deg;
+    const r=feasibleAt(a,bVal,c,d,bisectMuBoundary(a,bVal,c,d,sol,bd,g),sol);
+    if(r){ const v=Math.abs(T2*r.ma); if(v>maxAbs) maxAbs=v; }
+  }
 
   // ── 조립 가능 경계 (서브디그리 정밀, 끝단 마진 적용용) ──
   let firstDeg=firstIdx, lastDeg=lastIdx;
@@ -3456,22 +3590,13 @@ function couplerMetrics(bVal, T2, marginVal, motorVal){
     }
   }
 
-  // ── 토크 가용 각도: |T₄| ≥ 토크 요구도 인 θ₄ 구간의 총 각도 ──
+  // ── 토크 가용 각도: 출력토크 박스와 같은 정의(최장 연속 구간) ──
   let torqueSpan=NaN;
   if(!isNaN(motorVal)){
-    torqueSpan=0;
-    for(let i=0;i<180;i++){
-      const v0=vals[i], v1=vals[i+1];
-      if(v0===null||v1===null) continue;
-      const a0=v0>=motorVal, a1=v1>=motorVal;
-      if(a0&&a1) torqueSpan+=1;
-      else if(a0!==a1){
-        const frac=Math.abs(v1-v0)<1e-9?0.5:(motorVal-v0)/(v1-v0);
-        torqueSpan+= a0?frac:(1-frac);
-      }
-    }
+    const run=torqueUsableRun(a,bVal,c,d,sol,T2,motorVal,0,vals,okArr);
+    torqueSpan=run?run.hi-run.lo:0;
   }
-  return{maxAbs, physSpan, torqueSpan};
+  return{maxAbs:isFinite(maxAbs)?maxAbs:null, physSpan, torqueSpan};
 }
 
 function drawCouplerPlot(){
@@ -3492,7 +3617,7 @@ function drawCouplerPlot(){
   // ── 범례 구성 (캔버스 안에 그림 → 복사/저장에 포함) ──
   const PAD={t:54, b:84, l:56, r:56};   // b: x축 눈금+pill 라벨(최대 4행)+범례 여유
   const IW=W2-PAD.l-PAD.r;
-  const legItems=[{type:'line',color:'#ff453a',label:'최대 T₄'}];
+  const legItems=[{type:'line',color:'#ff453a',label:'최대 T₄ (μ≥'+OPT_MU_MIN+'°)'}];
   if(showPhys)   legItems.push({type:'line',color:'#38b6ff',label:'가용 각도 (입력·출력 전달각 μ≥'+OPT_MU_MIN+'° 반영)'});
   if(showTorque) legItems.push({type:'line',color:'#bf5af2',label:'토크 가용 각도'});
   const legRows=layoutLegend(legItems, IW);
@@ -3732,7 +3857,7 @@ function drawCouplerPlot(){
     c2.setLineDash([]);
     curMetrics=couplerMetrics(curB, T2, marginVal, hasMotor?motorVal:NaN);
     if(curMetrics){
-      dot(cx,ypL(curMetrics.maxAbs),"#ff9f0a",5);
+      if(curMetrics.maxAbs!==null) dot(cx,ypL(curMetrics.maxAbs),"#ff9f0a",5);
       if(yR&&showPhys&&isFinite(curMetrics.physSpan)&&curMetrics.physSpan>1e-6)
         dot(cx,ypR(curMetrics.physSpan),"#ff9f0a",4);
       if(yR&&showTorque&&isFinite(curMetrics.torqueSpan)&&curMetrics.torqueSpan>1e-6)
@@ -3901,7 +4026,7 @@ function optTols(){
 //               (미지 공력상수는 비율에서 소거 → 타각범위만으로 결정. sym 이면 두 식이 기존과 수치 동일)
 //   · 비대칭(torque): 절대 토크 최우선 — score = 중립 토크 |T(θ₄₀)| 를 최대화(피크 tiebreak).
 //               단 최소 안전여유 min(T₋/δ₋,T₊/δ₊) ≥ opt.floor 를 하한 제약으로 부과.
-//               → b·c 를 토크가 커지는 쪽으로 몰되, μ≥50°·불균형≤10°·여유하한은 지킴.
+//               → b·c 를 토크가 커지는 쪽으로 몰되, μ≥47°·불균형≤10%·여유하한은 지킴.
 function bestNeutralForB(bVal,T2,dm,dp,margin,opt){
   const sym=Math.abs(dm-dp)<1e-9;
   const torque=!sym&&opt&&opt.mode==='torque';   // 절대 토크 최우선 모드
@@ -4149,7 +4274,7 @@ function doOptimize(){
   //    대칭: 기존 목적함수(합+피크).
   //    비대칭: 토크 최우선 2-패스 — 패스A(margin)로 달성 가능한 최대 최소여유 M* 를 구하고
   //            하한 = 0.9·M* 을 걸어 패스B(torque)에서 그 아래로 안 내려가게 하며 중립 토크 최대화.
-  //    (b·c 를 토크가 커지는 쪽으로 몰되 μ≥50°·불균형≤10%·여유하한은 지킴)
+  //    (b·c 를 토크가 커지는 쪽으로 몰되 μ≥47°·불균형≤10%·여유하한은 지킴)
   // 정책은 optimizeByPolicy 한 곳에서만 — 스윕도 같은 함수를 쓴다
   const _pol=optimizeByPolicy(dm,dp,T2,marginVal,sym);
   let res=_pol.res, optUsed=_pol.optUsed;
@@ -4543,7 +4668,7 @@ function optimizeForDelta(dm,dp,T2,marginVal,opt){
 // 같은 d 에서는 항상 같은 범위 → 항상 같은 추천이 나온다.
 // ── 설계 변수(고정/변수) 헬퍼 ─────────────────────────────────────────────
 // 링크 표시명 / 입력칸 id / 하한
-const OPTVAR_META={ d:{nm:'고정 d', min:10, note:' · 유효 지상링크 L=√(d²+e²) (y오프셋 반영)'},
+const OPTVAR_META={ d:{nm:'고정 d', min:10, note:' · 유효 지상링크 L=√(d²+e²) (y오프셋 반영, 각도 배치는 L=d)'},
                     a:{nm:'입력 a', min:5,  note:' · 토크 ∝ 1/a → 하한에 붙기 쉬움'},
                     b:{nm:'커플러 b',min:5, note:' · 조립조건 [L−a−c, L+a+c] 자동 반영'},
                     c:{nm:'출력 c', min:5,  note:' · 자동범위 0.2~0.8×L'} };
